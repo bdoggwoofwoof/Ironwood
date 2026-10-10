@@ -215,32 +215,16 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
-.tour-dim{position:absolute;inset:0;background:rgba(0,0,0,.62)}
-.tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .25s,top .25s,width .25s,height .25s;pointer-events:none}
-.tour-card{position:absolute;left:12px;right:12px;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4)}
-.tour-card.top{top:calc(env(safe-area-inset-top,0px) + 12px)}
-.tour-card.bottom{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
-.tour-card.mid{top:50%;transform:translateY(-50%)}
+.tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
+.tour-hole{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),height .38s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;pointer-events:none;will-change:left,top,width,height}
+.tour-hole.none{box-shadow:0 0 0 0 transparent,0 0 0 9999px rgba(0,0,0,.62)}
+.tour-card{position:fixed;left:12px;right:12px;top:0;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .2s ease;will-change:transform}
+.tour-card.ready{opacity:1}
+.tour-txt{animation:tourfade .22s ease}
+@keyframes tourfade{from{opacity:0}}
 .tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
-:root.rm .tour-hole{transition:none}
-.slot-pick{display:flex;flex-direction:column;gap:6px}
-.slot-btn{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;background:var(--raised);text-align:left;border:2px solid transparent}
-.slot-btn.on{border-color:var(--ink)}
-.slot-btn i{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
-.slot-btn b{display:block;font-size:15px}.slot-btn .d{font-size:12.5px;color:var(--ink-2)}
-.wheel{position:relative;margin:14px auto 0;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
-.wheel canvas,.wheel svg{position:absolute;inset:0;width:100%;height:100%}
-.wheel .wl{stroke-width:3;stroke-linecap:round}
-.wheel .wl.main{stroke:#fff;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
-.wheel .wl.sug{stroke:#fff;stroke-dasharray:5 5;opacity:.9;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
-.wheel .wc{fill:#fff;stroke:rgba(0,0,0,.6);stroke-width:1.5}
-.wheel .wd-main{stroke:#fff;stroke-width:4;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
-.wheel .wd-sug{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 2px rgba(0,0,0,.7))}
-.sug-sw{width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--line)}
-.cw-v{width:100%;accent-color:var(--ink-2)}
-.cw-prev{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.cw-prev .btn{min-height:40px;padding:8px 16px}
-@media (prefers-reduced-motion: reduce){.tour-hole{transition:none}}
+:root.rm .tour-hole,:root.rm .tour-card{transition:none}:root.rm .tour-txt{animation:none}
+@media (prefers-reduced-motion: reduce){.tour-hole,.tour-card{transition:none}.tour-txt{animation:none}}
 .tag-row{display:flex;flex-wrap:wrap;gap:4px}
 .chip.wtag{font-size:11.5px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
 .wsec-h{display:flex;align-items:center;gap:10px;width:100%;padding:14px 4px 10px;border-bottom:1px solid var(--line);text-align:left}
@@ -1673,38 +1657,53 @@ const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
 function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
 function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
-/* Spotlight: dims the page, cuts a highlighted hole around what the step talks about, and puts the text card on the
-   opposite half of the screen so it never covers it. */
+/* Spotlight: dims the page and cuts a highlighted hole around what the step talks about. The hole and the text card
+   stay on screen the whole time: between steps the hole glides to the next item (following the page while it scrolls
+   smoothly), the card slides to whichever half of the screen keeps it clear, and only the words fade. */
+const reduceMotion = () => document.documentElement.classList.contains('rm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 function TourOverlay() {
   const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
-  const [rect, setRect] = useState(null);
+  const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
   useEffect(() => {
-    setRect(null); let alive = true, tries = 0;
+    let alive = true, raf = 0, scrolled = false, lockSide = null; const t0 = performance.now(); const smooth = !reduceMotion();
     const ls = (extra && extra.ls) || {}; for (const k in ls) lsSet(k, ls[k]);
-    if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
-    UI.setTab(tab); S.rerender();
-    const measure = () => {
-      if (!alive || !sel) return; const els = [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0);
-      if (!els.length) { if (tries++ < 25) setTimeout(measure, 60); return; }
-      const list = els.slice(0, (extra && extra.max) || 1);
-      list[0].scrollIntoView({ block: 'center' });
-      setTimeout(() => { if (!alive) return; let r = null;
-        for (const e of list) { const b = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom) } : { l: b.left, t: b.top, r: b.right, b: b.bottom }; }
-        setRect(r); }, 60);
+    if (lsGet('tab') !== tab) { if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); } UI.setTab(tab); }
+    else if (mode && TRAIN.mode !== mode) { TRAIN.mode = mode; lsSet('trainMode', mode); S.rerender(); }
+    const max = (extra && extra.max) || 1;
+    const frame = () => {
+      if (!alive) return; const hole = holeRef.current, card = cardRef.current, inset = insetRef.current;
+      if (hole && card) {
+        const vh = innerHeight, vw = innerWidth, it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0;
+        const els = sel ? [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0).slice(0, max) : [];
+        let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, q.left), t: Math.min(r.t, q.top), r: Math.max(r.r, q.right), b: Math.max(r.b, q.bottom) } : { l: q.left, t: q.top, r: q.right, b: q.bottom }; }
+        if (r && !scrolled) { scrolled = true; const maxY = Math.max(0, document.documentElement.scrollHeight - vh);
+          const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
+          lockSide = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';   /* where the item will sit once scrolled */
+          if (Math.abs(want - scrollY) > 4) scrollTo({ top: want, behavior: smooth ? 'smooth' : 'auto' }); }
+        const waiting = sel && !r && performance.now() - t0 < 1500;          // keep the last spot while the page settles
+        if (!waiting) {
+          const pad = 8; let side;
+          if (r) { hole.classList.remove('none');
+            hole.style.left = Math.max(4, r.l - pad) + 'px'; hole.style.top = Math.max(4, r.t - pad) + 'px';
+            hole.style.width = Math.min(vw - 8, r.r - r.l + 2 * pad) + 'px'; hole.style.height = Math.min(vh - 8, r.b - r.t + 2 * pad) + 'px';
+            side = lockSide || ((r.t + r.b) / 2 > vh / 2 ? 'top' : 'bottom'); }
+          else { hole.classList.add('none'); hole.style.left = vw / 2 + 'px'; hole.style.top = vh / 2 + 'px'; hole.style.width = '0px'; hole.style.height = '0px'; side = 'mid'; }
+          const h = card.offsetHeight; const top = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - h : (vh - h) / 2;
+          card.style.transform = 'translateY(' + Math.round(top) + 'px)'; card.classList.add('ready');
+        }
+      }
+      raf = requestAnimationFrame(frame);
     };
-    setTimeout(measure, 40);
+    raf = requestAnimationFrame(frame);
     const onKey = e => { if (e.key === 'Escape') endTour(); }; addEventListener('keydown', onKey);
-    const onResize = () => { tries = 0; measure(); }; addEventListener('resize', onResize);
-    return () => { alive = false; removeEventListener('keydown', onKey); removeEventListener('resize', onResize); };
+    return () => { alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey); };
   }, [step]);
-  const pad = 8, vh = innerHeight, vw = innerWidth;
-  const hole = rect && { left: Math.max(4, rect.l - pad) + 'px', top: Math.max(4, rect.t - pad) + 'px', width: Math.min(vw - 8, rect.r - rect.l + 2 * pad) + 'px', height: Math.min(vh - 8, rect.b - rect.t + 2 * pad) + 'px' };
-  const place = !sel ? 'mid' : !rect ? 'bottom' : (rect.t + rect.b) / 2 > vh / 2 ? 'top' : 'bottom';
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
-    ${hole ? html`<div class="tour-hole" style=${hole}></div>` : html`<div class="tour-dim"></div>`}
-    <div class=${'tour-card ' + place}>
+    <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
+    <div class="tour-hole none" ref=${holeRef}></div>
+    <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
       <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
-      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p>
+      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>
       <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
         <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>
     </div></div>`;

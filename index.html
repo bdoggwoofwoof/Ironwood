@@ -300,7 +300,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-nume
 /* Sheet */
 .scrim{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
 .sheet{background:var(--surface);width:100%;max-width:640px;max-height:88%;overflow-y:auto;border-radius:20px 20px 0 0;padding:8px var(--gut) calc(20px + env(safe-area-inset-bottom,0px));animation:rise .2s ease}
-.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}
+.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}
+.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}
 .sheet h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-bottom:4px}
 .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 4px;border-bottom:1px solid var(--line);font-size:16px;font-weight:500}
 .opt svg{width:20px;height:20px;color:var(--ink-2)}
@@ -1486,8 +1489,22 @@ function routineSlot(a, it) {
 
 /* ---------- shared bits ---------- */
 function Sheet({ children, label }) {
+  const ref = useRef(null); const drag = useRef(null); const last = useRef(0); const [big, setBig] = useState(false);
+  const down = e => { const el = ref.current; if (!el) return; drag.current = { y: e.clientY, t: Date.now(), h: el.getBoundingClientRect().height, dy: 0 }; last.current = 0; el.style.transition = 'none';
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} };
+  const move = e => { const d = drag.current, el = ref.current; if (!d || !el) return; const dy = e.clientY - d.y; d.dy = dy;
+    if (dy >= 0) { el.style.transform = 'translateY(' + dy + 'px)'; el.style.height = ''; el.style.maxHeight = ''; }
+    else { el.style.transform = ''; el.style.maxHeight = 'none'; el.style.height = Math.min(innerHeight - 12, d.h - dy) + 'px'; } };
+  const up = () => { const d = drag.current, el = ref.current; drag.current = null; if (!d || !el) return; const dy = d.dy; last.current = dy;
+    const fast = dy / Math.max(1, Date.now() - d.t) > 0.6;
+    el.style.transition = 'transform .2s ease, height .2s ease';
+    if (dy > 140 || (dy > 30 && fast && !big) || (dy > 30 && fast && big && dy > 90)) { el.style.transform = 'translateY(' + (el.offsetHeight + 40) + 'px)'; setTimeout(closeSheet, 180); return; }
+    el.style.transform = ''; el.style.height = ''; el.style.maxHeight = '';
+    if (dy < -40) setBig(true); else if (dy > 40 && big) setBig(false); };
+  const tap = () => { if (Math.abs(last.current) < 6) setBig(!big); last.current = 0; };
   return html`<div class="scrim" onClick=${e => { if (e.target === e.currentTarget) closeSheet(); }}>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label=${label || 'Panel'}><div class="grab"></div>${children}</div></div>`;
+    <div ref=${ref} class=${'sheet' + (big ? ' big' : '')} role="dialog" aria-modal="true" aria-label=${label || 'Panel'}>
+      <button class="grab-zone" aria-label=${big ? 'Make this panel smaller' : 'Make this panel full height'} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} onClick=${tap}><span class="grab"></span></button>${children}</div></div>`;
 }
 function Sparkline({ pts }) {
   if (!pts || pts.length < 2) return html`<svg viewBox="0 0 76 26" width="76" height="26" aria-hidden="true"><line x1="2" y1="13" x2="74" y2="13" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 4"/></svg>`;

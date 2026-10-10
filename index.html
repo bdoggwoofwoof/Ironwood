@@ -1844,6 +1844,8 @@ function ProfileScreen() {
       ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
       <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} routines · ${Object.keys(S.meta.exercises).length} custom exercises</p>
     </div>
+    <div class="section-h"><h2>About</h2></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p></div>
     <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
     <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
   </div>`;

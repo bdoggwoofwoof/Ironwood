@@ -1,6 +1,6 @@
 # Ironwood — standalone app
 
-Upload this whole folder to any static host with HTTPS (Netlify, Cloudflare Pages, Vercel or GitHub Pages).
+Upload this whole folder to any static host with HTTPS (GitHub Pages, Netlify, Cloudflare Pages or Vercel).
 Then on the iPhone: open the address in Safari → Share → Add to Home Screen.
 
 - Works offline after the first open.

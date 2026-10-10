@@ -1,0 +1,20 @@
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url('fonts/barlow-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url('fonts/barlow-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url('fonts/barlow-condensed-latin-700-normal.woff2') format('woff2')}
+:root{color-scheme:dark;--bg:#111315;--surface:#1a1d21;--ink:#eef1f4;--ink-2:#a3abb4;--accent:#4c8dff;--line:#2d3238}
+@media (prefers-color-scheme:light){:root{color-scheme:light;--bg:#f2f4f7;--surface:#ffffff;--ink:#14171b;--ink-2:#59616b;--accent:#1f5fd6;--line:#d9dee5}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 'Barlow',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:680px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 64px}
+h1,h2,h3{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
+h1{font-size:40px;margin:8px 0 4px}
+h2{font-size:22px;margin:32px 0 8px}
+h3{font-size:18px;margin:20px 0 4px;text-transform:none;letter-spacing:0;font-family:'Barlow',sans-serif;font-weight:600}
+p,li{max-width:62ch}
+ul,ol{padding-left:22px}
+li{margin:4px 0}
+a{color:var(--accent);text-underline-offset:3px}
+.lead{font-size:19px;background:var(--surface);border-radius:14px;padding:14px 16px}
+.meta,.back{color:var(--ink-2);font-size:15px;margin:0}
+.back a{text-decoration:none;font-weight:600}
+.foot{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;font-size:15px}

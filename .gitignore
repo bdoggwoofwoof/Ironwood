@@ -6,3 +6,6 @@ screens/
 app.html
 *.zip
 icon-1024.png
+shot-*.png
+package.json
+package-lock.json

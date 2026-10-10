@@ -5,6 +5,7 @@
 - Routine library: Newt's 13 RepCount routines (with exercise notes) and seven ready-made programs;
   List / By type views, with workout-type tags (set in the editor or automatic) and collapsible sections; library routines can be edited (saved over
   the original, with Reset), copied, or removed (and brought back).
+- Other activities: quick-log running, swimming, yoga, BJJ and more from Train, Log or a day; counts toward streaks.
 - Restore: accepts workout backups and photo backups; reads big files without the text box;
   a backup restored into an empty app brings back everything (settings, bodyweight,
   challenges, timers, day marks); into a used app it adds whatever is missing.
@@ -488,6 +489,79 @@ input.field.ed-cue{padding:8px 10px;font-size:15px;background:var(--surface)}"""
 swap("<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps : ''}</span>", "<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>")
 swap("${it.sets}× ${exName(it.ex)}${it.group ? ' · ' + (RANGE_NAME", "${exName(it.ex)}<span class=\"faint\"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME")
 swap("This change applies to today. Copy the routine to make it permanent.", "This change applies to today. Edit the routine to make it permanent.")
+
+# 9. Quick-log other activities (running, swimming, yoga, BJJ…). Saved as a session with kind 'activity' and no
+#    exercises, so streaks, the week strip, workouts-per-week and backups all count it with no further changes.
+ACT = r"""
+/* ---------- Other activities ---------- */
+const ACTS = [['run', 'Running', 1], ['walk', 'Walking / hiking', 1], ['cycle', 'Cycling', 1], ['swim', 'Swimming', 1], ['row', 'Rowing', 1], ['ruck', 'Rucking', 1],
+  ['cross', 'Cross-training', 0], ['hiit', 'HIIT / conditioning', 0], ['bjj', 'BJJ / martial arts', 0], ['sport', 'Sports', 0], ['yoga', 'Yoga', 0], ['mobility', 'Stretching / mobility', 0], ['other', 'Other', 0]];
+const actInfo = k => ACTS.find(a => a[0] === k) || ACTS[ACTS.length - 1];
+const actUnit = k => k === 'swim' ? (U() === 'kg' ? 'm' : 'yd') : (U() === 'kg' ? 'km' : 'mi');
+function actLine(s) {
+  const p = []; if (s.dist) p.push(fmt(s.dist) + ' ' + (s.distU || 'mi')); if (s.dur) p.push(s.dur + ' min');
+  if (s.dist && s.dur && (s.distU === 'mi' || s.distU === 'km') && s.activity !== 'cycle') { const pm = s.dur / s.dist; p.push(Math.floor(pm) + ':' + String(Math.round((pm % 1) * 60)).padStart(2, '0') + ' /' + s.distU); }
+  return p.join(' · ');
+}
+function ActivitySheet({ id, day }) {
+  const s0 = id ? S.sessions[id] : null; const today = ymd(Date.now());
+  const [act, setAct] = useState(s0 ? s0.activity : 'run'); const [name, setName] = useState(s0 && s0.activity === 'other' ? s0.name : '');
+  const [d, setD] = useState(s0 ? ymd(s0.startedAt) : (day && day <= today ? day : today));
+  const [dur, setDur] = useState(s0 && s0.dur ? String(s0.dur) : ''); const [dist, setDist] = useState(s0 && s0.dist ? String(s0.dist) : '');
+  const [du, setDu] = useState(s0 && s0.distU ? s0.distU : actUnit(s0 ? s0.activity : 'run')); const [note, setNote] = useState(s0 ? s0.note || '' : '');
+  const [confirm, setConfirm] = useState(false);
+  const info = actInfo(act);
+  const pick = k => { setAct(k); if (!dist) setDu(actUnit(k)); };
+  const save = () => {
+    const m = Math.max(0, Math.round(num(dur))); let start;
+    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) start = Date.now() - Math.max(m, 1) * 60000; else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
+    const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : info[1], startedAt: start, endedAt: start + Math.max(m, 1) * 60000,
+      updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
+    commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });
+  };
+  const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
+  return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
+    <p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>
+    <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="stack" style="margin-top:14px">
+      ${act === 'other' ? html`<div><label class="lbl" for="ac-name">What did you do?</label><input class="field" id="ac-name" placeholder="e.g. Climbing" value=${name} onInput=${e => setName(e.target.value)}/></div>` : null}
+      <div class="row" style="align-items:flex-end"><div style="flex:1"><label class="lbl" for="ac-date">Date</label><input class="field" id="ac-date" type="date" max=${today} value=${d} onChange=${e => e.target.value && setD(e.target.value)}/></div>
+        <div style="flex:1"><label class="lbl" for="ac-dur">Minutes</label><input class="field" id="ac-dur" inputmode="numeric" placeholder="e.g. 45" value=${dur} onInput=${e => setDur(e.target.value.replace(/[^\d]/g, ''))}/></div></div>
+      ${info[2] ? html`<div class="row" style="align-items:flex-end"><div style="flex:1"><label class="lbl" for="ac-dist">Distance (optional)</label><input class="field" id="ac-dist" inputmode="decimal" placeholder="0" value=${dist} onInput=${e => setDist(e.target.value.replace(/[^\d.,]/g, ''))}/></div>
+        <div class="seg" role="group" aria-label="Distance unit" style="margin-bottom:4px">${['mi', 'km', 'm', 'yd'].map(u => html`<button key=${u} class=${du === u ? 'on' : ''} aria-pressed=${du === u} onClick=${() => setDu(u)}>${u}</button>`)}</div></div>` : null}
+      <div><label class="lbl" for="ac-note">Note (optional)</label><input class="field" id="ac-note" placeholder=${act === 'run' ? 'e.g. Easy pace, hills' : 'How it went'} value=${note} onInput=${e => setNote(e.target.value)}/></div>
+      <button class="btn primary wide" onClick=${save}>${s0 ? 'Save changes' : 'Save activity'}</button>
+      ${s0 ? (confirm ? html`<button class="btn wide danger" onClick=${del}>Delete activity</button><button class="btn wide" onClick=${() => setConfirm(false)}>Keep it</button>`
+        : html`<button class="btn text danger wide" onClick=${() => setConfirm(true)}>Delete</button>`) : null}
+    </div><//>`;
+}
+"""
+swap("function SessionSheet({ id }) {", ACT.lstrip('\n') + "function SessionSheet({ id }) {")
+swap("""  const s0 = S.sessions[id]; const [edit, setEdit] = useState(null); const [confirm, setConfirm] = useState(false);
+  if (!s0) return null;
+""", """  const s0 = S.sessions[id]; const [edit, setEdit] = useState(null); const [confirm, setConfirm] = useState(false);
+  if (!s0) return null;
+  if (s0.kind === 'activity') return html`<${ActivitySheet} id=${id}/>`;
+""")
+swap("    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;",
+     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'activity': return html`<${ActivitySheet} day=${sheet.day}/>`;")
+# Train: next to "Empty workout", and when there are no routines
+swap("""        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button></div>`
+    : html`<div class="empty"><h3>No routines yet</h3><p>Build one in Routines, or start an empty workout.</p></div>`}""",
+"""        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>
+        <button class="btn ghost wide" id="log-activity" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`
+    : html`<div class="empty"><h3>No routines yet</h3><p>Build one in Routines, or start an empty workout.</p><button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`}""")
+# Log: button on top, activity line in each entry
+swap("""  if (!list.length) return html`<div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise.</p></div>`;""",
+"""  const actBtn = html`<button class="btn ghost wide" style="margin-top:6px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log an activity</button>`;
+  if (!list.length) return html`<div><div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise. Running, swimming, yoga and other activities can be logged too.</p></div>${actBtn}</div>`;""")
+swap("""<ul class="log-ex">${s.items.map(""", """${s.kind === 'activity' ? html`<p class="log-act">${actLine(s) || 'Activity'}${s.note ? html`<span class="faint"> · ${s.note}</span>` : null}</p>` : null}<ul class="log-ex">${s.items.map(""")
+swap("""  return html`<div>${list.map(s => {""", """  return html`<div>${actBtn}${list.map(s => {""")
+# Day sheet: log an activity on that day
+swap("""    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}<//>`;""",
+"""    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}
+    ${k <= ymd(Date.now()) ? html`<button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity', day: k })}>${I.plus} Log an activity on this day</button>` : null}<//>`;""")
+swap(".log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}", ".log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}\n.log-act{margin-top:6px;font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}")
 
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:

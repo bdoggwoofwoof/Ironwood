@@ -2,6 +2,8 @@
 
 - Name: Ironwood everywhere people see it (storage keys and backup label unchanged).
 - Photos backup: Profile -> Backup -> "Prepare photos backup", then save the file.
+- Routine library: seven more ready-made programs; library routines can be edited (saved over
+  the original, with Reset), copied, or removed (and brought back).
 - Restore: accepts workout backups and photo backups; reads big files without the text box;
   a backup restored into an empty app brings back everything (settings, bodyweight,
   challenges, timers, day marks); into a used app it adds whatever is missing.
@@ -121,6 +123,243 @@ swap('<p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick
       <div style="font-weight:700">Moving from another phone or the Claude version?</div>
       <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
       <div class="row"><button class="btn primary" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}''')
+
+# 6. Routine library: more ready-made programs, and library routines can be edited or removed.
+#    An edited library routine is saved under the same id (with base: id), so it keeps its workout
+#    history and "next up" order. Removed ones are listed in meta.hidden and can be brought back.
+LIB = r"""
+const LIB_PROGRAMS = [
+  ['bi-5x5', 'Full Body 5×5', 'Beginner · 3 days a week', 'Alternate A and B, three days a week with a rest day between. Start lighter than you think. Each time you get all 25 reps, add 5 lb next session (10 lb on deadlift). If you miss the same weight three sessions running, drop it about 10% and build back up.', `Workout A
+5x5 Squat
+5x5 Bench Press
+5x5 Bent-Over Barbell Rows
+Workout B
+5x5 Squat
+5x5 Overhead Barbell Press
+1x5 Deadlift`],
+  ['bi-tiered', 'Tiered Linear 4-Day', 'Beginner · 3–4 days a week', 'The three-tier method (the GZCLP style): T1 is the heavy main lift, T2 the same pattern lighter for volume, T3 an accessory. Make the last set of T1 and T3 as many reps as you can. Add weight whenever you get every rep. When T1 stalls, edit it from 5×3 to 6×2, then 10×1; when T2 stalls, go 3×10 → 3×8 → 3×6.', `Day 1 - Squat / Bench
+5x3 Squat
+3x10 Bench Press
+3x15 Lat Pulldown
+Day 2 - Press / Deadlift
+5x3 Overhead Barbell Press
+3x10 Deadlift
+3x15 Dumbbell Row
+Day 3 - Bench / Squat
+5x3 Bench Press
+3x10 Squat
+3x15 Lat Pulldown
+Day 4 - Deadlift / Press
+5x3 Deadlift
+3x10 Overhead Barbell Press
+3x15 Dumbbell Row`],
+  ['bi-fb3', 'Full Body 3-Day', 'Beginner · 3 days a week', 'Three different full-body days with a rest day between. Add reps until every set reaches the top of the range, then add weight and start again at the bottom.', `Day 1 - Full Body A
+3x6-8 Squat
+3x6-8 Bench Press
+3x8-10 Bent-Over Barbell Rows
+3x10-12 Leg Curls
+3x10-15 Lateral Raises
+3x10-15 Cable Crunch
+Day 2 - Full Body B
+3x5 Deadlift
+3x8-10 Overhead Barbell Press
+3x8-12 Lat Pulldown
+3x10-12 Leg Press
+3x10-12 Barbell Curl
+3x10-12 Tricep Pushdowns
+Day 3 - Full Body C
+3x10-12 Goblet Squat
+3x8-10 Incline Dumbbell Press
+3x8-12 Seated Cable Row
+3x8-10 Romanian Deadlift
+3x12-15 Face Pulls
+3x10-15 Calf Raises`],
+  ['bi-db3', 'Dumbbells Only 3-Day', 'Home gym · 3 days a week', 'Needs a pair of dumbbells and a bench (presses work on the floor too). Pick a weight you can lift for the low end of the range, and move up once every set reaches the top.', `Day 1 - Full Body A
+3x8-12 Goblet Squat
+3x8-12 Dumbbell Bench Press
+3x8-12 Dumbbell Row
+3x8-12 Dumbbell Romanian Deadlift
+3x10-15 Lateral Raises
+3x10-15 Hammer Curls
+Day 2 - Full Body B
+3x8-12 Dumbbell Split Squat
+3x8-12 Dumbbell Shoulder Press
+3x10-12 Dumbbell Pullover
+3x10-15 Dumbbell Hip Thrust
+3x10-15 Dumbbell Overhead Tricep Extension
+3x10-15 Dumbbell Curl
+Day 3 - Full Body C
+3x8-12 Dumbbell Step-Up
+3x8-12 Incline Dumbbell Press
+3x8-12 Dumbbell Row
+3x8-12 Dumbbell Romanian Deadlift
+3x12-15 Dumbbell Rear Delt Fly
+3x10-20 Push-Up`],
+  ['bi-ul4', 'Upper / Lower 4-Day', 'Intermediate · 4 days a week', 'A heavy upper and lower day early in the week, then a volume upper and lower day. On heavy days add weight once you reach the top of the range; on volume days keep the reps smooth and controlled.', `Day 1 - Upper Heavy
+4x3-5 Bench Press
+4x3-5 Bent-Over Barbell Rows
+3x5-8 Overhead Barbell Press
+3x6-10 Lat Pulldown
+3x6-10 Barbell Curl
+3x6-10 Skull Crushers
+Day 2 - Lower Heavy
+4x3-5 Squat
+3x3-5 Deadlift
+3x10-15 Leg Press
+3x6-10 Leg Curls
+4x6-10 Calf Raises
+Day 3 - Upper Volume
+4x8-12 Incline Dumbbell Press
+4x8-12 Cable Fly
+4x8-12 Seated Cable Row
+4x8-12 Dumbbell Row
+4x10-15 Lateral Raises
+4x8-12 Hammer Curls
+4x8-12 Tricep Pushdowns
+Day 4 - Lower Volume
+4x8-12 Front Squat
+3x8-12 Bulgarian Split Squat
+3x10-15 Leg Extension
+3x10-15 Leg Curls
+4x10-15 Calf Raises`],
+  ['bi-ppl6', 'Push / Pull / Legs', 'Intermediate · 6 days a week', 'Pull, push, legs, then the B versions, then a rest day. Make the last set of the 5×5 and the 1×5 as many reps as you can. Main lifts go up 5 lb a session; accessories go up once every set reaches the top of the range.', `Day 1 - Pull A
+1x5 Deadlift
+3x8-12 Lat Pulldown
+3x8-12 Seated Cable Row
+5x15-20 Face Pulls
+4x8-12 Hammer Curls
+4x8-12 Barbell Curl
+Day 2 - Push A
+5x5 Bench Press
+3x8-12 Overhead Barbell Press
+3x8-12 Incline Dumbbell Press
+3x8-12 Tricep Pushdowns
+3x8-12 Overhead Cable Tricep Extension
+3x15-20 Lateral Raises
+Day 3 - Legs A
+3x5 Squat
+3x8-12 Romanian Deadlift
+3x8-12 Leg Press
+3x8-12 Leg Curls
+5x8-12 Calf Raises
+Day 4 - Pull B
+5x5 Bent-Over Barbell Rows
+3x8-12 Pull-Up
+3x8-12 Seated Cable Row
+5x15-20 Face Pulls
+4x8-12 Hammer Curls
+4x8-12 Barbell Curl
+Day 5 - Push B
+5x5 Overhead Barbell Press
+3x8-12 Bench Press
+3x8-12 Incline Dumbbell Press
+3x8-12 Tricep Pushdowns
+3x8-12 Overhead Cable Tricep Extension
+3x15-20 Lateral Raises
+Day 6 - Legs B
+3x5 Squat
+3x8-12 Romanian Deadlift
+3x8-12 Leg Press
+3x8-12 Leg Curls
+5x8-12 Calf Raises`],
+  ['bi-split5', '5-Day Body-Part Split', 'Intermediate · 5 days a week', 'One muscle group a day with plenty of sets for each. Add weight once every set reaches the top of the range.', `Day 1 - Chest
+4x6-10 Bench Press
+3x8-12 Incline Dumbbell Press
+3x10-12 Machine Chest Press
+3x10-15 Cable Fly
+Day 2 - Back
+3x5 Deadlift
+3x6-10 Pull-Up
+3x10-12 Lat Pulldown
+3x10-12 Seated Cable Row
+3x15-20 Face Pulls
+Day 3 - Shoulders
+4x6-10 Overhead Barbell Press
+4x12-15 Lateral Raises
+3x12-15 Dumbbell Rear Delt Fly
+3x10-15 Barbell Shrugs
+Day 4 - Legs
+4x6-10 Squat
+3x8-12 Romanian Deadlift
+3x10-15 Leg Press
+3x10-15 Leg Extension
+3x10-15 Leg Curls
+4x10-15 Calf Raises
+Day 5 - Arms
+3x8-12 Barbell Curl
+3x8-12 Skull Crushers
+3x10-15 Hammer Curls
+3x10-15 Tricep Pushdowns
+3x12-15 Cable Curl
+3x12-15 Overhead Cable Tricep Extension`],
+];
+const BUILTIN_ROUTINES = [
+  Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT), { meta: 'Your plan · 4 days a week' }),
+  ...LIB_PROGRAMS.map(([id, name, meta, note, text]) => Object.assign(builtinRoutine(id, name, note, text), { meta })),
+];
+for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
+"""
+swap("""const BUILTIN_ROUTINES = [
+  builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT),
+];""", LIB.strip())
+
+swap("deleted: [], updatedAt: 0 });", "deleted: [], hidden: [], updatedAt: 0 });")
+swap("deleted: m.deleted || [] };", "deleted: m.deleted || [], hidden: m.hidden || [] };")
+
+swap("const allRoutines = () => [...Object.values(S.meta.routines).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)), ...BUILTIN_ROUTINES];\nconst getRoutine = id => S.meta.routines[id] || BUILTIN_ROUTINES.find(r => r.id === id) || null;",
+r"""const isHidden = id => (S.meta.hidden || []).includes(id);
+const libBase = id => BUILTIN_ROUTINES.find(r => r.id === id) || null;
+const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+const libRoutines = () => BUILTIN_ROUTINES.filter(r => !isHidden(r.id)).map(r => S.meta.routines[r.id] || r);
+const allRoutines = () => [...myRoutines(), ...libRoutines()];
+const getRoutine = id => isHidden(id) ? null : (S.meta.routines[id] || libBase(id));""")
+
+start = src.index('function RoutinesScreen({ view }) {')
+end = src.index('function RoutineEditor({ view }) {', start)
+SCREENS = r"""function RoutinesScreen({ view }) {
+  if (view && view.type === 'routine') return html`<${RoutineView} id=${view.id}/>`;
+  if (view && view.type === 'edit') return html`<${RoutineEditor} view=${view}/>`;
+  const mine = myRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
+  const card = r => html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
+    <span class="tag">${r.base ? 'Edited' + (r.meta ? ' · ' + r.meta : '') : r.source === 'builtin' ? (r.meta || 'Built in') : r.source === 'imported' ? 'Imported' : 'Yours'}</span><h3>${r.name}</h3>
+    <span class="days">${r.days.length} day${r.days.length === 1 ? '' : 's'} · ${r.days.map(d => d.name.replace(/\s*\(.*\)$/, '').replace(/^Day\s*\d+\s*[-–]\s*/, '')).join(', ')}</span></button>`;
+  return html`<div>
+    <div class="section-h"><h2>Your routines</h2></div>
+    <div class="stack">${mine.length ? mine.map(card) : html`<div class="card note">Routines you build, copy, or import live here. Library routines can be edited or removed too.</div>`}
+      <div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] }, isNew: true })}>${I.plus} New routine</button>
+        <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div></div>
+    <div class="section-h"><h2>Library</h2><span class="aside">Ready to run</span></div>
+    <div class="stack">${libRoutines().map(card)}
+      ${hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed routine${hidden.length === 1 ? '' : 's'}</button>` : null}</div>
+  </div>`;
+}
+function RoutineView({ id }) {
+  const r = getRoutine(id); if (!r) return html`<div class="empty"><h3>Routine not found</h3></div>`;
+  const lib = !!libBase(r.id); const builtin = r.source === 'builtin';
+  const copy = () => { const c = clone(r); delete c.base; delete c.meta; c.id = uid('r'); c.source = 'mine'; c.name = r.name + ' (copy)'; c.createdAt = Date.now(); c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
+    commit(st => { st.meta.routines[c.id] = c; }, 'meta'); UI.setView({ type: 'routine', id: c.id }); };
+  const edit = () => UI.setView({ type: 'edit', draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
+  const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this routine are undone. Logged workouts stay in your history.', ok: 'Reset routine', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
+  const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Routines. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove routine' : 'Delete routine', danger: true,
+    onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
+  return html`<div>
+    <div class="eyebrow" style="margin-top:6px">${builtin ? 'Library routine' : r.base ? 'Library routine · edited' : 'Your routine'}${r.meta ? ' · ' + r.meta : ''}</div>
+    <h2 class="wo-title" style="margin:2px 0 6px">${r.name}</h2>
+    ${r.note ? html`<p class="note">${r.note}</p>` : null}
+    <div class="row wrap" style="margin:14px 0 4px">
+      <button class="btn" onClick=${edit}>${I.edit} Edit</button>
+      <button class="btn" onClick=${copy}>${I.copy} Copy</button>
+      ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
+      <button class="btn text danger" onClick=${del}>${lib ? 'Remove' : 'Delete'}</button>
+    </div>
+    <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
+      <div class="row"><h3 style="flex:1">${d.name}</h3><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="sx num">${it.sets}×${it.reps ? it.reps : ''}</span><span>${exName(it.ex)}</span>${groupChip(it.group)}</li>`)}</ul></div>`)}</div>
+  </div>`;
+}
+"""
+src = src[:start] + SCREENS + src[end:]
+swap("This change applies to today. Copy the routine to make it permanent.", "This change applies to today. Edit the routine to make it permanent.")
 
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:

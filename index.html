@@ -67,7 +67,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .pill-btn.accent{background:var(--accent);color:var(--accent-ink)}
 main{max-width:640px;margin:0 auto;padding-inline:var(--gut);padding-block:8px calc(108px + env(safe-area-inset-bottom,0px))}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
-.tabs-in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
+.tabs-in{display:grid;grid-template-columns:repeat(4,1fr);max-width:640px;margin:0 auto}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--ink-3);font-size:11.5px;font-weight:600;letter-spacing:.02em;border-radius:12px}
 .tab svg{width:24px;height:24px}
 .tab.on{color:var(--accent)}
@@ -197,6 +197,23 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .r-card{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;background:var(--surface);border-radius:var(--r);padding:16px}
 .r-card h3{font-family:var(--display);font-size:22px;font-weight:700;text-transform:uppercase;line-height:1.05}
 .r-card .days{font-size:14px;color:var(--ink-2)}
+.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
+.topsw{display:flex;gap:22px;margin:2px 0 4px}
+.topsw button{font-family:var(--display);font-size:30px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink-3);padding:2px 0 6px;border-bottom:3px solid transparent}
+.topsw button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tip-card{display:flex;align-items:flex-start;gap:6px;background:var(--surface);border-radius:12px;padding:10px 6px 10px 14px;font-size:14px;color:var(--ink-2);line-height:1.4}
+.tip-x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3);flex:none;margin-top:-5px}
+.tip-x svg{width:16px;height:16px}
+.help-foot{display:flex;justify-content:center;margin:28px 0 4px}
+.help-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;font-size:12px;font-weight:700;line-height:1}
+.sync-line{margin:10px 0 0;font-size:13.5px}
+.pal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pal{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--raised);border-radius:12px;padding:10px 12px;text-align:left;border:2px solid transparent}
+.pal.on{border-color:var(--ink)}
+.pal .sw{display:flex;gap:4px}.pal .sw i{width:18px;height:18px;border-radius:50%;display:block}
+.pal .pn{font-weight:600;font-size:14.5px}.pal .pd{font-size:12px;color:var(--ink-2);line-height:1.3}
+.fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
+a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tag-row{display:flex;flex-wrap:wrap;gap:4px}
 .chip.wtag{font-size:11.5px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
 .wsec-h{display:flex;align-items:center;gap:10px;width:100%;padding:14px 4px 10px;border-bottom:1px solid var(--line);text-align:left}
@@ -588,7 +605,7 @@ Workout B
 5x5 Squat
 5x5 Overhead Barbell Press
 1x5 Deadlift`],
-  ['bi-tiered', 'Tiered Linear 4-Day', 'Beginner · 3–4 days a week', 'The three-tier method (the GZCLP style): T1 is the heavy main lift, T2 the same pattern lighter for volume, T3 an accessory. Make the last set of T1 and T3 as many reps as you can. Add weight whenever you get every rep. When T1 stalls, edit it from 5×3 to 6×2, then 10×1; when T2 stalls, go 3×10 → 3×8 → 3×6.', `Day 1 - Squat / Bench
+  ['bi-tiered', 'Tiered Linear 4-Day', 'Beginner · 3–4 days a week', 'The three-tier method: T1 is the heavy main lift, T2 the same pattern lighter for volume, T3 an accessory. Make the last set of T1 and T3 as many reps as you can. Add weight whenever you get every rep. When T1 stalls, edit it from 5×3 to 6×2, then 10×1; when T2 stalls, go 3×10 → 3×8 → 3×6.', `Day 1 - Squat / Bench
 5x3 Squat
 3x10 Bench Press
 3x15 Lat Pulldown
@@ -747,9 +764,10 @@ Day 5 - Arms
 /* Newt's own routines from RepCount: one workout each, with the notes he kept on each exercise.
    Item: [exercise, sets, reps, note, superset with the one above] */
 const MY_PLANS = [
-  ['bi-eff-push', 'Eff. Push', ['Push'], '', [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
-  ['bi-eff-pull', 'Eff. Pull', ['Pull'], '', [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
-  ['bi-eff-legs', 'Eff. Legs', ['Legs'], '', [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Lunge Walk', 3], ['Calf Raises', 3, '', '', 1]]],
+  ['bi-eff-ppl', 'Efficient Push/Pull/Legs', null, '', [
+    ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
+    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
+    ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Lunge Walk', 3], ['Calf Raises', 3, '', '', 1]]]]],
   ['bi-full-body', 'Full Body', ['Full Body'], '', [['Overhead Barbell Press', 3, '', 'Shoulders'], ['Assisted Dips', 3, '', 'Chest, triceps'], ['Dead Hang', 3, '', 'Forearms'], ['Barbell Bicep Curl', 3, '', 'Biceps'], ['Bent-Over Barbell Rows', 3, '', 'Back'], ['Assisted Pull-Up', 3, '', 'Back'], ['Hanging Leg Raises', 10, '', 'Abs: 10 sets, 30 s on / 30 s off'], ['Back Squat', 3, '', 'Legs'], ['Deadlift', 3, '', 'Legs']]],
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell/Cable Bends', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
   ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Plank Single Leg Up', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Ankle Taps', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
@@ -780,10 +798,10 @@ function planDay(rid, i, name, tags, items) {
 /* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
 function builtinPlan([rid, name, tags, note, items]) {
   const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
-  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: 'Your plan' + (days.length > 1 ? ' · ' + days.length + ' days a week' : ''), days };
+  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days };
 }
 const BUILTIN_ROUTINES = [
-  Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT), { meta: 'Your plan · 4 days a week', shelf: 'plans' }),
+  Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Exercises marked with a bar on the left are supersets with the one above.', NEWT_TEXT), { meta: '4 days a week', shelf: 'plans' }),
   ...MY_PLANS.map(builtinPlan),
   ...LIB_PROGRAMS.map(([id, name, meta, note, text]) => Object.assign(builtinRoutine(id, name, note, text), { meta, shelf: 'programs' })),
 ];
@@ -852,8 +870,9 @@ function materialize(days) {
 }
 
 /* ============ History, PRs ============ */
+const DEMO = { on: false, list: null }; /* sample data shown only during the walkthrough */
 let _sl = null, _slv = -1;
-function sessionList() { if (_slv !== S.ver) { _sl = Object.values(S.sessions).sort((a, b) => a.startedAt - b.startedAt); _slv = S.ver; } return _sl; }
+function sessionList() { if (DEMO.on) return demoSessions(); if (_slv !== S.ver) { _sl = Object.values(S.sessions).sort((a, b) => a.startedAt - b.startedAt); _slv = S.ver; } return _sl; }
 function entries(exId, group) {
   const out = [];
   for (const x of sessionList()) for (const it of x.items) if (it.ex === exId && (group === undefined || (it.group || '') === group))
@@ -1019,15 +1038,6 @@ function plates(total, unit) {
   const P = u === 'kg' ? [25, 20, 15, 10, 5, 2.5, 1.25] : [45, 35, 25, 10, 5, 2.5];
   const out = []; for (const p of P) while (side >= p - 1e-9) { out.push(p); side -= p; }
   return 'Per side: ' + out.map(fmt).join(' · ') + (side > 0.01 ? ' (+' + fmt(side) + ')' : '');
-}
-function nextUp() {
-  const list = sessionList();
-  for (let i = list.length - 1; i >= 0; i--) {
-    const s = list[i]; const r = getRoutine(s.routineId); if (!r || !r.days.length) continue;
-    const idx = r.days.findIndex(d => d.id === s.dayId);
-    return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s };
-  }
-  const r = allRoutines()[0]; return r && r.days.length ? { routine: r, day: r.days[0], last: null } : null;
 }
 
 /* ============ Challenges ============ */
@@ -1267,11 +1277,11 @@ function bgTimer() {
 }
 /* Display settings live on this device. */
 const HOST_THEME = document.documentElement.getAttribute('data-theme');
-const DISP = { theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') === '1', hc: lsGet('hc') === '1' };
+const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') === '1', hc: lsGet('hc') === '1' };
 function applyDisplay() {
   const r = document.documentElement;
   if (DISP.theme === 'system') { if (HOST_THEME) r.setAttribute('data-theme', HOST_THEME); else r.removeAttribute('data-theme'); } else r.setAttribute('data-theme', DISP.theme);
-  r.classList.toggle('rm', DISP.rm); r.classList.toggle('hc', DISP.hc);
+  r.classList.toggle('rm', DISP.rm); r.classList.toggle('hc', DISP.hc); applyPalette();
   document.body.style.zoom = DISP.size === '100' ? '' : String(+DISP.size / 100);
 }
 function setDisp(k, v) { DISP[k] = v; lsSet(k, typeof v === 'boolean' ? (v ? '1' : '0') : v); applyDisplay(); S.rerender(); }
@@ -1483,16 +1493,49 @@ function WeekStrip() {
       <b>${'MTWTFSS'[i]}</b><i>${hit ? I.check : m ? html`<span class="mk">${DAY_MARKS[m][0]}</span>` : null}</i></button>`; })}</div>`;
 }
 /* ---------- TRAIN ---------- */
+/* ---------- Program you follow, Train / History ---------- */
+/* settings.program: a routine id, 'self' (log your own workouts), or unset (asks). Someone who logged a routine
+   workout before this setting existed keeps following the routine they used last. */
+function programId() {
+  const p = S.meta.settings.program; if (p) return p;
+  const list = sessionList(); for (let i = list.length - 1; i >= 0; i--) if (list[i].routineId && getRoutine(list[i].routineId)) return list[i].routineId;
+  return null;
+}
+const programRoutine = () => { const p = programId(); return p && p !== 'self' ? getRoutine(p) : null; };
+function nextUp() {
+  const r = programRoutine(); if (!r || !r.days.length) return null;
+  const list = sessionList();
+  for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
+  return { routine: r, day: r.days[0], last: null };
+}
+const setProgram = id => { commit(st => { st.meta.settings.program = id; }, 'meta'); };
+/* Dismissable explanations. Hidden ones come back from Help → Show tips again. */
+const tipOff = id => !!((S.meta.settings.tipsOff || {})[id]);
+function Tip({ id, children, style }) {
+  if (tipOff(id)) return null;
+  return html`<div class="tip-card" style=${style}><div style="flex:1;min-width:0">${children}</div><button class="tip-x" aria-label="Hide this tip" onClick=${() => commit(st => { st.meta.settings.tipsOff = { ...(st.meta.settings.tipsOff || {}), [id]: 1 }; }, 'meta')}>${I.x}</button></div>`;
+}
+function TopSwitch({ value, options, onChange }) {
+  return html`<div class="topsw" role="tablist">${options.map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${value === k} class=${value === k ? 'on' : ''} onClick=${() => onChange(k)}>${l}</button>`)}</div>`;
+}
+const TRAIN = { mode: lsGet('trainMode') === 'history' ? 'history' : 'train' };
+function TrainSwitch() {
+  const pick = m => { TRAIN.mode = m; lsSet('trainMode', m); S.rerender(); scrollTo(0, 0); };
+  return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['history', 'History']]} onChange=${pick}/>
+    ${TRAIN.mode === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : html`<${TrainHome}/>`}</div>`;
+}
 function TrainHome() {
-  const nx = nextUp(); const ws = weekStats(); const routine = nx && nx.routine; const now = new Date();
+  const nx = nextUp(); const ws = weekStats(); const routine = nx && nx.routine; const now = new Date(); const pid = programId();
   const chs = Object.values(S.meta.challenges || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   const newCh = () => UI.setView({ type: 'chEdit', draft: newChallenge(), isNew: true });
   const weekTxt = ws.thisReq === 0 ? 'Streak paused this week' : ws.thisCount + ' of ' + ws.thisReq + ' workouts' + (ws.thisExc ? ' (' + ws.thisExc + ' excused)' : '') + (ws.cur ? ' · ' + ws.cur + '-week streak' : '');
+  const actBtn = html`<button class="btn ghost wide" id="log-activity" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button>`;
+  const pickBtn = (label, cls) => html`<button class=${cls || 'btn primary wide'} onClick=${() => openSheet({ type: 'program' })}>${label}</button>`;
   return html`<div class="today">
-    <div class="eyebrow">${DOW_FULL[now.getDay()]} · ${MON[now.getMonth()]} ${now.getDate()}</div>
+    <div class="eyebrow" style="margin-top:4px">${DOW_FULL[now.getDay()]} · ${MON[now.getMonth()]} ${now.getDate()}</div>
     <div class="section-h" style="margin-top:14px"><h2>This week</h2><span class="aside num">${weekTxt}</span></div>
     <${WeekStrip}/>
-    <p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick, injured or break.</p>
+    <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
       <div style="font-weight:700">Moving from another phone or the Claude version?</div>
       <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
@@ -1500,23 +1543,132 @@ function TrainHome() {
     ${chs.length ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${newCh}>New</button></div>
       <div class="stack">${chs.map(ch => html`<${ChallengeCard} key=${ch.id} ch=${ch}/>`)}</div>` : null}
     ${nx ? html`
-      <div class="section-h"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + nx.last.name.replace(/\s*\(.*\)$/, '') : 'First workout'}</span></div>
+      <div class="section-h"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'First workout'}</span></div>
       <div class="next-card">
-        <div><div class="eyebrow">${routine.name}</div><h2>${nx.day.name}</h2></div>
+        <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Change</button></div><h2>${nx.day.name}</h2></div>
         <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
-      <div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>
+      ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>` : html`<div style="height:12px"></div>`}
       <div class="stack">${routine.days.filter(d => d.id !== nx.day.id).map(d => html`<button key=${d.id} class="day-btn" onClick=${() => startWorkout(routine, d)}>
         <div><div class="t">${d.name}</div><div class="s">${d.items.length} exercises</div></div><span class="go">Start</span></button>`)}
-        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>
-        <button class="btn ghost wide" id="log-activity" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`
-    : html`<div class="empty"><h3>No routines yet</h3><p>Build one in Routines, or start an empty workout.</p><button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`}
+        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>${actBtn}</div>`
+    : pid === 'self' ? html`
+      <div class="section-h"><h2>Self-log</h2><button class="btn text" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Follow a program</button></div>
+      <div class="next-card"><h2>Log your own workout</h2><p class="note">Start an empty workout and add exercises as you go. Weights carry over from last time.</p>
+        <button class="btn primary wide" onClick=${() => startWorkout(null, null)}>${I.plus} Start a workout</button></div>
+      <div class="stack" style="margin-top:10px"><button class="btn wide" onClick=${() => UI.setTab('routines')}>Start a saved routine</button>${actBtn}</div>`
+    : html`
+      <div class="section-h"><h2>Get started</h2></div>
+      <div class="next-card" id="get-started"><h2>Pick how you train</h2><p class="note">Follow a program and Ironwood lines up the next day for you, or self-log whatever you do.</p>
+        ${pickBtn('Create or select a program')}</div>
+      <div class="stack" style="margin-top:10px">${actBtn}</div>`}
     <div class="row" style="margin-top:12px">
       <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
       ${chs.length ? null : html`<button class="btn" style="flex:1" onClick=${newCh}>${I.check} Start a challenge</button>`}
     </div>
   </div>`;
+}
+function ProgramSheet() {
+  const cur = programId(); const all = allRoutines();
+  const plans = all.filter(r => r.days.length > 1), singles = all.filter(r => r.days.length === 1);
+  const choose = id => { setProgram(id); closeSheet(); TRAIN.mode = 'train'; UI.setTab('train'); showToast({ kind: 'info', text: id === 'self' ? 'Self-log it is' : 'Following ' + getRoutine(id).name }); };
+  const row = r => html`<button key=${r.id} class=${'opt' + (cur === r.id ? ' on' : '')} onClick=${() => choose(r.id)}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' + r.days.map(dayLabel).join(', ') : r.days[0].items.length + ' exercises'}</div></div>${cur === r.id ? I.check : null}</button>`;
+  const create = () => { closeSheet(); UI.setTab('routines'); UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] }, isNew: true, follow: true }); };
+  return html`<${Sheet} label="Choose a program"><h2>Choose a program</h2>
+    <p class="note" style="margin-bottom:6px">Train shows the next day of the program you pick. You can change it any time.</p>
+    <button class=${'opt' + (cur === 'self' ? ' on' : '')} id="pick-self" onClick=${() => choose('self')}><div style="flex:1"><div>Self-log</div><div class="d">No program. Start an empty workout and add exercises as you go.</div></div>${cur === 'self' ? I.check : null}</button>
+    <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new program</div><div class="d">Build your own days and exercises.</div></div></button>
+    <div class="eyebrow" style="margin:16px 0 2px">Plans</div>${plans.map(row)}
+    ${singles.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Single workouts</div>${singles.map(row)}` : null}<//>`;
+}
+/* ---------- Help, tour, feedback ---------- */
+const ERRS = []; addEventListener('error', e => { ERRS.push(String(e.message || e.error || 'error').slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
+addEventListener('unhandledrejection', e => { ERRS.push(('Promise: ' + (e.reason && (e.reason.message || e.reason))).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
+const SUPPORT = 'https://github.com/bdoggwoofwoof/ironwood/issues';
+function HelpFoot() { return html`<div class="help-foot"><button class="btn text" id="help-btn" onClick=${() => openSheet({ type: 'help' })}><span class="help-q" aria-hidden="true">?</span> Help</button></div>`; }
+function HelpSheet() {
+  const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
+  return html`<${Sheet} label="Help"><h2>Help</h2>
+    <button class="opt" id="help-tour" onClick=${() => openSheet({ type: 'tour', step: 0 })}><div style="flex:1"><div>Take the tour</div><div class="d">A quick walk through each page.</div></div></button>
+    <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
+    ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
+}
+/* Walkthrough. Runs once on a fresh install (skippable), and again from Help or Profile. While it runs, the app
+   shows sample workouts so Stats has something to show; they live only in memory and vanish when it ends. */
+const TOUR = [
+  ['train', 'train', 'Welcome to Ironwood', 'A quick look at what it can do. It takes about a minute, and you can skip it any time.'],
+  ['train', 'train', 'Train', 'Follow a program and Ironwood lines up the next day, or Self-log whatever you do. Runs, swims, yoga and classes count toward your streak too. Tap a day in the week to mark a rest day.'],
+  ['train', 'history', 'History', 'Every workout and activity you’ve logged. Tap one to see the sets, fix a typo or delete it.'],
+  ['routines', null, 'Routines and plans', 'Routines are single workouts; plans have several days. Edit, copy or remove any of them, and follow one as your program. “By type” sorts every workout into Push, Pull, Legs and more.'],
+  ['stats', null, 'Stats', 'Each lift gets a chart with an 8-week projection, plus records, streaks and progress photos. These numbers are samples for the tour. They disappear when it ends.'],
+  ['profile', null, 'Make it yours', 'Units, rest timer, text size and colors, including two color-blind friendly themes. Save a backup now and then.'],
+  ['train', 'train', 'You’re set', 'Take this tour again from Profile, or from Help at the bottom of any page.'],
+];
+function demoSessions() {
+  if (DEMO.list) return DEMO.list;
+  const kg = U() === 'kg', now = Date.now(), out = [];
+  const lifts = [['Squat', 185, 5], ['Bench Press', 145, 5], ['Bent-Over Barbell Rows', 125, 8], ['Deadlift', 225, 5], ['Overhead Barbell Press', 95, 6], ['Lat Pulldown', 120, 10]];
+  const days = [['Full Body A', [0, 1, 2]], ['Full Body B', [3, 4, 5]], ['Full Body C', [0, 1, 5]]];
+  for (let i = 29; i >= 0; i--) {
+    const t = new Date(now - (i * 2.3 + 0.6) * DAY); t.setHours(17, 30, 0, 0); if (+t > now) continue; const prog = (29 - i) / 29; const [name, picks] = days[i % 3];
+    const items = picks.map(k => { const [n, base, r] = lifts[k]; let w = base * (1 + 0.14 * prog); w = kg ? Math.round(w / LB_PER_KG / 2.5) * 2.5 : Math.round(w / 5) * 5;
+      return { ex: (findEx(n) || {}).id, group: '', u: U(), sets: [{ w, r }, { w, r }, { w, r: Math.max(1, r - (i % 2)) }] }; }).filter(x => x.ex);
+    out.push({ id: 'demo' + i, name, startedAt: +t, endedAt: +t + 52 * 60000, items, prs: [] });
+    if (i % 7 === 3) { const r0 = +t - DAY; out.push({ id: 'demo-run' + i, kind: 'activity', activity: 'run', name: 'Running', startedAt: r0, endedAt: r0 + 28 * 60000, items: [], prs: [], dur: 28, dist: kg ? 5 : 3.1, distU: kg ? 'km' : 'mi', note: '' }); }
+  }
+  DEMO.list = out.sort((a, b) => a.startedAt - b.startedAt); return DEMO.list;
+}
+const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
+const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
+function TourSheet({ step }) {
+  const [tab, mode, title, body] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
+  useEffect(() => { setDemo(true); return () => tourDone(); }, []);
+  useEffect(() => { if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); } if (tab === 'stats') lsSet('statsTab', 'ex'); UI.setTab(tab); }, [step]);
+  return html`<${Sheet} label="Tour"><div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${closeSheet}>Skip tour</button>`}</div>
+    <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p>
+    <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'tour', step: step - 1 })}>Back</button>` : null}
+      <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? closeSheet() : openSheet({ type: 'tour', step: step + 1 })}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div><//>`;
+}
+function FeedbackSheet() {
+  const [text, setText] = useState(''); const [tech, setTech] = useState(true); const [msg, setMsg] = useState('');
+  const details = () => ['Ironwood ' + (window.claude && window.claude.standalone ? 'home-screen app' : 'Claude version'), 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + '×' + innerHeight,
+    'Saved: ' + S.sync, ERRS.length ? 'Recent errors:\n- ' + ERRS.join('\n- ') : 'Recent errors: none'].join('\n');
+  const body = () => text.trim() + (tech ? '\n\n---\n' + details() : '');
+  const url = () => SUPPORT + '/new?title=' + encodeURIComponent('Feedback: ' + (text.trim().split('\n')[0].slice(0, 60) || 'Ironwood')) + '&body=' + encodeURIComponent(body().slice(0, 6000));
+  const copy = async () => { try { await navigator.clipboard.writeText(body()); setMsg('Copied. Paste it wherever you like.'); } catch (e) { setMsg('Copy is blocked here. Use the button above.'); } };
+  return html`<${Sheet} label="Send feedback"><h2>Send feedback</h2>
+    <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. No workouts or personal data are included.</p>
+    <div class="stack"><textarea class="field" id="fb-text" style="min-height:120px;font-family:var(--body);font-size:16px" placeholder="What happened? What did you expect?" value=${text} onInput=${e => setText(e.target.value)}></textarea>
+      <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device and recent errors</label>
+      ${tech ? html`<pre class="fb-details">${details()}</pre>` : null}
+      <a class=${'btn primary wide' + (text.trim() ? '' : ' disabled')} id="fb-send" href=${text.trim() ? url() : null} target="_blank" rel="noopener" aria-disabled=${!text.trim()}>Send on the support page</a>
+      <p class="small faint">Opens the Ironwood support page on GitHub (a free account is needed to post).</p>
+      <button class="btn wide" disabled=${!text.trim()} onClick=${copy}>Copy instead</button>
+      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}</div><//>`;
+}
+/* ---------- Color themes ---------- */
+const PALETTES = {
+  classic: ['Classic', '', { a: '#4c8dff', p: '#ffcf40', s: '#f0603f', g: '#39c98a', r: '#ff7d61', pi: '#1b1400' }, { a: '#1f5fd6', p: '#f5c22e', s: '#d2452a', g: '#1d9a62', r: '#b3341b', pi: '#2a1e00' }],
+  forest: ['Forest', '', { a: '#3fbf73', p: '#ffcf40', s: '#f0603f', g: '#2ec4c4', r: '#ff7d61', pi: '#1b1400' }, { a: '#1e8a4c', p: '#f5c22e', s: '#d2452a', g: '#12898c', r: '#b3341b', pi: '#2a1e00' }],
+  grape: ['Grape', '', { a: '#9b7bff', p: '#ffcf40', s: '#ff5c7a', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#6d4fd6', p: '#f5c22e', s: '#d0304f', g: '#1d9a62', r: '#b0243f', pi: '#2a1e00' }],
+  ember: ['Ember', '', { a: '#ff7a3d', p: '#ffd84d', s: '#ff4d6d', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#d65314', p: '#e6b400', s: '#c9184a', g: '#1d9a62', r: '#b0243f', pi: '#241a00' }],
+  rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#0072b2', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
+  by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#00838f', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
+};
+const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+const palVars = (c, al) => '--accent:' + c.a + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+function applyPalette() {
+  const k = PALETTES[DISP.palette] ? DISP.palette : 'classic'; let el = document.getElementById('palette');
+  if (k === 'classic') { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('style'); el.id = 'palette'; document.head.appendChild(el); }
+  const d = PALETTES[k][2], l = PALETTES[k][3];
+  el.textContent = 'html:root{' + palVars(d, .16) + '}@media (prefers-color-scheme: light){html:root:not([data-theme="dark"]){' + palVars(l, .10) + '}}html:root[data-theme="light"]{' + palVars(l, .10) + '}html:root[data-theme="dark"]{' + palVars(d, .16) + '}';
+}
+function PaletteChooser() {
+  const cur = PALETTES[DISP.palette] ? DISP.palette : 'classic';
+  return html`<div><span class="lbl">Colors</span><div class="pal-grid">${Object.entries(PALETTES).map(([k, [n, sub, d]]) => html`<button key=${k} class=${'pal' + (cur === k ? ' on' : '')} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>
+    <span class="sw" aria-hidden="true">${[d.a, d.p, d.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`)}</div></div>`;
 }
 function ActiveWorkout() {
   const a = S.active; const [, tick] = useState(0);
@@ -1717,38 +1869,43 @@ function RoutinesScreen({ view }) {
 const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 function RoutineList() {
+  const [kind, setKind] = useState(lsGet('rtKind') === 'plans' ? 'plans' : 'routines');
   const [mode, setMode] = useState(lsGet('rtView') === 'type' ? 'type' : 'list'); const [, setT] = useState(0); const re = () => setT(x => x + 1);
-  const pick = m => { setMode(m); lsSet('rtView', m); };
-  const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
-  const shelf = r => (libBase(r.id) || r).shelf;
-  const plans = lib.filter(r => shelf(r) === 'plans'); const programs = lib.filter(r => shelf(r) !== 'plans');
-  const card = r => html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
-    <span class="tag">${r.base ? 'Edited' + (r.meta ? ' · ' + r.meta : '') : r.source === 'builtin' ? (r.meta || 'Built in') : r.source === 'imported' ? 'Imported' : 'Yours'}</span><h3>${r.name}</h3>
-    <span class="days">${r.days.length} day${r.days.length === 1 ? '' : 's'} · ${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`;
-  const seg = html`<div class="seg wide" role="tablist" aria-label="Routine view" style="margin-top:6px">
+  const pickKind = k => { setKind(k); lsSet('rtKind', k); }; const pick = m => { setMode(m); lsSet('rtView', m); };
+  const isPlan = r => r.days.length > 1; const want = r => kind === 'plans' ? isPlan(r) : !isPlan(r);
+  const mine = myRoutines().filter(want); const lib = libRoutines().filter(want); const hidden = (S.meta.hidden || []).filter(libBase);
+  const pid = programId();
+  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your program' : '', r.meta || ''].filter(Boolean).join(' · ');
+    return html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
+    ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`; };
+  const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: kind === 'plans' ? [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] : [{ id: uid('d'), name: 'Day 1', items: [] }] });
+  const seg = html`<div class="seg" role="tablist" aria-label="Routine view" style="margin:2px 0 0">
     <button role="tab" aria-selected=${mode === 'list'} class=${mode === 'list' ? 'on' : ''} onClick=${() => pick('list')}>List</button>
     <button role="tab" aria-selected=${mode === 'type'} class=${mode === 'type' ? 'on' : ''} onClick=${() => pick('type')}>By type</button></div>`;
-  const actions = html`<div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] }, isNew: true })}>${I.plus} New routine</button>
+  const actions = html`<div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} ${kind === 'plans' ? 'New plan' : 'New routine'}</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
   const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed routine${hidden.length === 1 ? '' : 's'}</button>` : null;
-  if (mode === 'list') return html`<div>${seg}
-    <div class="section-h"><h2>Your routines</h2></div>
-    <div class="stack">${mine.length ? mine.map(card) : html`<div class="card note">Routines you build, copy, or import live here. Library routines can be edited or removed too.</div>`}${actions}</div>
-    ${plans.length ? html`<div class="section-h"><h2>Your plans</h2></div><div class="stack">${plans.map(card)}</div>` : null}
-    ${programs.length ? html`<div class="section-h"><h2>Programs</h2><span class="aside">Ready to run</span></div><div class="stack">${programs.map(card)}</div>` : null}
+  const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
+    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your program.'}<//>
+    <div class="row" style="margin-top:12px">${seg}</div>`;
+  if (mode === 'list') return html`<div>${top}
+    <div class="section-h"><h2>Yours</h2></div>
+    <div class="stack">${mine.length ? mine.map(card) : html`<${Tip} id=${'yours-' + kind}>${kind === 'plans' ? 'Plans you build, copy, or import live here.' : 'Routines you build, copy, or import live here.'} Library ones can be edited or removed too.<//>`}${actions}</div>
+    ${lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
     <div class="stack" style="margin-top:10px">${bring}</div></div>`;
   const open = openSecs(); const groups = WTAGS.map(t => ({ t, rows: [] }));
   for (const r of [...mine, ...lib]) for (const d of r.days) if (d.items.length) for (const t of dayTags(d, r)) (groups.find(g => g.t === t) || groups[groups.length - 1]).rows.push({ r, d });
-  const shown = groups.filter(g => g.rows.length); const allOpen = shown.every(g => open[g.t]);
+  const shown = groups.filter(g => g.rows.length); const allOpen = shown.length && shown.every(g => open[g.t]);
   const setAll = v => { shown.forEach(g => { open[g.t] = v; }); lsSet('rtOpen', JSON.stringify(open)); re(); };
   const row = ({ r, d }) => html`<div key=${r.id + d.id} class="wk-row">
     <button class="wk-main" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
       <span class="t">${r.days.length > 1 ? dayLabel(d) : r.name}</span>
       <span class="s">${r.days.length > 1 ? r.name + ' · ' : ''}${d.items.length} exercise${d.items.length === 1 ? '' : 's'}</span>${tagChips(dayTags(d, r))}</button>
     <button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>`;
-  return html`<div>${seg}
-    <div class="row" style="margin:12px 0 2px"><p class="small muted" style="flex:1">Every workout, sorted by type. Set a workout's type in Edit.</p>
-      <button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button></div>
+  return html`<div>${top}
+    <div class="row" style="margin:12px 0 2px"><div style="flex:1"><${Tip} id="bytype">Every workout, sorted by type. Set a workout's type in Edit.<//></div>
+      ${shown.length ? html`<button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button>` : null}</div>
     ${shown.map(g => { const on = !!open[g.t]; return html`<section key=${g.t} class="wsec">
       <button class="wsec-h" aria-expanded=${on} onClick=${() => { open[g.t] = !on; lsSet('rtOpen', JSON.stringify(open)); re(); }}><h2>${g.t}</h2><span class="aside num">${g.rows.length}</span>${on ? I.up : I.down}</button>
       ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}
@@ -1764,11 +1921,12 @@ function RoutineView({ id }) {
   const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Routines. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove routine' : 'Delete routine', danger: true,
     onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
   return html`<div>
-    <div class="eyebrow" style="margin-top:6px">${builtin ? 'Library routine' : r.base ? 'Library routine · edited' : 'Your routine'}${r.meta ? ' · ' + r.meta : ''}</div>
+    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your program' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'Routine')}</div>
     <h2 class="wo-title" style="margin:2px 0 6px">${r.name}</h2>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
     <div class="row wrap" style="margin:14px 0 4px">
+      ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast({ kind: 'info', text: 'Following ' + r.name }); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
       ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
@@ -1783,7 +1941,7 @@ function RoutineEditor({ view }) {
   const d = view.draft; const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; re(); };
   const save = () => { if (!d.name.trim()) d.name = 'My routine'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
-    commit(st => { st.meta.routines[d.id] = clone(d); }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
+    commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
   return html`<div class="stack" style="gap:14px;margin-top:6px">
     <div><label class="lbl" for="rt-name">Routine name</label><input class="field" id="rt-name" value=${d.name} placeholder="e.g. Upper / Lower" onInput=${e => { d.name = e.target.value; }}/></div>
     ${d.days.map((day, di) => html`<div key=${day.id} class="r-day">
@@ -1960,6 +2118,7 @@ function StatsScreen({ view }) {
   const pick = t => { lsSet('statsTab', t); S.rerender(); };
   return html`<div>
     <div class="seg wide" role="tablist" style="margin-top:8px">${[['overall', 'Overall'], ['cats', 'Categories'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<${StatsOverall}/>`}
   </div>`;
 }
@@ -2058,9 +2217,7 @@ function StatsExercises() {
         <div style="min-width:0"><div class="nm">${exName(r.ex)}</div><div class="sub">${groupChip(r.group)}<span>${CATS[exCat(r.ex)]} · ${METRICS[m]}${m === 'reps' ? '' : ', ' + U()}</span></div></div>
         <${Sparkline} pts=${pts}/>
         <div class="v">${pj ? html`<b>${fmt(pj.today)}</b><span class=${k >= pj.today ? 'up-c' : 'down-c'}>${k >= pj.today ? '↑' : '↓'} ${fmt(k)}</span>` : '–'}</div></button>`; })}</div>`
-    : html`<div class="card"><div class="demo-banner">${I.stats} Example only. Log a workout to see your own lifts here.</div>
-        <div class="nm" style="font-weight:700">Squat · Est. 1RM</div>
-        <${LiftChart} pts=${demoData(now)} proj=${(() => { const p = demoData(now); const last = p[p.length - 1]; const today = last.v; return { last, today, daysOff: 9, keep: d => today + 0.25 * d, stop: d => last.v * retain(9 + d) }; })()} unitLabel=${U()} now=${now}/></div>`}
+    : html`<div class="card note">Log a workout to see your lifts here, each with a chart and an 8-week projection.</div>`}
     ${recentPRs.length ? html`<div class="section-h"><h2>Recent PRs</h2></div>
       <div class="card prl">${recentPRs.map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${shortDate(p.t)} · ${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>` : null}
   </div>`;
@@ -2121,6 +2278,8 @@ function ProfileScreen() {
   const exR = Object.entries(S.meta.exRest || {});
   return html`<div class="stack" style="gap:12px">
     <div class=${'sync ' + S.sync} style="margin-top:6px"><i></i><span>${SYNC_TEXT[S.sync] || ''}</span></div>
+    <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
+    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => openSheet({ type: 'tour', step: 0 })}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>
     <${DisplayCard}/>
     <div class="section-h"><h2>Training</h2></div>
@@ -2193,6 +2352,7 @@ function DisplayCard() {
   const sizes = [['90', 'Small'], ['100', 'Default'], ['115', 'Large'], ['130', 'Larger']];
   return html`<div class="card stack" style="gap:14px">
     <div><span class="lbl">Theme</span><div class="seg wide">${[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => html`<button key=${k} class=${DISP.theme === k ? 'on' : ''} aria-pressed=${DISP.theme === k} onClick=${() => setDisp('theme', k)}>${l}</button>`)}</div></div>
+    <${PaletteChooser}/>
     <div><span class="lbl">Text size</span><div class="seg wide">${sizes.map(([k, l]) => html`<button key=${k} class=${DISP.size === k ? 'on' : ''} aria-pressed=${DISP.size === k} onClick=${() => setDisp('size', k)}>${l}</button>`)}</div></div>
     <label class="toggle-row" for="tg-hc"><span><span>High contrast</span><span class="d">Darker secondary text and stronger lines.</span></span><input type="checkbox" role="switch" id="tg-hc" checked=${DISP.hc} onChange=${e => setDisp('hc', e.target.checked)}/></label>
     <label class="toggle-row" for="tg-rm"><span><span>Reduce motion</span><span class="d">Turns off slides and fades.</span></span><input type="checkbox" role="switch" id="tg-rm" checked=${DISP.rm} onChange=${e => setDisp('rm', e.target.checked)}/></label>
@@ -2817,7 +2977,7 @@ function ActivitySheet({ id, day }) {
   };
   const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
   return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
-    <p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>
+    <${Tip} id="activity" style="margin-top:4px">Counts toward your week streak and workouts per week, like a lifting workout.<//>
     <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
     <div class="stack" style="margin-top:14px">
       ${act === 'other' ? html`<div><label class="lbl" for="ac-name">What did you do?</label><input class="field" id="ac-name" placeholder="e.g. Climbing" value=${name} onInput=${e => setName(e.target.value)}/></div>` : null}
@@ -2908,6 +3068,10 @@ function SheetHost({ sheet }) {
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
     case 'summary': return html`<${SummarySheet} id=${sheet.id}/>`;
     case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;
+    case 'program': return html`<${ProgramSheet}/>`;
+    case 'help': return html`<${HelpSheet}/>`;
+    case 'tour': return html`<${TourSheet} step=${sheet.step || 0}/>`;
+    case 'feedback': return html`<${FeedbackSheet}/>`;
     case 'activity': return html`<${ActivitySheet} day=${sheet.day}/>`;
     case 'import': return html`<${ImportSheet}/>`;
     case 'restore': return html`<${RestoreSheet}/>`;
@@ -2923,17 +3087,18 @@ function SheetHost({ sheet }) {
   return null;
 }
 /* ---------- APP ---------- */
-const TABS = [['train', 'Train'], ['log', 'Log'], ['routines', 'Routines'], ['stats', 'Stats'], ['profile', 'Profile']];
+const TABS = [['train', 'Train'], ['routines', 'Routines'], ['stats', 'Stats'], ['profile', 'Profile']];
 function App() {
   const [, setTick] = useState(0);
-  const [tab, setTab] = useState(() => { const h = (location.hash || '').slice(1); return TABS.some(t => t[0] === h) ? h : (lsGet('tab') || 'train'); });
+  const [tab, setTab] = useState(() => { const h = (location.hash || '').slice(1); if (h === 'log' || lsGet('tab') === 'log') { TRAIN.mode = 'history'; return 'train'; } return TABS.some(t => t[0] === h) ? h : (lsGet('tab') || 'train'); });
   const [view, setView] = useState(null); const [sheet, setSheet] = useState(null);
   S.rerender = () => setTick(x => x + 1);
   UI.setSheet = setSheet; UI.setView = v => { setView(v); scrollTo(0, 0); };
   UI.setTab = k => { setTab(k); setView(null); lsSet('tab', k); scrollTo(0, 0); };
   useEffect(() => { const k = e => { if (e.key === 'Escape') setSheet(null); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
   const vt = view && view.type;
-  let title = { train: S.active ? 'Workout' : 'Train', log: 'Log', routines: 'Routines', stats: 'Stats', profile: 'Profile' }[tab];
+  let title = { train: S.active ? 'Workout' : '', routines: '', stats: 'Stats', profile: 'Profile' }[tab];
+  if (tab === 'routines' && vt === 'routine') title = 'Routines';
   if (tab === 'train' && vt === 'timer') title = 'Timer';
   if (tab === 'train' && vt === 'challenge') title = 'Challenge';
   if (tab === 'train' && vt === 'chEdit') title = view.isNew ? 'New challenge' : 'Edit challenge';
@@ -2943,14 +3108,13 @@ function App() {
   let left = null, right = null;
   if (view) left = html`<button class="pill-btn" onClick=${() => UI.setView(vt === 'edit' && !view.isNew ? { type: 'routine', id: view.draft.id } : vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : null)}>${I.back} Back</button>`;
   if (tab === 'train' && S.active && !view) right = html`<button class="pill-btn accent" onClick=${() => openSheet({ type: 'finish' })}>Finish</button>`;
-  if (tab === 'log') right = html`<span class=${'sync ' + S.sync} title=${SYNC_TEXT[S.sync]}><i></i></span>`;
-  const trainBody = vt === 'timer' ? html`<${TimerScreen}/>` : vt === 'challenge' ? html`<${ChallengeView} id=${view.id}/>` : vt === 'chEdit' ? html`<${ChallengeEditor} view=${view}/>` : S.active ? html`<${ActiveWorkout}/>` : html`<${TrainHome}/>`;
-  const body = tab === 'train' ? trainBody : tab === 'log' ? html`<${LogScreen}/>` : tab === 'routines' ? html`<${RoutinesScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : html`<${ProfileScreen}/>`;
+  const trainBody = vt === 'timer' ? html`<${TimerScreen}/>` : vt === 'challenge' ? html`<${ChallengeView} id=${view.id}/>` : vt === 'chEdit' ? html`<${ChallengeEditor} view=${view}/>` : S.active ? html`<${ActiveWorkout}/>` : html`<${TrainSwitch}/>`;
+  const body = tab === 'train' ? trainBody : tab === 'routines' ? html`<${RoutinesScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : html`<${ProfileScreen}/>`;
   const showMini = !!S.itimer && !(tab === 'train' && vt === 'timer');
   return html`
-    <header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>
+    ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}
     ${showMini ? html`<${IntervalMini}/>` : null}
-    <main class=${showMini ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(220px + env(safe-area-inset-bottom,0px))' } : null}>${body}</main>
+    <main class=${showMini ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(220px + env(safe-area-inset-bottom,0px))' } : null}>${body}<${HelpFoot}/></main>
     <${Toast}/>
     ${S.rest ? html`<${RestBar}/>` : null}
     <nav class="tabs" aria-label="Sections"><div class="tabs-in">${TABS.map(([k, l]) => html`<button key=${k} class=${'tab' + (tab === k ? ' on' : '')} aria-current=${tab === k ? 'page' : null} onClick=${() => UI.setTab(k)}>${I[k]}<span>${l}${k === 'train' && S.active && tab !== 'train' ? ' •' : ''}</span></button>`)}</div></nav>
@@ -2964,6 +3128,7 @@ function App() {
   setInterval(audioTick, 200);
   setTimeout(l10nStart, 0);
   initCloud();
+  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) openSheet({ type: 'tour', step: 0 }); }, 1400);
 })();
 </script>
 

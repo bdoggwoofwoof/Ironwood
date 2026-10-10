@@ -1,7 +1,7 @@
 #!/bin/sh
 # Rebuild, then refresh the zip and the git repo in site/ with a commit for any change.
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")"; ROOT="$(pwd)"
 python3 build.py
 rm -rf release && mkdir -p release/ironwood-app && cp -r dist/. release/ironwood-app/
 cat > release/ironwood-app/README.md <<'R'
@@ -26,6 +26,6 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_011NEah7nUcm1oHrcWep6qE1"
   git log --oneline -1; fi
 # Publish: main is the site; gh-pages mirrors it so GitHub Pages serves it either way
-if git -C site remote get-url origin >/dev/null 2>&1; then
-  git -C site push -q origin main && git -C site push -q -f origin main:gh-pages && echo "pushed to GitHub"
+if git -C "$ROOT/site" remote get-url origin >/dev/null 2>&1; then
+  git -C "$ROOT/site" push -q origin main && git -C "$ROOT/site" push -q -f origin main:gh-pages && echo "pushed to GitHub"
 fi

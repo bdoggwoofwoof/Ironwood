@@ -148,6 +148,7 @@ function tourScroll(to, ms) {
 function TourOverlay() {
   const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
   const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
+  const [vis, setVis] = useState(step); const shown = TOUR[vis] || TOUR[0];   /* the words on the card; under Reduce Motion they change only once it has faded out */
   const tgt = useRef({ els: null, mid: true, side: 'mid', show: false });
   /* one loop for the whole tour */
   useEffect(() => {
@@ -156,7 +157,9 @@ function TourOverlay() {
     const spring = (p, goal, dt) => { const a = W * W * (goal - cur[p]) - 2 * W * vel[p]; vel[p] += a * dt; cur[p] += vel[p] * dt; };
     let lastRect = null;
     const loop = now => {
-      const dt = Math.min(64, now - prev); prev = now; const rm = reduceMotion(); const k = rm ? 1 : 1 - Math.exp(-dt / 85); const sdt = Math.min(.032, dt / 1000);
+      const dt = Math.min(64, now - prev); prev = now; const rm = reduceMotion(); const k = 1 - Math.exp(-dt / (rm ? 60 : 85)); const sdt = Math.min(.032, dt / 1000);
+      /* Reduce Motion: nothing slides. The card and highlight fade out, move while invisible, and fade back in. */
+      const snap = rm && (cur.op < .04 || cur.cy === null);
       const hole = holeRef.current, card = cardRef.current, inset = insetRef.current, T = tgt.current;
       if (hole && card) {
         const vw = innerWidth, vh = innerHeight, pad = 8;
@@ -167,16 +170,17 @@ function TourOverlay() {
         const use = T.mid ? null : (r || lastRect);
         const g = use ? { x: Math.max(4, use.l - pad), y: Math.max(4, use.t - pad), w: Math.min(vw - 8, use.r - use.l + 2 * pad), h: Math.min(vh - 8, use.b - use.t + 2 * pad), ring: 1 }
                       : { x: vw / 2, y: vh / 2, w: 0, h: 0, ring: 0 };
-        for (const p of ['x', 'y', 'w', 'h']) { if (rm) { cur[p] = g[p]; vel[p] = 0; } else spring(p, g[p], sdt); } cur.ring += (g.ring - cur.ring) * k;
+        for (const p of ['x', 'y', 'w', 'h']) { if (snap) { cur[p] = g[p]; vel[p] = 0; } else if (!rm) spring(p, g[p], sdt); } cur.ring += (g.ring - cur.ring) * k;
         /* hole = the cut-out rect in the SVG mask; ring = a small outlined box over it (both cheap to redraw) */
         const cut = hole.querySelector('.tour-cut'), ring = hole.querySelector('.tour-ring');
+        cut.setAttribute('fill-opacity', (rm ? cur.op : 1).toFixed(3));
         cut.setAttribute('x', cur.x.toFixed(1)); cut.setAttribute('y', cur.y.toFixed(1)); cut.setAttribute('width', Math.max(0, cur.w).toFixed(1)); cut.setAttribute('height', Math.max(0, cur.h).toFixed(1));
         ring.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)'; ring.style.width = Math.max(0, cur.w).toFixed(1) + 'px'; ring.style.height = Math.max(0, cur.h).toFixed(1) + 'px';
-        ring.style.opacity = cur.ring.toFixed(3);
+        ring.style.opacity = (cur.ring * (rm ? cur.op : 1)).toFixed(3);
         const it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0, ch = card.offsetHeight;
         const side = T.mid ? 'mid' : T.side;
         const ty = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - ch : (vh - ch) / 2;
-        if (cur.cy === null) cur.cy = ty; if (rm) cur.cy = ty; else spring('cy', ty, sdt); cur.op += ((T.show ? 1 : 0) - cur.op) * k;
+        if (cur.cy === null || snap) { cur.cy = ty; vel.cy = 0; } else if (!rm) spring('cy', ty, sdt); cur.op += ((T.show ? 1 : 0) - cur.op) * k;
         card.style.transform = 'translateY(' + cur.cy.toFixed(1) + 'px)'; card.style.opacity = cur.op.toFixed(3);
       }
       raf = requestAnimationFrame(loop);
@@ -187,12 +191,14 @@ function TourOverlay() {
   }, []);
   /* each step: change screens if needed (hidden behind a fade), find the item, scroll it into the middle, aim the spotlight */
   useEffect(() => {
-    let alive = true; const T = tgt.current; const smooth = !reduceMotion(); document.body.classList.add('tour-on');
+    let alive = true; const T = tgt.current; const rm = reduceMotion(); document.body.classList.add('tour-on');
     (async () => {
+      if (rm && T.show) { T.show = false; await tourWait(220); if (!alive) return; }
+      setVis(step);
       const needTab = lsGet('tab') !== tab, needMode = !!mode && TRAIN.mode !== mode;
       const ls = (extra && extra.ls) || {};
       if (needTab || needMode) {
-        document.body.classList.add('tour-fading'); if (smooth) await tourWait(200); if (!alive) return;
+        document.body.classList.add('tour-fading'); await tourWait(200); if (!alive) return;
         for (const k in ls) lsSet(k, ls[k]);
         if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
         if (needTab) UI.setTab(tab); else S.rerender();
@@ -208,7 +214,7 @@ function TourOverlay() {
         T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';
         /* Scrolling from code stutters on iPhone, so a far-off item is reached by fading the page out, jumping there
            while it is invisible, and fading back in. Small moves just happen under the fade-in. */
-        if (Math.abs(want - scrollY) > 40 && !(needTab || needMode) && smooth) { document.body.classList.add('tour-fading'); await tourWait(180); if (!alive) return; }
+        if (Math.abs(want - scrollY) > 40 && !(needTab || needMode)) { document.body.classList.add('tour-fading'); await tourWait(180); if (!alive) return; }
         scrollTo(0, want); await tourFrame();
         T.mid = false; T.els = els; T.show = true;
         document.body.classList.remove('tour-fading');
@@ -219,9 +225,9 @@ function TourOverlay() {
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
     <div class="tour-hole" ref=${holeRef}><svg class="tour-dim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><rect class="tour-cut" x="0" y="0" width="0" height="0" rx="14" fill="#000"/></mask></defs><rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,.62)" mask="url(#tour-mask)"/></svg><div class="tour-ring"></div></div>
-    <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
-      <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
-      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>
+    <div class="tour-card" ref=${cardRef}><div key=${vis} class="tour-txt">
+      <div class="row"><div class="eyebrow" style="flex:1">${vis + 1} of ${TOUR.length}</div>${vis >= TOUR.length - 1 ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
+      <h2>${shown[3]}</h2><p class="note" style="margin:6px 0 14px">${shown[4]}</p></div>
       <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
         <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>
     </div></div>`;

@@ -654,8 +654,9 @@ body.tour-on .hdr,body.tour-on .tabs{backdrop-filter:none;-webkit-backdrop-filte
 body.tour-on main,body.tour-on .hdr,body.tour-on .hdr-space{transition:opacity .2s ease}
 body.tour-fading main,body.tour-fading .hdr,body.tour-fading .hdr-space{opacity:0}
 .tour-ring{position:absolute;left:0;top:0;width:0;height:0;border-radius:14px;box-shadow:0 0 0 3px var(--accent);opacity:0;will-change:transform}
-:root.rm .tour-txt{animation:none}:root.rm body.tour-on main,:root.rm body.tour-on .hdr{transition:none}
-@media (prefers-reduced-motion: reduce){.tour-txt{animation:none}body.tour-on main,body.tour-on .hdr{transition:none}}""")
+:root.rm .tour-txt{animation:tourfadeonly .25s ease}
+@keyframes tourfadeonly{from{opacity:0}}
+@media (prefers-reduced-motion: reduce){.tour-txt{animation:tourfadeonly .25s ease}}""")
 
 # 11. Sheet handles work: drag the bar down to close the sheet, up to make it full height (tap toggles the size).
 a = src.index('function Sheet({ children, label }) {'); b = src.index('function Sparkline(', a)

@@ -585,9 +585,9 @@ swap(".log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}", ".log-prs{m
 #     on every page, the save status as a labeled line in History, and color themes (two color-blind friendly).
 swap("let _sl = null, _slv = -1;", "const DEMO = { on: false, list: null }; /* sample data shown only during the walkthrough */\nlet _sl = null, _slv = -1;")
 swap("function sessionList() { if (_slv !== S.ver)", "function sessionList() { if (DEMO.on) return demoSessions(); if (_slv !== S.ver)")
-swap("  initCloud();\n})();", "  initCloud();\n  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) openSheet({ type: 'tour', step: 0 }); }, 1400);\n})();")
+swap("  initCloud();\n})();", "  initCloud();\n  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour(); }, 1400);\n})();")
 swap("""    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""", """    <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
-    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => openSheet({ type: 'tour', step: 0 })}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
+    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""")
 swap("""    ${tab === 'cats' ? html`<${StatsCategories}/>`""", """    ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'cats' ? html`<${StatsCategories}/>`""")
@@ -611,9 +611,10 @@ swap("tab === 'log' ? html`<${LogScreen}/>` : ", "")
 swap("""    <header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>""",
      """    ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}""")
 swap(">${body}</main>", ">${body}<${HelpFoot}/></main>")
+swap("    <${SheetHost} sheet=${sheet}/>`;", "    <${SheetHost} sheet=${sheet}/>\n    ${S.tour ? html`<${TourOverlay}/>` : null}`;")
 swap(".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);")
 swap("    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;",
-     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'program': return html`<${ProgramSheet}/>`;\n    case 'help': return html`<${HelpSheet}/>`;\n    case 'tour': return html`<${TourSheet} step=${sheet.step || 0}/>`;\n    case 'feedback': return html`<${FeedbackSheet}/>`;")
+     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'program': return html`<${ProgramSheet}/>`;\n    case 'help': return html`<${HelpSheet}/>`;\n    case 'feedback': return html`<${FeedbackSheet}/>`;")
 swap("commit(st => { st.meta.routines[d.id] = clone(d); }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };",
      "commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };")
 swap("""<p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>""",
@@ -640,7 +641,17 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .pal .sw{display:flex;gap:4px}.pal .sw i{width:18px;height:18px;border-radius:50%;display:block}
 .pal .pn{font-weight:600;font-size:14.5px}.pal .pd{font-size:12px;color:var(--ink-2);line-height:1.3}
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
-a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}""")
+a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
+.tour{position:fixed;inset:0;z-index:90}
+.tour-dim{position:absolute;inset:0;background:rgba(0,0,0,.62)}
+.tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .25s,top .25s,width .25s,height .25s;pointer-events:none}
+.tour-card{position:absolute;left:12px;right:12px;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4)}
+.tour-card.top{top:calc(env(safe-area-inset-top,0px) + 12px)}
+.tour-card.bottom{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
+.tour-card.mid{top:50%;transform:translateY(-50%)}
+.tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
+:root.rm .tour-hole{transition:none}
+@media (prefers-reduced-motion: reduce){.tour-hole{transition:none}}""")
 
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:

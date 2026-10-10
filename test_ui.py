@@ -42,11 +42,11 @@ async def main():
         # Tour visits every page
         await pg.locator('#help-btn').click(); await pg.locator('#help-tour').click(); await pg.wait_for_timeout(300)
         seen = []
-        for _ in range(7):
-            seen.append((await pg.locator('.tab.on').inner_text()).strip())
+        for _ in range(11):
+            await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train', 'Train', 'Train', 'Routines', 'Stats', 'Profile', 'Train'], seen)
-        check('tour closes', await pg.locator('.sheet').count() == 0)
+        check('tour walks through each page', seen == ['Train'] * 5 + ['Routines', 'Routines', 'Stats', 'Profile', 'Train', 'Train'], seen)
+        check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
         await pg.fill('#fb-text', 'Rest timer stopped beeping')
@@ -70,20 +70,23 @@ async def main():
         # First launch: the tour opens by itself, shows sample stats, and leaves no trace
         q = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
         await q.goto(URL); await q.wait_for_timeout(2200)
-        check('tour opens on first launch', await q.locator('.sheet', has_text='Welcome to Ironwood').count() == 1)
-        for _ in range(4): await q.locator('#tour-next').click(); await q.wait_for_timeout(300)
+        check('tour opens on first launch', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
+        holes = []
+        for _ in range(7):
+            await q.locator('#tour-next').click(); await q.wait_for_timeout(450); holes.append(await q.locator('.tour-hole').count())
+        check('each step highlights what it talks about', all(holes), holes)
         check('tour reaches Stats with sample data', (await q.locator('.tab.on').inner_text()).strip() == 'Stats' and await q.locator('#demo-banner').count() == 1 and await q.locator('.lift-row').count() >= 5, await q.locator('.lift-row').count())
         await q.locator('#tour-skip').click(); await q.wait_for_timeout(400)
         check('skipping clears the sample data', await q.locator('#demo-banner').count() == 0 and await q.locator('.lift-row').count() == 0 and await q.evaluate("sessionList().length") == 0)
         check('nothing fake saved', await q.evaluate("Object.keys(JSON.parse(localStorage.getItem('liftbook.v1') || '{\"sessions\":{}}').sessions || {}).length") == 0)
         await q.reload(); await q.wait_for_timeout(2200)
-        check('tour does not reopen', await q.locator('.sheet').count() == 0)
+        check('tour does not reopen', await q.locator('.tour').count() == 0)
         await q.locator('.tabs button', has_text='Profile').click(); await q.wait_for_timeout(300)
         await q.locator('#profile-tour').click(); await q.wait_for_timeout(300)
-        check('tour can be redone from Profile', await q.locator('.sheet', has_text='Welcome to Ironwood').count() == 1)
+        check('tour can be redone from Profile', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         await q.screenshot(path='shot-tour.png')
-        for _ in range(7): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
-        check('finishing the tour clears sample data too', await q.evaluate("sessionList().length") == 0 and await q.locator('.sheet').count() == 0)
+        for _ in range(11): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
+        check('finishing the tour clears sample data too', await q.evaluate("sessionList().length") == 0 and await q.locator('.tour').count() == 0)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

@@ -95,20 +95,25 @@ function HelpFoot() { return html`<div class="help-foot"><button class="btn text
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>
-    <button class="opt" id="help-tour" onClick=${() => openSheet({ type: 'tour', step: 0 })}><div style="flex:1"><div>Take the tour</div><div class="d">A quick walk through each page.</div></div></button>
+    <button class="opt" id="help-tour" onClick=${startTour}><div style="flex:1"><div>Take the tour</div><div class="d">A quick walk through each page.</div></div></button>
     <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
     ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
 }
 /* Walkthrough. Runs once on a fresh install (skippable), and again from Help or Profile. While it runs, the app
    shows sample workouts so Stats has something to show; they live only in memory and vanish when it ends. */
+/* Each step: [tab, train mode, element(s) to highlight, title, text, extra settings]. No selector = centered card. */
 const TOUR = [
-  ['train', 'train', 'Welcome to Ironwood', 'A quick look at what it can do. It takes about a minute, and you can skip it any time.'],
-  ['train', 'train', 'Train', 'Follow a program and Ironwood lines up the next day, or Self-log whatever you do. Runs, swims, yoga and classes count toward your streak too. Tap a day in the week to mark a rest day.'],
-  ['train', 'history', 'History', 'Every workout and activity you’ve logged. Tap one to see the sets, fix a typo or delete it.'],
-  ['routines', null, 'Routines and plans', 'Routines are single workouts; plans have several days. Edit, copy or remove any of them, and follow one as your program. “By type” sorts every workout into Push, Pull, Legs and more.'],
-  ['stats', null, 'Stats', 'Each lift gets a chart with an 8-week projection, plus records, streaks and progress photos. These numbers are samples for the tour. They disappear when it ends.'],
-  ['profile', null, 'Make it yours', 'Units, rest timer, text size and colors, including two color-blind friendly themes. Save a backup now and then.'],
-  ['train', 'train', 'You’re set', 'Take this tour again from Profile, or from Help at the bottom of any page.'],
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about a minute, and you can skip it any time.'],
+  ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
+  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak too.'],
+  ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets or fix a typo.', { max: 3 }],
+  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
+  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core and more, in sections you can open and close.'],
+  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size, units and rest timer.'],
+  ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
+  ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
 function demoSessions() {
   if (DEMO.list) return DEMO.list;
@@ -126,14 +131,44 @@ function demoSessions() {
 }
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
-function TourSheet({ step }) {
-  const [tab, mode, title, body] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
-  useEffect(() => { setDemo(true); return () => tourDone(); }, []);
-  useEffect(() => { if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); } if (tab === 'stats') lsSet('statsTab', 'ex'); UI.setTab(tab); }, [step]);
-  return html`<${Sheet} label="Tour"><div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${closeSheet}>Skip tour</button>`}</div>
-    <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p>
-    <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'tour', step: step - 1 })}>Back</button>` : null}
-      <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? closeSheet() : openSheet({ type: 'tour', step: step + 1 })}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div><//>`;
+function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
+function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
+const tourGo = n => { S.tour = { step: n }; S.rerender(); };
+/* Spotlight: dims the page, cuts a highlighted hole around what the step talks about, and puts the text card on the
+   opposite half of the screen so it never covers it. */
+function TourOverlay() {
+  const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
+  const [rect, setRect] = useState(null);
+  useEffect(() => {
+    setRect(null); let alive = true, tries = 0;
+    const ls = (extra && extra.ls) || {}; for (const k in ls) lsSet(k, ls[k]);
+    if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
+    UI.setTab(tab); S.rerender();
+    const measure = () => {
+      if (!alive || !sel) return; const els = [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0);
+      if (!els.length) { if (tries++ < 25) setTimeout(measure, 60); return; }
+      const list = els.slice(0, (extra && extra.max) || 1);
+      list[0].scrollIntoView({ block: 'center' });
+      setTimeout(() => { if (!alive) return; let r = null;
+        for (const e of list) { const b = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom) } : { l: b.left, t: b.top, r: b.right, b: b.bottom }; }
+        setRect(r); }, 60);
+    };
+    setTimeout(measure, 40);
+    const onKey = e => { if (e.key === 'Escape') endTour(); }; addEventListener('keydown', onKey);
+    const onResize = () => { tries = 0; measure(); }; addEventListener('resize', onResize);
+    return () => { alive = false; removeEventListener('keydown', onKey); removeEventListener('resize', onResize); };
+  }, [step]);
+  const pad = 8, vh = innerHeight, vw = innerWidth;
+  const hole = rect && { left: Math.max(4, rect.l - pad) + 'px', top: Math.max(4, rect.t - pad) + 'px', width: Math.min(vw - 8, rect.r - rect.l + 2 * pad) + 'px', height: Math.min(vh - 8, rect.b - rect.t + 2 * pad) + 'px' };
+  const place = !sel ? 'mid' : !rect ? 'bottom' : (rect.t + rect.b) / 2 > vh / 2 ? 'top' : 'bottom';
+  return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
+    ${hole ? html`<div class="tour-hole" style=${hole}></div>` : html`<div class="tour-dim"></div>`}
+    <div class=${'tour-card ' + place}>
+      <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
+      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p>
+      <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
+        <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>
+    </div></div>`;
 }
 function FeedbackSheet() {
   const [text, setText] = useState(''); const [tech, setTech] = useState(true); const [msg, setMsg] = useState('');

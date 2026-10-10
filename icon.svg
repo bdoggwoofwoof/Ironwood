@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#111315"/>
+  <circle cx="512" cy="512" r="330" fill="#1a1d21"/>
+  <!-- bar -->
+  <rect x="150" y="490" width="724" height="44" rx="22" fill="#a3abb4"/>
+  <!-- inner collars -->
+  <rect x="318" y="462" width="22" height="100" rx="8" fill="#a3abb4"/>
+  <rect x="684" y="462" width="22" height="100" rx="8" fill="#a3abb4"/>
+  <!-- big blue plates -->
+  <rect x="226" y="322" width="84" height="380" rx="26" fill="#4c8dff"/>
+  <rect x="714" y="322" width="84" height="380" rx="26" fill="#4c8dff"/>
+  <!-- small yellow plates -->
+  <rect x="172" y="392" width="46" height="240" rx="18" fill="#ffcf40"/>
+  <rect x="806" y="392" width="46" height="240" rx="18" fill="#ffcf40"/>
+</svg>

@@ -216,15 +216,16 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
-.tour-hole{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),height .38s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;pointer-events:none;will-change:left,top,width,height}
-.tour-hole.none{box-shadow:0 0 0 0 transparent,0 0 0 9999px rgba(0,0,0,.62)}
-.tour-card{position:fixed;left:12px;right:12px;top:0;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .2s ease;will-change:transform}
-.tour-card.ready{opacity:1}
-.tour-txt{animation:tourfade .22s ease}
-@keyframes tourfade{from{opacity:0}}
+.tour-hole{position:fixed;left:0;top:0;width:0;height:0;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.62);pointer-events:none;will-change:transform,width,height}
+.tour-card{position:fixed;left:12px;right:12px;top:0;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;will-change:transform,opacity}
+.tour-txt{animation:tourfade .25s ease}
+@keyframes tourfade{from{opacity:0;transform:translateY(4px)}}
 .tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
-:root.rm .tour-hole,:root.rm .tour-card{transition:none}:root.rm .tour-txt{animation:none}
-@media (prefers-reduced-motion: reduce){.tour-hole,.tour-card{transition:none}.tour-txt{animation:none}}
+body.tour-on main,body.tour-on .hdr,body.tour-on .hdr-space{transition:opacity .2s ease}
+body.tour-fading main,body.tour-fading .hdr,body.tour-fading .hdr-space{opacity:0}
+.tour-ring{position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 3px var(--accent);opacity:0}
+:root.rm .tour-txt{animation:none}:root.rm body.tour-on main,:root.rm body.tour-on .hdr{transition:none}
+@media (prefers-reduced-motion: reduce){.tour-txt{animation:none}body.tour-on main,body.tour-on .hdr{transition:none}}
 .tag-row{display:flex;flex-wrap:wrap;gap:4px}
 .chip.wtag{font-size:11.5px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
 .wsec-h{display:flex;align-items:center;gap:10px;width:100%;padding:14px 4px 10px;border-bottom:1px solid var(--line);text-align:left}
@@ -1657,50 +1658,85 @@ const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
 function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
 function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
-/* Spotlight: dims the page and cuts a highlighted hole around what the step talks about. The hole and the text card
-   stay on screen the whole time: between steps the hole glides to the next item (following the page while it scrolls
-   smoothly), the card slides to whichever half of the screen keeps it clear, and only the words fade. */
+/* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
+   transitions to restart mid-motion). Moving to another screen fades the page out, swaps it while it is invisible,
+   and fades it back in; scrolling uses an eased animation. Reduce Motion skips all of it. */
 const reduceMotion = () => document.documentElement.classList.contains('rm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tourWait = ms => new Promise(r => setTimeout(r, ms));
+const tourFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+function tourScroll(to, ms) {
+  const from = scrollY, d = to - from; if (Math.abs(d) < 2 || ms <= 0) { scrollTo(0, to); return Promise.resolve(); }
+  return new Promise(res => { const t0 = performance.now(); const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    const f = now => { const p = Math.min(1, (now - t0) / ms); scrollTo(0, from + d * ease(p)); if (p < 1) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+}
 function TourOverlay() {
   const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
   const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
+  const tgt = useRef({ els: null, mid: true, side: 'mid', show: false });
+  /* one loop for the whole tour */
   useEffect(() => {
-    let alive = true, raf = 0, scrolled = false, lockSide = null; const t0 = performance.now(); const smooth = !reduceMotion();
-    const ls = (extra && extra.ls) || {}; for (const k in ls) lsSet(k, ls[k]);
-    if (lsGet('tab') !== tab) { if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); } UI.setTab(tab); }
-    else if (mode && TRAIN.mode !== mode) { TRAIN.mode = mode; lsSet('trainMode', mode); S.rerender(); }
-    const max = (extra && extra.max) || 1;
-    const frame = () => {
-      if (!alive) return; const hole = holeRef.current, card = cardRef.current, inset = insetRef.current;
+    let raf = 0, prev = performance.now(); const cur = { x: innerWidth / 2, y: innerHeight / 2, w: 0, h: 0, ring: 0, cy: null, op: 0 }; const vel = { x: 0, y: 0, w: 0, h: 0, cy: 0 };
+    const W = 11; /* spring speed: critically damped, settles in about half a second */
+    const spring = (p, goal, dt) => { const a = W * W * (goal - cur[p]) - 2 * W * vel[p]; vel[p] += a * dt; cur[p] += vel[p] * dt; };
+    let lastRect = null;
+    const loop = now => {
+      const dt = Math.min(64, now - prev); prev = now; const rm = reduceMotion(); const k = rm ? 1 : 1 - Math.exp(-dt / 85); const sdt = Math.min(.032, dt / 1000);
+      const hole = holeRef.current, card = cardRef.current, inset = insetRef.current, T = tgt.current;
       if (hole && card) {
-        const vh = innerHeight, vw = innerWidth, it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0;
-        const els = sel ? [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0).slice(0, max) : [];
-        let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, q.left), t: Math.min(r.t, q.top), r: Math.max(r.r, q.right), b: Math.max(r.b, q.bottom) } : { l: q.left, t: q.top, r: q.right, b: q.bottom }; }
-        if (r && !scrolled) { scrolled = true; const maxY = Math.max(0, document.documentElement.scrollHeight - vh);
-          const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
-          lockSide = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';   /* where the item will sit once scrolled */
-          if (Math.abs(want - scrollY) > 4) scrollTo({ top: want, behavior: smooth ? 'smooth' : 'auto' }); }
-        const waiting = sel && !r && performance.now() - t0 < 1500;          // keep the last spot while the page settles
-        if (!waiting) {
-          const pad = 8; let side;
-          if (r) { hole.classList.remove('none');
-            hole.style.left = Math.max(4, r.l - pad) + 'px'; hole.style.top = Math.max(4, r.t - pad) + 'px';
-            hole.style.width = Math.min(vw - 8, r.r - r.l + 2 * pad) + 'px'; hole.style.height = Math.min(vh - 8, r.b - r.t + 2 * pad) + 'px';
-            side = lockSide || ((r.t + r.b) / 2 > vh / 2 ? 'top' : 'bottom'); }
-          else { hole.classList.add('none'); hole.style.left = vw / 2 + 'px'; hole.style.top = vh / 2 + 'px'; hole.style.width = '0px'; hole.style.height = '0px'; side = 'mid'; }
-          const h = card.offsetHeight; const top = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - h : (vh - h) / 2;
-          card.style.transform = 'translateY(' + Math.round(top) + 'px)'; card.classList.add('ready');
-        }
+        const vw = innerWidth, vh = innerHeight, pad = 8;
+        let r = null;
+        if (T.els) for (const e of T.els) { if (!e.isConnected) continue; const q = e.getBoundingClientRect(); if (!q.width) continue;
+          r = r ? { l: Math.min(r.l, q.left), t: Math.min(r.t, q.top), r: Math.max(r.r, q.right), b: Math.max(r.b, q.bottom) } : { l: q.left, t: q.top, r: q.right, b: q.bottom }; }
+        if (r) lastRect = r;
+        const use = T.mid ? null : (r || lastRect);
+        const g = use ? { x: Math.max(4, use.l - pad), y: Math.max(4, use.t - pad), w: Math.min(vw - 8, use.r - use.l + 2 * pad), h: Math.min(vh - 8, use.b - use.t + 2 * pad), ring: 1 }
+                      : { x: vw / 2, y: vh / 2, w: 0, h: 0, ring: 0 };
+        for (const p of ['x', 'y', 'w', 'h']) { if (rm) { cur[p] = g[p]; vel[p] = 0; } else spring(p, g[p], sdt); } cur.ring += (g.ring - cur.ring) * k;
+        hole.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
+        hole.style.width = cur.w.toFixed(1) + 'px'; hole.style.height = cur.h.toFixed(1) + 'px';
+        if (hole.firstChild) hole.firstChild.style.opacity = cur.ring.toFixed(3);
+        const it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0, ch = card.offsetHeight;
+        const side = T.mid ? 'mid' : T.side;
+        const ty = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - ch : (vh - ch) / 2;
+        if (cur.cy === null) cur.cy = ty; if (rm) cur.cy = ty; else spring('cy', ty, sdt); cur.op += ((T.show ? 1 : 0) - cur.op) * k;
+        card.style.transform = 'translateY(' + cur.cy.toFixed(1) + 'px)'; card.style.opacity = cur.op.toFixed(3);
       }
-      raf = requestAnimationFrame(frame);
+      raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(frame);
+    raf = requestAnimationFrame(loop);
     const onKey = e => { if (e.key === 'Escape') endTour(); }; addEventListener('keydown', onKey);
-    return () => { alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey); };
+    return () => { cancelAnimationFrame(raf); removeEventListener('keydown', onKey); document.body.classList.remove('tour-fading', 'tour-on'); };
+  }, []);
+  /* each step: change screens if needed (hidden behind a fade), find the item, scroll it into the middle, aim the spotlight */
+  useEffect(() => {
+    let alive = true; const T = tgt.current; const smooth = !reduceMotion(); document.body.classList.add('tour-on');
+    (async () => {
+      const needTab = lsGet('tab') !== tab, needMode = !!mode && TRAIN.mode !== mode;
+      const ls = (extra && extra.ls) || {};
+      if (needTab || needMode) {
+        document.body.classList.add('tour-fading'); if (smooth) await tourWait(200); if (!alive) return;
+        for (const k in ls) lsSet(k, ls[k]);
+        if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
+        if (needTab) UI.setTab(tab); else S.rerender();
+        await tourFrame(); await tourFrame();
+      } else for (const k in ls) lsSet(k, ls[k]);
+      let els = [];
+      if (sel) for (let i = 0; i < 30 && alive; i++) { els = [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0).slice(0, (extra && extra.max) || 1); if (els.length) break; await tourWait(50); }
+      if (!alive) return;
+      if (els.length) {
+        let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { t: Math.min(r.t, q.top), b: Math.max(r.b, q.bottom) } : { t: q.top, b: q.bottom }; }
+        const vh = innerHeight, maxY = Math.max(0, document.documentElement.scrollHeight - vh);
+        const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
+        T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom'; T.mid = false; T.els = els; T.show = true;
+        document.body.classList.remove('tour-fading');
+        await tourScroll(want, smooth && !(needTab || needMode) ? 480 : 0);
+      } else { T.mid = true; T.els = null; T.show = true; document.body.classList.remove('tour-fading'); }
+    })();
+    return () => { alive = false; };
   }, [step]);
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
-    <div class="tour-hole none" ref=${holeRef}></div>
+    <div class="tour-hole" ref=${holeRef}><div class="tour-ring"></div></div>
     <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
       <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
       <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>

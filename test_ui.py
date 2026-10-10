@@ -82,6 +82,23 @@ async def main():
         check('color theme kept after reload', kept == after, kept)
         await pg.locator('.tabs button', has_text='Profile').click(); await pg.locator('.pal', has_text='Classic').click(); await pg.wait_for_timeout(200)
         check('back to classic', await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == before)
+        # Custom colors from the wheel
+        await pg.locator('.tabs button', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.locator('#pal-custom').click(); await pg.wait_for_timeout(400)
+        w = await pg.locator('#color-wheel').bounding_box(); cx, cy = w['x'] + w['width'] / 2, w['y'] + w['height'] / 2
+        await pg.mouse.move(cx, cy); await pg.mouse.down(); await pg.mouse.move(cx + 90, cy - 30, steps=6); await pg.mouse.up(); await pg.wait_for_timeout(200)
+        lines = {}
+        for k in ['Complementary', 'Split', 'Triadic', 'Square', 'Analogous']:
+            await pg.locator('.sheet .chip', has_text=k).click(); await pg.wait_for_timeout(100); lines[k] = await pg.locator('.wheel .wl.sug').count()
+        check('suggestion lines per harmony', lines == {'Complementary': 1, 'Split': 2, 'Triadic': 2, 'Square': 3, 'Analogous': 2}, lines)
+        await pg.locator('#fill-sugg').click(); await pg.wait_for_timeout(100)
+        vals = await pg.evaluate("(() => { const c = [...document.querySelectorAll('.slot-btn i')].map(e => getComputedStyle(e).backgroundColor.match(/\\d+/g).map(Number)); return c.map(x => Math.max(...x)); })()")
+        check('all three share one brightness', len(set(vals)) == 1, vals)
+        await pg.locator('#cw-save').click(); await pg.wait_for_timeout(300)
+        acc = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
+        check('custom colors applied', acc.lower() not in ('#1f5fd6', '#4c8dff') and await pg.locator('#pal-custom.on').count() == 1, acc)
+        await pg.reload(); await pg.wait_for_timeout(1500)
+        check('custom colors kept after reload', await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == acc)
         # an old link to #log opens History
         await pg.goto(URL + '#log'); await pg.reload(); await pg.wait_for_timeout(1500)
         check('#log opens History', (await pg.locator('.topsw button.on').inner_text()).upper() == 'HISTORY')

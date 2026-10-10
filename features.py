@@ -614,7 +614,7 @@ swap(">${body}</main>", ">${body}<${HelpFoot}/></main>")
 swap("    <${SheetHost} sheet=${sheet}/>`;", "    <${SheetHost} sheet=${sheet}/>\n    ${S.tour ? html`<${TourOverlay}/>` : null}`;")
 swap(".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);")
 swap("    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;",
-     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'program': return html`<${ProgramSheet}/>`;\n    case 'help': return html`<${HelpSheet}/>`;\n    case 'feedback': return html`<${FeedbackSheet}/>`;")
+     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'program': return html`<${ProgramSheet}/>`;\n    case 'help': return html`<${HelpSheet}/>`;\n    case 'feedback': return html`<${FeedbackSheet}/>`;\n    case 'colors': return html`<${ColorSheet}/>`;")
 swap("commit(st => { st.meta.routines[d.id] = clone(d); }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };",
      "commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };")
 swap("""<p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>""",
@@ -651,6 +651,23 @@ a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour-card.mid{top:50%;transform:translateY(-50%)}
 .tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
 :root.rm .tour-hole{transition:none}
+.slot-pick{display:flex;flex-direction:column;gap:6px}
+.slot-btn{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;background:var(--raised);text-align:left;border:2px solid transparent}
+.slot-btn.on{border-color:var(--ink)}
+.slot-btn i{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.slot-btn b{display:block;font-size:15px}.slot-btn .d{font-size:12.5px;color:var(--ink-2)}
+.wheel{position:relative;margin:14px auto 0;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.wheel canvas,.wheel svg{position:absolute;inset:0;width:100%;height:100%}
+.wheel .wl{stroke-width:3;stroke-linecap:round}
+.wheel .wl.main{stroke:#fff;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
+.wheel .wl.sug{stroke:#fff;stroke-dasharray:5 5;opacity:.9;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
+.wheel .wc{fill:#fff;stroke:rgba(0,0,0,.6);stroke-width:1.5}
+.wheel .wd-main{stroke:#fff;stroke-width:4;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.wheel .wd-sug{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 2px rgba(0,0,0,.7))}
+.sug-sw{width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--line)}
+.cw-v{width:100%;accent-color:var(--ink-2)}
+.cw-prev{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.cw-prev .btn{min-height:40px;padding:8px 16px}
 @media (prefers-reduced-motion: reduce){.tour-hole{transition:none}}""")
 
 # 11. Sheet handles work: drag the bar down to close the sheet, up to make it full height (tap toggles the size).

@@ -197,16 +197,81 @@ const PALETTES = {
   by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#00838f', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
 };
 const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
-const palVars = (c, al) => '--accent:' + c.a + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+const lum = h => { const n = parseInt(h.slice(1), 16); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(n >> 16) + .7152 * f((n >> 8) & 255) + .0722 * f(n & 255); };
+const inkFor = h => lum(h) > .32 ? '#14171b' : '#ffffff';
+const palVars = (c, al) => '--accent:' + c.a + ';--accent-ink:' + (c.ai || '#ffffff') + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+/* ---- Custom colors: three colors picked on a hue/saturation wheel, all at one shared brightness (HSV value). ---- */
+const hsv2hex = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+const hex2hsv = hex => { const n = parseInt(hex.slice(1), 16); const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return { h: (h * 60 + 360) % 360, s: mx ? d / mx : 0, v: mx }; };
+const CUSTOM_DEF = () => { const c = PALETTES.classic[2]; return { v: .95, mode: 'square', cols: [c.a, c.p, c.s].map(x => { const q = hex2hsv(x); return { h: q.h, s: q.s }; }) }; };
+const customGet = () => { try { const c = JSON.parse(lsGet('palCustom') || 'null'); if (c && c.cols && c.cols.length === 3) return c; } catch (e) {} return null; };
+function customPal(c) {
+  c = c || customGet() || CUSTOM_DEF(); const v = c.v;
+  const dark = c.cols.map(x => hsv2hex(x.h, x.s, v)), light = c.cols.map(x => hsv2hex(x.h, Math.min(1, x.s * 1.08 + .05), Math.max(.35, v * .72)));
+  const mk = (cs, g, r) => ({ a: cs[0], p: cs[1], s: cs[2], g, r: cs[2], ai: inkFor(cs[0]), pi: inkFor(cs[1]), si: inkFor(cs[2]) });
+  return ['Custom', 'Your three colors', mk(dark, '#39c98a'), mk(light, '#1d9a62')];
+}
+const palFor = k => k === 'custom' ? customPal() : PALETTES[k];
 function applyPalette() {
-  const k = PALETTES[DISP.palette] ? DISP.palette : 'classic'; let el = document.getElementById('palette');
+  const k = DISP.palette === 'custom' || PALETTES[DISP.palette] ? DISP.palette : 'classic'; let el = document.getElementById('palette');
   if (k === 'classic') { if (el) el.remove(); return; }
   if (!el) { el = document.createElement('style'); el.id = 'palette'; document.head.appendChild(el); }
-  const d = PALETTES[k][2], l = PALETTES[k][3];
+  const P = palFor(k), d = P[2], l = P[3];
   el.textContent = 'html:root{' + palVars(d, .16) + '}@media (prefers-color-scheme: light){html:root:not([data-theme="dark"]){' + palVars(l, .10) + '}}html:root[data-theme="light"]{' + palVars(l, .10) + '}html:root[data-theme="dark"]{' + palVars(d, .16) + '}';
 }
 function PaletteChooser() {
-  const cur = PALETTES[DISP.palette] ? DISP.palette : 'classic';
+  const cur = DISP.palette === 'custom' || PALETTES[DISP.palette] ? DISP.palette : 'classic'; const cp = customPal()[2];
   return html`<div><span class="lbl">Colors</span><div class="pal-grid">${Object.entries(PALETTES).map(([k, [n, sub, d]]) => html`<button key=${k} class=${'pal' + (cur === k ? ' on' : '')} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>
-    <span class="sw" aria-hidden="true">${[d.a, d.p, d.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`)}</div></div>`;
+    <span class="sw" aria-hidden="true">${[d.a, d.p, d.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`)}
+    <button class=${'pal' + (cur === 'custom' ? ' on' : '')} id="pal-custom" aria-pressed=${cur === 'custom'} onClick=${() => openSheet({ type: 'colors' })}>
+      <span class="sw" aria-hidden="true">${[cp.a, cp.p, cp.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">Custom</span><span class="pd">${customGet() ? 'Tap to edit' : 'Pick your own three'}</span></button></div></div>`;
+}
+const HARMONY = [['complementary', 'Complementary', [180]], ['split', 'Split', [150, 210]], ['triadic', 'Triadic', [120, 240]], ['square', 'Square', [90, 180, 270]], ['analogous', 'Analogous', [-30, 30]]];
+const SLOTS = [['Main', 'Buttons, links and highlights'], ['Records', 'PR badges and records'], ['Warnings', 'Stop, delete and missed days']];
+function ColorSheet() {
+  const [c, setC] = useState(() => clone(customGet() || (() => { const P = palFor(DISP.palette === 'custom' || PALETTES[DISP.palette] ? DISP.palette : 'classic')[2];
+    const cols = [P.a, P.p, P.s].map(x => { const q = hex2hsv(x); return { h: q.h, s: q.s }; }); return { v: Math.max(.55, Math.max(...[P.a, P.p, P.s].map(x => hex2hsv(x).v))), mode: 'square', cols }; })()));
+  const [sel, setSel] = useState(0); const [target, setTarget] = useState(1);
+  const cv = useRef(null); const R = 130;
+  useEffect(() => { const el = cv.current; if (!el) return; const dpr = Math.min(2, devicePixelRatio || 1), size = R * 2 * dpr; el.width = el.height = size; const ctx = el.getContext('2d'); const img = ctx.createImageData(size, size); const d = img.data, rr = size / 2;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) { const dx = x - rr + .5, dy = y - rr + .5, r = Math.sqrt(dx * dx + dy * dy); const i = (y * size + x) * 4; if (r > rr) { d[i + 3] = 0; continue; }
+      const hex = hsv2hex(Math.atan2(dy, dx) * 180 / Math.PI + 90, r / rr, c.v); const n = parseInt(hex.slice(1), 16); d[i] = n >> 16; d[i + 1] = (n >> 8) & 255; d[i + 2] = n & 255; d[i + 3] = r > rr - 1 ? Math.round(255 * (rr - r)) : 255; }
+    ctx.putImageData(img, 0, 0); }, [c.v]);
+  const pos = (h, s) => { const a = (h - 90) * Math.PI / 180; return [R + Math.cos(a) * s * R, R + Math.sin(a) * s * R]; };
+  const setCol = (i, col) => { const n = clone(c); n.cols[i] = col; setC(n); };
+  const pick = e => { const b = e.currentTarget.getBoundingClientRect(); const dx = e.clientX - b.left - R, dy = e.clientY - b.top - R;
+    setCol(sel, { h: (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360, s: Math.min(1, Math.sqrt(dx * dx + dy * dy) / R) }); };
+  const dragging = useRef(false);
+  const cur = c.cols[sel]; const offs = (HARMONY.find(x => x[0] === c.mode) || HARMONY[3])[2];
+  const sugg = offs.map(o => ({ h: (cur.h + o + 360) % 360, s: cur.s }));
+  const others = [0, 1, 2].filter(i => i !== sel); const tgt = others.includes(target) ? target : others[0];
+  const useSugg = q => { setCol(tgt, q); const nx = others.find(i => i !== tgt); setTarget(nx); };
+  const fill = () => { const n = clone(c); others.forEach((i, k) => { if (sugg[k] || sugg[0]) n.cols[i] = sugg[k] || sugg[0]; }); setC(n); };
+  const hexes = c.cols.map(x => hsv2hex(x.h, x.s, c.v));
+  const save = () => { lsSet('palCustom', JSON.stringify(c)); setDisp('palette', 'custom'); applyPalette(); closeSheet(); showToast({ kind: 'info', text: 'Custom colors on' }); };
+  const [hx, hy] = pos(cur.h, cur.s);
+  return html`<${Sheet} label="Custom colors"><h2>Custom colors</h2>
+    <p class="note" style="margin-bottom:10px">Pick a color, then drag on the wheel. Dashed lines point to colors that go with it.</p>
+    <div class="slot-pick" role="group" aria-label="Which color">${SLOTS.map(([n, d], i) => html`<button key=${i} class=${'slot-btn' + (sel === i ? ' on' : '')} aria-pressed=${sel === i} onClick=${() => { setSel(i); setTarget([0, 1, 2].find(k => k !== i)); }}>
+      <i style=${{ background: hexes[i] }}></i><span><b>${n}</b><span class="d">${d}</span></span></button>`)}</div>
+    <div class="wheel" style=${{ width: R * 2 + 'px', height: R * 2 + 'px' }} id="color-wheel"
+      onPointerDown=${e => { dragging.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} pick(e); }}
+      onPointerMove=${e => { if (dragging.current) pick(e); }} onPointerUp=${() => { dragging.current = false; }} onPointerCancel=${() => { dragging.current = false; }}>
+      <canvas ref=${cv} style=${{ width: R * 2 + 'px', height: R * 2 + 'px' }} aria-hidden="true"></canvas>
+      <svg viewBox=${'0 0 ' + R * 2 + ' ' + R * 2} aria-hidden="true">
+        ${sugg.map((q, i) => { const [x, y] = pos(q.h, q.s); return html`<g key=${i}><line x1=${R} y1=${R} x2=${x} y2=${y} class="wl sug"/><circle cx=${x} cy=${y} r="11" class="wd-sug" style=${{ fill: hsv2hex(q.h, q.s, c.v) }}/></g>`; })}
+        <line x1=${R} y1=${R} x2=${hx} y2=${hy} class="wl main"/><circle cx=${R} cy=${R} r="4" class="wc"/>
+        <circle cx=${hx} cy=${hy} r="15" class="wd-main" style=${{ fill: hexes[sel] }}/></svg></div>
+    <div class="lbl" style="margin-top:12px">Suggestions</div>
+    <div class="range-grid" role="group" aria-label="Kind of suggestions" style="margin-top:4px">${HARMONY.map(([k, l]) => html`<button key=${k} class=${'chip' + (c.mode === k ? ' on' : '')} aria-pressed=${c.mode === k} onClick=${() => setC({ ...c, mode: k })}>${l}</button>`)}</div>
+    <div class="row wrap" style="margin-top:10px;gap:8px">${sugg.map((q, i) => html`<button key=${i} class="sug-sw" aria-label=${'Use suggestion ' + (i + 1) + ' for ' + SLOTS[tgt][0]} onClick=${() => useSugg(q)} style=${{ background: hsv2hex(q.h, q.s, c.v) }}></button>`)}
+      <span class="small muted" style="flex:1;min-width:120px">Tap one to use it for <b>${SLOTS[tgt][0]}</b></span></div>
+    <button class="btn wide" style="margin-top:10px" id="fill-sugg" onClick=${fill}>Use suggestions for ${others.map(i => SLOTS[i][0]).join(' and ')}</button>
+    <div style="margin-top:14px"><label class="lbl" for="cw-v">Brightness (all three)</label>
+      <input type="range" id="cw-v" class="cw-v" min="55" max="100" value=${Math.round(c.v * 100)} onInput=${e => setC({ ...c, v: +e.target.value / 100 })}/></div>
+    <div class="cw-prev" aria-label="Preview"><span class="btn" style=${{ background: hexes[0], color: inkFor(hexes[0]) }}>Start</span><span class="pr-badge" style=${{ background: hexes[1], color: inkFor(hexes[1]) }}>New PR</span><span class="btn" style=${{ background: hexes[2], color: inkFor(hexes[2]) }}>Stop</span></div>
+    <p class="small faint" style="margin-top:6px">Light mode uses deeper versions of the same three colors.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button><button class="btn primary" style="flex:2" id="cw-save" onClick=${save}>Use these colors</button></div><//>`;
 }

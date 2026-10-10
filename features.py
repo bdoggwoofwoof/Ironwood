@@ -341,9 +341,12 @@ swap("const allRoutines = () => [...Object.values(S.meta.routines).sort((a, b) =
 r"""const isHidden = id => (S.meta.hidden || []).includes(id);
 const libBase = id => BUILTIN_ROUTINES.find(r => r.id === id) || null;
 const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-const libRoutines = () => BUILTIN_ROUTINES.filter(r => !isHidden(r.id)).map(r => S.meta.routines[r.id] || r);
+const routineKey = r => JSON.stringify([r.name, r.days.map(d => [d.id, d.name, d.tags && d.tags.length ? d.tags : null, d.items.map(i => [i.id, i.ex, +i.sets, i.reps || '', !!i.ss, i.group || '', i.note || ''])])]);
+/* An edit of a library routine counts only while it differs from the library version. */
+const libOver = id => { const o = S.meta.routines[id], b = libBase(id); return o && b && routineKey(o) !== routineKey(b) ? o : null; };
+const libRoutines = () => BUILTIN_ROUTINES.filter(r => !isHidden(r.id)).map(r => libOver(r.id) || r);
 const allRoutines = () => [...myRoutines(), ...libRoutines()];
-const getRoutine = id => isHidden(id) ? null : (S.meta.routines[id] || libBase(id));""")
+const getRoutine = id => isHidden(id) ? null : libBase(id) ? (libOver(id) || libBase(id)) : (S.meta.routines[id] || null);""")
 
 start = src.index('function RoutinesScreen({ view }) {')
 end = src.index('function RoutineEditor({ view }) {', start)
@@ -372,6 +375,10 @@ function autoTags(day, r) {
 }
 const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
+const setsLabel = it => it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + it.reps + ' reps' : '');
+/* The weight used last time (heaviest set, or least assistance), with its unit. */
+const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; const ws = e.raw.filter(x => +x.r > 0).map(x => +x.w || 0).filter(w => w > 0); if (!ws.length) return '';
+  const asst = exKind(it.ex) === 'assisted'; return ' · last ' + fmt(asst ? Math.min(...ws) : Math.max(...ws)) + ' ' + e.u + (asst ? ' assist' : ''); };
 const dayLabel = d => String(d.name || '').replace(/\s*\(.*\)$/, '').replace(/^Day\s*\d+\s*[-–]\s*/i, '');
 const tagChips = tags => html`<span class="tag-row">${tags.map(t => html`<span key=${t} class="chip wtag">${t}</span>`)}</span>`;
 
@@ -442,11 +449,13 @@ function RoutineView({ id }) {
     </div>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
-      <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="sx num">${it.sets}×${it.reps ? it.reps : ''}</span><span>${exName(it.ex)}</span>${groupChip(it.group)}${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
+      <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
   </div>`;
 }
 """
 src = src[:start] + SCREENS + src[end:]
+# 8. Newt's 4-Day Split as he edited it in the app (Oct 10): rep ranges, new supersets, no pull-ups on legs day, plain day names.
+swap("Day 1 - Chest Focus (N)\n3x Decline Chest Press\n3x Russian Tits to L Stretch\n3x x Hybrid Curls\n3x Cable Fly\n3x x Tricep Pushdowns\n3x Cable Crunch\n3x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts (N)\n3x Bent-Over Barbell Rows\n3x Lat Pulldown\n3x x Cuban Press\n4x Russian Behind-the-Back Cable Flies\n3x x Hybrid Curls\n3x Scapular Shrugs\n3x Cable Crunch\nDay 3 - Shoulders / Tris (N)\n3x Overhead Barbell Press\n3x Russian Behind-the-Back Cable Flies\n3x x Tricep Pushdowns\n3x Face Pulls\n3x x Overhead Cable Tricep Extension\n3x Scapular Shrugs\n3x Cable Crunch\nDay 4 - Legs (N/BJJ)\n3x Squat\n3x Romanian Deadlift\n3x Leg Curls\n3x Calf Raises\n3x Assisted Pull-Up", "Day 1 - Chest Focus\n3x5-8 Decline Chest Press\n3x5-8 Russian Tits to L Stretch\n3x5-8 x Hybrid Curls\n3x5-8 Cable Fly\n3x5-8 x Tricep Pushdowns\n3x5-8 Cable Crunch\n3x10-12 x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts\n3x5-8 Bent-Over Barbell Rows\n3x5-8 Lat Pulldown\n3x10-12 x Cuban Press\n4x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Hybrid Curls\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 3 - Shoulders / Tris\n3x5-8 Overhead Barbell Press\n3x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Tricep Pushdowns\n3x5-8 Face Pulls\n3x5-8 x Overhead Cable Tricep Extension\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 4 - Legs\n3x5-8 Squat\n3x5-8 x Romanian Deadlift\n3x5-8 Leg Curls\n3x10-12 x Calf Raises")
 # 7. Exercise notes on routines (shown in the routine and during the workout), workout-type tags in the editor.
 swap("note: '', target: { sets: n, reps: item.reps || '' },", "note: '', target: { sets: n, reps: item.reps || '', cue: item.note || '' },")
 swap("""${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div></div>""",
@@ -470,9 +479,14 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .wk-main{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column;gap:4px}
 .wk-main .t{font-weight:700;line-height:1.25}
 .wk-main .s{font-size:13.5px;color:var(--ink-2)}
-.r-items .cue{flex-basis:100%;font-size:13.5px;color:var(--ink-2);padding-left:38px;margin-top:-2px}
+.r-items li{gap:2px 8px}
+.r-items .nm{font-weight:600}
+.r-items .sub{flex-basis:100%;font-size:13.5px;color:var(--ink-2)}
+.r-items .cue{flex-basis:100%;font-size:13.5px;color:var(--ink-3)}
 .ed-tags{display:flex;flex-wrap:wrap;gap:6px}
 input.field.ed-cue{padding:8px 10px;font-size:15px;background:var(--surface)}""")
+swap("<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps : ''}</span>", "<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>")
+swap("${it.sets}× ${exName(it.ex)}${it.group ? ' · ' + (RANGE_NAME", "${exName(it.ex)}<span class=\"faint\"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME")
 swap("This change applies to today. Copy the routine to make it permanent.", "This change applies to today. Edit the routine to make it permanent.")
 
 for need in ['function applyDisplay', 'function showToast']:

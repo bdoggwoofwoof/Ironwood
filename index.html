@@ -216,14 +216,16 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
-.tour-hole{position:fixed;left:0;top:0;width:0;height:0;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.62);pointer-events:none;will-change:transform,width,height}
+.tour-hole{position:fixed;inset:0;pointer-events:none}
+.tour-dim{position:absolute;inset:0;width:100%;height:100%;display:block}
+body.tour-on .hdr,body.tour-on .tabs{backdrop-filter:none;-webkit-backdrop-filter:none}
 .tour-card{position:fixed;left:12px;right:12px;top:0;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;will-change:transform,opacity}
 .tour-txt{animation:tourfade .25s ease}
 @keyframes tourfade{from{opacity:0;transform:translateY(4px)}}
 .tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
 body.tour-on main,body.tour-on .hdr,body.tour-on .hdr-space{transition:opacity .2s ease}
 body.tour-fading main,body.tour-fading .hdr,body.tour-fading .hdr-space{opacity:0}
-.tour-ring{position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 3px var(--accent);opacity:0}
+.tour-ring{position:absolute;left:0;top:0;width:0;height:0;border-radius:14px;box-shadow:0 0 0 3px var(--accent);opacity:0;will-change:transform}
 :root.rm .tour-txt{animation:none}:root.rm body.tour-on main,:root.rm body.tour-on .hdr{transition:none}
 @media (prefers-reduced-motion: reduce){.tour-txt{animation:none}body.tour-on main,body.tour-on .hdr{transition:none}}
 .tag-row{display:flex;flex-wrap:wrap;gap:4px}
@@ -1692,9 +1694,11 @@ function TourOverlay() {
         const g = use ? { x: Math.max(4, use.l - pad), y: Math.max(4, use.t - pad), w: Math.min(vw - 8, use.r - use.l + 2 * pad), h: Math.min(vh - 8, use.b - use.t + 2 * pad), ring: 1 }
                       : { x: vw / 2, y: vh / 2, w: 0, h: 0, ring: 0 };
         for (const p of ['x', 'y', 'w', 'h']) { if (rm) { cur[p] = g[p]; vel[p] = 0; } else spring(p, g[p], sdt); } cur.ring += (g.ring - cur.ring) * k;
-        hole.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
-        hole.style.width = cur.w.toFixed(1) + 'px'; hole.style.height = cur.h.toFixed(1) + 'px';
-        if (hole.firstChild) hole.firstChild.style.opacity = cur.ring.toFixed(3);
+        /* hole = the cut-out rect in the SVG mask; ring = a small outlined box over it (both cheap to redraw) */
+        const cut = hole.querySelector('.tour-cut'), ring = hole.querySelector('.tour-ring');
+        cut.setAttribute('x', cur.x.toFixed(1)); cut.setAttribute('y', cur.y.toFixed(1)); cut.setAttribute('width', Math.max(0, cur.w).toFixed(1)); cut.setAttribute('height', Math.max(0, cur.h).toFixed(1));
+        ring.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)'; ring.style.width = Math.max(0, cur.w).toFixed(1) + 'px'; ring.style.height = Math.max(0, cur.h).toFixed(1) + 'px';
+        ring.style.opacity = cur.ring.toFixed(3);
         const it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0, ch = card.offsetHeight;
         const side = T.mid ? 'mid' : T.side;
         const ty = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - ch : (vh - ch) / 2;
@@ -1727,16 +1731,20 @@ function TourOverlay() {
         let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { t: Math.min(r.t, q.top), b: Math.max(r.b, q.bottom) } : { t: q.top, b: q.bottom }; }
         const vh = innerHeight, maxY = Math.max(0, document.documentElement.scrollHeight - vh);
         const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
-        T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom'; T.mid = false; T.els = els; T.show = true;
+        T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';
+        /* Scrolling from code stutters on iPhone, so a far-off item is reached by fading the page out, jumping there
+           while it is invisible, and fading back in. Small moves just happen under the fade-in. */
+        if (Math.abs(want - scrollY) > 40 && !(needTab || needMode) && smooth) { document.body.classList.add('tour-fading'); await tourWait(180); if (!alive) return; }
+        scrollTo(0, want); await tourFrame();
+        T.mid = false; T.els = els; T.show = true;
         document.body.classList.remove('tour-fading');
-        await tourScroll(want, smooth && !(needTab || needMode) ? 480 : 0);
       } else { T.mid = true; T.els = null; T.show = true; document.body.classList.remove('tour-fading'); }
     })();
     return () => { alive = false; };
   }, [step]);
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
-    <div class="tour-hole" ref=${holeRef}><div class="tour-ring"></div></div>
+    <div class="tour-hole" ref=${holeRef}><svg class="tour-dim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><rect class="tour-cut" x="0" y="0" width="0" height="0" rx="14" fill="#000"/></mask></defs><rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,.62)" mask="url(#tour-mask)"/></svg><div class="tour-ring"></div></div>
     <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
       <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
       <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>
@@ -2499,7 +2507,7 @@ function ProfileScreen() {
       <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} routines · ${Object.keys(S.meta.exercises).length} custom exercises</p>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a79669d</p></div>
     <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
     <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
   </div>`;

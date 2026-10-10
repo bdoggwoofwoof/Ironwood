@@ -205,7 +205,10 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .wk-main{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column;gap:4px}
 .wk-main .t{font-weight:700;line-height:1.25}
 .wk-main .s{font-size:13.5px;color:var(--ink-2)}
-.r-items .cue{flex-basis:100%;font-size:13.5px;color:var(--ink-2);padding-left:38px;margin-top:-2px}
+.r-items li{gap:2px 8px}
+.r-items .nm{font-weight:600}
+.r-items .sub{flex-basis:100%;font-size:13.5px;color:var(--ink-2)}
+.r-items .cue{flex-basis:100%;font-size:13.5px;color:var(--ink-3)}
 .ed-tags{display:flex;flex-wrap:wrap;gap:6px}
 input.field.ed-cue{padding:8px 10px;font-size:15px;background:var(--surface)}
 .r-day{background:var(--surface);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -534,36 +537,35 @@ function parseProgram(text) {
 
 /* Built-in content */
 const BUILTIN_EX = {};
-const NEWT_TEXT = `Day 1 - Chest Focus (N)
-3x Decline Chest Press
-3x Russian Tits to L Stretch
-3x x Hybrid Curls
-3x Cable Fly
-3x x Tricep Pushdowns
-3x Cable Crunch
-3x Russian Behind-the-Back Cable Flies
-Day 2 - Back / Rear Delts (N)
-3x Bent-Over Barbell Rows
-3x Lat Pulldown
-3x x Cuban Press
-4x Russian Behind-the-Back Cable Flies
-3x x Hybrid Curls
-3x Scapular Shrugs
-3x Cable Crunch
-Day 3 - Shoulders / Tris (N)
-3x Overhead Barbell Press
-3x Russian Behind-the-Back Cable Flies
-3x x Tricep Pushdowns
-3x Face Pulls
-3x x Overhead Cable Tricep Extension
-3x Scapular Shrugs
-3x Cable Crunch
-Day 4 - Legs (N/BJJ)
-3x Squat
-3x Romanian Deadlift
-3x Leg Curls
-3x Calf Raises
-3x Assisted Pull-Up`;
+const NEWT_TEXT = `Day 1 - Chest Focus
+3x5-8 Decline Chest Press
+3x5-8 Russian Tits to L Stretch
+3x5-8 x Hybrid Curls
+3x5-8 Cable Fly
+3x5-8 x Tricep Pushdowns
+3x5-8 Cable Crunch
+3x10-12 x Russian Behind-the-Back Cable Flies
+Day 2 - Back / Rear Delts
+3x5-8 Bent-Over Barbell Rows
+3x5-8 Lat Pulldown
+3x10-12 x Cuban Press
+4x10-12 Russian Behind-the-Back Cable Flies
+3x5-8 x Hybrid Curls
+3x10-12 Scapular Shrugs
+3x10-12 x Cable Crunch
+Day 3 - Shoulders / Tris
+3x5-8 Overhead Barbell Press
+3x10-12 Russian Behind-the-Back Cable Flies
+3x5-8 x Tricep Pushdowns
+3x5-8 Face Pulls
+3x5-8 x Overhead Cable Tricep Extension
+3x10-12 Scapular Shrugs
+3x10-12 x Cable Crunch
+Day 4 - Legs
+3x5-8 Squat
+3x5-8 x Romanian Deadlift
+3x5-8 Leg Curls
+3x10-12 x Calf Raises`;
 const findIn = (...stores) => name => { const k = nameKey(name); for (const st of stores) { const hit = Object.values(st).find(e => nameKey(e.name) === k); if (hit) return hit; } return null; };
 function builtinRoutine(rid, name, note, text) {
   const days = parseProgram(text).map((d, i) => ({
@@ -823,9 +825,12 @@ const findEx = name => findIn(S.meta.exercises, BUILTIN_EX)(name);
 const isHidden = id => (S.meta.hidden || []).includes(id);
 const libBase = id => BUILTIN_ROUTINES.find(r => r.id === id) || null;
 const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-const libRoutines = () => BUILTIN_ROUTINES.filter(r => !isHidden(r.id)).map(r => S.meta.routines[r.id] || r);
+const routineKey = r => JSON.stringify([r.name, r.days.map(d => [d.id, d.name, d.tags && d.tags.length ? d.tags : null, d.items.map(i => [i.id, i.ex, +i.sets, i.reps || '', !!i.ss, i.group || '', i.note || ''])])]);
+/* An edit of a library routine counts only while it differs from the library version. */
+const libOver = id => { const o = S.meta.routines[id], b = libBase(id); return o && b && routineKey(o) !== routineKey(b) ? o : null; };
+const libRoutines = () => BUILTIN_ROUTINES.filter(r => !isHidden(r.id)).map(r => libOver(r.id) || r);
 const allRoutines = () => [...myRoutines(), ...libRoutines()];
-const getRoutine = id => isHidden(id) ? null : (S.meta.routines[id] || libBase(id));
+const getRoutine = id => isHidden(id) ? null : libBase(id) ? (libOver(id) || libBase(id)) : (S.meta.routines[id] || null);
 
 function materialize(days) {
   return days.map(d => ({ id: uid('d'), name: d.name, items: d.items.map(it => {
@@ -1487,7 +1492,7 @@ function TrainHome() {
       <div class="section-h"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + nx.last.name.replace(/\s*\(.*\)$/, '') : 'First workout'}</span></div>
       <div class="next-card">
         <div><div class="eyebrow">${routine.name}</div><h2>${nx.day.name}</h2></div>
-        <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${it.sets}× ${exName(it.ex)}${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
+        <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
       <div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>
@@ -1596,7 +1601,7 @@ function SlotCard({ it, nextSS }) {
   return html`<section class=${'slot' + (it.ss ? ' ss' : '') + (nextSS ? ' ss-next' : '')} aria-label=${exName(it.ex)}>
     ${it.ss ? html`<div class="ss-tag">${I.link} Superset with above</div>` : null}
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
-      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
+      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.bump ? html`<div class="hint">${I.up} ${kind === 'assisted' ? 'Less assist' : '+' + fmt(inc) + ' ' + u} today. You hit every rep last time.</div>` : null}
     <${ExNote} it=${it}/>
@@ -1684,6 +1689,10 @@ function autoTags(day, r) {
 }
 const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
+const setsLabel = it => it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + it.reps + ' reps' : '');
+/* The weight used last time (heaviest set, or least assistance), with its unit. */
+const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; const ws = e.raw.filter(x => +x.r > 0).map(x => +x.w || 0).filter(w => w > 0); if (!ws.length) return '';
+  const asst = exKind(it.ex) === 'assisted'; return ' · last ' + fmt(asst ? Math.min(...ws) : Math.max(...ws)) + ' ' + e.u + (asst ? ' assist' : ''); };
 const dayLabel = d => String(d.name || '').replace(/\s*\(.*\)$/, '').replace(/^Day\s*\d+\s*[-–]\s*/i, '');
 const tagChips = tags => html`<span class="tag-row">${tags.map(t => html`<span key=${t} class="chip wtag">${t}</span>`)}</span>`;
 
@@ -1754,7 +1763,7 @@ function RoutineView({ id }) {
     </div>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
-      <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="sx num">${it.sets}×${it.reps ? it.reps : ''}</span><span>${exName(it.ex)}</span>${groupChip(it.group)}${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
+      <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
   </div>`;
 }
 function RoutineEditor({ view }) {

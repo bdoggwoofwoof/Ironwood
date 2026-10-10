@@ -1800,6 +1800,14 @@ function ProfileScreen() {
     try { await dl.save({ filename: 'ironwood-backup-' + ymd(new Date()) + '.json', data: backup() }); setMsg('Backup saved.'); }
     catch (e) { setMsg(e && e.code === 'declined' ? 'Backup not saved.' : 'Could not save the file here. Try Copy backup instead.'); }
   };
+  const [phb, setPhb] = useState(null);
+  const preparePhotos = async () => { setMsg('Gathering photos…'); try { const d = await photoBackup(); if (!d.photos.length) { setMsg('No progress photos to back up yet.'); return; } setPhb(d); setMsg(''); } catch (e) { setMsg('Couldn’t read the photos on this device.'); } };
+  const savePhotos = async () => {
+    const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null; const n = phb.photos.length;
+    if (!dl) { setMsg('Saving files isn’t available here.'); return; }
+    try { await dl.save({ filename: 'ironwood-photos-' + ymd(new Date()) + '.json', data: new Blob([JSON.stringify(phb)], { type: 'application/json' }) }); setMsg(n + ' photo' + (n === 1 ? '' : 's') + ' saved. Restore this file in Ironwood to bring them back.'); setPhb(null); }
+    catch (e) { setMsg(e && e.code === 'declined' ? 'Photos backup not saved.' : 'Could not save the file here.'); }
+  };
   const copyBackup = async () => { try { await navigator.clipboard.writeText(backup()); setMsg('Backup copied.'); } catch (e) { setMsg('Copy is blocked in this view. Use Save backup file.'); } };
   const restField = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="numeric" value=${st[k]} onChange=${e => { const v = e.target.value.trim(); set(k, v === '' ? DEFAULT_SETTINGS[k] : Math.min(900, Math.max(0, Math.round(num(v))))); }}/></div>`;
   const field = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="decimal" value=${st[k]} onChange=${e => set(k, num(e.target.value) || DEFAULT_SETTINGS[k])}/></div>`;
@@ -1841,6 +1849,8 @@ function ProfileScreen() {
     <div class="section-h"><h2>Backup</h2></div>
     <div class="card stack">
       <div class="row wrap"><button class="btn" onClick=${exportFile}>Save backup file</button><button class="btn" onClick=${copyBackup}>Copy backup</button><button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>
+      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.photos.length} photo${phb.photos.length === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
+      <p class="note">The backup file has workouts, routines and settings. Progress photos are large, so they go in their own file.</p>
       ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
       <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} routines · ${Object.keys(S.meta.exercises).length} custom exercises</p>
     </div>
@@ -2167,6 +2177,44 @@ async function phLoad() {
 }
 const phUrl = p => { if (!PH.urls.has(p.id)) PH.urls.set(p.id, URL.createObjectURL(p.blob)); return PH.urls.get(p.id); };
 async function phDelete(id) { try { await pdbTx('readwrite', st => st.delete(id)); } catch (e) {} PH.list = (PH.list || []).filter(x => x.id !== id); const u = PH.urls.get(id); if (u) { URL.revokeObjectURL(u); PH.urls.delete(id); } }
+/* Photo backups: a separate file (photos are large), restored by Profile -> Restore. */
+const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+const b64ToBlob = (s, type) => { const bin = atob(s); const a = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k); return new Blob([a], { type: type || 'image/jpeg' }); };
+async function photoBackup() {
+  const all = (await pdbTx('readonly', st => st.getAll())) || []; const photos = [];
+  for (const p of all) { if (!p || !p.blob) continue; const { blob, ...rest } = p; photos.push({ ...rest, type: blob.type || 'image/jpeg', data: await blobToB64(blob) }); }
+  photos.sort((a, b) => (a.t || 0) - (b.t || 0));
+  return { app: 'liftbook-photos', version: 1, exportedAt: new Date().toISOString(), photos };
+}
+async function photoRestore(d) {
+  const have = new Set(); try { ((await pdbTx('readonly', st => st.getAllKeys())) || []).forEach(k => have.add(k)); } catch (e) {}
+  let n = 0;
+  for (const p of (d.photos || [])) {
+    if (!p || !p.id || !p.data || have.has(p.id)) continue;
+    const { data, type, ...rest } = p;
+    await pdbTx('readwrite', st => st.put({ ...rest, blob: b64ToBlob(data, type) })); n++;
+  }
+  PH.urls.forEach(u => URL.revokeObjectURL(u)); PH.urls.clear(); PH.list = null;
+  return n;
+}
+/* Restore merge: an empty app takes the whole backup; a used app gains only what it lacks. */
+function restoreInto(st, d) {
+  const m = normalizeMeta(d.meta); const keys = ['meta'];
+  const fresh = !Object.keys(st.sessions).length && !Object.keys(st.meta.routines).length && !Object.keys(st.meta.exercises).length;
+  if (fresh) {
+    const deleted = [...new Set([...(m.deleted || []), ...(st.meta.deleted || [])])];
+    st.meta = { ...m, deleted };
+  } else {
+    Object.assign(st.meta.exercises, m.exercises || {});
+    for (const [k, r] of Object.entries(m.routines || {})) if (!st.meta.routines[k]) st.meta.routines[k] = r;
+    for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
+    const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
+    const tIds = new Set((st.meta.timers || []).map(x => x.id)); st.meta.timers = (st.meta.timers || []).concat((m.timers || []).filter(x => x && !tIds.has(x.id)));
+  }
+  let added = 0;
+  for (const [k, s] of Object.entries(d.sessions || {})) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
+  return { keys, added, fresh };
+}
 async function phSaveToPhotos(p) {
   const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null;
   if (!dl) { showToast({ kind: 'info', text: 'Saving isn’t available in this view. Press and hold the photo to save it.' }); return; }
@@ -2477,19 +2525,25 @@ function ImportSheet() {
     </div><//>`;
 }
 function RestoreSheet() {
-  const [text, setText] = useState(''); const [err, setErr] = useState('');
-  const onFile = e => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => setText(String(rd.result || '')); rd.readAsText(f); };
-  const restore = () => { let d; try { d = JSON.parse(text); } catch (e) { setErr('That isn’t a Ironwood backup. Paste the full backup text or choose the .json file.'); return; }
-    if (!d || d.app !== 'liftbook' || !d.meta) { setErr('That file isn’t a Ironwood backup.'); return; }
-    const keys = ['meta'];
-    commit(st => { Object.assign(st.meta.exercises, d.meta.exercises || {}); for (const [k, r] of Object.entries(d.meta.routines || {})) if (!st.meta.routines[k]) st.meta.routines[k] = r;
-      for (const [k, s] of Object.entries(d.sessions || {})) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); } }, 'meta');
-    schedule(keys); closeSheet(); };
-  return html`<${Sheet} label="Restore backup"><h2>Restore a backup</h2><p class="note" style="margin-bottom:10px">Adds the backup's workouts and routines to what's here. Nothing current is overwritten.</p>
-    <div class="stack"><label class="btn" for="rs-file">Choose backup file</label><input id="rs-file" type="file" accept=".json,application/json" hidden onChange=${onFile}/>
-      <textarea class="field" id="rs-text" placeholder="…or paste the backup text" value=${text} onInput=${e => { setText(e.target.value); setErr(''); }}></textarea>
+  const [text, setText] = useState(''); const [file, setFile] = useState(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const onFile = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; setErr('');
+    const rd = new FileReader(); rd.onload = () => { const t = String(rd.result || ''); if (t.length > 200000) { setFile({ name: f.name, text: t }); setText(''); } else { setFile(null); setText(t); } }; rd.readAsText(f); };
+  const restore = async () => {
+    let d; try { d = JSON.parse(file ? file.text : text); } catch (e) { setErr('That isn’t an Ironwood backup. Choose the .json file or paste the full backup text.'); return; }
+    if (d && d.app === 'liftbook-photos') {
+      setBusy(true); try { const n = await photoRestore(d); closeSheet(); showToast({ kind: 'info', text: n ? n + ' photo' + (n === 1 ? '' : 's') + ' restored' : 'Those photos are already here' }); }
+      catch (e) { setErr('Couldn’t save the photos on this device.'); } finally { setBusy(false); } return;
+    }
+    if (!d || d.app !== 'liftbook' || !d.meta) { setErr('That file isn’t an Ironwood backup.'); return; }
+    let r; commit(st => { r = restoreInto(st, d); }, 'meta');
+    schedule(r.keys); S.ver++; applyDisplay && applyDisplay(); S.rerender(); closeSheet();
+    showToast({ kind: 'info', text: r.fresh ? 'Backup restored' : r.added + ' workout' + (r.added === 1 ? '' : 's') + ' added' });
+  };
+  return html`<${Sheet} label="Restore backup"><h2>Restore a backup</h2><p class="note" style="margin-bottom:10px">Choose a workout backup or a photos backup. On a fresh install this brings back everything; otherwise it adds what's missing and never overwrites what's here.</p>
+    <div class="stack"><label class="btn" for="rs-file">${file ? 'Chosen: ' + file.name : 'Choose backup file'}</label><input id="rs-file" type="file" accept=".json,application/json" hidden onChange=${onFile}/>
+      ${file ? null : html`<textarea class="field" id="rs-text" placeholder="…or paste the backup text" value=${text} onInput=${e => { setText(e.target.value); setErr(''); }}></textarea>`}
       ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
-      <button class="btn primary wide" disabled=${!text.trim()} onClick=${restore}>Restore</button></div><//>`;
+      <button class="btn primary wide" disabled=${busy || !(file || text.trim())} onClick=${restore}>${busy ? 'Restoring…' : 'Restore'}</button></div><//>`;
 }
 function ConfirmSheet({ title, body, ok, danger, onOk }) {
   return html`<${Sheet} label=${title}><h2>${title}</h2><p class="note" style="margin-bottom:14px">${body}</p>

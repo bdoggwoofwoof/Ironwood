@@ -1,0 +1,8 @@
+node_modules/
+dist/
+release/
+site/
+screens/
+app.html
+*.zip
+icon-1024.png

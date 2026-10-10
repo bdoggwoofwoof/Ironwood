@@ -9,4 +9,4 @@ The `main` branch is the published web app. This `source` branch holds what buil
 - `test_pwa.py`, `test_backup.py` — browser tests (Playwright). `shots.py` — App Store screenshots.
 - `native/` — Capacitor iOS project. On a Mac: `npm install`, then `./sync.sh`, then open `ios/App/App.xcodeproj`.
 
-Setup: `npm install htm@3.1.1 @fontsource/barlow @fontsource/barlow-condensed`, `pip install playwright pillow`.
+Setup on a new machine: `./setup.sh`, then `python3 features.py && python3 build.py`.

@@ -84,7 +84,16 @@ swap('<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.umd.
 BOOT = r'''<script>
 /* Standalone build */
 try { SYNC_TEXT.local = 'Saved on this phone. Save a backup file now and then.'; } catch (e) {}
-if ('serviceWorker' in navigator) addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+if ('serviceWorker' in navigator) addEventListener('load', () => {
+  /* Check for a new build on every launch and whenever the app comes back to the front. When one takes over, reload
+     once so it shows right away (but never in the middle of a workout; then it applies on the next launch). */
+  const had = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || reloaded) return; if (typeof S !== 'undefined' && S.active) return; reloaded = true; location.reload(); });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+});
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
 </script>
 </body></html>'''
@@ -126,22 +135,29 @@ const CACHE = 'ironwood-{version}';
 const FILES = {json.dumps(files)};
 
 self.addEventListener('install', e => {{
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  /* cache: 'reload' skips the browser's own cache, so a new build never stores a stale copy of a file */
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => fetch(new Request(f, {{ cache: 'reload' }})).then(r => {{ if (!r.ok) throw new Error(f); return c.put(f, r); }})))).then(() => self.skipWaiting()));
 }});
 self.addEventListener('activate', e => {{
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('ironwood-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 }});
-/* Open instantly from the cache (works with no signal); fetch a fresh copy in the background
-   so the next launch picks up a new build. */
+/* The app page: ask the network first (a few seconds at most) so a new build shows on the next open, and fall back to
+   the saved copy with no signal. Everything else (fonts, icons, scripts) comes from this build's cache. */
 self.addEventListener('fetch', e => {{
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   const nav = req.mode === 'navigate';
   e.respondWith(caches.open(CACHE).then(async c => {{
-    const hit = (await c.match(req, {{ ignoreSearch: nav }})) || (nav ? await c.match('index.html') : null);
-    const net = fetch(req).then(res => {{ if (res && res.ok && res.type === 'basic') c.put(req, res.clone()); return res; }}).catch(() => null);
-    if (hit) {{ e.waitUntil(net); return hit; }}
-    return (await net) || new Response('Offline', {{ status: 503 }});
+    if (nav) {{
+      const net = fetch(req, {{ cache: 'no-cache' }}).then(res => {{ if (res && res.ok && res.type === 'basic') c.put('index.html', res.clone()); return res; }}).catch(() => null);
+      const quick = await Promise.race([net, new Promise(r => setTimeout(() => r(null), 3500))]);
+      return quick || (await c.match(req, {{ ignoreSearch: true }})) || (await c.match('index.html')) || (await net) || new Response('Offline', {{ status: 503 }});
+    }}
+    const hit = await c.match(req);
+    if (hit) return hit;
+    const res = await fetch(req).catch(() => null);
+    if (res && res.ok && res.type === 'basic') c.put(req, res.clone());
+    return res || new Response('Offline', {{ status: 503 }});
   }}));
 }});
 '''

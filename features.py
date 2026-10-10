@@ -653,6 +653,30 @@ a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 :root.rm .tour-hole{transition:none}
 @media (prefers-reduced-motion: reduce){.tour-hole{transition:none}}""")
 
+# 11. Sheet handles work: drag the bar down to close the sheet, up to make it full height (tap toggles the size).
+a = src.index('function Sheet({ children, label }) {'); b = src.index('function Sparkline(', a)
+src = src[:a] + r"""function Sheet({ children, label }) {
+  const ref = useRef(null); const drag = useRef(null); const last = useRef(0); const [big, setBig] = useState(false);
+  const down = e => { const el = ref.current; if (!el) return; drag.current = { y: e.clientY, t: Date.now(), h: el.getBoundingClientRect().height, dy: 0 }; last.current = 0; el.style.transition = 'none';
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} };
+  const move = e => { const d = drag.current, el = ref.current; if (!d || !el) return; const dy = e.clientY - d.y; d.dy = dy;
+    if (dy >= 0) { el.style.transform = 'translateY(' + dy + 'px)'; el.style.height = ''; el.style.maxHeight = ''; }
+    else { el.style.transform = ''; el.style.maxHeight = 'none'; el.style.height = Math.min(innerHeight - 12, d.h - dy) + 'px'; } };
+  const up = () => { const d = drag.current, el = ref.current; drag.current = null; if (!d || !el) return; const dy = d.dy; last.current = dy;
+    const fast = dy / Math.max(1, Date.now() - d.t) > 0.6;
+    el.style.transition = 'transform .2s ease, height .2s ease';
+    if (dy > 140 || (dy > 30 && fast && !big) || (dy > 30 && fast && big && dy > 90)) { el.style.transform = 'translateY(' + (el.offsetHeight + 40) + 'px)'; setTimeout(closeSheet, 180); return; }
+    el.style.transform = ''; el.style.height = ''; el.style.maxHeight = '';
+    if (dy < -40) setBig(true); else if (dy > 40 && big) setBig(false); };
+  const tap = () => { if (Math.abs(last.current) < 6) setBig(!big); last.current = 0; };
+  return html`<div class="scrim" onClick=${e => { if (e.target === e.currentTarget) closeSheet(); }}>
+    <div ref=${ref} class=${'sheet' + (big ? ' big' : '')} role="dialog" aria-modal="true" aria-label=${label || 'Panel'}>
+      <button class="grab-zone" aria-label=${big ? 'Make this panel smaller' : 'Make this panel full height'} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} onClick=${tap}><span class="grab"></span></button>${children}</div></div>`;
+}
+""" + src[b:]
+swap(".grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}",
+     ".grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}\n.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}\n.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}\n.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}")
+
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:
         sys.exit('missing ' + need)

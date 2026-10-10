@@ -32,6 +32,24 @@ async def main():
         await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(300)
         check('History shows a labeled save status', await pg.locator('.sync-line').count() == 1, await pg.locator('.sync-line').inner_text())
         await pg.locator('.topsw button', has_text='Train').click(); await pg.wait_for_timeout(200)
+        # Sheet handle: drag up = full height, drag down = smaller, drag further = close, tap toggles
+        async def drag(dy):
+            b = await pg.locator('.grab-zone').bounding_box(); x, y = b['x'] + b['width'] / 2, b['y'] + b['height'] / 2
+            await pg.mouse.move(x, y); await pg.mouse.down()
+            for k in range(1, 9): await pg.mouse.move(x, y + dy * k / 8); await pg.wait_for_timeout(30)
+            await pg.mouse.up(); await pg.wait_for_timeout(350)
+        await pg.locator('.wd').first.click(); await pg.wait_for_timeout(300)
+        h0 = (await pg.locator('.sheet').bounding_box())['height']
+        await drag(-250)
+        h1 = (await pg.locator('.sheet').bounding_box())['height']
+        check('drag up makes the sheet full height', await pg.locator('.sheet.big').count() == 1 and h1 > h0 + 100, (h0, h1))
+        await drag(80)
+        check('drag down shrinks it back', await pg.locator('.sheet.big').count() == 0 and await pg.locator('.sheet').count() == 1)
+        await pg.locator('.grab-zone').click(); await pg.wait_for_timeout(300)
+        check('tapping the bar toggles the size', await pg.locator('.sheet.big').count() == 1)
+        await pg.locator('.grab-zone').click(); await pg.wait_for_timeout(300)
+        await drag(220)
+        check('drag down further closes it', await pg.locator('.sheet').count() == 0)
         # Tips hide and come back
         await pg.locator('.tip-card .tip-x').first.click(); await pg.wait_for_timeout(200)
         check('tip hidden', await pg.locator('.tip-card', has_text='Tap a day').count() == 0)

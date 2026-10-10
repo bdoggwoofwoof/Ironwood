@@ -5,12 +5,13 @@
 - Routine library: Newt's 13 RepCount routines (with exercise notes) and seven ready-made programs;
   List / By type views, with workout-type tags (set in the editor or automatic) and collapsible sections; library routines can be edited (saved over
   the original, with Reset), copied, or removed (and brought back).
+- Train / History (Log under Train), program picker with Self-log, tips you can hide, Help (tour, feedback), color themes.
 - Other activities: quick-log running, swimming, yoga, BJJ and more from Train, Log or a day; counts toward streaks.
 - Restore: accepts workout backups and photo backups; reads big files without the text box;
   a backup restored into an empty app brings back everything (settings, bodyweight,
   challenges, timers, day marks); into a used app it adds whatever is missing.
 """
-import re, sys
+import os, re, sys
 
 src = open('source.html', encoding='utf8').read()
 
@@ -139,7 +140,7 @@ Workout B
 5x5 Squat
 5x5 Overhead Barbell Press
 1x5 Deadlift`],
-  ['bi-tiered', 'Tiered Linear 4-Day', 'Beginner · 3–4 days a week', 'The three-tier method (the GZCLP style): T1 is the heavy main lift, T2 the same pattern lighter for volume, T3 an accessory. Make the last set of T1 and T3 as many reps as you can. Add weight whenever you get every rep. When T1 stalls, edit it from 5×3 to 6×2, then 10×1; when T2 stalls, go 3×10 → 3×8 → 3×6.', `Day 1 - Squat / Bench
+  ['bi-tiered', 'Tiered Linear 4-Day', 'Beginner · 3–4 days a week', 'The three-tier method: T1 is the heavy main lift, T2 the same pattern lighter for volume, T3 an accessory. Make the last set of T1 and T3 as many reps as you can. Add weight whenever you get every rep. When T1 stalls, edit it from 5×3 to 6×2, then 10×1; when T2 stalls, go 3×10 → 3×8 → 3×6.', `Day 1 - Squat / Bench
 5x3 Squat
 3x10 Bench Press
 3x15 Lat Pulldown
@@ -298,9 +299,10 @@ Day 5 - Arms
 /* Newt's own routines from RepCount: one workout each, with the notes he kept on each exercise.
    Item: [exercise, sets, reps, note, superset with the one above] */
 const MY_PLANS = [
-  ['bi-eff-push', 'Eff. Push', ['Push'], '', [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
-  ['bi-eff-pull', 'Eff. Pull', ['Pull'], '', [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
-  ['bi-eff-legs', 'Eff. Legs', ['Legs'], '', [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Lunge Walk', 3], ['Calf Raises', 3, '', '', 1]]],
+  ['bi-eff-ppl', 'Efficient Push/Pull/Legs', null, '', [
+    ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
+    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
+    ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Lunge Walk', 3], ['Calf Raises', 3, '', '', 1]]]]],
   ['bi-full-body', 'Full Body', ['Full Body'], '', [['Overhead Barbell Press', 3, '', 'Shoulders'], ['Assisted Dips', 3, '', 'Chest, triceps'], ['Dead Hang', 3, '', 'Forearms'], ['Barbell Bicep Curl', 3, '', 'Biceps'], ['Bent-Over Barbell Rows', 3, '', 'Back'], ['Assisted Pull-Up', 3, '', 'Back'], ['Hanging Leg Raises', 10, '', 'Abs: 10 sets, 30 s on / 30 s off'], ['Back Squat', 3, '', 'Legs'], ['Deadlift', 3, '', 'Legs']]],
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell/Cable Bends', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
   ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Plank Single Leg Up', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Ankle Taps', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
@@ -331,10 +333,10 @@ function planDay(rid, i, name, tags, items) {
 /* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
 function builtinPlan([rid, name, tags, note, items]) {
   const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
-  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: 'Your plan' + (days.length > 1 ? ' · ' + days.length + ' days a week' : ''), days };
+  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days };
 }
 const BUILTIN_ROUTINES = [
-  Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT), { meta: 'Your plan · 4 days a week', shelf: 'plans' }),
+  Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Exercises marked with a bar on the left are supersets with the one above.', NEWT_TEXT), { meta: '4 days a week', shelf: 'plans' }),
   ...MY_PLANS.map(builtinPlan),
   ...LIB_PROGRAMS.map(([id, name, meta, note, text]) => Object.assign(builtinRoutine(id, name, note, text), { meta, shelf: 'programs' })),
 ];
@@ -401,38 +403,43 @@ function RoutinesScreen({ view }) {
 const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 function RoutineList() {
+  const [kind, setKind] = useState(lsGet('rtKind') === 'plans' ? 'plans' : 'routines');
   const [mode, setMode] = useState(lsGet('rtView') === 'type' ? 'type' : 'list'); const [, setT] = useState(0); const re = () => setT(x => x + 1);
-  const pick = m => { setMode(m); lsSet('rtView', m); };
-  const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
-  const shelf = r => (libBase(r.id) || r).shelf;
-  const plans = lib.filter(r => shelf(r) === 'plans'); const programs = lib.filter(r => shelf(r) !== 'plans');
-  const card = r => html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
-    <span class="tag">${r.base ? 'Edited' + (r.meta ? ' · ' + r.meta : '') : r.source === 'builtin' ? (r.meta || 'Built in') : r.source === 'imported' ? 'Imported' : 'Yours'}</span><h3>${r.name}</h3>
-    <span class="days">${r.days.length} day${r.days.length === 1 ? '' : 's'} · ${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`;
-  const seg = html`<div class="seg wide" role="tablist" aria-label="Routine view" style="margin-top:6px">
+  const pickKind = k => { setKind(k); lsSet('rtKind', k); }; const pick = m => { setMode(m); lsSet('rtView', m); };
+  const isPlan = r => r.days.length > 1; const want = r => kind === 'plans' ? isPlan(r) : !isPlan(r);
+  const mine = myRoutines().filter(want); const lib = libRoutines().filter(want); const hidden = (S.meta.hidden || []).filter(libBase);
+  const pid = programId();
+  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your program' : '', r.meta || ''].filter(Boolean).join(' · ');
+    return html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
+    ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`; };
+  const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: kind === 'plans' ? [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] : [{ id: uid('d'), name: 'Day 1', items: [] }] });
+  const seg = html`<div class="seg" role="tablist" aria-label="Routine view" style="margin:2px 0 0">
     <button role="tab" aria-selected=${mode === 'list'} class=${mode === 'list' ? 'on' : ''} onClick=${() => pick('list')}>List</button>
     <button role="tab" aria-selected=${mode === 'type'} class=${mode === 'type' ? 'on' : ''} onClick=${() => pick('type')}>By type</button></div>`;
-  const actions = html`<div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] }, isNew: true })}>${I.plus} New routine</button>
+  const actions = html`<div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} ${kind === 'plans' ? 'New plan' : 'New routine'}</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
   const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed routine${hidden.length === 1 ? '' : 's'}</button>` : null;
-  if (mode === 'list') return html`<div>${seg}
-    <div class="section-h"><h2>Your routines</h2></div>
-    <div class="stack">${mine.length ? mine.map(card) : html`<div class="card note">Routines you build, copy, or import live here. Library routines can be edited or removed too.</div>`}${actions}</div>
-    ${plans.length ? html`<div class="section-h"><h2>Your plans</h2></div><div class="stack">${plans.map(card)}</div>` : null}
-    ${programs.length ? html`<div class="section-h"><h2>Programs</h2><span class="aside">Ready to run</span></div><div class="stack">${programs.map(card)}</div>` : null}
+  const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
+    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your program.'}<//>
+    <div class="row" style="margin-top:12px">${seg}</div>`;
+  if (mode === 'list') return html`<div>${top}
+    <div class="section-h"><h2>Yours</h2></div>
+    <div class="stack">${mine.length ? mine.map(card) : html`<${Tip} id=${'yours-' + kind}>${kind === 'plans' ? 'Plans you build, copy, or import live here.' : 'Routines you build, copy, or import live here.'} Library ones can be edited or removed too.<//>`}${actions}</div>
+    ${lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
     <div class="stack" style="margin-top:10px">${bring}</div></div>`;
   const open = openSecs(); const groups = WTAGS.map(t => ({ t, rows: [] }));
   for (const r of [...mine, ...lib]) for (const d of r.days) if (d.items.length) for (const t of dayTags(d, r)) (groups.find(g => g.t === t) || groups[groups.length - 1]).rows.push({ r, d });
-  const shown = groups.filter(g => g.rows.length); const allOpen = shown.every(g => open[g.t]);
+  const shown = groups.filter(g => g.rows.length); const allOpen = shown.length && shown.every(g => open[g.t]);
   const setAll = v => { shown.forEach(g => { open[g.t] = v; }); lsSet('rtOpen', JSON.stringify(open)); re(); };
   const row = ({ r, d }) => html`<div key=${r.id + d.id} class="wk-row">
     <button class="wk-main" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
       <span class="t">${r.days.length > 1 ? dayLabel(d) : r.name}</span>
       <span class="s">${r.days.length > 1 ? r.name + ' · ' : ''}${d.items.length} exercise${d.items.length === 1 ? '' : 's'}</span>${tagChips(dayTags(d, r))}</button>
     <button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>`;
-  return html`<div>${seg}
-    <div class="row" style="margin:12px 0 2px"><p class="small muted" style="flex:1">Every workout, sorted by type. Set a workout's type in Edit.</p>
-      <button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button></div>
+  return html`<div>${top}
+    <div class="row" style="margin:12px 0 2px"><div style="flex:1"><${Tip} id="bytype">Every workout, sorted by type. Set a workout's type in Edit.<//></div>
+      ${shown.length ? html`<button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button>` : null}</div>
     ${shown.map(g => { const on = !!open[g.t]; return html`<section key=${g.t} class="wsec">
       <button class="wsec-h" aria-expanded=${on} onClick=${() => { open[g.t] = !on; lsSet('rtOpen', JSON.stringify(open)); re(); }}><h2>${g.t}</h2><span class="aside num">${g.rows.length}</span>${on ? I.up : I.down}</button>
       ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}
@@ -448,11 +455,12 @@ function RoutineView({ id }) {
   const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Routines. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove routine' : 'Delete routine', danger: true,
     onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
   return html`<div>
-    <div class="eyebrow" style="margin-top:6px">${builtin ? 'Library routine' : r.base ? 'Library routine · edited' : 'Your routine'}${r.meta ? ' · ' + r.meta : ''}</div>
+    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your program' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'Routine')}</div>
     <h2 class="wo-title" style="margin:2px 0 6px">${r.name}</h2>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
     <div class="row wrap" style="margin:14px 0 4px">
+      ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast({ kind: 'info', text: 'Following ' + r.name }); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
       ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
@@ -572,6 +580,67 @@ swap("""    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=
 """    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}
     ${k <= ymd(Date.now()) ? html`<button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity', day: k })}>${I.plus} Log an activity on this day</button>` : null}<//>`;""")
 swap(".log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}", ".log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}\n.log-act{margin-top:6px;font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}")
+
+# 10. Train / History (Log moves under Train), choosing a program or Self-log, dismissable tips, Help (tour + feedback)
+#     on every page, the save status as a labeled line in History, and color themes (two color-blind friendly).
+swap("let _sl = null, _slv = -1;", "const DEMO = { on: false, list: null }; /* sample data shown only during the walkthrough */\nlet _sl = null, _slv = -1;")
+swap("function sessionList() { if (_slv !== S.ver)", "function sessionList() { if (DEMO.on) return demoSessions(); if (_slv !== S.ver)")
+swap("  initCloud();\n})();", "  initCloud();\n  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) openSheet({ type: 'tour', step: 0 }); }, 1400);\n})();")
+swap("""    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""", """    <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
+    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => openSheet({ type: 'tour', step: 0 })}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
+    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""")
+swap("""    ${tab === 'cats' ? html`<${StatsCategories}/>`""", """    ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
+    ${tab === 'cats' ? html`<${StatsCategories}/>`""")
+a = src.index("""    : html`<div class="card"><div class="demo-banner">${I.stats} Example only.""")
+b = src.index("now=${now}/></div>`}", a) + len("now=${now}/></div>`}")
+src = src[:a] + """    : html`<div class="card note">Log a workout to see your lifts here, each with a chart and an 8-week projection.</div>`}""" + src[b:]
+TRAINJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'train.js'), encoding='utf8').read()
+a = src.index('function nextUp() {'); b = src.index('\n}\n', a) + 3
+src = src[:a] + src[b:]
+a = src.index('function TrainHome() {'); b = src.index('function ActiveWorkout() {', a)
+src = src[:a] + TRAINJS + src[b:]
+swap("const TABS = [['train', 'Train'], ['log', 'Log'], ['routines', 'Routines'], ['stats', 'Stats'], ['profile', 'Profile']];",
+     "const TABS = [['train', 'Train'], ['routines', 'Routines'], ['stats', 'Stats'], ['profile', 'Profile']];")
+swap("const [tab, setTab] = useState(() => { const h = (location.hash || '').slice(1); return TABS.some(t => t[0] === h) ? h : (lsGet('tab') || 'train'); });",
+     "const [tab, setTab] = useState(() => { const h = (location.hash || '').slice(1); if (h === 'log' || lsGet('tab') === 'log') { TRAIN.mode = 'history'; return 'train'; } return TABS.some(t => t[0] === h) ? h : (lsGet('tab') || 'train'); });")
+swap("let title = { train: S.active ? 'Workout' : 'Train', log: 'Log', routines: 'Routines', stats: 'Stats', profile: 'Profile' }[tab];",
+     "let title = { train: S.active ? 'Workout' : '', routines: '', stats: 'Stats', profile: 'Profile' }[tab];\n  if (tab === 'routines' && vt === 'routine') title = 'Routines';")
+swap("  if (tab === 'log') right = html`<span class=${'sync ' + S.sync} title=${SYNC_TEXT[S.sync]}><i></i></span>`;\n", "")
+swap("S.active ? html`<${ActiveWorkout}/>` : html`<${TrainHome}/>`;", "S.active ? html`<${ActiveWorkout}/>` : html`<${TrainSwitch}/>`;")
+swap("tab === 'log' ? html`<${LogScreen}/>` : ", "")
+swap("""    <header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>""",
+     """    ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}""")
+swap(">${body}</main>", ">${body}<${HelpFoot}/></main>")
+swap(".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);")
+swap("    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;",
+     "    case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;\n    case 'program': return html`<${ProgramSheet}/>`;\n    case 'help': return html`<${HelpSheet}/>`;\n    case 'tour': return html`<${TourSheet} step=${sheet.step || 0}/>`;\n    case 'feedback': return html`<${FeedbackSheet}/>`;")
+swap("commit(st => { st.meta.routines[d.id] = clone(d); }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };",
+     "commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };")
+swap("""<p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>""",
+     """<${Tip} id="activity" style="margin-top:4px">Counts toward your week streak and workouts per week, like a lifting workout.<//>""")
+# colors
+swap("const DISP = { theme: lsGet('theme') || 'system',", "const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system',")
+swap("  r.classList.toggle('rm', DISP.rm); r.classList.toggle('hc', DISP.hc);", "  r.classList.toggle('rm', DISP.rm); r.classList.toggle('hc', DISP.hc); applyPalette();")
+swap("""setDisp('theme', k)}>${l}</button>`)}</div></div>""", """setDisp('theme', k)}>${l}</button>`)}</div></div>
+    <${PaletteChooser}/>""")
+swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-size:14px;color:var(--ink-2)}
+.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
+.topsw{display:flex;gap:22px;margin:2px 0 4px}
+.topsw button{font-family:var(--display);font-size:30px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink-3);padding:2px 0 6px;border-bottom:3px solid transparent}
+.topsw button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tip-card{display:flex;align-items:flex-start;gap:6px;background:var(--surface);border-radius:12px;padding:10px 6px 10px 14px;font-size:14px;color:var(--ink-2);line-height:1.4}
+.tip-x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3);flex:none;margin-top:-5px}
+.tip-x svg{width:16px;height:16px}
+.help-foot{display:flex;justify-content:center;margin:28px 0 4px}
+.help-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;font-size:12px;font-weight:700;line-height:1}
+.sync-line{margin:10px 0 0;font-size:13.5px}
+.pal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pal{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--raised);border-radius:12px;padding:10px 12px;text-align:left;border:2px solid transparent}
+.pal.on{border-color:var(--ink)}
+.pal .sw{display:flex;gap:4px}.pal .sw i{width:18px;height:18px;border-radius:50%;display:block}
+.pal .pn{font-weight:600;font-size:14.5px}.pal .pd{font-size:12px;color:var(--ink-2);line-height:1.3}
+.fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
+a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}""")
 
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:

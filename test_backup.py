@@ -40,6 +40,7 @@ async def main():
         # Phone A: has data and a photo; save both backups
         a = await b.new_context(viewport={'width': 390, 'height': 844}, accept_downloads=True)
         pa = await a.new_page(); pa.on('pageerror', lambda e: errs.append(str(e)))
+        await pa.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         await pa.goto(URL); await pa.evaluate(SEED); await pa.evaluate(ADD_PHOTO); await pa.reload(); await pa.wait_for_timeout(1000)
         await profile(pa)
         async with pa.expect_download() as dl: await pa.get_by_role('button', name='Save backup file').click()
@@ -54,6 +55,7 @@ async def main():
         # Phone B: fresh install; restore both
         c = await b.new_context(viewport={'width': 390, 'height': 844})
         pb = await c.new_page(); pb.on('pageerror', lambda e: errs.append(str(e)))
+        await pb.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         await pb.goto(URL); await pb.wait_for_timeout(800); await profile(pb)
         await pb.get_by_role('button', name='Restore').click(); await pb.wait_for_timeout(300)
         await pb.set_input_files('#rs-file', backup); await pb.wait_for_timeout(300)
@@ -62,8 +64,9 @@ async def main():
         check('workouts restored', len(st['sessions']) == 3, len(st['sessions']))
         check('settings restored on a fresh install', st['meta']['settings']['goal'] == 5 and st['meta']['settings']['rest'] == 150, st['meta']['settings'].get('goal'))
         check('bodyweight and day marks restored', len(st['meta']['bw']) == 1 and st['meta']['dayMarks'].get('2026-10-02') == 'rest')
-        await pb.locator('.tab', has_text='Log').click(); await pb.wait_for_timeout(300)
-        check('Log shows restored workouts', await pb.locator('.log-item').count() == 3)
+        await pb.locator('.tab', has_text='Train').click(); await pb.wait_for_timeout(200)
+        await pb.locator('.topsw button', has_text='History').click(); await pb.wait_for_timeout(300)
+        check('History shows restored workouts', await pb.locator('.log-item').count() == 3)
         await profile(pb)
         await pb.get_by_role('button', name='Restore').click(); await pb.wait_for_timeout(300)
         await pb.set_input_files('#rs-file', photos); await pb.wait_for_timeout(300)

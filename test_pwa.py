@@ -14,12 +14,13 @@ async def main():
         b = await p.chromium.launch()
         ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, has_touch=True, is_mobile=True, accept_downloads=True)
         pg = await ctx.new_page()
+        await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         errs = []; ext = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
         pg.on('request', lambda r: ext.append(r.url) if not r.url.startswith(URL) and not r.url.startswith('blob:') and not r.url.startswith('data:') else None)
         await pg.goto(URL); await pg.wait_for_timeout(1500)
-        check('app renders Train screen', await pg.locator('.hdr h1').inner_text() in ('Train', 'TRAIN'), await pg.locator('.hdr h1').inner_text())
+        check('app renders Train screen', (await pg.locator('.topsw button.on').inner_text()).upper() == 'TRAIN', await pg.locator('.topsw button.on').inner_text())
         check('no errors on load', not errs, errs[:3])
         check('no requests to other sites', not ext, ext[:5])
         fonts = await pg.evaluate("document.fonts.check('700 22px \"Barlow Condensed\"') && document.fonts.check('16px Barlow')")
@@ -32,7 +33,9 @@ async def main():
         check('first launch offers Restore', await pg.locator('#restore-hint').count() == 1)
 
         # Log a workout: start the next day, fill the first set, finish
-        await pg.get_by_role('button', name='Start', exact=False).first.click(); await pg.wait_for_timeout(400)
+        await pg.get_by_role('button', name='Create or select a program').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.opt', has_text="Newt's 4-Day Split").click(); await pg.wait_for_timeout(300)
+        await pg.locator('.next-card .btn.primary').click(); await pg.wait_for_timeout(400)
         inputs = pg.locator('.set-row input[inputmode="decimal"]')
         n = await inputs.count()
         check('workout opened with set rows', n > 0, n)
@@ -48,12 +51,12 @@ async def main():
         # Reload with the network cut: the app should still open with the workout in it
         await ctx.set_offline(True)
         await pg.reload(); await pg.wait_for_timeout(1500)
-        title = await pg.locator('.hdr h1').inner_text()
+        title = await pg.locator('.topsw button.on').inner_text()
         check('opens with no signal', title.upper() == 'TRAIN', title)
         check('restore card gone once a workout is logged', await pg.locator('#restore-hint').count() == 0)
         check('fonts still there offline', await pg.evaluate("document.fonts.check('700 22px \"Barlow Condensed\"')"))
-        await pg.locator('.tab', has_text='Log').click(); await pg.wait_for_timeout(400)
-        check('workout still in the Log offline', await pg.locator('.log-item').count() == 1)
+        await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(400)
+        check('workout still in History offline', await pg.locator('.log-item').count() == 1)
         await pg.screenshot(path='shot-log-offline.png')
 
         # Profile: sync line and backup file

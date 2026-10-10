@@ -12,12 +12,14 @@ if len(sys.argv) > 1:
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); pg = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); errs = []
+        await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         if EDIT:
             await pg.evaluate("e => commit(st => { st.meta.routines[e.id] = e; }, 'meta')", EDIT); await pg.wait_for_timeout(300)
             check('in-app edit matches the new standard version', await pg.evaluate("!libOver('bi-newt-4day') && getRoutine('bi-newt-4day').days[3].items.length === 4"))
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         tag = await pg.locator('.r-card', has_text="Newt's").locator('.tag').inner_text()
         check('4-Day Split not marked Edited', 'EDITED' not in tag.upper(), tag)
         # log Decline Chest Press at 100 lb

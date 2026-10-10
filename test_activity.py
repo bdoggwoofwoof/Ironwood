@@ -9,6 +9,7 @@ def check(name, ok, detail=''):
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); pg = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); errs = []
+        await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         before = await pg.evaluate("weekStats().thisCount")
@@ -20,7 +21,7 @@ async def main():
         after = await pg.evaluate("weekStats().thisCount")
         check('counts toward this week', after == before + 1, (before, after))
         check('week strip shows today', await pg.evaluate("dayCounts()[ymd(Date.now())] >= 1"))
-        await pg.locator('.tabs button', has_text='Log').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(300)
         item = await pg.locator('.log-item').first.inner_text()
         check('log shows distance, time and pace', 'Running' in item and '3.1 mi' in item and '28 min' in item and '9:02 /mi' in item, item.replace('\n', ' | '))
         # edit: switch to swimming
@@ -31,7 +32,7 @@ async def main():
         check('edit saved', 'Yoga' in item and '60 min' in item and ' mi ' not in item and '/mi' not in item, item.replace('\n', ' | '))
         check('still one entry', await pg.locator('.log-item').count() == 1)
         # Other, backdated from a day in the week strip
-        await pg.locator('.tabs button', has_text='Log').click()
+        await pg.locator('.topsw button', has_text='History').click()
         await pg.evaluate("openSheet({ type: 'activity', day: ymd(addDays(new Date(), -2)) })"); await pg.wait_for_timeout(300)
         await pg.get_by_role('button', name='Other', exact=True).click(); await pg.fill('#ac-name', 'Climbing'); await pg.fill('#ac-dur', '90')
         await pg.get_by_role('button', name='Save activity').click(); await pg.wait_for_timeout(300)
@@ -40,7 +41,7 @@ async def main():
         check('dated two days ago', await pg.evaluate("Object.values(S.sessions).some(s => s.name === 'Climbing' && ymd(s.startedAt) === ymd(addDays(new Date(), -2)))"))
         # reload keeps them; delete one
         await pg.reload(); await pg.wait_for_timeout(1500)
-        await pg.locator('.tabs button', has_text='Log').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(300)
         check('saved after reload', await pg.locator('.log-item').count() == 2)
         await pg.locator('.log-item', has_text='Climbing').click(); await pg.wait_for_timeout(300)
         await pg.get_by_role('button', name='Delete', exact=True).click(); await pg.get_by_role('button', name='Delete activity').click(); await pg.wait_for_timeout(300)

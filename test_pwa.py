@@ -29,6 +29,7 @@ async def main():
         man = await pg.evaluate("fetch('manifest.webmanifest').then(r => r.json())")
         check('manifest is standalone', man.get('display') == 'standalone')
         await pg.screenshot(path='shot-train.png')
+        check('first launch offers Restore', await pg.locator('#restore-hint').count() == 1)
 
         # Log a workout: start the next day, fill the first set, finish
         await pg.get_by_role('button', name='Start', exact=False).first.click(); await pg.wait_for_timeout(400)
@@ -49,6 +50,7 @@ async def main():
         await pg.reload(); await pg.wait_for_timeout(1500)
         title = await pg.locator('.hdr h1').inner_text()
         check('opens with no signal', title.upper() == 'TRAIN', title)
+        check('restore card gone once a workout is logged', await pg.locator('#restore-hint').count() == 0)
         check('fonts still there offline', await pg.evaluate("document.fonts.check('700 22px \"Barlow Condensed\"')"))
         await pg.locator('.tab', has_text='Log').click(); await pg.wait_for_timeout(400)
         check('workout still in the Log offline', await pg.locator('.log-item').count() == 1)

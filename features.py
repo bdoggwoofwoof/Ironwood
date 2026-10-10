@@ -114,6 +114,14 @@ RESTORE = r'''function RestoreSheet() {
 '''
 src = src[:start] + RESTORE + src[end:]
 
+# 5. First launch: offer Restore while there's nothing logged yet (hidden after a workout or a tap on "Not now")
+swap('<p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick, injured or break.</p>',
+     '''<p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick, injured or break.</p>
+    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
+      <div style="font-weight:700">Moving from another phone or the Claude version?</div>
+      <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
+      <div class="row"><button class="btn primary" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}''')
+
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:
         sys.exit('missing ' + need)

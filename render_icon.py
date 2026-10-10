@@ -21,11 +21,11 @@ def icon(size, scale):
     im.alpha_composite(m, ((size - m.width) // 2, (size - m.height) // 2))
     return im.convert('RGB')
 
-big = icon(1024, 0.66); big.save('icon-1024.png')
+big = icon(1024, 0.80); big.save('icon-1024.png')
 os.makedirs('dist/icons', exist_ok=True)
 for name, s in [('apple-touch-icon.png', 180), ('icon-192.png', 192), ('icon-512.png', 512)]:
     big.resize((s, s), Image.LANCZOS).save('dist/icons/' + name)
-icon(1024, 0.52).resize((512, 512), Image.LANCZOS).save('dist/icons/icon-maskable-512.png')  # inside Android's safe zone
+icon(1024, 0.62).resize((512, 512), Image.LANCZOS).save('dist/icons/icon-maskable-512.png')  # inside Android's safe zone
 xc = 'native/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'
 if os.path.isdir(os.path.dirname(xc)): big.save(xc)
 print('icons written')

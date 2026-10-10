@@ -1,13 +1,15 @@
-"""App icon: the tree-ring plate logo (logo.png, black on white) turned white, centered on the app's dark background.
+"""App icon: the white tree-ring plate logo (logo.png), centered on the app's dark background.
 Writes icon-1024.png (App Store / Xcode), the web icons in dist/icons/, and the Xcode AppIcon."""
 import os
 from PIL import Image, ImageChops
 
 BG = (0x11, 0x13, 0x15)
 src = Image.open('logo.png').convert('RGBA')
-# Black ink becomes white; paper (white or transparent) becomes transparent.
-flat = Image.new('RGBA', src.size, (255, 255, 255, 255)); flat.alpha_composite(src)
-ink = ImageChops.invert(flat.convert('L'))                      # 255 where the logo is black
+# logo.png is the white logo on a transparent background: its alpha is the mark. (A black-on-white logo also works.)
+if src.getchannel('A').getextrema()[0] < 255:
+    ink = src.getchannel('A')
+else:
+    ink = ImageChops.invert(src.convert('L'))                   # black ink on white paper
 ink = ink.crop(ink.getbbox())
 mark = Image.new('RGBA', ink.size, (255, 255, 255, 0)); mark.putalpha(ink)
 

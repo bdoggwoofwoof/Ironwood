@@ -20,7 +20,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         lib = pg.locator('.r-card')
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        check('library lists 8 routines', len(names) == 8, names)
+        check('library lists 21 routines', len(names) == 21, len(names))
         await pg.screenshot(path='shot-routines.png', full_page=True)
 
         # Edit a library routine: rename, drop the first exercise, save
@@ -35,7 +35,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('library still 8, one tagged Edited', await pg.locator('.r-card').count() == 8 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('library still 21, one tagged Edited', await pg.locator('.r-card').count() == 21 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
@@ -70,6 +70,54 @@ async def main():
         check('workout starts from new program', await pg.locator('.set-row').count() > 0)
         kinds = await pg.evaluate("Object.values(BUILTIN_EX).filter(e => /dumbbell|goblet/i.test(e.name)).every(e => e.kind === 'dumbbell')")
         check('dumbbell exercises use dumbbell kind', kinds)
+
+        # Notes on routine items, and during the workout
+        await pg.evaluate("UI.setView(null)"); await pg.wait_for_timeout(200)
+        await pg.evaluate("S.active = null; S.rerender()"); await pg.wait_for_timeout(200)
+        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.r-card', has_text='Eff. Pull').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
+        check('exercise note shows in routine', await pg.locator('.r-items .cue', has_text='elbows out').count() == 1)
+        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.r-card', has_text='Core 2').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
+        await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
+        check('exercise note shows during workout', await pg.locator('.slot', has_text='Plank Twists').locator('p', has_text='Each side').count() == 1)
+        await pg.evaluate("S.active = null; S.rerender()"); await pg.wait_for_timeout(200)
+
+        # By type view
+        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('tab', name='By type').click(); await pg.wait_for_timeout(300)
+        secs = await pg.locator('.wsec-h h2').all_inner_texts()
+        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Conditioning'], secs)
+        check('sections start closed', await pg.locator('.wk-row').count() == 0)
+        await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
+        push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()
+        check('Push holds push workouts', 'Eff. Push' in push and 'Push A' in push and 'Pull A' not in push, push)
+        newt = await pg.evaluate("BUILTIN_ROUTINES[0].days.map(d => dayTags(d, BUILTIN_ROUTINES[0]).join('+'))")
+        check('4-day split tags', newt == ['Push+Chest', 'Pull+Back', 'Push+Shoulders+Arms', 'Legs'], newt)
+        await pg.screenshot(path='shot-bytype.png', full_page=True)
+        await pg.get_by_role('button', name='Open all').click(); await pg.wait_for_timeout(200)
+        n_all = await pg.locator('.wk-row').count()
+        check('open all', n_all > 30, n_all)
+        await pg.reload(); await pg.wait_for_timeout(1500)
+        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        check('view and open sections remembered', await pg.locator('.wk-row').count() == n_all)
+        await pg.get_by_role('button', name='Close all').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.wsec-h', has_text='Conditioning').click(); await pg.wait_for_timeout(200)
+        cond = await pg.locator('.wk-row .t').all_inner_texts()
+        check('Conditioning holds SERE workouts', len(cond) == 6 and all(c.startswith('SERE') for c in cond), cond)
+
+        # Set a type by hand in the editor
+        await pg.locator('.wk-row', has_text='SERE - Burp').locator('.wk-main').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.ed-tags button', has_text='Full Body').click()
+        await pg.get_by_role('button', name='Save routine').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.wsec-h', has_text='Full Body').click(); await pg.wait_for_timeout(200)
+        check('manual type moves workout', await pg.locator('.wsec', has=pg.locator('h2', has_text='Full Body')).locator('.wk-row', has_text='SERE - Burp').count() == 1)
+        await pg.get_by_role('tab', name='List').click(); await pg.wait_for_timeout(300)
+        await pg.screenshot(path='shot-routines.png', full_page=True)
+        tags = await pg.evaluate("Object.fromEntries(allRoutines().flatMap(r => r.days.map(d => [r.name + ' / ' + d.name, dayTags(d, r).join(', ')])))")
+        for k, v in tags.items(): print('   ', k, '->', v)
         check('no page errors', not errs, errs[:3])
         await b.close()
 

@@ -102,7 +102,7 @@ swap('</body></html>', BOOT)
 
 # 4b. About section in Profile: privacy policy and support pages (copied into the site below)
 swap('<div class="section-h"><h2>Nutrition</h2>',
-     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p></div>\n    <div class="section-h"><h2>Nutrition</h2>')
+     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>\n    <div class="section-h"><h2>Nutrition</h2>')
 
 os.makedirs(OUT, exist_ok=True)
 import shutil
@@ -121,6 +121,10 @@ manifest = {
     ],
 }
 json.dump(manifest, open(os.path.join(OUT, 'manifest.webmanifest'), 'w'), indent=2)
+
+# 4c. Version shown in Profile → About: a short fingerprint of the app page, so a phone can tell which build it has
+html = html.replace('__APPVER__', hashlib.sha256(html.encode()).hexdigest()[:7])
+open(os.path.join(OUT, 'index.html'), 'w', encoding='utf8').write(html)
 
 # 5. Service worker: every file the app needs, versioned by content so a new build replaces the old cache
 files = ['./', 'index.html', 'manifest.webmanifest', 'vendor/htm-preact.umd.js', 'privacy.html', 'support.html', 'pages.css'] + \

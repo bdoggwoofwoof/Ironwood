@@ -168,9 +168,11 @@ function TourOverlay() {
         const g = use ? { x: Math.max(4, use.l - pad), y: Math.max(4, use.t - pad), w: Math.min(vw - 8, use.r - use.l + 2 * pad), h: Math.min(vh - 8, use.b - use.t + 2 * pad), ring: 1 }
                       : { x: vw / 2, y: vh / 2, w: 0, h: 0, ring: 0 };
         for (const p of ['x', 'y', 'w', 'h']) { if (rm) { cur[p] = g[p]; vel[p] = 0; } else spring(p, g[p], sdt); } cur.ring += (g.ring - cur.ring) * k;
-        hole.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
-        hole.style.width = cur.w.toFixed(1) + 'px'; hole.style.height = cur.h.toFixed(1) + 'px';
-        if (hole.firstChild) hole.firstChild.style.opacity = cur.ring.toFixed(3);
+        /* hole = the cut-out rect in the SVG mask; ring = a small outlined box over it (both cheap to redraw) */
+        const cut = hole.querySelector('.tour-cut'), ring = hole.querySelector('.tour-ring');
+        cut.setAttribute('x', cur.x.toFixed(1)); cut.setAttribute('y', cur.y.toFixed(1)); cut.setAttribute('width', Math.max(0, cur.w).toFixed(1)); cut.setAttribute('height', Math.max(0, cur.h).toFixed(1));
+        ring.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)'; ring.style.width = Math.max(0, cur.w).toFixed(1) + 'px'; ring.style.height = Math.max(0, cur.h).toFixed(1) + 'px';
+        ring.style.opacity = cur.ring.toFixed(3);
         const it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0, ch = card.offsetHeight;
         const side = T.mid ? 'mid' : T.side;
         const ty = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - ch : (vh - ch) / 2;
@@ -203,16 +205,20 @@ function TourOverlay() {
         let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { t: Math.min(r.t, q.top), b: Math.max(r.b, q.bottom) } : { t: q.top, b: q.bottom }; }
         const vh = innerHeight, maxY = Math.max(0, document.documentElement.scrollHeight - vh);
         const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
-        T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom'; T.mid = false; T.els = els; T.show = true;
+        T.side = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';
+        /* Scrolling from code stutters on iPhone, so a far-off item is reached by fading the page out, jumping there
+           while it is invisible, and fading back in. Small moves just happen under the fade-in. */
+        if (Math.abs(want - scrollY) > 40 && !(needTab || needMode) && smooth) { document.body.classList.add('tour-fading'); await tourWait(180); if (!alive) return; }
+        scrollTo(0, want); await tourFrame();
+        T.mid = false; T.els = els; T.show = true;
         document.body.classList.remove('tour-fading');
-        await tourScroll(want, smooth && !(needTab || needMode) ? 480 : 0);
       } else { T.mid = true; T.els = null; T.show = true; document.body.classList.remove('tour-fading'); }
     })();
     return () => { alive = false; };
   }, [step]);
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
-    <div class="tour-hole" ref=${holeRef}><div class="tour-ring"></div></div>
+    <div class="tour-hole" ref=${holeRef}><svg class="tour-dim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><rect class="tour-cut" x="0" y="0" width="0" height="0" rx="14" fill="#000"/></mask></defs><rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,.62)" mask="url(#tour-mask)"/></svg><div class="tour-ring"></div></div>
     <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
       <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
       <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>

@@ -134,38 +134,53 @@ const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
 function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
 function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
-/* Spotlight: dims the page, cuts a highlighted hole around what the step talks about, and puts the text card on the
-   opposite half of the screen so it never covers it. */
+/* Spotlight: dims the page and cuts a highlighted hole around what the step talks about. The hole and the text card
+   stay on screen the whole time: between steps the hole glides to the next item (following the page while it scrolls
+   smoothly), the card slides to whichever half of the screen keeps it clear, and only the words fade. */
+const reduceMotion = () => document.documentElement.classList.contains('rm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 function TourOverlay() {
   const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
-  const [rect, setRect] = useState(null);
+  const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
   useEffect(() => {
-    setRect(null); let alive = true, tries = 0;
+    let alive = true, raf = 0, scrolled = false, lockSide = null; const t0 = performance.now(); const smooth = !reduceMotion();
     const ls = (extra && extra.ls) || {}; for (const k in ls) lsSet(k, ls[k]);
-    if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
-    UI.setTab(tab); S.rerender();
-    const measure = () => {
-      if (!alive || !sel) return; const els = [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0);
-      if (!els.length) { if (tries++ < 25) setTimeout(measure, 60); return; }
-      const list = els.slice(0, (extra && extra.max) || 1);
-      list[0].scrollIntoView({ block: 'center' });
-      setTimeout(() => { if (!alive) return; let r = null;
-        for (const e of list) { const b = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom) } : { l: b.left, t: b.top, r: b.right, b: b.bottom }; }
-        setRect(r); }, 60);
+    if (lsGet('tab') !== tab) { if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); } UI.setTab(tab); }
+    else if (mode && TRAIN.mode !== mode) { TRAIN.mode = mode; lsSet('trainMode', mode); S.rerender(); }
+    const max = (extra && extra.max) || 1;
+    const frame = () => {
+      if (!alive) return; const hole = holeRef.current, card = cardRef.current, inset = insetRef.current;
+      if (hole && card) {
+        const vh = innerHeight, vw = innerWidth, it = inset ? inset.offsetTop : 0, ib = inset ? inset.offsetHeight : 0;
+        const els = sel ? [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().width > 0).slice(0, max) : [];
+        let r = null; for (const e of els) { const q = e.getBoundingClientRect(); r = r ? { l: Math.min(r.l, q.left), t: Math.min(r.t, q.top), r: Math.max(r.r, q.right), b: Math.max(r.b, q.bottom) } : { l: q.left, t: q.top, r: q.right, b: q.bottom }; }
+        if (r && !scrolled) { scrolled = true; const maxY = Math.max(0, document.documentElement.scrollHeight - vh);
+          const want = Math.min(maxY, Math.max(0, scrollY + (r.t + r.b) / 2 - vh / 2));
+          lockSide = (r.t + r.b) / 2 - (want - scrollY) > vh / 2 ? 'top' : 'bottom';   /* where the item will sit once scrolled */
+          if (Math.abs(want - scrollY) > 4) scrollTo({ top: want, behavior: smooth ? 'smooth' : 'auto' }); }
+        const waiting = sel && !r && performance.now() - t0 < 1500;          // keep the last spot while the page settles
+        if (!waiting) {
+          const pad = 8; let side;
+          if (r) { hole.classList.remove('none');
+            hole.style.left = Math.max(4, r.l - pad) + 'px'; hole.style.top = Math.max(4, r.t - pad) + 'px';
+            hole.style.width = Math.min(vw - 8, r.r - r.l + 2 * pad) + 'px'; hole.style.height = Math.min(vh - 8, r.b - r.t + 2 * pad) + 'px';
+            side = lockSide || ((r.t + r.b) / 2 > vh / 2 ? 'top' : 'bottom'); }
+          else { hole.classList.add('none'); hole.style.left = vw / 2 + 'px'; hole.style.top = vh / 2 + 'px'; hole.style.width = '0px'; hole.style.height = '0px'; side = 'mid'; }
+          const h = card.offsetHeight; const top = side === 'top' ? it + 12 : side === 'bottom' ? vh - ib - 12 - h : (vh - h) / 2;
+          card.style.transform = 'translateY(' + Math.round(top) + 'px)'; card.classList.add('ready');
+        }
+      }
+      raf = requestAnimationFrame(frame);
     };
-    setTimeout(measure, 40);
+    raf = requestAnimationFrame(frame);
     const onKey = e => { if (e.key === 'Escape') endTour(); }; addEventListener('keydown', onKey);
-    const onResize = () => { tries = 0; measure(); }; addEventListener('resize', onResize);
-    return () => { alive = false; removeEventListener('keydown', onKey); removeEventListener('resize', onResize); };
+    return () => { alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey); };
   }, [step]);
-  const pad = 8, vh = innerHeight, vw = innerWidth;
-  const hole = rect && { left: Math.max(4, rect.l - pad) + 'px', top: Math.max(4, rect.t - pad) + 'px', width: Math.min(vw - 8, rect.r - rect.l + 2 * pad) + 'px', height: Math.min(vh - 8, rect.b - rect.t + 2 * pad) + 'px' };
-  const place = !sel ? 'mid' : !rect ? 'bottom' : (rect.t + rect.b) / 2 > vh / 2 ? 'top' : 'bottom';
   return html`<div class="tour" role="dialog" aria-modal="true" aria-label=${'Tour: ' + title}>
-    ${hole ? html`<div class="tour-hole" style=${hole}></div>` : html`<div class="tour-dim"></div>`}
-    <div class=${'tour-card ' + place}>
+    <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
+    <div class="tour-hole none" ref=${holeRef}></div>
+    <div class="tour-card" ref=${cardRef}><div key=${step} class="tour-txt">
       <div class="row"><div class="eyebrow" style="flex:1">${step + 1} of ${TOUR.length}</div>${last ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
-      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p>
+      <h2>${title}</h2><p class="note" style="margin:6px 0 14px">${body}</p></div>
       <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
         <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>
     </div></div>`;

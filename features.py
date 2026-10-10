@@ -643,32 +643,16 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
-.tour-dim{position:absolute;inset:0;background:rgba(0,0,0,.62)}
-.tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .25s,top .25s,width .25s,height .25s;pointer-events:none}
-.tour-card{position:absolute;left:12px;right:12px;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4)}
-.tour-card.top{top:calc(env(safe-area-inset-top,0px) + 12px)}
-.tour-card.bottom{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
-.tour-card.mid{top:50%;transform:translateY(-50%)}
+.tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
+.tour-hole{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:14px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.62);transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),height .38s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;pointer-events:none;will-change:left,top,width,height}
+.tour-hole.none{box-shadow:0 0 0 0 transparent,0 0 0 9999px rgba(0,0,0,.62)}
+.tour-card{position:fixed;left:12px;right:12px;top:0;max-width:560px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px 16px;box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .2s ease;will-change:transform}
+.tour-card.ready{opacity:1}
+.tour-txt{animation:tourfade .22s ease}
+@keyframes tourfade{from{opacity:0}}
 .tour-card h2{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;line-height:1.05;margin-top:4px}
-:root.rm .tour-hole{transition:none}
-.slot-pick{display:flex;flex-direction:column;gap:6px}
-.slot-btn{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;background:var(--raised);text-align:left;border:2px solid transparent}
-.slot-btn.on{border-color:var(--ink)}
-.slot-btn i{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
-.slot-btn b{display:block;font-size:15px}.slot-btn .d{font-size:12.5px;color:var(--ink-2)}
-.wheel{position:relative;margin:14px auto 0;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
-.wheel canvas,.wheel svg{position:absolute;inset:0;width:100%;height:100%}
-.wheel .wl{stroke-width:3;stroke-linecap:round}
-.wheel .wl.main{stroke:#fff;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
-.wheel .wl.sug{stroke:#fff;stroke-dasharray:5 5;opacity:.9;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
-.wheel .wc{fill:#fff;stroke:rgba(0,0,0,.6);stroke-width:1.5}
-.wheel .wd-main{stroke:#fff;stroke-width:4;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
-.wheel .wd-sug{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 2px rgba(0,0,0,.7))}
-.sug-sw{width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--line)}
-.cw-v{width:100%;accent-color:var(--ink-2)}
-.cw-prev{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.cw-prev .btn{min-height:40px;padding:8px 16px}
-@media (prefers-reduced-motion: reduce){.tour-hole{transition:none}}""")
+:root.rm .tour-hole,:root.rm .tour-card{transition:none}:root.rm .tour-txt{animation:none}
+@media (prefers-reduced-motion: reduce){.tour-hole,.tour-card{transition:none}.tour-txt{animation:none}}""")
 
 # 11. Sheet handles work: drag the bar down to close the sheet, up to make it full height (tap toggles the size).
 a = src.index('function Sheet({ children, label }) {'); b = src.index('function Sparkline(', a)

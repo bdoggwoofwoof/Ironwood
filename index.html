@@ -191,6 +191,7 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .log-ex li span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .log-ex .best{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .log-prs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.log-act{margin-top:6px;font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 
 /* Routines */
 .r-card{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;background:var(--surface);border-radius:var(--r);padding:16px}
@@ -1498,8 +1499,9 @@ function TrainHome() {
       <div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>
       <div class="stack">${routine.days.filter(d => d.id !== nx.day.id).map(d => html`<button key=${d.id} class="day-btn" onClick=${() => startWorkout(routine, d)}>
         <div><div class="t">${d.name}</div><div class="s">${d.items.length} exercises</div></div><span class="go">Start</span></button>`)}
-        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button></div>`
-    : html`<div class="empty"><h3>No routines yet</h3><p>Build one in Routines, or start an empty workout.</p></div>`}
+        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>
+        <button class="btn ghost wide" id="log-activity" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`
+    : html`<div class="empty"><h3>No routines yet</h3><p>Build one in Routines, or start an empty workout.</p><button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log another activity</button></div>`}
     <div class="row" style="margin-top:12px">
       <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
       ${chs.length ? null : html`<button class="btn" style="flex:1" onClick=${newCh}>${I.check} Start a challenge</button>`}
@@ -1651,14 +1653,15 @@ function Toast() {
 /* ---------- LOG ---------- */
 function LogScreen() {
   const list = sessionList().slice().reverse();
-  if (!list.length) return html`<div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise.</p></div>`;
+  const actBtn = html`<button class="btn ghost wide" style="margin-top:6px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log an activity</button>`;
+  if (!list.length) return html`<div><div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise. Running, swimming, yoga and other activities can be logged too.</p></div>${actBtn}</div>`;
   let lastMonth = '';
-  return html`<div>${list.map(s => { const d = new Date(s.startedAt); const mk = MON[d.getMonth()] + ' ' + d.getFullYear(); const head = mk !== lastMonth ? (lastMonth = mk, html`<div class="month-h">${MON[d.getMonth()]} ${d.getFullYear()}</div>`) : null;
+  return html`<div>${actBtn}${list.map(s => { const d = new Date(s.startedAt); const mk = MON[d.getMonth()] + ' ' + d.getFullYear(); const head = mk !== lastMonth ? (lastMonth = mk, html`<div class="month-h">${MON[d.getMonth()]} ${d.getFullYear()}</div>`) : null;
     const mins = Math.max(1, Math.round(((s.endedAt || s.startedAt) - s.startedAt) / 60000));
     return html`${head}<button key=${s.id} class="log-item" onClick=${() => openSheet({ type: 'session', id: s.id })}>
       <div class="date-chip"><span>${DOW[d.getDay()]}</span><b>${d.getDate()}</b></div>
       <div style="min-width:0"><div class="log-top"><h3>${s.name}</h3><span class="mins">${mins} min</span></div>
-        <ul class="log-ex">${s.items.map((it, k) => html`<li key=${k}><span>${it.sets.length}× ${exName(it.ex)}${it.group ? ' · ' + it.group : ''}</span><span class="best">${bestSetLabel(it.sets, exKind(it.ex))}${it.u && it.u !== U() ? ' ' + it.u : ''}</span></li>`)}</ul>
+        ${s.kind === 'activity' ? html`<p class="log-act">${actLine(s) || 'Activity'}${s.note ? html`<span class="faint"> · ${s.note}</span>` : null}</p>` : null}<ul class="log-ex">${s.items.map((it, k) => html`<li key=${k}><span>${it.sets.length}× ${exName(it.ex)}${it.group ? ' · ' + it.group : ''}</span><span class="best">${bestSetLabel(it.sets, exKind(it.ex))}${it.u && it.u !== U() ? ' ' + it.u : ''}</span></li>`)}</ul>
         ${noE1(s.prs).length ? html`<div class="log-prs">${noE1(s.prs).slice(0, 3).map((p, k) => html`<span key=${k} class="pr-badge">${I.plate} ${p.label}</span>`)}${noE1(s.prs).length > 3 ? html`<span class="chip">+${noE1(s.prs).length - 3} more</span>` : null}</div>` : null}
       </div></button>`; })}</div>`;
 }
@@ -2697,7 +2700,8 @@ function DaySheet({ k }) {
   return html`<${Sheet} label="Mark this day"><h2>${DOW_FULL[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}</h2>
     ${ss.length ? html`<p class="note">Logged: ${ss.map(x => x.name).join(', ')}</p>` : null}
     <div style="margin-top:6px">${opts.map(([v, l, sub]) => html`<button key=${v} class=${'opt' + (m === v ? ' on' : '')} onClick=${() => setM(m === v ? '' : v)}><div style="flex:1"><div>${l}</div><div class="d">${sub || exTxt}</div></div>${m === v ? I.check : null}</button>`)}</div>
-    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}<//>`;
+    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}
+    ${k <= ymd(Date.now()) ? html`<button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity', day: k })}>${I.plus} Log an activity on this day</button>` : null}<//>`;
 }
 function ChDaySheet({ id, k }) {
   const ch = S.meta.challenges[id]; if (!ch) return null; const d = parseYmd(k);
@@ -2775,9 +2779,52 @@ function SummarySheet({ id }) {
       : html`<p class="note" style="margin-top:14px">No new records this time. Logged weights become next workout's starting point.</p>`}
     <button class="btn primary wide" style="margin-top:18px" onClick=${closeSheet}>Done</button><//>`;
 }
+/* ---------- Other activities ---------- */
+const ACTS = [['run', 'Running', 1], ['walk', 'Walking / hiking', 1], ['cycle', 'Cycling', 1], ['swim', 'Swimming', 1], ['row', 'Rowing', 1], ['ruck', 'Rucking', 1],
+  ['cross', 'Cross-training', 0], ['hiit', 'HIIT / conditioning', 0], ['bjj', 'BJJ / martial arts', 0], ['sport', 'Sports', 0], ['yoga', 'Yoga', 0], ['mobility', 'Stretching / mobility', 0], ['other', 'Other', 0]];
+const actInfo = k => ACTS.find(a => a[0] === k) || ACTS[ACTS.length - 1];
+const actUnit = k => k === 'swim' ? (U() === 'kg' ? 'm' : 'yd') : (U() === 'kg' ? 'km' : 'mi');
+function actLine(s) {
+  const p = []; if (s.dist) p.push(fmt(s.dist) + ' ' + (s.distU || 'mi')); if (s.dur) p.push(s.dur + ' min');
+  if (s.dist && s.dur && (s.distU === 'mi' || s.distU === 'km') && s.activity !== 'cycle') { const pm = s.dur / s.dist; p.push(Math.floor(pm) + ':' + String(Math.round((pm % 1) * 60)).padStart(2, '0') + ' /' + s.distU); }
+  return p.join(' · ');
+}
+function ActivitySheet({ id, day }) {
+  const s0 = id ? S.sessions[id] : null; const today = ymd(Date.now());
+  const [act, setAct] = useState(s0 ? s0.activity : 'run'); const [name, setName] = useState(s0 && s0.activity === 'other' ? s0.name : '');
+  const [d, setD] = useState(s0 ? ymd(s0.startedAt) : (day && day <= today ? day : today));
+  const [dur, setDur] = useState(s0 && s0.dur ? String(s0.dur) : ''); const [dist, setDist] = useState(s0 && s0.dist ? String(s0.dist) : '');
+  const [du, setDu] = useState(s0 && s0.distU ? s0.distU : actUnit(s0 ? s0.activity : 'run')); const [note, setNote] = useState(s0 ? s0.note || '' : '');
+  const [confirm, setConfirm] = useState(false);
+  const info = actInfo(act);
+  const pick = k => { setAct(k); if (!dist) setDu(actUnit(k)); };
+  const save = () => {
+    const m = Math.max(0, Math.round(num(dur))); let start;
+    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) start = Date.now() - Math.max(m, 1) * 60000; else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
+    const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : info[1], startedAt: start, endedAt: start + Math.max(m, 1) * 60000,
+      updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
+    commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });
+  };
+  const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
+  return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
+    <p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>
+    <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="stack" style="margin-top:14px">
+      ${act === 'other' ? html`<div><label class="lbl" for="ac-name">What did you do?</label><input class="field" id="ac-name" placeholder="e.g. Climbing" value=${name} onInput=${e => setName(e.target.value)}/></div>` : null}
+      <div class="row" style="align-items:flex-end"><div style="flex:1"><label class="lbl" for="ac-date">Date</label><input class="field" id="ac-date" type="date" max=${today} value=${d} onChange=${e => e.target.value && setD(e.target.value)}/></div>
+        <div style="flex:1"><label class="lbl" for="ac-dur">Minutes</label><input class="field" id="ac-dur" inputmode="numeric" placeholder="e.g. 45" value=${dur} onInput=${e => setDur(e.target.value.replace(/[^\d]/g, ''))}/></div></div>
+      ${info[2] ? html`<div class="row" style="align-items:flex-end"><div style="flex:1"><label class="lbl" for="ac-dist">Distance (optional)</label><input class="field" id="ac-dist" inputmode="decimal" placeholder="0" value=${dist} onInput=${e => setDist(e.target.value.replace(/[^\d.,]/g, ''))}/></div>
+        <div class="seg" role="group" aria-label="Distance unit" style="margin-bottom:4px">${['mi', 'km', 'm', 'yd'].map(u => html`<button key=${u} class=${du === u ? 'on' : ''} aria-pressed=${du === u} onClick=${() => setDu(u)}>${u}</button>`)}</div></div>` : null}
+      <div><label class="lbl" for="ac-note">Note (optional)</label><input class="field" id="ac-note" placeholder=${act === 'run' ? 'e.g. Easy pace, hills' : 'How it went'} value=${note} onInput=${e => setNote(e.target.value)}/></div>
+      <button class="btn primary wide" onClick=${save}>${s0 ? 'Save changes' : 'Save activity'}</button>
+      ${s0 ? (confirm ? html`<button class="btn wide danger" onClick=${del}>Delete activity</button><button class="btn wide" onClick=${() => setConfirm(false)}>Keep it</button>`
+        : html`<button class="btn text danger wide" onClick=${() => setConfirm(true)}>Delete</button>`) : null}
+    </div><//>`;
+}
 function SessionSheet({ id }) {
   const s0 = S.sessions[id]; const [edit, setEdit] = useState(null); const [confirm, setConfirm] = useState(false);
   if (!s0) return null;
+  if (s0.kind === 'activity') return html`<${ActivitySheet} id=${id}/>`;
   const s = edit || s0;
   const mins = Math.max(1, Math.round(((s.endedAt || s.startedAt) - s.startedAt) / 60000));
   const save = () => { edit.items.forEach(it => { it.note = (it.note || '').trim(); it.sets = it.sets.map(x => { const o = { w: num(x.w), r: Math.round(num(x.r)) }; if (x.n && String(x.n).trim()) o.n = String(x.n).trim(); return o; }).filter(x => x.r > 0); }); edit.items = edit.items.filter(it => it.sets.length);
@@ -2851,6 +2898,7 @@ function SheetHost({ sheet }) {
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
     case 'summary': return html`<${SummarySheet} id=${sheet.id}/>`;
     case 'session': return html`<${SessionSheet} id=${sheet.id}/>`;
+    case 'activity': return html`<${ActivitySheet} day=${sheet.day}/>`;
     case 'import': return html`<${ImportSheet}/>`;
     case 'restore': return html`<${RestoreSheet}/>`;
     case 'confirm': return html`<${ConfirmSheet} ...${sheet}/>`;

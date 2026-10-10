@@ -311,17 +311,27 @@ const MY_PLANS = [
   ['bi-sere-swim', 'SERE - Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
   ['bi-sere-burp', 'SERE - Burp', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
   ['bi-sere-ruck', 'SERE - 4 Mile Ruck+', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
+  ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Peterson Step-Ups', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
+  ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
+  ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
+    ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Hybrid Curls', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
+    ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Hybrid Curls', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
+    ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
 const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips)\b/;
-function builtinPlan([rid, name, tags, note, items]) {
-  const day = { id: rid + '-d1', name, tags, items: items.map(([nm, sets, reps, cue, ss], j) => {
+function planDay(rid, i, name, tags, items) {
+  return { id: `${rid}-d${i}`, name, tags, items: items.map(([nm, sets, reps, cue, ss], j) => {
     let ex = findIn(BUILTIN_EX)(nm);
-    if (!ex) { const n = norm(nm); ex = { id: 'b-' + slug(nm), name: nm, kind: BW_EX.test(n) && !/assist/.test(n) ? 'bodyweight' : /kettle ?bell|wall ?ball/.test(n) || COND_EX.test(n) ? 'other' : guessKind(nm) };
-      if (COND_EX.test(n)) ex.cat = 'cardio'; else if (tags[0] === 'Core') ex.cat = 'core'; else if (/rear delt row/.test(n)) ex.cat = 'back';
+    if (!ex) { const n = norm(nm); ex = { id: 'b-' + slug(nm), name: nm, kind: BW_EX.test(n) && !/assist/.test(n) ? 'bodyweight' : /kettle ?bell|wall ?ball/.test(n) || COND_EX.test(n) ? 'other' : tags[0] === 'Mobility' && !/weighted|dumbbell|barbell/.test(n) ? 'bodyweight' : guessKind(nm) };
+      if (COND_EX.test(n)) ex.cat = 'cardio'; else if (tags[0] === 'Core') ex.cat = 'core'; else if (tags[0] === 'Mobility') ex.cat = 'other'; else if (/rear delt row/.test(n)) ex.cat = 'back';
       BUILTIN_EX[ex.id] = ex; }
-    return { id: `${rid}-d1-${j + 1}`, ex: ex.id, sets, reps: reps || '', group: '', ss: !!ss && j > 0, note: cue || '' }; }) };
-  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: 'Your plan', days: [day] };
+    return { id: `${rid}-d${i}-${j + 1}`, ex: ex.id, sets, reps: reps || '', group: '', ss: !!ss && j > 0, note: cue || '' }; }) };
+}
+/* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
+function builtinPlan([rid, name, tags, note, items]) {
+  const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
+  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: 'Your plan' + (days.length > 1 ? ' · ' + days.length + ' days a week' : ''), days };
 }
 const BUILTIN_ROUTINES = [
   Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT), { meta: 'Your plan · 4 days a week', shelf: 'plans' }),
@@ -352,9 +362,9 @@ const getRoutine = id => isHidden(id) ? null : libBase(id) ? (libOver(id) || lib
 start = src.index('function RoutinesScreen({ view }) {')
 end = src.index('function RoutineEditor({ view }) {', start)
 SCREENS = r"""/* Workout types. A day's tags come from the editor, or are worked out from its name, then its exercises. */
-const WTAGS = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Conditioning', 'Other'];
+const WTAGS = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Mobility', 'Conditioning', 'Other'];
 const TAG_WORDS = [[/\bpush\b/, ['Push']], [/\bpull\b/, ['Pull']], [/\blegs?\b/, ['Legs']], [/\bupper\b/, ['Upper']], [/\blower\b/, ['Lower']], [/\b(full|total) ?body\b/, ['Full Body']],
-  [/\bchest\b/, ['Chest', 'Push']], [/\bback\b/, ['Back', 'Pull']], [/\bshoulders?\b/, ['Shoulders', 'Push']], [/\b(arms?|biceps?|triceps?|bis|tris)\b/, ['Arms']], [/\b(core|abs?)\b/, ['Core']], [/\b(conditioning|cardio|hiit|metcon)\b/, ['Conditioning']]];
+  [/\bchest\b/, ['Chest', 'Push']], [/\bback\b/, ['Back', 'Pull']], [/\bshoulders?\b/, ['Shoulders', 'Push']], [/\b(arms?|biceps?|triceps?|bis|tris)\b/, ['Arms']], [/\b(core|abs?)\b/, ['Core']], [/\b(mobility|stretch(es|ing)?|yoga|flexibility)\b/, ['Mobility']], [/\b(conditioning|cardio|hiit|metcon)\b/, ['Conditioning']]];
 function autoTags(day, r) {
   const nm = norm(String(day.name || '').replace(/^Day\s*\d+\s*[-–]\s*/i, '') + (r && r.days.length === 1 ? ' ' + r.name : ''));
   const out = []; for (const [re, t] of TAG_WORDS) if (re.test(nm)) t.forEach(x => { if (!out.includes(x)) out.push(x); });
@@ -408,7 +418,7 @@ function RoutineList() {
   if (mode === 'list') return html`<div>${seg}
     <div class="section-h"><h2>Your routines</h2></div>
     <div class="stack">${mine.length ? mine.map(card) : html`<div class="card note">Routines you build, copy, or import live here. Library routines can be edited or removed too.</div>`}${actions}</div>
-    ${plans.length ? html`<div class="section-h"><h2>Your plans</h2><span class="aside">From RepCount</span></div><div class="stack">${plans.map(card)}</div>` : null}
+    ${plans.length ? html`<div class="section-h"><h2>Your plans</h2></div><div class="stack">${plans.map(card)}</div>` : null}
     ${programs.length ? html`<div class="section-h"><h2>Programs</h2><span class="aside">Ready to run</span></div><div class="stack">${programs.map(card)}</div>` : null}
     <div class="stack" style="margin-top:10px">${bring}</div></div>`;
   const open = openSecs(); const groups = WTAGS.map(t => ({ t, rows: [] }));

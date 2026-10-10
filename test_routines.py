@@ -20,7 +20,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         lib = pg.locator('.r-card')
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        check('library lists 21 routines', len(names) == 21, len(names))
+        check('library lists 24 routines', len(names) == 24, len(names))
         await pg.screenshot(path='shot-routines.png', full_page=True)
 
         # Edit a library routine: rename, drop the first exercise, save
@@ -35,7 +35,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('library still 21, one tagged Edited', await pg.locator('.r-card').count() == 21 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('library still 24, one tagged Edited', await pg.locator('.r-card').count() == 24 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
@@ -87,7 +87,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         await pg.get_by_role('tab', name='By type').click(); await pg.wait_for_timeout(300)
         secs = await pg.locator('.wsec-h h2').all_inner_texts()
-        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Conditioning'], secs)
+        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Mobility', 'Conditioning'], secs)
         check('sections start closed', await pg.locator('.wk-row').count() == 0)
         await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
         push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()

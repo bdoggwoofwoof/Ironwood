@@ -309,7 +309,7 @@ Day 5 - Arms
 const MY_PLANS = [
   ['bi-eff-ppl', 'Efficient Push/Pull/Legs', null, '', [
     ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Toss', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
-    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Zottman Curl', 3, '', '', 1]]],
+    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
     ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Walking Lunge', 3], ['Calf Raises', 3, '', '', 1]]]]],
   ['bi-full-body', 'Full Body', ['Full Body'], '', [['Overhead Barbell Press', 3, '', 'Shoulders'], ['Assisted Dips', 3, '', 'Chest, triceps'], ['Dead Hang', 3, '', 'Forearms'], ['Barbell Bicep Curl', 3, '', 'Biceps'], ['Bent-Over Barbell Rows', 3, '', 'Back'], ['Assisted Pull-Up', 3, '', 'Back'], ['Hanging Leg Raises', 10, '', 'Abs: 10 sets, 30 s on / 30 s off'], ['Back Squat', 3, '', 'Legs'], ['Deadlift', 3, '', 'Legs']]],
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell Side Bend', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
@@ -324,8 +324,8 @@ const MY_PLANS = [
   ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Petersen Step-Up', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
   ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
   ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
-    ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Zottman Curl', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
-    ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Zottman Curl', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
+    ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Hybrid Curls', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
+    ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Hybrid Curls', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
     ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
@@ -358,7 +358,7 @@ const EX_CUES = {
   'b-petersen-step-up': 'Stand on a low step on the ball of one foot, heel up. Lower the other heel to the floor slowly by straightening the knee, then drive back up. Builds the VMO.',
   'b-hip-airplanes': 'Single-leg hinge. Balancing on one leg, open the hips toward the standing leg, then rotate them closed. Hold a post if needed.',
   'b-heel-touches': 'Lie on your back, knees bent, shoulders off the floor. Crunch sideways to tap each heel.',
-  'b-zottman-curl': 'Curl up with a hammer (neutral) grip, turn the palms up at the top, then lower slowly. Light enough to control the turn.',
+  'b-hybrid-curls': 'A mix of hammer curls and Zottman curls. Hammer: palms facing each other the whole rep. Zottman: curl up palms up, turn the palms down at the top, lower slowly.',
   'b-cable-lateral-raise-toss': 'Lateral raise on a low cable done fast, as if tossing the handle out to the side; let it come back under control.',
   'b-scapular-shrugs': 'Dumbbells at your sides, arms straight. Shrug the shoulder blades up and down without bending the elbows.',
   'b-behind-the-back-cable-lateral-raise': 'Stand beside a low cable with the handle behind your back in the far hand. Raise the arm out to the side to shoulder height, then lower slowly.',
@@ -497,7 +497,7 @@ function RoutineView({ id }) {
 """
 src = src[:start] + SCREENS + src[end:]
 # 8. Newt's 4-Day Split as he edited it in the app (Oct 10): rep ranges, new supersets, no pull-ups on legs day, plain day names.
-swap("Day 1 - Chest Focus (N)\n3x Decline Chest Press\n3x Incline Reverse-Grip Squeeze Press\n3x x Zottman Curl\n3x Cable Fly\n3x x Tricep Pushdowns\n3x Cable Crunch\n3x Behind-the-Back Cable Lateral Raise\nDay 2 - Back / Rear Delts (N)\n3x Bent-Over Barbell Rows\n3x Lat Pulldown\n3x x Cuban Press\n4x Behind-the-Back Cable Lateral Raise\n3x x Zottman Curl\n3x Scapular Shrugs\n3x Cable Crunch\nDay 3 - Shoulders / Tris (N)\n3x Overhead Barbell Press\n3x Behind-the-Back Cable Lateral Raise\n3x x Tricep Pushdowns\n3x Face Pulls\n3x x Overhead Cable Tricep Extension\n3x Scapular Shrugs\n3x Cable Crunch\nDay 4 - Legs (N/BJJ)\n3x Squat\n3x Romanian Deadlift\n3x Leg Curls\n3x Calf Raises\n3x Assisted Pull-Up", "Day 1 - Chest Focus\n3x5-8 Decline Chest Press\n3x5-8 Incline Reverse-Grip Squeeze Press\n3x5-8 x Zottman Curl\n3x5-8 Cable Fly\n3x5-8 x Tricep Pushdowns\n3x5-8 Cable Crunch\n3x10-12 x Behind-the-Back Cable Lateral Raise\nDay 2 - Back / Rear Delts\n3x5-8 Bent-Over Barbell Rows\n3x5-8 Lat Pulldown\n3x10-12 x Cuban Press\n4x10-12 Behind-the-Back Cable Lateral Raise\n3x5-8 x Zottman Curl\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 3 - Shoulders / Tris\n3x5-8 Overhead Barbell Press\n3x10-12 Behind-the-Back Cable Lateral Raise\n3x5-8 x Tricep Pushdowns\n3x5-8 Face Pulls\n3x5-8 x Overhead Cable Tricep Extension\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 4 - Legs\n3x5-8 Squat\n3x5-8 x Romanian Deadlift\n3x5-8 Leg Curls\n3x10-12 x Calf Raises")
+swap("Day 1 - Chest Focus (N)\n3x Decline Chest Press\n3x Incline Reverse-Grip Squeeze Press\n3x x Hybrid Curls\n3x Cable Fly\n3x x Tricep Pushdowns\n3x Cable Crunch\n3x Behind-the-Back Cable Lateral Raise\nDay 2 - Back / Rear Delts (N)\n3x Bent-Over Barbell Rows\n3x Lat Pulldown\n3x x Cuban Press\n4x Behind-the-Back Cable Lateral Raise\n3x x Hybrid Curls\n3x Scapular Shrugs\n3x Cable Crunch\nDay 3 - Shoulders / Tris (N)\n3x Overhead Barbell Press\n3x Behind-the-Back Cable Lateral Raise\n3x x Tricep Pushdowns\n3x Face Pulls\n3x x Overhead Cable Tricep Extension\n3x Scapular Shrugs\n3x Cable Crunch\nDay 4 - Legs (N/BJJ)\n3x Squat\n3x Romanian Deadlift\n3x Leg Curls\n3x Calf Raises\n3x Assisted Pull-Up", "Day 1 - Chest Focus\n3x5-8 Decline Chest Press\n3x5-8 Incline Reverse-Grip Squeeze Press\n3x5-8 x Hybrid Curls\n3x5-8 Cable Fly\n3x5-8 x Tricep Pushdowns\n3x5-8 Cable Crunch\n3x10-12 x Behind-the-Back Cable Lateral Raise\nDay 2 - Back / Rear Delts\n3x5-8 Bent-Over Barbell Rows\n3x5-8 Lat Pulldown\n3x10-12 x Cuban Press\n4x10-12 Behind-the-Back Cable Lateral Raise\n3x5-8 x Hybrid Curls\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 3 - Shoulders / Tris\n3x5-8 Overhead Barbell Press\n3x10-12 Behind-the-Back Cable Lateral Raise\n3x5-8 x Tricep Pushdowns\n3x5-8 Face Pulls\n3x5-8 x Overhead Cable Tricep Extension\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 4 - Legs\n3x5-8 Squat\n3x5-8 x Romanian Deadlift\n3x5-8 Leg Curls\n3x10-12 x Calf Raises")
 # 7. Exercise notes on routines (shown in the routine and during the workout), workout-type tags in the editor.
 swap("note: '', target: { sets: n, reps: item.reps || '' },", "note: '', target: { sets: n, reps: item.reps || '', cue: item.note || '' },")
 swap("""${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div></div>""",
@@ -682,8 +682,6 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .cw-v{width:100%;margin-top:6px;accent-color:var(--accent)}
 .cw-prev{display:flex;gap:10px;align-items:center;margin-top:14px}
 .cw-prev .btn{pointer-events:none}
-/* iPhone Safari zooms the whole page when a focused field is under 16px; with the Small text size the page is scaled by .9 */
-:root.zs input:not([type=checkbox]):not([type=range]),:root.zs select,:root.zs textarea{font-size:18px}
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
@@ -734,6 +732,26 @@ src = src[:a] + r"""function Sheet({ children, label }) {
 swap(".grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}",
      ".grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}\n.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}\n.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}\n.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}\n.sheet h2:focus,.sheet:focus{outline:none}")
 
+# Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
+# default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
+# with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at
+# about 1.55× so the largest accessibility sizes don't break the layout, and --tu is the in-app Small/Large setting.
+# Form controls never go below 16px, or Safari zooms the page when one is tapped.
+import re as _re
+_n = 0
+def _fs(m):
+    global _n; _n += 1
+    return 'font-size:calc(' + m.group(1) + ' * var(--u))'
+src = _re.sub(r'font-size:\s*([0-9]+(?:\.[0-9]+)?)px', _fs, src)
+TEXT_SCALE = """<style>
+html{font-size:17px}
+@supports (font: -apple-system-body) and (-webkit-touch-callout: none){html{font:-apple-system-body}}
+:root{--tu:1;--u0:calc(clamp(.8px, 1rem / 17, 1.55px) * var(--tu));--u:var(--u0)}
+input,select,textarea,button.field{--u:max(var(--u0), 1px)}
+</style>
+"""
+src = src.replace('</head>', TEXT_SCALE + '</head>', 1)
+print('font sizes made scalable:', _n)
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:
         sys.exit('missing ' + need)

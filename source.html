@@ -59,7 +59,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .hdr .l{justify-self:start}.hdr .r{justify-self:end}
 .pill-btn{background:var(--raised);border-radius:999px;padding:7px 14px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:6px}
 .pill-btn.accent{background:var(--accent-bg);color:var(--accent-ink)}
-main{max-width:640px;margin:0 auto;padding-inline:var(--gut);padding-block:8px calc(108px + env(safe-area-inset-bottom,0px))}
+main{max-width:640px;margin:0 auto;padding-inline:var(--gut);padding-block:8px calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + 42px)}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
 .tabs-in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--ink-3);font-size:11.5px;font-weight:600;letter-spacing:.02em;border-radius:12px}
@@ -163,7 +163,7 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .chk.on{background:var(--accent-bg);color:var(--accent-ink)}
 .slot-foot{display:flex;align-items:center;gap:14px;padding:2px 4px 0;flex-wrap:wrap}
 .plates{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.restbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:29;padding:0 var(--gut) 8px}
+.restbar{position:fixed;left:0;right:0;bottom:var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px)));z-index:29;padding:0 var(--gut) 8px}
 .restbar-in{max-width:608px;margin:0 auto;background:var(--accent-bg);color:var(--accent-ink);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .restbar .t{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px}
 .restbar button{background:rgba(255,255,255,.18);border-radius:9px;padding:7px 10px;font-weight:700;font-size:14px;min-height:44px;min-width:44px}
@@ -473,7 +473,7 @@ function guessKind(name) {
   return 'other';
 }
 
-/* Program text parser: accepts RepCount-style ("3x x Zottman Curl"), "4x8-10 Squat", "Squat 3x5",
+/* Program text parser: accepts RepCount-style ("3x x Hybrid Curls"), "4x8-10 Squat", "Squat 3x5",
    "Bench - 3 sets x 8 reps", A1/A2 supersets, and plain headers as day names. */
 function parseProgram(text) {
   const days = []; let cur = null, lastLetter = null;
@@ -506,7 +506,7 @@ const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus (N)
 3x Decline Chest Press
 3x Incline Reverse-Grip Squeeze Press
-3x x Zottman Curl
+3x x Hybrid Curls
 3x Cable Fly
 3x x Tricep Pushdowns
 3x Cable Crunch
@@ -516,7 +516,7 @@ Day 2 - Back / Rear Delts (N)
 3x Lat Pulldown
 3x x Cuban Press
 4x Behind-the-Back Cable Lateral Raise
-3x x Zottman Curl
+3x x Hybrid Curls
 3x Scapular Shrugs
 3x Cable Crunch
 Day 3 - Shoulders / Tris (N)
@@ -575,7 +575,7 @@ function cleanSession(k, s) {
 const EX_RENAMED = {
   'b-russian-tits-to-l-stretch': 'b-incline-reverse-grip-squeeze-press', 'b-incline-dumbbell-pinky-press': 'b-incline-reverse-grip-squeeze-press',
   'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-lateral-raise', 'b-behind-the-back-cable-fly': 'b-behind-the-back-cable-lateral-raise',
-  'b-hybrid-curls': 'b-zottman-curl', 'b-cable-lateral-raise-tosses': 'b-cable-lateral-raise-toss', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
+  'b-zottman-curl': 'b-hybrid-curls', 'b-cable-lateral-raise-tosses': 'b-cable-lateral-raise-toss', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
   'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
   'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
 const exIdNow = id => EX_RENAMED[id] || id;
@@ -1107,8 +1107,7 @@ function applyDisplay() {
   const r = document.documentElement;
   if (DISP.theme === 'system') { if (HOST_THEME) r.setAttribute('data-theme', HOST_THEME); else r.removeAttribute('data-theme'); } else r.setAttribute('data-theme', DISP.theme);
   r.classList.toggle('rm', DISP.rm); r.classList.toggle('hc', DISP.hc);
-  document.body.style.zoom = DISP.size === '100' ? '' : String(+DISP.size / 100);
-  r.classList.toggle('zs', +DISP.size < 100);
+  r.style.setProperty('--tu', String((+DISP.size || 100) / 100));
 }
 function setDisp(k, v) { DISP[k] = v; lsSet(k, typeof v === 'boolean' ? (v ? '1' : '0') : v); applyDisplay(); S.rerender(); }
 
@@ -1243,6 +1242,14 @@ function WoClock({ since }) {
 const ANN = { text: '', at: 0 };
 function announce(text) { ANN.text = text; ANN.at = Date.now(); S.rerender(); }
 function Announcer() { return html`<div class="sr-only" aria-live="assertive" aria-atomic="true">${Date.now() - ANN.at < 4000 ? ANN.text : ''}</div>`; }
+/* The tab bar and rest bar get taller with larger text; publish their heights for the layout offsets */
+let barRO = null;
+function measureBars() {
+  const r = document.documentElement, t = document.querySelector('.tabs'), b = document.querySelector('.restbar');
+  const set = () => { if (t) r.style.setProperty('--tabs-h', t.offsetHeight + 'px'); if (b && b.isConnected) r.style.setProperty('--rest-h', b.offsetHeight + 'px'); };
+  set();
+  if (window.ResizeObserver) { if (!barRO) barRO = new ResizeObserver(set); barRO.disconnect(); if (t) barRO.observe(t); if (b) barRO.observe(b); }
+}
 function showToast(t) { const ms = t.ms || (t.action ? 8000 : 3500); S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
 let SUPPRESS = 0;
 const SW = { open: null };
@@ -2053,7 +2060,8 @@ function DisplayCard() {
   const sizes = [['90', 'Small'], ['100', 'Default'], ['115', 'Large'], ['130', 'Larger']];
   return html`<div class="card stack" style="gap:14px">
     <div><span class="lbl">Theme</span><div class="seg wide">${[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => html`<button key=${k} class=${DISP.theme === k ? 'on' : ''} aria-pressed=${DISP.theme === k} onClick=${() => setDisp('theme', k)}>${l}</button>`)}</div></div>
-    <div><span class="lbl">Text size</span><div class="seg wide">${sizes.map(([k, l]) => html`<button key=${k} class=${DISP.size === k ? 'on' : ''} aria-pressed=${DISP.size === k} onClick=${() => setDisp('size', k)}>${l}</button>`)}</div></div>
+    <div><span class="lbl">Text size</span><div class="seg wide">${sizes.map(([k, l]) => html`<button key=${k} class=${DISP.size === k ? 'on' : ''} aria-pressed=${DISP.size === k} onClick=${() => setDisp('size', k)}>${l}</button>`)}</div>
+      <p class="note" style="margin-top:6px">Follows your iPhone’s text size (Settings → Display & Brightness → Text Size). This makes it a little smaller or larger on top of that.</p></div>
     <label class="toggle-row" for="tg-hc"><span><span>High contrast</span><span class="d">Darker secondary text and stronger lines.</span></span><input type="checkbox" role="switch" id="tg-hc" checked=${DISP.hc} onChange=${e => setDisp('hc', e.target.checked)}/></label>
     <label class="toggle-row" for="tg-rm"><span><span>Reduce motion</span><span class="d">Turns off slides and fades.</span></span><input type="checkbox" role="switch" id="tg-rm" checked=${DISP.rm} onChange=${e => setDisp('rm', e.target.checked)}/></label>
     <div><label class="lbl" for="lang-sel">Language</label>
@@ -2704,6 +2712,7 @@ function App() {
   const [view, setView] = useState(null); const [sheet, setSheet] = useState(null);
   S.rerender = () => setTick(x => x + 1);
   useEffect(() => { wakeSync(); });
+  useEffect(() => { measureBars(); });
   UI.setSheet = setSheet; UI.setView = v => { setView(v); scrollTo(0, 0); };
   UI.setTab = k => { setTab(k); setView(null); lsSet('tab', k); scrollTo(0, 0); };
   useEffect(() => { const k = e => { if (e.key === 'Escape') setSheet(null); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
@@ -2725,7 +2734,7 @@ function App() {
   return html`
     <header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>
     ${showMini ? html`<${IntervalMini}/>` : null}
-    <main class=${showMini ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(220px + env(safe-area-inset-bottom,0px))' } : null}>${body}</main>
+    <main class=${showMini ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${body}</main>
     <${Toast}/>
     <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}

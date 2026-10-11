@@ -3,6 +3,10 @@
 set -e
 cd "$(dirname "$0")"; ROOT="$(pwd)"
 python3 build.py
+# Never publish a build that fails its own tests (SKIP_TESTS=1 to bypass in a hurry)
+if [ "${SKIP_TESTS:-0}" != "1" ]; then
+  for t in test_*.py; do python3 "$t" >"/tmp/ironwood-$t.log" 2>&1 || { tail -6 "/tmp/ironwood-$t.log"; echo "Tests failed in $t; not publishing."; exit 1; }; echo "$t: $(tail -1 "/tmp/ironwood-$t.log")"; done
+fi
 rm -rf release && mkdir -p release/ironwood-app && cp -r dist/. release/ironwood-app/
 cat > release/ironwood-app/README.md <<'R'
 # Ironwood — standalone app

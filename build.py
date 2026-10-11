@@ -153,9 +153,13 @@ self.addEventListener('fetch', e => {{
   const nav = req.mode === 'navigate';
   e.respondWith(caches.open(CACHE).then(async c => {{
     if (nav) {{
-      const net = fetch(req, {{ cache: 'no-cache' }}).then(res => {{ if (res && res.ok && res.type === 'basic') c.put('index.html', res.clone()); return res; }}).catch(() => null);
+      /* Only the app page itself refreshes the saved app page. Other pages (privacy, support) are cached under their
+         own address at install, so opening them can't replace the app's offline copy. */
+      const path = new URL(req.url).pathname; const shell = path.endsWith('/') || path.endsWith('/index.html');
+      const net = fetch(req, {{ cache: 'no-cache' }}).then(res => {{ if (shell && res && res.ok && res.type === 'basic') {{ c.put('index.html', res.clone()); c.put('./', res.clone()); }} return res; }}).catch(() => null);
       const quick = await Promise.race([net, new Promise(r => setTimeout(() => r(null), 3500))]);
-      return quick || (await c.match(req, {{ ignoreSearch: true }})) || (await c.match('index.html')) || (await net) || new Response('Offline', {{ status: 503 }});
+      if (quick && quick.ok) return quick;  /* an error page from the server is never shown over the saved copy */
+      return (await c.match(req, {{ ignoreSearch: true }})) || (shell ? await c.match('index.html') : null) || (await net) || new Response('Offline', {{ status: 503 }});
     }}
     const hit = await c.match(req);
     if (hit) return hit;

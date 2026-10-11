@@ -71,8 +71,9 @@ function restoreInto(st, d) {
     const tIds = new Set((st.meta.timers || []).map(x => x.id)); st.meta.timers = (st.meta.timers || []).concat((m.timers || []).filter(x => x && !tIds.has(x.id)));
   }
   let added = 0;
-  for (const [k, s] of Object.entries(d.sessions || {})) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
-  return { keys, added, fresh };
+  const cs = cleanSessions(d.sessions);
+  for (const [k, s] of Object.entries(cs.sessions)) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
+  return { keys, added, fresh, skipped: cs.skipped };
 }'''
 src = src[:j + 1] + PHOTO_FNS.lstrip('\n') + '\n' + src[j + 1:]
 
@@ -105,10 +106,12 @@ RESTORE = r'''function RestoreSheet() {
       setBusy(true); try { const n = await photoRestore(d); closeSheet(); showToast({ kind: 'info', text: n ? n + ' photo' + (n === 1 ? '' : 's') + ' restored' : 'Those photos are already here' }); }
       catch (e) { setErr('Couldn’t save the photos on this device.'); } finally { setBusy(false); } return;
     }
-    if (!d || d.app !== 'liftbook' || !d.meta) { setErr('That file isn’t an Ironwood backup.'); return; }
+    if (!d || d.app !== 'liftbook' || !d.meta || typeof d.meta !== 'object') { setErr('That file isn’t an Ironwood backup.'); return; }
+    if (d.sessions != null && (typeof d.sessions !== 'object' || Array.isArray(d.sessions))) { setErr('That backup is damaged: its workouts can’t be read.'); return; }
     let r; commit(st => { r = restoreInto(st, d); }, 'meta');
     schedule(r.keys); S.ver++; applyDisplay && applyDisplay(); S.rerender(); closeSheet();
-    showToast({ kind: 'info', text: r.fresh ? 'Backup restored' : r.added + ' workout' + (r.added === 1 ? '' : 's') + ' added' });
+    const skipped = r.skipped ? ' · ' + r.skipped + ' damaged entr' + (r.skipped === 1 ? 'y' : 'ies') + ' skipped' : '';
+    showToast({ kind: 'info', text: (r.fresh ? 'Backup restored' : r.added + ' workout' + (r.added === 1 ? '' : 's') + ' added') + skipped, ms: skipped ? 6000 : undefined });
   };
   return html`<${Sheet} label="Restore backup"><h2>Restore a backup</h2><p class="note" style="margin-bottom:10px">Choose a workout backup or a photos backup. On a fresh install this brings back everything; otherwise it adds what's missing and never overwrites what's here.</p>
     <div class="stack"><label class="btn" for="rs-file">${file ? 'Chosen: ' + file.name : 'Choose backup file'}</label><input id="rs-file" type="file" accept=".json,application/json" hidden onChange=${onFile}/>
@@ -123,7 +126,7 @@ src = src[:start] + RESTORE + src[end:]
 swap('<p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick, injured or break.</p>',
      '''<p class="small faint" style="margin-top:8px">Tap a day to mark rest, sick, injured or break.</p>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
-      <div style="font-weight:700">Moving from another phone or the Claude version?</div>
+      <div style="font-weight:700">Moving from another phone?</div>
       <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
       <div class="row"><button class="btn primary" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}''')
 
@@ -503,7 +506,7 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .r-items .sub{flex-basis:100%;font-size:13.5px;color:var(--ink-2)}
 .r-items .cue{flex-basis:100%;font-size:13.5px;color:var(--ink-3)}
 .ed-tags{display:flex;flex-wrap:wrap;gap:6px}
-input.field.ed-cue{padding:8px 10px;font-size:15px;background:var(--surface)}""")
+input.field.ed-cue{padding:8px 10px;font-size:16px;background:var(--surface)}""")
 swap("<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps : ''}</span>", "<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>")
 swap("${it.sets}× ${exName(it.ex)}${it.group ? ' · ' + (RANGE_NAME", "${exName(it.ex)}<span class=\"faint\"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME")
 swap("This change applies to today. Copy the routine to make it permanent.", "This change applies to today. Edit the routine to make it permanent.")
@@ -640,6 +643,27 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .pal.on{border-color:var(--ink)}
 .pal .sw{display:flex;gap:4px}.pal .sw i{width:18px;height:18px;border-radius:50%;display:block}
 .pal .pn{font-weight:600;font-size:14.5px}.pal .pd{font-size:12px;color:var(--ink-2);line-height:1.3}
+/* Custom colors sheet */
+.slot-pick{display:grid;gap:6px;margin-bottom:12px}
+.slot-btn{display:flex;align-items:center;gap:12px;background:var(--raised);border-radius:12px;padding:8px 12px;text-align:left;border:2px solid transparent;min-height:48px}
+.slot-btn.on{border-color:var(--ink)}
+.slot-btn i{width:26px;height:26px;border-radius:50%;flex:none;display:block;border:2px solid rgba(255,255,255,.18)}
+.slot-btn>span{display:flex;flex-direction:column;line-height:1.25}.slot-btn b{font-weight:600;font-size:15px}.slot-btn .d{font-size:12px;color:var(--ink-2)}
+.wheel{position:relative;margin:4px auto 0;touch-action:none;border-radius:50%;box-shadow:0 0 0 1px var(--line)}
+.wheel canvas,.wheel svg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.wheel .wl{stroke-width:2;stroke-linecap:round}
+.wheel .wl.main{stroke:rgba(255,255,255,.9)}
+.wheel .wl.sug{stroke:rgba(255,255,255,.75);stroke-dasharray:4 5}
+.wheel .wc{fill:rgba(255,255,255,.9)}
+.wheel .wd-sug{stroke:#fff;stroke-width:2}
+.wheel .wd-main{stroke:#fff;stroke-width:3;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.wheel .wl,.wheel .wc{filter:drop-shadow(0 0 1.5px rgba(0,0,0,.6))}
+.sug-sw{width:44px;height:44px;border-radius:50%;flex:none;border:2px solid var(--line)}
+.cw-v{width:100%;margin-top:6px;accent-color:var(--accent)}
+.cw-prev{display:flex;gap:10px;align-items:center;margin-top:14px}
+.cw-prev .btn{pointer-events:none}
+/* iPhone Safari zooms the whole page when a focused field is under 16px; with the Small text size the page is scaled by .9 */
+:root.zs input:not([type=checkbox]):not([type=range]),:root.zs select,:root.zs textarea{font-size:18px}
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
 a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}

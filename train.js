@@ -42,9 +42,10 @@ function TrainHome() {
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
-      <div style="font-weight:700">Moving from another phone or the Claude version?</div>
+      <div style="font-weight:700">Moving from another phone?</div>
       <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
       <div class="row"><button class="btn primary" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}
+    ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}
     ${chs.length ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${newCh}>New</button></div>
       <div class="stack">${chs.map(ch => html`<${ChallengeCard} key=${ch.id} ch=${ch}/>`)}</div>` : null}
     ${nx ? html`

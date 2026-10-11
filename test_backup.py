@@ -79,6 +79,48 @@ async def main():
         await pb.locator('.sheet button.primary').click(); await pb.wait_for_timeout(500)
         st2 = await pb.evaluate("JSON.parse(localStorage.getItem('liftbook.v1'))")
         check('second restore adds no duplicates', len(st2['sessions']) == 3 and len(st2['meta']['bw']) == 1)
+
+        # A damaged backup: bad entries are skipped and reported, good ones restored, and the app still opens afterwards
+        bad = dict(json.load(open(backup)))
+        bad['sessions'] = { 'ok1': { 'id': 'ok1', 'startedAt': 1700000000000, 'endedAt': 1700003600000, 'items': [{ 'ex': 'b-squat', 'sets': [{ 'w': 100, 'r': 5 }, { 'w': 'x', 'r': 5 }] }] },
+                            'noTime': { 'id': 'noTime', 'items': [] }, 'noItems': { 'id': 'noItems', 'startedAt': 1700100000000 }, 'junk': 'nope', 'nul': None }
+        badf = str(backup).replace('.json', '-bad.json'); json.dump(bad, open(badf, 'w'))
+        await profile(pb); await pb.locator('button', has_text='Restore').first.click(); await pb.wait_for_timeout(300)
+        await pb.set_input_files('#rs-file', badf); await pb.wait_for_timeout(300)
+        await pb.locator('.sheet button.primary').click(); await pb.wait_for_timeout(600)
+        toast = await pb.locator('.toast').inner_text() if await pb.locator('.toast').count() else ''
+        st3 = await pb.evaluate("JSON.parse(localStorage.getItem('liftbook.v1'))")
+        check('damaged entries skipped and reported', 'skipped' in toast and 'ok1' in st3['sessions'] and 'noItems' in st3['sessions'] and 'noTime' not in st3['sessions'] and 'junk' not in st3['sessions'], toast)
+        check('bad set dropped from a good workout', len(st3['sessions']['ok1']['items'][0]['sets']) == 1)
+        await pb.reload(); await pb.wait_for_timeout(1500)
+        await pb.locator('.tab', has_text='Train').click(); await pb.locator('.topsw button', has_text='History').click(); await pb.wait_for_timeout(400)
+        check('app and History open after a damaged restore', await pb.locator('.tabs').count() == 1 and await pb.locator('.log-item').count() >= 4, await pb.locator('.log-item').count())
+
+        # Unreadable saved data: a recovery screen, a kept copy, and no overwrite
+        await pb.evaluate("localStorage.setItem('liftbook.v1', '{not json')"); await pb.reload(); await pb.wait_for_timeout(1200)
+        keys = await pb.evaluate("Object.keys(localStorage).filter(k => k.startsWith('liftbook.v1.corrupt-'))")
+        check('recovery screen with a kept copy', await pb.locator('h2', has_text='couldn’t be read').count() == 1 and len(keys) >= 1, keys)
+        check('damaged data left untouched', await pb.evaluate("localStorage.getItem('liftbook.v1')") == '{not json')
+        await pb.locator('button', has_text='Start fresh').click(); await pb.locator('button', has_text='Yes, start fresh').click(); await pb.wait_for_timeout(1500)
+        check('start fresh opens the app', await pb.locator('.tabs').count() == 1)
+
+        # Full storage is reported, not hidden
+        await pb.evaluate("(() => { const o = localStorage.setItem.bind(localStorage); localStorage.setItem = (k, v) => { if (k === 'liftbook.v1') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return o(k, v); }; })()")
+        await pb.evaluate("commit(st => { st.meta.settings.goal = 3; }, 'meta')"); await pb.wait_for_timeout(300)
+        check('full storage shows a warning', await pb.locator('.toast.bad').count() == 1 and await pb.evaluate("S.sync") == 'full')
+
+        # Backup nudge: six older workouts and no backup yet
+        await pb.reload(); await pb.wait_for_timeout(800)
+        await pb.evaluate("""(() => { const now = Date.now(), day = 864e5; const d = JSON.parse(localStorage.getItem('liftbook.v1')) || { meta: null, sessions: {}, active: null, activeAt: 0, dirty: [] }; d.sessions = {};
+          for (let i = 0; i < 6; i++) d.sessions['n' + i] = { id: 'n' + i, startedAt: now - (30 - i) * day, endedAt: now - (30 - i) * day + 3600e3, updatedAt: now, prs: [], items: [{ ex: 'b-squat', sets: [{ w: 100, r: 5 }] }] };
+          localStorage.setItem('liftbook.v1', JSON.stringify(d)); })()""")
+        await pb.reload(); await pb.wait_for_timeout(1500); await pb.locator('.tab', has_text='Train').click(); await pb.locator('.topsw button', has_text='Train').click(); await pb.wait_for_timeout(300)
+        check('backup nudge appears', await pb.locator('#backup-nudge').count() == 1)
+        await pb.locator('#backup-nudge button', has_text='Later').click(); await pb.wait_for_timeout(200)
+        check('nudge can be snoozed', await pb.locator('#backup-nudge').count() == 0)
+        await pb.evaluate("localStorage.removeItem('liftbook.backupSnooze'); localStorage.setItem('liftbook.lastBackup', String(Date.now()))"); await pb.reload(); await pb.wait_for_timeout(1200)
+        await profile(pb)
+        check('last backup shown and nudge gone after a backup', 'today' in await pb.locator('#last-backup').inner_text() and await pb.locator('#backup-nudge').count() == 0)
         check('no page errors', not errs, errs[:3])
         await b.close()
 

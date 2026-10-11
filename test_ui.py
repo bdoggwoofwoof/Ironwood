@@ -91,6 +91,12 @@ async def main():
         for k in ['Complementary', 'Split', 'Triadic', 'Square', 'Analogous']:
             await pg.locator('.sheet .chip', has_text=k).click(); await pg.wait_for_timeout(100); lines[k] = await pg.locator('.wheel .wl.sug').count()
         check('suggestion lines per harmony', lines == {'Complementary': 1, 'Split': 2, 'Triadic': 2, 'Square': 3, 'Analogous': 2}, lines)
+        boxes = await pg.evaluate("[...document.querySelectorAll('.sug-sw')].map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; })")
+        check('suggestion swatches are visible and tappable', boxes and all(w >= 40 and h >= 40 for w, h in boxes), boxes)
+        overlay = await pg.evaluate("(() => { const c = document.querySelector('.wheel canvas').getBoundingClientRect(), s = document.querySelector('.wheel svg').getBoundingClientRect(); return Math.abs(c.left - s.left) < 1 && Math.abs(c.top - s.top) < 1 && Math.abs(c.width - s.width) < 1; })()")
+        check('wheel handles sit on the wheel', overlay)
+        dashed = await pg.evaluate("getComputedStyle(document.querySelector('.wheel .wl.sug')).strokeDasharray")
+        check('suggestion lines are dashed', dashed not in ('', 'none'), dashed)
         await pg.locator('#fill-sugg').click(); await pg.wait_for_timeout(100)
         vals = await pg.evaluate("(() => { const c = [...document.querySelectorAll('.slot-btn i')].map(e => getComputedStyle(e).backgroundColor.match(/\\d+/g).map(Number)); return c.map(x => Math.max(...x)); })()")
         check('all three share one brightness', len(set(vals)) == 1, vals)

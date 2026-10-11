@@ -38,7 +38,7 @@ function TrainHome() {
   const pickBtn = (label, cls) => html`<button class=${cls || 'btn primary wide'} onClick=${() => openSheet({ type: 'program' })}>${label}</button>`;
   return html`<div class="today">
     <div class="eyebrow" style="margin-top:4px">${DOW_FULL[now.getDay()]} · ${MON[now.getMonth()]} ${now.getDate()}</div>
-    <div class="section-h" style="margin-top:14px"><h2>This week</h2><span class="aside num">${weekTxt}</span></div>
+    <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">

@@ -67,7 +67,7 @@ function restoreInto(st, d) {
     const deleted = [...new Set([...(m.deleted || []), ...(st.meta.deleted || [])])];
     st.meta = { ...m, deleted };
   } else {
-    Object.assign(st.meta.exercises, m.exercises || {});
+    for (const [k, e] of Object.entries(m.exercises || {})) if (!st.meta.exercises[k]) st.meta.exercises[k] = e;  /* never overwrite an exercise renamed here */
     for (const [k, r] of Object.entries(m.routines || {})) if (!st.meta.routines[k]) st.meta.routines[k] = r;
     for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
@@ -111,6 +111,7 @@ RESTORE = r'''function RestoreSheet() {
       catch (e) { setErr('Couldn’t save the photos on this device.'); } finally { setBusy(false); } return;
     }
     if (!d || d.app !== 'liftbook' || !d.meta || typeof d.meta !== 'object') { setErr('That file isn’t an Ironwood backup.'); return; }
+    if (+d.schema > SCHEMA) { setErr('That backup is from a newer version of Ironwood. Update the app, then restore it.'); return; }
     if (d.sessions != null && (typeof d.sessions !== 'object' || Array.isArray(d.sessions))) { setErr('That backup is damaged: its workouts can’t be read.'); return; }
     let r; commit(st => { r = restoreInto(st, d); }, 'meta');
     schedule(r.keys); S.ver++; applyDisplay && applyDisplay(); S.rerender(); closeSheet();
@@ -349,6 +350,11 @@ const BUILTIN_ROUTINES = [
 ];
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
+/* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
+const EX_CUES = {
+  'b-incline-dumbbell-pinky-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkies touching. Press up only until the chest finishes the work, stopping short of lockout, where the triceps take over.',
+};
+BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 """
 swap("""const BUILTIN_ROUTINES = [
   builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Your plan from RepCount. Lines marked "x" are supersets with the exercise above.', NEWT_TEXT),
@@ -539,7 +545,7 @@ function ActivitySheet({ id, day }) {
   const pick = k => { setAct(k); if (!dist) setDu(actUnit(k)); };
   const save = () => {
     const m = Math.max(0, Math.round(num(dur))); let start;
-    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) start = Date.now() - Math.max(m, 1) * 60000; else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
+    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) { const d0 = new Date(); d0.setHours(0, 0, 0, 0); start = Math.max(+d0 + 60000, Date.now() - Math.max(m, 1) * 60000); }  /* a run finished just after midnight stays on today */ else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
     const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : info[1], startedAt: start, endedAt: start + Math.max(m, 1) * 60000,
       updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
     commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });

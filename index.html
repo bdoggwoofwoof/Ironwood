@@ -577,7 +577,7 @@ function guessKind(name) {
   return 'other';
 }
 
-/* Program text parser: accepts RepCount-style ("3x x Hybrid Curls"), "4x8-10 Squat", "Squat 3x5",
+/* Program text parser: accepts RepCount-style ("3x x Zottman Curl"), "4x8-10 Squat", "Squat 3x5",
    "Bench - 3 sets x 8 reps", A1/A2 supersets, and plain headers as day names. */
 function parseProgram(text) {
   const days = []; let cur = null, lastLetter = null;
@@ -610,22 +610,22 @@ const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus
 3x5-8 Decline Chest Press
 3x5-8 Incline Reverse-Grip Squeeze Press
-3x5-8 x Hybrid Curls
+3x5-8 x Zottman Curl
 3x5-8 Cable Fly
 3x5-8 x Tricep Pushdowns
 3x5-8 Cable Crunch
-3x10-12 x Behind-the-Back Cable Fly
+3x10-12 x Behind-the-Back Cable Lateral Raise
 Day 2 - Back / Rear Delts
 3x5-8 Bent-Over Barbell Rows
 3x5-8 Lat Pulldown
 3x10-12 x Cuban Press
-4x10-12 Behind-the-Back Cable Fly
-3x5-8 x Hybrid Curls
+4x10-12 Behind-the-Back Cable Lateral Raise
+3x5-8 x Zottman Curl
 3x10-12 Scapular Shrugs
 3x10-12 x Cable Crunch
 Day 3 - Shoulders / Tris
 3x5-8 Overhead Barbell Press
-3x10-12 Behind-the-Back Cable Fly
+3x10-12 Behind-the-Back Cable Lateral Raise
 3x5-8 x Tricep Pushdowns
 3x5-8 Face Pulls
 3x5-8 x Overhead Cable Tricep Extension
@@ -817,8 +817,8 @@ Day 5 - Arms
    Item: [exercise, sets, reps, note, superset with the one above] */
 const MY_PLANS = [
   ['bi-eff-ppl', 'Efficient Push/Pull/Legs', null, '', [
-    ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
-    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
+    ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Toss', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
+    ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Zottman Curl', 3, '', '', 1]]],
     ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Walking Lunge', 3], ['Calf Raises', 3, '', '', 1]]]]],
   ['bi-full-body', 'Full Body', ['Full Body'], '', [['Overhead Barbell Press', 3, '', 'Shoulders'], ['Assisted Dips', 3, '', 'Chest, triceps'], ['Dead Hang', 3, '', 'Forearms'], ['Barbell Bicep Curl', 3, '', 'Biceps'], ['Bent-Over Barbell Rows', 3, '', 'Back'], ['Assisted Pull-Up', 3, '', 'Back'], ['Hanging Leg Raises', 10, '', 'Abs: 10 sets, 30 s on / 30 s off'], ['Back Squat', 3, '', 'Legs'], ['Deadlift', 3, '', 'Legs']]],
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell Side Bend', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
@@ -833,8 +833,8 @@ const MY_PLANS = [
   ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Petersen Step-Up', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
   ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
   ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
-    ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Hybrid Curls', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
-    ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Hybrid Curls', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
+    ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Zottman Curl', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
+    ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Zottman Curl', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
     ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
@@ -867,6 +867,10 @@ const EX_CUES = {
   'b-petersen-step-up': 'Stand on a low step on the ball of one foot, heel up. Lower the other heel to the floor slowly by straightening the knee, then drive back up. Builds the VMO.',
   'b-hip-airplanes': 'Single-leg hinge. Balancing on one leg, open the hips toward the standing leg, then rotate them closed. Hold a post if needed.',
   'b-heel-touches': 'Lie on your back, knees bent, shoulders off the floor. Crunch sideways to tap each heel.',
+  'b-zottman-curl': 'Curl up with a hammer (neutral) grip, turn the palms up at the top, then lower slowly. Light enough to control the turn.',
+  'b-cable-lateral-raise-toss': 'Lateral raise on a low cable done fast, as if tossing the handle out to the side; let it come back under control.',
+  'b-scapular-shrugs': 'Dumbbells at your sides, arms straight. Shrug the shoulder blades up and down without bending the elbows.',
+  'b-behind-the-back-cable-lateral-raise': 'Stand beside a low cable with the handle behind your back in the far hand. Raise the arm out to the side to shoulder height, then lower slowly.',
   'b-dumbbell-side-bend': 'Dumbbell in one hand (or a low cable). Lean away from it, then pull back up with the opposite side.',
 };
 BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
@@ -896,7 +900,8 @@ function cleanSession(k, s) {
 /* Built-in exercises that were renamed: old ids in saved data point at the new exercise, so history carries over */
 const EX_RENAMED = {
   'b-russian-tits-to-l-stretch': 'b-incline-reverse-grip-squeeze-press', 'b-incline-dumbbell-pinky-press': 'b-incline-reverse-grip-squeeze-press',
-  'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-fly', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
+  'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-lateral-raise', 'b-behind-the-back-cable-fly': 'b-behind-the-back-cable-lateral-raise',
+  'b-hybrid-curls': 'b-zottman-curl', 'b-cable-lateral-raise-tosses': 'b-cable-lateral-raise-toss', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
   'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
   'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
 const exIdNow = id => EX_RENAMED[id] || id;
@@ -2764,7 +2769,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 05bea40</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version f0367a9</p></div>
   </div>`;
 }
 function PRCard() {

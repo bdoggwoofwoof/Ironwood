@@ -597,7 +597,7 @@ function parseProgram(text) {
 const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus
 3x5-8 Decline Chest Press
-3x5-8 Russian Tits to L Stretch
+3x5-8 Incline Dumbbell Pinky Press
 3x5-8 x Hybrid Curls
 3x5-8 Cable Fly
 3x5-8 x Tricep Pushdowns
@@ -812,12 +812,12 @@ const MY_PLANS = [
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell/Cable Bends', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
   ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Plank Single Leg Up', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Ankle Taps', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
   ['bi-core-3', 'Core 3', ['Core'], '', [['Kettlebell Around the World', 3, '20'], ['Russian Twists', 3, '20', 'Each side'], ['Scissor Kicks', 3, '20'], ['Scullers', 3, '30'], ['90-Degree Leg Lowers', 3, '10', 'Slow and controlled'], ['Bicycles', 3, '30', 'Each leg']]],
-  ['bi-sere-pyramid', 'SERE - Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Erg', 1, '', '20 min, 1 on / 1 off']]],
-  ['bi-sere-trot', 'SERE - Elephant Trot', ['Conditioning'], '', [['Run 400m', 3], ['Kettlebell Swing', 3, '', '45 lb'], ['Pull-Up', 3], ['100m Sprints', 10, '', 'Sprint 100 m at the top of every minute; rest for whatever is left of that minute']]],
-  ['bi-sere-buster', 'SERE - Buster', ['Conditioning'], '', [['Run 400m', 8, '', 'Under 1:50 each, rest 2:00'], ['Pull-Up', 5, '20'], ['Push-Ups', 5, '30'], ['Sit-Ups', 5, '40'], ['Air Squat', 5, '50']]],
-  ['bi-sere-swim', 'SERE - Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
-  ['bi-sere-burp', 'SERE - Burp', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
-  ['bi-sere-ruck', 'SERE - 4 Mile Ruck+', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
+  ['bi-sere-pyramid', 'Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Erg', 1, '', '20 min, 1 on / 1 off']]],
+  ['bi-sere-trot', 'Run & Swing Circuit', ['Conditioning'], '', [['Run 400m', 3], ['Kettlebell Swing', 3, '', '45 lb'], ['Pull-Up', 3], ['100m Sprints', 10, '', 'Sprint 100 m at the top of every minute; rest for whatever is left of that minute']]],
+  ['bi-sere-buster', '400m Repeats + Calisthenics', ['Conditioning'], '', [['Run 400m', 8, '', 'Under 1:50 each, rest 2:00'], ['Pull-Up', 5, '20'], ['Push-Ups', 5, '30'], ['Sit-Ups', 5, '40'], ['Air Squat', 5, '50']]],
+  ['bi-sere-swim', 'Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
+  ['bi-sere-burp', 'Burpee Grinder', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
+  ['bi-sere-ruck', '4-Mile Ruck + Calisthenics', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
   ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Peterson Step-Ups', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
   ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
   ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
@@ -865,10 +865,21 @@ function cleanSession(k, s) {
   if (!isFinite(t) || t <= 0) return null;
   const o = { ...s, id: typeof s.id === 'string' && s.id ? s.id : String(k), startedAt: +s.startedAt || t };
   if (!isFinite(+o.endedAt)) o.endedAt = o.startedAt;
-  o.items = (Array.isArray(s.items) ? s.items : []).filter(it => it && typeof it.ex === 'string').map(it => ({ ...it,
+  o.items = (Array.isArray(s.items) ? s.items : []).filter(it => it && typeof it.ex === 'string').map(it => ({ ...it, ex: exIdNow(it.ex),
     sets: (Array.isArray(it.sets) ? it.sets : []).filter(x => x && typeof x === 'object' && isFinite(+x.w) && isFinite(+x.r)).map(x => ({ ...x, w: +x.w, r: Math.round(+x.r) })) }));
   if (!Array.isArray(o.prs)) o.prs = [];
   return o;
+}
+/* Built-in exercises that were renamed: old ids in saved data point at the new exercise, so history carries over */
+const EX_RENAMED = { 'b-russian-tits-to-l-stretch': 'b-incline-dumbbell-pinky-press' };
+const exIdNow = id => EX_RENAMED[id] || id;
+function migrateExIds(st) {
+  const keys = Object.keys(EX_RENAMED); if (!keys.length) return;
+  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; };
+  for (const s of Object.values(st.sessions || {})) (s.items || []).forEach(fix);
+  if (st.active) (st.active.items || []).forEach(fix);
+  for (const r of Object.values(st.meta.routines || {})) for (const d of r.days || []) (d.items || []).forEach(fix);
+  for (const f of ['exUnit', 'exRest', 'exCat']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o && !(b in o)) { o[b] = o[a]; delete o[a]; } }
 }
 function cleanSessions(obj) {
   const out = {}; let skipped = 0;
@@ -1170,10 +1181,17 @@ function lsSave() {
 const lsGet = k => { try { return localStorage.getItem('liftbook.' + k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem('liftbook.' + k, v); } catch (e) {} };
 let col = null, flushing = false, flushTimer = null;
+/* Typing during a workout changes only the active workout; those saves wait 400 ms so each keystroke doesn't rewrite
+   the whole database. Anything else saves at once, and a pending save is written before the app goes to the background. */
+let lsTimer = null;
+function lsFlush() { if (lsTimer) { clearTimeout(lsTimer); lsTimer = null; lsSave(); } }
+addEventListener('pagehide', lsFlush);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') lsFlush(); });
 function schedule(keys, delay = 700) {
   const standalone = !!(window.claude && window.claude.standalone);
   for (const k of [].concat(keys)) { if (!standalone) S.dirty.add(k); if (k === 'active') S.activeAt = Date.now(); }
-  lsSave();
+  if ([].concat(keys).every(k => k === 'active')) { clearTimeout(lsTimer); lsTimer = setTimeout(() => { lsTimer = null; lsSave(); }, 400); }
+  else { clearTimeout(lsTimer); lsTimer = null; lsSave(); }
   if (!col) return;
   if (S.sync === 'synced') S.sync = 'pending';
   clearTimeout(flushTimer); flushTimer = setTimeout(flush, delay);
@@ -1488,6 +1506,13 @@ async function wakeSync() {
 }
 document.addEventListener('visibilitychange', () => { wakeSync(); });
 function useWake() { useEffect(() => { WAKE.hold++; wakeSync(); return () => { WAKE.hold--; wakeSync(); }; }, []); }
+/* The elapsed clock ticks on its own, so the set rows aren't redrawn every second */
+function WoClock({ since }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const iv = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(iv); }, []);
+  const el = Math.max(0, Math.floor((Date.now() - since) / 1000));
+  return html`<div class="wo-clock" role="timer" aria-label="Elapsed time">${clock(el)}</div>`;
+}
 function showToast(t) { const ms = t.ms || 3500; S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
 let SUPPRESS = 0;
 const SW = { open: null };
@@ -1559,13 +1584,21 @@ function toggleUnit(it) {
   commit(st => { if (to === U()) delete st.meta.exUnit[it.ex]; else st.meta.exUnit[it.ex] = to; }, 'meta', 1200);
   touch();
 }
-function finishWorkout() {
+const timeOfDay = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function finishWorkout(opts = {}) {
   const a = S.active; if (!a) return;
+  /* A workout left open for hours (phone pocketed, forgotten overnight) shouldn't be saved as a 14-hour session */
+  const lastSet = Math.max(0, ...a.items.flatMap(it => it.sets.filter(isDone).map(x => +x.c || 0)));
+  if (!opts.endedAt && lastSet && Date.now() - lastSet > 3 * 3600e3) {
+    const when = Date.now() - lastSet > DAY ? shortDate(lastSet) + ' ' + timeOfDay(lastSet) : timeOfDay(lastSet);
+    openSheet({ type: 'confirm', title: 'Finished a while ago?', body: 'The last set was logged at ' + when + '. Save the workout as ending then, so its time isn’t counted up to now?', ok: 'End at ' + when, onOk: () => { closeSheet(); finishWorkout({ endedAt: lastSet + 60000 }); }, alt: 'End now', onAlt: () => { closeSheet(); finishWorkout({ endedAt: Date.now() }); } });
+    return;
+  }
   const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
     sets: it.sets.filter(isDone).map(x => { const o = { w: num(x.w || x.gw), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
-  const now = Date.now();
-  const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: now, updatedAt: now, items, prs: [] };
+  const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
+  const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
   session.prs = detectPRs(session);
   commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);
   openSheet({ type: 'summary', id: session.id });
@@ -1950,13 +1983,11 @@ function ColorSheet() {
     <div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button><button class="btn primary" style="flex:2" id="cw-save" onClick=${save}>Use these colors</button></div><//>`;
 }
 function ActiveWorkout() {
-  const a = S.active; const [, tick] = useState(0);
+  const a = S.active;
   useWake();
-  useEffect(() => { const iv = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(iv); }, []);
-  const el = Math.max(0, Math.floor((Date.now() - a.startedAt) / 1000));
   const total = a.items.reduce((n, it) => n + it.sets.length, 0), done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   return html`<div>
-    <div class="wo-head"><div style="min-width:0"><div class="eyebrow">${a.routineName || 'Workout'}</div><h2 class="wo-title">${a.name}</h2></div><div class="wo-clock" aria-label="Elapsed time">${clock(el)}</div></div>
+    <div class="wo-head"><div style="min-width:0"><div class="eyebrow">${a.routineName || 'Workout'}</div><h2 class="wo-title">${a.name}</h2></div><${WoClock} since=${a.startedAt}/></div>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax=${total} aria-valuenow=${done}><div style=${{ width: (total ? done / total * 100 : 0) + '%' }}></div></div>
     <div class="small muted num" style="margin-top:6px">${done} of ${total} sets done</div>
     ${lsGet('swiped') !== '1' ? html`<p class="swipe-hint">Swipe a set right to log it as shown. Swipe part way for Complete or Copy, or left to delete. Typing the reps logs it too.</p>` : null}
@@ -2092,7 +2123,8 @@ function Toast() {
 }
 /* ---------- LOG ---------- */
 function LogScreen() {
-  const list = sessionList().slice().reverse();
+  const all = sessionList().slice().reverse(); const [shown, setShown] = useState(30);
+  const list = all.slice(0, shown);  /* 30 at a time: years of history shouldn't build thousands of rows at once */
   const actBtn = html`<button class="btn ghost wide" style="margin-top:6px" onClick=${() => openSheet({ type: 'activity' })}>${I.plus} Log an activity</button>`;
   if (!list.length) return html`<div><div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise. Running, swimming, yoga and other activities can be logged too.</p></div>${actBtn}</div>`;
   let lastMonth = '';
@@ -2103,7 +2135,8 @@ function LogScreen() {
       <div style="min-width:0"><div class="log-top"><h3>${s.name}</h3><span class="mins">${mins} min</span></div>
         ${s.kind === 'activity' ? html`<p class="log-act">${actLine(s) || 'Activity'}${s.note ? html`<span class="faint"> · ${s.note}</span>` : null}</p>` : null}<ul class="log-ex">${s.items.map((it, k) => html`<li key=${k}><span>${it.sets.length}× ${exName(it.ex)}${it.group ? ' · ' + it.group : ''}</span><span class="best">${bestSetLabel(it.sets, exKind(it.ex))}${it.u && it.u !== U() ? ' ' + it.u : ''}</span></li>`)}</ul>
         ${noE1(s.prs).length ? html`<div class="log-prs">${noE1(s.prs).slice(0, 3).map((p, k) => html`<span key=${k} class="pr-badge">${I.plate} ${p.label}</span>`)}${noE1(s.prs).length > 3 ? html`<span class="chip">+${noE1(s.prs).length - 3} more</span>` : null}</div>` : null}
-      </div></button>`; })}</div>`;
+      </div></button>`; })}
+    ${all.length > shown ? html`<button class="btn wide" style="margin-top:12px" id="log-more" onClick=${() => setShown(shown + 30)}>Show ${Math.min(30, all.length - shown)} more · ${all.length - shown} older</button>` : null}</div>`;
 }
 
 /* ---------- ROUTINES ---------- */
@@ -2531,6 +2564,23 @@ function ExerciseStats({ ex, group }) {
 
 /* ---------- PROFILE ---------- */
 const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
+/* Changing the main unit: older entries carry no unit stamp and mean "the main unit at the time", so they are stamped
+   with the old unit first (185 lb must not turn into 185 kg). Bar weight and weight jump only move to the new defaults
+   when they were still at the old defaults. */
+const UNIT_DEFAULTS = { lb: { bar: 45, inc: 5 }, kg: { bar: 20, inc: 2.5 } };
+function switchMainUnit(u) {
+  const from = S.meta.settings.unit; if (from === u || !UNIT_DEFAULTS[u]) return;
+  const keys = ['meta'];
+  commit(x => {
+    for (const [id, s] of Object.entries(x.sessions)) { let hit = false; for (const it of s.items || []) if (!it.u) { it.u = from; hit = true; } if (hit) { s.updatedAt = Date.now(); keys.push('s_' + id); } }
+    for (const b of x.meta.bw || []) if (!b.u) b.u = from;
+    if (x.active) { let hit = false; for (const it of x.active.items || []) if (!it.u) { it.u = from; hit = true; } if (hit) keys.push('active'); }
+    const st = x.meta.settings, d0 = UNIT_DEFAULTS[from] || {}, d1 = UNIT_DEFAULTS[u];
+    if (+st.bar === d0.bar) st.bar = d1.bar;
+    if (+st.inc === d0.inc) st.inc = d1.inc;
+    st.unit = u;
+  }, keys);
+}
 const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
 const markBackedUp = () => { lsSet('lastBackup', String(Date.now())); S.rerender(); };
 async function saveBackupFile() {
@@ -2579,11 +2629,11 @@ function ProfileScreen() {
   const backup = backupJSON;
   const exportFile = async () => setMsg(await saveBackupFile());
   const [phb, setPhb] = useState(null);
-  const preparePhotos = async () => { setMsg('Gathering photos…'); try { const d = await photoBackup(); if (!d.photos.length) { setMsg('No progress photos to back up yet.'); return; } setPhb(d); setMsg(''); } catch (e) { setMsg('Couldn’t read the photos on this device.'); } };
+  const preparePhotos = async () => { setMsg('Gathering photos…'); try { const d = await photoBackup(); if (!d.count) { setMsg('No progress photos to back up yet.'); return; } setPhb(d); setMsg(''); } catch (e) { setMsg('Couldn’t read the photos on this device.'); } };
   const savePhotos = async () => {
-    const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null; const n = phb.photos.length;
+    const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null; const n = phb.count;
     if (!dl) { setMsg('Saving files isn’t available here.'); return; }
-    try { await dl.save({ filename: 'ironwood-photos-' + ymd(new Date()) + '.json', data: new Blob([JSON.stringify(phb)], { type: 'application/json' }) }); setMsg(n + ' photo' + (n === 1 ? '' : 's') + ' saved. Restore this file in Ironwood to bring them back.'); setPhb(null); }
+    try { await dl.save({ filename: 'ironwood-photos-' + ymd(new Date()) + '.json', data: phb.blob }); setMsg(n + ' photo' + (n === 1 ? '' : 's') + ' saved. Restore this file in Ironwood to bring them back.'); setPhb(null); }
     catch (e) { setMsg(e && e.code === 'declined' ? 'Photos backup not saved.' : 'Could not save the file here.'); }
   };
   const copyBackup = async () => { try { await navigator.clipboard.writeText(backup()); markBackedUp(); setMsg('Backup copied.'); } catch (e) { setMsg('Copy is blocked in this view. Use Save backup file.'); } };
@@ -2599,7 +2649,7 @@ function ProfileScreen() {
     <${DisplayCard}/>
     <div class="section-h"><h2>Training</h2></div>
     <div class="card stack" style="gap:14px">
-      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => commit(x => { x.meta.settings.unit = u; x.meta.settings.bar = u === 'kg' ? 20 : 45; x.meta.settings.inc = u === 'kg' ? 2.5 : 5; }, 'meta')}>${u}</button>`)}</div>
+      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => switchMainUnit(u)}>${u}</button>`)}</div>
         <p class="note" style="margin-top:6px">Any exercise can switch between lb and kg during a workout by tapping the unit above its sets. Stats convert everything to your main unit.</p></div>
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
@@ -2629,7 +2679,7 @@ function ProfileScreen() {
     <div class="section-h"><h2>Backup</h2></div>
     <div class="card stack">
       <div class="row wrap"><button class="btn" onClick=${exportFile}>Save backup file</button><button class="btn" onClick=${copyBackup}>Copy backup</button><button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>
-      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.photos.length} photo${phb.photos.length === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
+      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.count} photo${phb.count === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
       <p class="note">The backup file has workouts, routines and settings. Progress photos are large, so they go in their own file.</p>
       ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
       <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} routines · ${Object.keys(S.meta.exercises).length} custom exercises</p>
@@ -2637,7 +2687,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 0e56e82</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6c7e0dc</p></div>
     <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
     <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
   </div>`;
@@ -2962,11 +3012,14 @@ async function phDelete(id) { try { await pdbTx('readwrite', st => st.delete(id)
 /* Photo backups: a separate file (photos are large), restored by Profile -> Restore. */
 const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
 const b64ToBlob = (s, type) => { const bin = atob(s); const a = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k); return new Blob([a], { type: type || 'image/jpeg' }); };
+/* The photos file is assembled from one part per photo, never as one huge string, so a few hundred photos don't
+   run the page out of memory. Same JSON shape as before: { app, version, exportedAt, photos: [...] }. */
 async function photoBackup() {
-  const all = (await pdbTx('readonly', st => st.getAll())) || []; const photos = [];
-  for (const p of all) { if (!p || !p.blob) continue; const { blob, ...rest } = p; photos.push({ ...rest, type: blob.type || 'image/jpeg', data: await blobToB64(blob) }); }
-  photos.sort((a, b) => (a.t || 0) - (b.t || 0));
-  return { app: 'liftbook-photos', version: 1, exportedAt: new Date().toISOString(), photos };
+  const all = ((await pdbTx('readonly', st => st.getAll())) || []).filter(p => p && p.blob).sort((a, b) => (a.t || 0) - (b.t || 0));
+  const parts = ['{"app":"liftbook-photos","version":1,"exportedAt":' + JSON.stringify(new Date().toISOString()) + ',"photos":[']; let n = 0;
+  for (const p of all) { const { blob, ...rest } = p; parts.push((n ? ',' : '') + JSON.stringify({ ...rest, type: blob.type || 'image/jpeg', data: await blobToB64(blob) })); n++; }
+  parts.push(']}');
+  return { count: n, blob: new Blob(parts, { type: 'application/json' }) };
 }
 async function photoRestore(d) {
   const have = new Set(); try { ((await pdbTx('readonly', st => st.getAllKeys())) || []).forEach(k => have.add(k)); } catch (e) {}
@@ -2996,6 +3049,7 @@ function restoreInto(st, d) {
   let added = 0;
   const cs = cleanSessions(d.sessions);
   for (const [k, s] of Object.entries(cs.sessions)) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
+  migrateExIds(st);
   return { keys, added, fresh, skipped: cs.skipped };
 }
 async function phSaveToPhotos(p) {
@@ -3374,9 +3428,9 @@ function RestoreSheet() {
       ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
       <button class="btn primary wide" disabled=${busy || !(file || text.trim())} onClick=${restore}>${busy ? 'Restoring…' : 'Restore'}</button></div><//>`;
 }
-function ConfirmSheet({ title, body, ok, danger, onOk }) {
+function ConfirmSheet({ title, body, ok, danger, onOk, alt, onAlt }) {
   return html`<${Sheet} label=${title}><h2>${title}</h2><p class="note" style="margin-bottom:14px">${body}</p>
-    <div class="stack"><button class=${'btn wide ' + (danger ? 'danger' : 'primary')} onClick=${onOk}>${ok}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+    <div class="stack"><button class=${'btn wide ' + (danger ? 'danger' : 'primary')} onClick=${onOk}>${ok}</button>${alt ? html`<button class="btn wide" onClick=${onAlt}>${alt}</button>` : null}<button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 function SheetHost({ sheet }) {
   if (!sheet) return null;
@@ -3485,6 +3539,7 @@ function CrashScreen({ err, retry }) {
   const l = lsLoad();
   if (l) { S.meta = normalizeMeta(l.meta); S.sessions = cleanSessions(l.sessions).sessions; S.active = l.active && typeof l.active === 'object' ? l.active : null; S.activeAt = l.activeAt || 0; S.dirty = new Set(Array.isArray(l.dirty) ? l.dirty : []); }
   if (window.claude && window.claude.standalone) S.dirty = new Set();
+  migrateExIds(S);
   applyDisplay(); l10nLoad();
   if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }
   render(html`<${Guard}><${App}/><//>`, document.getElementById('app'));

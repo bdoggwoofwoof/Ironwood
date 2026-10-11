@@ -239,7 +239,7 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .cw-prev{display:flex;gap:10px;align-items:center;margin-top:14px}
 .cw-prev .btn{pointer-events:none}
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:calc(12 * var(--u));background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
-a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
+a.btn{text-decoration:none;color:var(--accent)}a.btn.primary{color:var(--accent-ink)}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
 .tour-hole{position:fixed;inset:0;pointer-events:none}
@@ -555,6 +555,7 @@ main.with-mini{padding-top:64px}
   window.claude = { standalone: true, use: async name => name === 'downloads' ? { save } : null };
 })();
 </script>
+<script>var TIP_URL = "";</script>
 <script src="vendor/htm-preact.umd.js"></script>
 <script>
 /* ============ Core logic (no DOM) ============ */
@@ -2780,7 +2781,8 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version fdfe4bc</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version fd92e0d</p></div>
+    ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
 function PRCard() {

@@ -683,7 +683,7 @@ swap(".r-card .days{font-size:14px;color:var(--ink-2)}", """.r-card .days{font-s
 .cw-prev{display:flex;gap:10px;align-items:center;margin-top:14px}
 .cw-prev .btn{pointer-events:none}
 .fb-details{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--raised);border-radius:10px;padding:10px;color:var(--ink-2);margin:0;max-height:140px;overflow:auto}
-a.btn{text-decoration:none}a.btn.disabled{opacity:.45;pointer-events:none}
+a.btn{text-decoration:none;color:var(--accent)}a.btn.primary{color:var(--accent-ink)}a.btn.disabled{opacity:.45;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-inset{position:fixed;left:0;width:0;top:env(safe-area-inset-top,0px);height:env(safe-area-inset-bottom,0px);pointer-events:none}
 .tour-hole{position:fixed;inset:0;pointer-events:none}

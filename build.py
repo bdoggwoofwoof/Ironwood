@@ -101,8 +101,14 @@ swap('</body></html>', BOOT)
 
 
 # 4b. About section in Profile: privacy policy and support pages (copied into the site below)
+# Tip link at the very bottom of Profile. Leave TIP_URL empty to hide the card. It is also hidden inside the App Store
+# app: App Review has rejected external "Buy me a coffee" links under guideline 3.1.1 (tips to the developer must use
+# In-App Purchase there), so the card only shows in the web / home-screen version.
+TIP_URL = ''
+swap('<script src="vendor/htm-preact.umd.js"></script>', '<script>var TIP_URL = ' + json.dumps(TIP_URL) + ';</script>\n<script src="vendor/htm-preact.umd.js"></script>')
 swap('<div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>\n    <div class="card note">Meal logging will live here once lifting tracking is settled.</div>',
-     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>')
+     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>'
+     '\n    ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}')
 
 os.makedirs(OUT, exist_ok=True)
 import shutil

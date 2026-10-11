@@ -609,23 +609,23 @@ function parseProgram(text) {
 const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus
 3x5-8 Decline Chest Press
-3x5-8 Incline Dumbbell Pinky Press
+3x5-8 Incline Reverse-Grip Squeeze Press
 3x5-8 x Hybrid Curls
 3x5-8 Cable Fly
 3x5-8 x Tricep Pushdowns
 3x5-8 Cable Crunch
-3x10-12 x Russian Behind-the-Back Cable Flies
+3x10-12 x Behind-the-Back Cable Fly
 Day 2 - Back / Rear Delts
 3x5-8 Bent-Over Barbell Rows
 3x5-8 Lat Pulldown
 3x10-12 x Cuban Press
-4x10-12 Russian Behind-the-Back Cable Flies
+4x10-12 Behind-the-Back Cable Fly
 3x5-8 x Hybrid Curls
 3x10-12 Scapular Shrugs
 3x10-12 x Cable Crunch
 Day 3 - Shoulders / Tris
 3x5-8 Overhead Barbell Press
-3x10-12 Russian Behind-the-Back Cable Flies
+3x10-12 Behind-the-Back Cable Fly
 3x5-8 x Tricep Pushdowns
 3x5-8 Face Pulls
 3x5-8 x Overhead Cable Tricep Extension
@@ -819,18 +819,18 @@ const MY_PLANS = [
   ['bi-eff-ppl', 'Efficient Push/Pull/Legs', null, '', [
     ['Push', ['Push'], [['Bench Press', 3], ['Assisted Dips', 3], ['Standing Overhead Press', 3], ['Cable Lateral Raise Tosses', 3], ['Overhead Cable Tricep Extension', 3, '', '', 1]]],
     ['Pull', ['Pull'], [['Assisted Pull-Up', 3], ['Standing Barbell Row', 3], ['Rear Delt Rows', 3, '', 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist'], ['Face Pulls', 3], ['Hybrid Curls', 3, '', '', 1]]],
-    ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Lunge Walk', 3], ['Calf Raises', 3, '', '', 1]]]]],
+    ['Legs', ['Legs'], [['Back Squat', 3], ['Romanian Deadlift', 3], ['Weighted Walking Lunge', 3], ['Calf Raises', 3, '', '', 1]]]]],
   ['bi-full-body', 'Full Body', ['Full Body'], '', [['Overhead Barbell Press', 3, '', 'Shoulders'], ['Assisted Dips', 3, '', 'Chest, triceps'], ['Dead Hang', 3, '', 'Forearms'], ['Barbell Bicep Curl', 3, '', 'Biceps'], ['Bent-Over Barbell Rows', 3, '', 'Back'], ['Assisted Pull-Up', 3, '', 'Back'], ['Hanging Leg Raises', 10, '', 'Abs: 10 sets, 30 s on / 30 s off'], ['Back Squat', 3, '', 'Legs'], ['Deadlift', 3, '', 'Legs']]],
-  ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell/Cable Bends', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
-  ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Plank Single Leg Up', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Ankle Taps', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
-  ['bi-core-3', 'Core 3', ['Core'], '', [['Kettlebell Around the World', 3, '20'], ['Russian Twists', 3, '20', 'Each side'], ['Scissor Kicks', 3, '20'], ['Scullers', 3, '30'], ['90-Degree Leg Lowers', 3, '10', 'Slow and controlled'], ['Bicycles', 3, '30', 'Each leg']]],
-  ['bi-sere-pyramid', 'Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Erg', 1, '', '20 min, 1 on / 1 off']]],
+  ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell Side Bend', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
+  ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Cross-Body Mountain Climbers', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Heel Touches', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
+  ['bi-core-3', 'Core 3', ['Core'], '', [['Kettlebell Around the World', 3, '20'], ['Russian Twists', 3, '20', 'Each side'], ['Scissor Kicks', 3, '20'], ['Scullers', 3, '30'], ['90-Degree Leg Lowers', 3, '10', 'Slow and controlled'], ['Bicycle Crunches', 3, '30', 'Each leg']]],
+  ['bi-sere-pyramid', 'Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Rowing Machine (Erg)', 1, '', '20 min, 1 on / 1 off']]],
   ['bi-sere-trot', 'Run & Swing Circuit', ['Conditioning'], '', [['Run 400m', 3], ['Kettlebell Swing', 3, '', '45 lb'], ['Pull-Up', 3], ['100m Sprints', 10, '', 'Sprint 100 m at the top of every minute; rest for whatever is left of that minute']]],
   ['bi-sere-buster', '400m Repeats + Calisthenics', ['Conditioning'], '', [['Run 400m', 8, '', 'Under 1:50 each, rest 2:00'], ['Pull-Up', 5, '20'], ['Push-Ups', 5, '30'], ['Sit-Ups', 5, '40'], ['Air Squat', 5, '50']]],
   ['bi-sere-swim', 'Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
   ['bi-sere-burp', 'Burpee Grinder', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
   ['bi-sere-ruck', '4-Mile Ruck + Calisthenics', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
-  ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Peterson Step-Ups', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
+  ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Petersen Step-Up', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
   ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
   ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
     ['Day 1 - Heavy', ['Full Body'], [['Dumbbell Bench Press', 3, '5'], ['Lat Pulldown', 3, '5'], ['Squat', 1, '8'], ['Romanian Deadlift', 1, '8'], ['Seated Dumbbell Overhead Press', 3, '5'], ['Hybrid Curls', 3, '8'], ['Skull Crushers', 3, '8'], ['Calf Raises', 3, '10'], ['Cable Crunch', 3, '10']]],
@@ -861,7 +861,13 @@ BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
 const EX_CUES = {
-  'b-incline-dumbbell-pinky-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkie-side touching. Press up only until the chest finishes the work, not the tris.',
+  'b-incline-reverse-grip-squeeze-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkie-side touching. Press up only until the chest finishes the work, not the tris.',
+  'b-cuban-press': 'Light dumbbells. Row to chest height with elbows out, rotate the forearms up until vertical, press overhead, then reverse it on the way down.',
+  'b-kettlebell-around-the-world': 'Standing, pass the kettlebell around your waist from hand to hand, hips still. Switch direction halfway.',
+  'b-petersen-step-up': 'Stand on a low step on the ball of one foot, heel up. Lower the other heel to the floor slowly by straightening the knee, then drive back up. Builds the VMO.',
+  'b-hip-airplanes': 'Single-leg hinge. Balancing on one leg, open the hips toward the standing leg, then rotate them closed. Hold a post if needed.',
+  'b-heel-touches': 'Lie on your back, knees bent, shoulders off the floor. Crunch sideways to tap each heel.',
+  'b-dumbbell-side-bend': 'Dumbbell in one hand (or a low cable). Lean away from it, then pull back up with the opposite side.',
 };
 BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 
@@ -888,7 +894,11 @@ function cleanSession(k, s) {
   return o;
 }
 /* Built-in exercises that were renamed: old ids in saved data point at the new exercise, so history carries over */
-const EX_RENAMED = { 'b-russian-tits-to-l-stretch': 'b-incline-dumbbell-pinky-press' };
+const EX_RENAMED = {
+  'b-russian-tits-to-l-stretch': 'b-incline-reverse-grip-squeeze-press', 'b-incline-dumbbell-pinky-press': 'b-incline-reverse-grip-squeeze-press',
+  'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-fly', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
+  'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
+  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
 const exIdNow = id => EX_RENAMED[id] || id;
 function migrateExIds(st) {
   const keys = Object.keys(EX_RENAMED); if (!keys.length) return;
@@ -1927,16 +1937,16 @@ function TourOverlay() {
     </div></div>`;
 }
 function FeedbackSheet() {
-  const [text, setText] = useState(''); const [tech, setTech] = useState(true); const [msg, setMsg] = useState('');
+  const [text, setText] = useState(''); const [tech, setTech] = useState(false); const [msg, setMsg] = useState('');
   const details = () => ['Ironwood ' + (window.claude && window.claude.standalone ? 'home-screen app' : 'Claude version'), 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + '×' + innerHeight,
     'Saved: ' + S.sync, ERRS.length ? 'Recent errors:\n- ' + ERRS.join('\n- ') : 'Recent errors: none'].join('\n');
   const body = () => text.trim() + (tech ? '\n\n---\n' + details() : '');
   const url = () => SUPPORT + '/new?title=' + encodeURIComponent('Feedback: ' + (text.trim().split('\n')[0].slice(0, 60) || 'Ironwood')) + '&body=' + encodeURIComponent(body().slice(0, 6000));
   const copy = async () => { try { await navigator.clipboard.writeText(body()); setMsg('Copied. Paste it wherever you like.'); } catch (e) { setMsg('Copy is blocked here. Use the button above.'); } };
   return html`<${Sheet} label="Send feedback"><h2>Send feedback</h2>
-    <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. No workouts or personal data are included.</p>
+    <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. It posts as a public issue on the Ironwood support page; no workouts or personal data are included.</p>
     <div class="stack"><textarea class="field" id="fb-text" style="min-height:120px;font-family:var(--body);font-size:16px" placeholder="What happened? What did you expect?" value=${text} onInput=${e => setText(e.target.value)}></textarea>
-      <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device and recent errors</label>
+      <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device model and recent error messages (helps with bugs; visible on the public issue)</label>
       ${tech ? html`<pre class="fb-details">${details()}</pre>` : null}
       <a class=${'btn primary wide' + (text.trim() ? '' : ' disabled')} id="fb-send" href=${text.trim() ? url() : null} target="_blank" rel="noopener" aria-disabled=${!text.trim()}>Send on the support page</a>
       <p class="small faint">Opens the Ironwood support page on GitHub (a free account is needed to post).</p>
@@ -2754,9 +2764,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version c6dd52b</p></div>
-    <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
-    <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 05bea40</p></div>
   </div>`;
 }
 function PRCard() {

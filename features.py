@@ -352,7 +352,7 @@ BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
 const EX_CUES = {
-  'b-incline-dumbbell-pinky-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkies touching. Press up only until the chest finishes the work, stopping short of lockout, where the triceps take over.',
+  'b-incline-dumbbell-pinky-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkie-side touching. Press up only until the chest finishes the work, not the tris.',
 };
 BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 """
@@ -708,13 +708,21 @@ src = src[:a] + r"""function Sheet({ children, label }) {
     el.style.transform = ''; el.style.height = ''; el.style.maxHeight = '';
     if (dy < -40) setBig(true); else if (dy > 40 && big) setBig(false); };
   const tap = () => { if (Math.abs(last.current) < 6) setBig(!big); last.current = 0; };
+  /* A real modal: the page behind is inert (so Tab and VoiceOver stay inside), focus moves to the title, and goes back
+     to whatever opened the sheet when it closes. */
+  useEffect(() => {
+    const prev = document.activeElement; const el = ref.current;
+    const bg = [...document.querySelectorAll('#app > header, #app > main, #app > nav')]; bg.forEach(n => { n.inert = true; });
+    const t = setTimeout(() => { if (el && !el.contains(document.activeElement)) { const h = el.querySelector('h2') || el; h.tabIndex = -1; try { h.focus({ preventScroll: true }); } catch (e) {} } }, 40);
+    return () => { clearTimeout(t); bg.forEach(n => { n.inert = false; }); if (prev && prev !== document.body && document.contains(prev)) { try { prev.focus({ preventScroll: true }); } catch (e) {} } };
+  }, []);
   return html`<div class="scrim" onClick=${e => { if (e.target === e.currentTarget) closeSheet(); }}>
     <div ref=${ref} class=${'sheet' + (big ? ' big' : '')} role="dialog" aria-modal="true" aria-label=${label || 'Panel'}>
       <button class="grab-zone" aria-label=${big ? 'Make this panel smaller' : 'Make this panel full height'} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} onClick=${tap}><span class="grab"></span></button>${children}</div></div>`;
 }
 """ + src[b:]
 swap(".grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}",
-     ".grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}\n.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}\n.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}\n.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}")
+     ".grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}\n.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}\n.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}\n.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}\n.sheet h2:focus,.sheet:focus{outline:none}")
 
 for need in ['function applyDisplay', 'function showToast']:
     if need not in src:

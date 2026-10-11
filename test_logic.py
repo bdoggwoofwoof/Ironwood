@@ -77,6 +77,29 @@ async def main():
         await pg.evaluate("S.rest = { until: Date.now() + 90000, total: 90, kind: 'solo', ex: 'b-squat', beeped: {} }; lsSave()"); await pg.reload(); await pg.wait_for_timeout(1200)
         check('rest timer survives a reload', await pg.evaluate("!!S.rest && S.rest.until > Date.now()"))
         check('0.4 reps does not count as a set', await pg.evaluate("isDone({ w: '100', r: '0.4' }) === false && isDone({ w: '100', r: '0.6' }) === true"))
+        # Sheets are real modals: page behind is inert, focus moves in and comes back
+        await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.locator('#pal-custom').click(); await pg.wait_for_timeout(300)
+        inside = await pg.evaluate("document.querySelector('.sheet').contains(document.activeElement)")
+        check('sheet takes focus and the page behind is inert', inside and await pg.evaluate("document.querySelector('#app > main').inert === true"))
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        check('closing restores the page and focus', await pg.evaluate("document.querySelector('#app > main').inert === false && document.activeElement && document.activeElement.id === 'pal-custom'"), await pg.evaluate("document.activeElement && document.activeElement.id"))
+        # Rest end is announced to screen readers
+        await pg.evaluate("S.rest = { until: Date.now() + 300, total: 60, kind: 'solo', ex: 'b-squat', beeped: {} }; S.rerender()"); await pg.wait_for_timeout(1200)
+        check('rest over is announced', await pg.evaluate("document.querySelector('[aria-live=assertive]').textContent") == 'Rest over')
+        # Default theme tokens pass 4.5:1
+        await pg.emulate_media(color_scheme='dark'); await pg.wait_for_timeout(200)
+        ratios = await pg.evaluate("""(() => { const g = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+          const lum = h => { h = h.replace('#', ''); const [r, g2, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g2 + .0722 * b; };
+          const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+          return { btn: cr(g('--accent-ink'), g('--accent-bg')), ink3: cr(g('--ink-3'), g('--raised')), good: cr(g('--good'), g('--surface')), stop: cr(g('--stop'), g('--raised')), accent: cr(g('--accent'), g('--surface')) }; })()""")
+        check('dark theme contrast is at least 4.5:1', all(v >= 4.5 for v in ratios.values()), {k: round(v, 2) for k, v in ratios.items()})
+        await pg.emulate_media(color_scheme='light'); await pg.wait_for_timeout(200)
+        ratios = await pg.evaluate("""(() => { const g = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+          const lum = h => { h = h.replace('#', ''); const [r, g2, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g2 + .0722 * b; };
+          const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+          return { btn: cr(g('--accent-ink'), g('--accent-bg')), ink3: cr(g('--ink-3'), g('--raised')), good: cr(g('--good'), g('--surface')), stop: cr(g('--stop'), g('--raised')), accent: cr(g('--accent'), g('--surface')) }; })()""")
+        check('light theme contrast is at least 4.5:1', all(v >= 4.5 for v in ratios.values()), {k: round(v, 2) for k, v in ratios.items()})
         check('no page errors', not errs, errs[:3])
         await b.close()
 try: asyncio.run(main())

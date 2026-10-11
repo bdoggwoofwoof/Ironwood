@@ -9,8 +9,8 @@
 :root{
   color-scheme: dark;
   --bg:#111315; --surface:#1a1d21; --raised:#23272c; --line:#2d3238;
-  --ink:#eef1f4; --ink-2:#a3abb4; --ink-3:#6f7780;
-  --accent:#4c8dff; --accent-ink:#ffffff; --accent-soft:rgba(76,141,255,.16);
+  --ink:#eef1f4; --ink-2:#a3abb4; --ink-3:#8e969f;
+  --accent:#4c8dff; --accent-bg:#2f6fe0; --accent-ink:#ffffff; --accent-soft:rgba(76,141,255,.16);
   --pr:#ffcf40; --pr-ink:#1b1400; --stop:#f0603f; --good:#39c98a;
   --scrim:rgba(0,0,0,.55); --good-ink:#04210f; --stop-ink:#240800; --copy:#8b7cf6; --copy-ink:#140b36; --red-text:#ff7d61;
   --display:'Barlow Condensed','Arial Narrow','Helvetica Neue',system-ui,sans-serif;
@@ -21,25 +21,25 @@
   :root:not([data-theme="dark"]){
     color-scheme: light;
     --bg:#f2f4f7; --surface:#ffffff; --raised:#e9edf2; --line:#d9dee5;
-    --ink:#14171b; --ink-2:#59616b; --ink-3:#8a929c;
-    --accent:#1f5fd6; --accent-ink:#ffffff; --accent-soft:rgba(31,95,214,.10);
-    --pr:#f5c22e; --pr-ink:#2a1e00; --stop:#d2452a; --good:#1d9a62;
+    --ink:#14171b; --ink-2:#59616b; --ink-3:#60686f;
+    --accent:#1f5fd6; --accent-bg:#1f5fd6; --accent-ink:#ffffff; --accent-soft:rgba(31,95,214,.10);
+    --pr:#f5c22e; --pr-ink:#2a1e00; --stop:#b8381f; --good:#157a4d;
     --scrim:rgba(20,23,27,.35); --good-ink:#ffffff; --stop-ink:#ffffff; --copy:#6d5bd0; --copy-ink:#ffffff; --red-text:#b3341b;
   }
 }
 :root[data-theme="light"]{
   color-scheme: light;
   --bg:#f2f4f7; --surface:#ffffff; --raised:#e9edf2; --line:#d9dee5;
-  --ink:#14171b; --ink-2:#59616b; --ink-3:#8a929c;
-  --accent:#1f5fd6; --accent-ink:#ffffff; --accent-soft:rgba(31,95,214,.10);
-  --pr:#f5c22e; --pr-ink:#2a1e00; --stop:#d2452a; --good:#1d9a62;
+  --ink:#14171b; --ink-2:#59616b; --ink-3:#60686f;
+  --accent:#1f5fd6; --accent-bg:#1f5fd6; --accent-ink:#ffffff; --accent-soft:rgba(31,95,214,.10);
+  --pr:#f5c22e; --pr-ink:#2a1e00; --stop:#b8381f; --good:#157a4d;
   --scrim:rgba(20,23,27,.35); --good-ink:#ffffff; --stop-ink:#ffffff; --copy:#6d5bd0; --copy-ink:#ffffff; --red-text:#b3341b;
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
   --bg:#111315; --surface:#1a1d21; --raised:#23272c; --line:#2d3238;
-  --ink:#eef1f4; --ink-2:#a3abb4; --ink-3:#6f7780;
-  --accent:#4c8dff; --accent-ink:#ffffff; --accent-soft:rgba(76,141,255,.16);
+  --ink:#eef1f4; --ink-2:#a3abb4; --ink-3:#8e969f;
+  --accent:#4c8dff; --accent-bg:#2f6fe0; --accent-ink:#ffffff; --accent-soft:rgba(76,141,255,.16);
   --pr:#ffcf40; --pr-ink:#1b1400; --stop:#f0603f; --good:#39c98a;
   --scrim:rgba(0,0,0,.55); --good-ink:#04210f; --stop-ink:#240800; --copy:#8b7cf6; --copy-ink:#140b36; --red-text:#ff7d61;
 }
@@ -58,7 +58,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .hdr h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.02em;text-transform:uppercase;text-align:center}
 .hdr .l{justify-self:start}.hdr .r{justify-self:end}
 .pill-btn{background:var(--raised);border-radius:999px;padding:7px 14px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:6px}
-.pill-btn.accent{background:var(--accent);color:var(--accent-ink)}
+.pill-btn.accent{background:var(--accent-bg);color:var(--accent-ink)}
 main{max-width:640px;margin:0 auto;padding-inline:var(--gut);padding-block:8px calc(108px + env(safe-area-inset-bottom,0px))}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
 .tabs-in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
@@ -84,7 +84,7 @@ p{margin:0}
 .row.wrap{flex-wrap:wrap}
 .spacer{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:12px 16px;font-weight:600;font-size:16px;background:var(--raised);min-height:46px}
-.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary{background:var(--accent-bg);color:var(--accent-ink)}
 .btn.wide{width:100%}
 .btn.text{background:none;color:var(--accent);padding:8px 4px;min-height:44px}
 .btn.danger{color:var(--stop)}
@@ -96,7 +96,7 @@ p{margin:0}
 .icon-btn:active{background:var(--raised)}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:var(--raised);color:var(--ink-2);white-space:nowrap}
 .chip.group{background:var(--accent-soft);color:var(--accent)}
-.chip.on{background:var(--accent);color:var(--accent-ink)}
+.chip.on{background:var(--accent-bg);color:var(--accent-ink)}
 button.chip{min-height:30px;padding:4px 12px}
 .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 .pr-badge{display:inline-flex;align-items:center;gap:5px;background:var(--pr);color:var(--pr-ink);font-weight:700;font-size:12.5px;padding:3px 9px 3px 7px;border-radius:999px;white-space:nowrap}
@@ -160,11 +160,11 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .set-row.done input{background:transparent}
 .chk{width:44px;height:40px;border-radius:10px;background:var(--raised);display:grid;place-items:center;color:var(--ink-3)}
 .chk svg{width:20px;height:20px}
-.chk.on{background:var(--accent);color:var(--accent-ink)}
+.chk.on{background:var(--accent-bg);color:var(--accent-ink)}
 .slot-foot{display:flex;align-items:center;gap:14px;padding:2px 4px 0;flex-wrap:wrap}
 .plates{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .restbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:29;padding:0 var(--gut) 8px}
-.restbar-in{max-width:608px;margin:0 auto;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.restbar-in{max-width:608px;margin:0 auto;background:var(--accent-bg);color:var(--accent-ink);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .restbar .t{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px}
 .restbar button{background:rgba(255,255,255,.18);border-radius:9px;padding:7px 10px;font-weight:700;font-size:14px;min-height:44px;min-width:44px}
 .restbar .lbl2{font-size:13px;font-weight:600;opacity:.85}
@@ -308,7 +308,7 @@ button.chip,.icon-btn,.note-add,.stepper button,.tip-x{position:relative}
 .mini-open{flex:1;display:flex;align-items:baseline;gap:10px;text-align:left;min-width:0}
 .mini-open b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
 .mini-open span{font-size:13.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mini-btn{background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:8px 12px;font-weight:700;font-size:14px}
+.mini-btn{background:var(--accent-bg);color:var(--accent-ink);border-radius:9px;padding:8px 12px;font-weight:700;font-size:14px}
 main.with-mini{padding-top:64px}
 .wd{background:none;border:0;padding:0}
 .wd .mk{font-size:12px;font-weight:700;color:var(--ink-2)}
@@ -337,7 +337,7 @@ main.with-mini{padding-top:64px}
 .ch-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .ch-cal .dl{font-size:11px;font-weight:700;color:var(--ink-3);text-align:center}
 .cc{aspect-ratio:1;border-radius:7px;font-size:12px;font-weight:600;color:var(--ink-2);background:var(--raised);font-variant-numeric:tabular-nums}
-.cc.done{background:var(--accent);color:var(--accent-ink)}
+.cc.done{background:var(--accent-bg);color:var(--accent-ink)}
 .cc.rest{background:var(--good);color:var(--good-ink)}
 .cc.paused{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-3)}
 .cc.missed{background:var(--stop);color:var(--stop-ink)}
@@ -438,6 +438,7 @@ main.with-mini{padding-top:64px}
 .cmp-side img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block}
 .cmp-side figcaption{font-size:12.5px;color:var(--ink-2);margin-top:4px;text-align:center}
 .seg.wide.per button{font-size:13px;white-space:nowrap;padding-inline:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pr-line{margin:0;padding:2px 6px 4px 42px;font-size:12.5px;font-weight:700;line-height:1.35;color:var(--red-text)}
 .pr-line.tbl{grid-column:1/-1;padding:0 0 4px}
 .pr-line span{display:block}
@@ -1037,7 +1038,7 @@ function audioTick() {
   if (BG.kind === 'timer' && (!S.itimer || S.itimer.pausedAt)) bgStop();
   if (r && !(BG.on && BG.kind === 'rest')) { r.beeped = r.beeped || {}; const left = Math.ceil((r.until - Date.now()) / 1000);
     if (st.countdown && left >= 1 && left <= 3 && !r.beeped[left]) { r.beeped[left] = 1; beep(660, 110); }
-    if (st.beep && left <= 0 && !r.beeped.end) { r.beeped.end = 1; beep(990, 500, 0.35); } }
+    if (left <= 0 && !r.beeped.end) { r.beeped.end = 1; if (st.beep) beep(990, 500, 0.35); announce('Rest over'); } }
   const T = S.itimer;
   if (T && !T.pausedAt && T.cfg.mode !== 'stopwatch') {
     const p = tLocate(T);
@@ -1096,7 +1097,7 @@ function bgTimer() {
 }
 /* Display settings live on this device. */
 const HOST_THEME = document.documentElement.getAttribute('data-theme');
-const DISP = { theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') === '1', hc: lsGet('hc') === '1' };
+const DISP = { theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') == null ? (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })() : lsGet('rm') === '1', hc: lsGet('hc') === '1' };
 function applyDisplay() {
   const r = document.documentElement;
   if (DISP.theme === 'system') { if (HOST_THEME) r.setAttribute('data-theme', HOST_THEME); else r.removeAttribute('data-theme'); } else r.setAttribute('data-theme', DISP.theme);
@@ -1233,6 +1234,10 @@ function WoClock({ since }) {
   const el = Math.max(0, Math.floor((Date.now() - since) / 1000));
   return html`<div class="wo-clock" role="timer" aria-label="Elapsed time">${clock(el)}</div>`;
 }
+/* One live region for things a sighted person sees in the rest bar or a toast */
+const ANN = { text: '', at: 0 };
+function announce(text) { ANN.text = text; ANN.at = Date.now(); S.rerender(); }
+function Announcer() { return html`<div class="sr-only" aria-live="assertive" aria-atomic="true">${Date.now() - ANN.at < 4000 ? ANN.text : ''}</div>`; }
 function showToast(t) { const ms = t.ms || (t.action ? 8000 : 3500); S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
 let SUPPRESS = 0;
 const SW = { open: null };
@@ -1385,7 +1390,7 @@ function ActiveWorkout() {
   const total = a.items.reduce((n, it) => n + it.sets.length, 0), done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   return html`<div>
     <div class="wo-head"><div style="min-width:0"><div class="eyebrow">${a.routineName || 'Workout'}</div><h2 class="wo-title">${a.name}</h2></div><${WoClock} since=${a.startedAt}/></div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax=${total} aria-valuenow=${done}><div style=${{ width: (total ? done / total * 100 : 0) + '%' }}></div></div>
+    <div class="bar" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax=${total} aria-valuenow=${done} aria-valuetext=${done + ' of ' + total + ' sets'}><div style=${{ width: (total ? done / total * 100 : 0) + '%' }}></div></div>
     <div class="small muted num" style="margin-top:6px">${done} of ${total} sets done</div>
     ${lsGet('swiped') !== '1' ? html`<p class="swipe-hint">Swipe a set right to log it as shown. Swipe part way for Complete or Copy, or left to delete. Typing the reps logs it too.</p>` : null}
     ${a.items.map((it, i) => html`<${SlotCard} key=${it.id} it=${it} i=${i} nextSS=${!!(a.items[i + 1] && a.items[i + 1].ss)}/>`)}
@@ -1460,13 +1465,13 @@ function SetRow({ it, s, j, kind }) {
       <div class="ur" ref=${urR}>${act('del', I.trash, 'Delete', () => deleteSet(it, s))}</div>
     </div>
     <div ref=${ref} class=${'set-row' + (done ? ' done' : '')} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${cancel} onClickCapture=${clickCap}>
-      <span class=${'n' + (s.pr && done ? ' pr' : '')} title=${s.pr && done ? 'Personal record' : null}>${j + 1}</span>
+      <span class=${'n' + (s.pr && done ? ' pr' : '')} >${j + 1}</span>
       <input id=${'w-' + s.id} type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value=${s.w} placeholder=${s.gw || (kind === 'bodyweight' ? '0' : '–')} aria-label=${'Set ' + (j + 1) + ' ' + wLbl}
         onFocus=${e => { selAll(e); setFoc('w'); }} onBlur=${() => setFoc(f => f === 'w' ? null : f)} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       ${noteCell}
-    </div></div>${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note">${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div>${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -2191,7 +2196,7 @@ function ChallengeCard({ ch }) {
   const st = challengeState(ch); const k = ymd(new Date());
   return html`<div class="ch-card">
     <div class="row"><div style="min-width:0;flex:1"><h3>${ch.name}</h3><div class="small muted">${chLine(ch, st)}</div></div><button class="btn text" onClick=${() => UI.setView({ type: 'challenge', id: ch.id })}>Details</button></div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax=${ch.days} aria-valuenow=${st.count}><div style=${{ width: Math.min(100, st.count / ch.days * 100) + '%' }}></div></div>
+    <div class="bar" role="progressbar" aria-label="Challenge progress" aria-valuemin="0" aria-valuemax=${ch.days} aria-valuenow=${st.count} aria-valuetext=${st.count + ' of ' + ch.days + ' days'}><div style=${{ width: Math.min(100, st.count / ch.days * 100) + '%' }}></div></div>
     ${st.started && !st.finishedOn ? html`<${ChallengeChecklist} ch=${ch} k=${k}/>` : null}
   </div>`;
 }
@@ -2576,6 +2581,8 @@ function SlotSheet({ it }) {
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
     ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
     ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
+    ${it.sets.length ? html`<button class="opt" onClick=${() => { copySet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.copy}<div>Copy last set</div></button>
+    <button class="opt" onClick=${() => { deleteSet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.trash}<div>Delete last set</div></button>` : null}
     <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; a.items.splice(idx, 1); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
       showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
     ${alsoBox}
@@ -2715,6 +2722,7 @@ function App() {
     ${showMini ? html`<${IntervalMini}/>` : null}
     <main class=${showMini ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(220px + env(safe-area-inset-bottom,0px))' } : null}>${body}</main>
     <${Toast}/>
+    <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}
     <nav class="tabs" aria-label="Sections"><div class="tabs-in">${TABS.map(([k, l]) => html`<button key=${k} class=${'tab' + (tab === k ? ' on' : '')} aria-current=${tab === k ? 'page' : null} onClick=${() => UI.setTab(k)}>${I[k]}<span>${l}${k === 'train' && S.active && tab !== 'train' ? ' •' : ''}</span></button>`)}</div></nav>
     <${SheetHost} sheet=${sheet}/>`;

@@ -1,4 +1,5 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ironwood"><meta name="theme-color" content="#111315"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ironwood"><meta name="theme-color" content="#111315"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+@media (pointer:coarse){body:has(input:focus:not([type=checkbox]):not([type=range]),textarea:focus) .tabs{display:none}}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Ironwood</title>
 <style>
 @font-face{font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/barlow-latin-400-normal.woff2') format('woff2')}
@@ -92,7 +93,7 @@ p{margin:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:12px 16px;font-weight:600;font-size:16px;background:var(--raised);min-height:46px}
 .btn.primary{background:var(--accent);color:var(--accent-ink)}
 .btn.wide{width:100%}
-.btn.text{background:none;color:var(--accent);padding:8px 4px;min-height:36px}
+.btn.text{background:none;color:var(--accent);padding:8px 4px;min-height:44px}
 .btn.danger{color:var(--stop)}
 .btn.ghost{background:none;border:1.5px dashed var(--line);color:var(--ink-2)}
 .btn:disabled{opacity:.45}
@@ -172,7 +173,7 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .restbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:29;padding:0 var(--gut) 8px}
 .restbar-in{max-width:608px;margin:0 auto;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .restbar .t{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px}
-.restbar button{background:rgba(255,255,255,.18);border-radius:9px;padding:7px 10px;font-weight:700;font-size:14px}
+.restbar button{background:rgba(255,255,255,.18);border-radius:9px;padding:7px 10px;font-weight:700;font-size:14px;min-height:44px;min-width:44px}
 .restbar .lbl2{font-size:13px;font-weight:600;opacity:.85}
 .restbar-in{flex-wrap:wrap}
 .restbar .rest-save{flex-basis:100%;text-align:left;background:none;padding:2px 0 0;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
@@ -325,7 +326,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-nume
 
 /* Sheet */
 .scrim{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
-.sheet{background:var(--surface);width:100%;max-width:640px;max-height:88%;overflow-y:auto;border-radius:20px 20px 0 0;padding:8px var(--gut) calc(20px + env(safe-area-inset-bottom,0px));animation:rise .2s ease}
+.sheet{overscroll-behavior:contain;background:var(--surface);width:100%;max-width:640px;max-height:88%;overflow-y:auto;border-radius:20px 20px 0 0;padding:8px var(--gut) calc(20px + env(safe-area-inset-bottom,0px));animation:rise .2s ease}
 .grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
 .grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}
 .grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}
@@ -335,13 +336,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-nume
 .opt svg{width:20px;height:20px;color:var(--ink-2)}
 .opt .d{font-size:13.5px;color:var(--ink-2);font-weight:400}
 .opt.on{color:var(--accent)}
-.pick-list{display:flex;flex-direction:column;max-height:46vh;overflow-y:auto;margin-top:8px}
+.pick-list{display:flex;flex-direction:column;max-height:46vh;overflow-y:auto;margin-top:8px;overscroll-behavior:contain}
 .pick-list .opt{padding:11px 4px}
 /* set rows: swipe right to log, left to delete */
 .set-row.th{background:none;touch-action:auto}
 .set-row input.note{text-align:left;font-size:16px;font-weight:500;padding:9px 10px}
 .set-row .n.pr{background:var(--pr);color:var(--pr-ink);border-radius:8px;padding:3px 0}
 .swipe{position:relative;border-radius:10px;overflow:hidden}
+.step-strip{display:flex;align-items:center;gap:8px;padding:6px 0 4px;animation:fadein .12s ease}
+.step-strip button{min-height:44px;min-width:66px;padding:0 12px;border-radius:10px;background:var(--raised);color:var(--accent);font-weight:700;font-size:17px;font-variant-numeric:tabular-nums;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.step-strip .step-last{min-width:0;font-size:14px;color:var(--ink-2)}
+.step-val{flex:1;text-align:center;font-weight:600;font-size:15px;color:var(--ink-2)}
+:root.rm .step-strip{animation:none}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
 .swipe .under{position:absolute;inset:0;background:var(--bg);border-radius:10px}
 .under .ul,.under .ur{position:absolute;top:0;bottom:0;width:0;display:flex;align-items:stretch;overflow:hidden}
 .under .ul{left:0}.under .ur{right:0}
@@ -361,7 +368,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-nume
 .ex-note-row{display:flex;align-items:center;gap:10px;margin:10px 0 2px;min-width:0}
 .ex-prev{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ex-note-txt{display:block;width:100%;text-align:left;margin:10px 0 2px;padding:9px 4px;font-size:16px;font-weight:700;color:var(--ink);border-radius:9px}
-.unit-tog{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);text-align:center;min-height:28px;border-radius:6px}
+.unit-tog{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);text-align:center;min-height:28px;border-radius:6px;position:relative}
+/* Small controls keep their size but answer to a 44px touch area */
+.unit-tog::after,button.chip::after,.icon-btn::after,.note-add::after,.stepper button::after,.tip-x::after{content:'';position:absolute;inset:-7px}
+button.chip,.icon-btn,.note-add,.stepper button,.tip-x{position:relative}
 .ex-note{width:100%;margin:10px 0 2px;background:var(--raised);border:1.5px solid transparent;border-radius:9px;padding:9px 10px;font-size:16px}
 .ex-note:focus{border-color:var(--accent);outline:none}
 .ex-note::placeholder,.set-row input.note::placeholder,.edit-set input.note::placeholder{color:var(--ink-3);opacity:1}
@@ -847,6 +857,11 @@ const BUILTIN_ROUTINES = [
 ];
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
+/* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
+const EX_CUES = {
+  'b-incline-dumbbell-pinky-press': 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkies touching. Press up only until the chest finishes the work, stopping short of lockout, where the triceps take over.',
+};
+BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 
 /* ============ Store ============ */
 const DEFAULT_SETTINGS = { unit: 'lb', bar: 45, inc: 5, goal: 4, rest: 120, restSS: 45, ssMode: 'each', autoRest: true, beep: true, countdown: true, excuse: true, bgAudio: false };
@@ -895,7 +910,7 @@ const r05 = n => Math.round(n * 2) / 2;
 /* Sets are logged in the unit the exercise used that day; stats read everything in the main unit. */
 const toMain = (sets, u) => (!u || u === U()) ? sets : sets.map(x => ({ ...x, w: r1(conv(+x.w || 0, u, U())) }));
 const slotUnit = ex => (S.meta.exUnit && S.meta.exUnit[ex]) || U();
-const isDone = x => num(x.r) > 0;
+const isDone = x => Math.round(num(x.r)) >= 1;
 const parseYmd = k => { const [y, m, d] = String(k).split('-').map(Number); return new Date(y, m - 1, d); };
 const EXCUSED = { sick: 1, injured: 1, break: 1 };
 const CATS = { chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Biceps', triceps: 'Triceps', legs: 'Legs', core: 'Core', cardio: 'Cardio', other: 'Other' };
@@ -1018,12 +1033,15 @@ function lastEntryOcc(exId, group, occ) {
   }
   return null;
 }
+/* A converted weight (225 lb → 102.06 kg) is rounded to the jump for that unit, so suggestions can actually be loaded */
+const roundToInc = (v, inc) => inc > 0 ? Math.round(v / inc) * inc : r05(v);
 function refill(it, occ) {
   if (occ === undefined) { const same = S.active ? S.active.items.filter(o => o.ex === it.ex && (o.group || '') === (it.group || '')) : []; occ = Math.max(0, same.indexOf(it)); }
   const prev = lastEntryOcc(it.ex, it.group || '', occ);
   const kind = exKind(it.ex); const u = it.u || U();
   const inc = u === U() ? +S.meta.settings.inc : (u === 'kg' ? 2.5 : 5);
-  it.prev = prev ? prev.sets.map(x => ({ w: r05(conv(+x.w || 0, U(), u)), r: x.r })) : null;
+  const rw = v => u === U() ? r05(v) : roundToInc(conv(v, U(), u), inc);
+  it.prev = prev ? prev.sets.map(x => ({ w: rw(+x.w || 0), r: x.r })) : null;
   it.prevNote = prev ? prev.note : '';
   const top = repTop(it.target.reps);
   const bump = !!(prev && top && kind !== 'bodyweight' && prev.sets.length >= (it.target.sets || 1) && prev.sets.every(x => +x.r >= top));
@@ -1154,6 +1172,14 @@ function restUsedInWeek(ch, k) {
 
 /* ============ Persistence: this device first, then the Claude account ============ */
 const LS = 'liftbook.v1';
+const SCHEMA = 2;  /* stored-data version; bump when the shape changes and add a step to migrateData */
+/* Older data is brought up to the current shape here, one version at a time */
+function migrateData(l) {
+  if (!l || typeof l !== 'object') return l;
+  let v = +l.schema || 1;
+  if (v < 2) { /* v1 → v2: timers stored alongside the active workout; nothing to convert */ v = 2; }
+  l.schema = v; return l;
+}
 /* If the saved data can't be read, keep the raw text (and a copy under its own key) and refuse to write over it:
    the first save after an empty start would otherwise erase the only copy. */
 let lsBroken = null, lsFull = false;
@@ -1168,7 +1194,7 @@ function lsLoad() {
 function lsSave() {
   if (lsBroken) return false;
   try {
-    localStorage.setItem(LS, JSON.stringify({ meta: S.meta, sessions: S.sessions, active: S.active, activeAt: S.activeAt, dirty: [...S.dirty] }));
+    localStorage.setItem(LS, JSON.stringify({ schema: SCHEMA, meta: S.meta, sessions: S.sessions, active: S.active, activeAt: S.activeAt, dirty: [...S.dirty], rest: S.rest || null, itimer: S.itimer || null }));
     if (lsFull) { lsFull = false; if (S.sync === 'full') S.sync = col ? 'pending' : 'local'; }
     return true;
   } catch (e) {
@@ -1184,6 +1210,14 @@ let col = null, flushing = false, flushTimer = null;
 /* Typing during a workout changes only the active workout; those saves wait 400 ms so each keystroke doesn't rewrite
    the whole database. Anything else saves at once, and a pending save is written before the app goes to the background. */
 let lsTimer = null;
+/* Another tab (desktop) saved: take its data unless a workout is being logged here */
+addEventListener('storage', e => {
+  if (e.key !== LS || !e.newValue || lsBroken) return;
+  if (S.active) { showToast({ kind: 'info', text: 'Ironwood is open in another tab. Finish here before using it there.', ms: 6000 }); return; }
+  const l = migrateData(lsLoad()); if (!l) return;
+  S.meta = normalizeMeta(l.meta); S.sessions = cleanSessions(l.sessions).sessions; S.active = l.active && typeof l.active === 'object' ? l.active : null; S.activeAt = l.activeAt || 0;
+  migrateExIds(S); S.ver++; S.rerender();
+});
 function lsFlush() { if (lsTimer) { clearTimeout(lsTimer); lsTimer = null; lsSave(); } }
 addEventListener('pagehide', lsFlush);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') lsFlush(); });
@@ -1513,7 +1547,7 @@ function WoClock({ since }) {
   const el = Math.max(0, Math.floor((Date.now() - since) / 1000));
   return html`<div class="wo-clock" role="timer" aria-label="Elapsed time">${clock(el)}</div>`;
 }
-function showToast(t) { const ms = t.ms || 3500; S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
+function showToast(t) { const ms = t.ms || (t.action ? 8000 : 3500); S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
 let SUPPRESS = 0;
 const SW = { open: null };
 
@@ -1557,7 +1591,7 @@ function copySet(it, s) { const j = it.sets.indexOf(s); it.sets.splice(j + 1, 0,
 function deleteSet(it, s) {
   const j = it.sets.indexOf(s); if (j < 0) return;
   it.sets.splice(j, 1); SW.open = null; touch();
-  showToast({ kind: 'info', ms: 5000, text: 'Set ' + (j + 1) + ' deleted', action: 'Undo', fn: () => { if (!it.sets.includes(s)) { it.sets.splice(Math.min(j, it.sets.length), 0, s); touch(); } } });
+  showToast({ kind: 'info', ms: 8000, text: 'Set ' + (j + 1) + ' deleted', action: 'Undo', fn: () => { if (!it.sets.includes(s)) { it.sets.splice(Math.min(j, it.sets.length), 0, s); touch(); } } });
 }
 function startRest(it) {
   const st = S.meta.settings; if (!st.autoRest || !S.active) return;
@@ -1578,8 +1612,9 @@ function offerBgAudio() {
 }
 function toggleUnit(it) {
   const from = it.u || U(), to = from === 'kg' ? 'lb' : 'kg';
-  it.sets.forEach(x => { if (String(x.w).trim()) x.w = String(r1(conv(num(x.w), from, to))); if (String(x.gw || '').trim()) x.gw = String(r05(conv(num(x.gw), from, to))); });
-  if (it.prev) it.prev = it.prev.map(p => ({ ...p, w: r05(conv(+p.w || 0, from, to)) }));
+  const incTo = to === U() ? +S.meta.settings.inc : (to === 'kg' ? 2.5 : 5);
+  it.sets.forEach(x => { if (String(x.w).trim()) x.w = String(r1(conv(num(x.w), from, to))); if (String(x.gw || '').trim()) x.gw = String(roundToInc(conv(num(x.gw), from, to), incTo)); });
+  if (it.prev) it.prev = it.prev.map(p => ({ ...p, w: roundToInc(conv(+p.w || 0, from, to), incTo) }));
   it.u = to;
   commit(st => { if (to === U()) delete st.meta.exUnit[it.ex]; else st.meta.exUnit[it.ex] = to; }, 'meta', 1200);
   touch();
@@ -1595,7 +1630,7 @@ function finishWorkout(opts = {}) {
     return;
   }
   const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
-    sets: it.sets.filter(isDone).map(x => { const o = { w: num(x.w || x.gw), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; return o; }) })).filter(it => it.sets.length);
+    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
@@ -1682,7 +1717,7 @@ function TrainHome() {
   const pickBtn = (label, cls) => html`<button class=${cls || 'btn primary wide'} onClick=${() => openSheet({ type: 'program' })}>${label}</button>`;
   return html`<div class="today">
     <div class="eyebrow" style="margin-top:4px">${DOW_FULL[now.getDay()]} · ${MON[now.getMonth()]} ${now.getDate()}</div>
-    <div class="section-h" style="margin-top:14px"><h2>This week</h2><span class="aside num">${weekTxt}</span></div>
+    <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
@@ -2000,8 +2035,25 @@ function ActiveWorkout() {
       <button class="btn text danger wide" onClick=${() => openSheet({ type: 'confirm', title: 'Discard this workout?', body: 'Nothing from this session will be saved.', ok: 'Discard', danger: true, onOk: () => { commit(st => { st.active = null; st.rest = null; }, 'active', 300); closeSheet(); } })}>Discard workout</button>
     </div></div>`;
 }
+/* Steppers under the set being edited: weight moves by the weight jump, reps by one; press and hold to repeat.
+   Pointer-down is cancelled on the strip so the field keeps focus and the keyboard stays up. */
+function StepStrip({ it, s, field, kind }) {
+  const u = it.u || U(); const inc = field === 'w' ? (u === U() ? +S.meta.settings.inc || 5 : (u === 'kg' ? 2.5 : 5)) : 1;
+  const cur = () => num(field === 'w' ? (String(s.w).trim() ? s.w : s.gw) : (String(s.r).trim() ? s.r : s.gr));
+  const apply = v => { if (field === 'w') s.w = String(r1(Math.max(0, v))); else s.r = String(Math.max(0, Math.round(v))); touch(); if (field === 'r') afterEdit(it, s); };
+  const hold = useRef(null);
+  const start = (e, dir) => { e.preventDefault(); e.stopPropagation(); apply(cur() + dir * inc); clearTimeout(hold.current); clearInterval(hold.current);
+    hold.current = setTimeout(() => { hold.current = setInterval(() => apply(cur() + dir * inc), 110); }, 420); };
+  const stop = () => { clearTimeout(hold.current); clearInterval(hold.current); hold.current = null; };
+  useEffect(() => stop, []);
+  const btn = (dir, label) => html`<button type="button" tabindex="-1" aria-label=${(dir > 0 ? 'Add ' : 'Subtract ') + inc + (field === 'w' ? ' ' + u : ' rep' + (inc === 1 ? '' : 's'))} onPointerDown=${e => start(e, dir)} onPointerUp=${stop} onPointerCancel=${stop} onPointerLeave=${stop} onContextMenu=${e => e.preventDefault()}>${label}</button>`;
+  const shown = field === 'w' ? fmt(cur()) + ' ' + (kind === 'assisted' ? 'assist' : u) : Math.round(cur()) + ' reps';
+  return html`<div class="step-strip" onPointerDown=${e => e.preventDefault()}>${btn(-1, '−' + fmt(inc))}<span class="step-val num">${shown}</span>${btn(1, '+' + fmt(inc))}
+    ${field === 'w' && s.gw && String(s.w).trim() && num(s.w) !== num(s.gw) ? html`<button type="button" tabindex="-1" class="step-last" onPointerDown=${e => { e.preventDefault(); apply(num(s.gw)); }}>Last ${fmt(num(s.gw))}</button>` : null}</div>`;
+}
 function SetRow({ it, s, j, kind }) {
   if (!s.id) s.id = uid('t');
+  const [foc, setFoc] = useState(null);
   const key = s.id; const ref = useRef(null); const wrap = useRef(null); const drag = useRef(null); const ulR = useRef(null); const urR = useRef(null);
   const [ne, setNe] = useState(false); const noteRef = useRef(null);
   useEffect(() => { if (ne && noteRef.current) noteRef.current.focus(); }, [ne]);
@@ -2048,11 +2100,11 @@ function SetRow({ it, s, j, kind }) {
     <div ref=${ref} class=${'set-row' + (done ? ' done' : '')} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${cancel} onClickCapture=${clickCap}>
       <span class=${'n' + (s.pr && done ? ' pr' : '')} title=${s.pr && done ? 'Personal record' : null}>${j + 1}</span>
       <input id=${'w-' + s.id} type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value=${s.w} placeholder=${s.gw || (kind === 'bodyweight' ? '0' : '–')} aria-label=${'Set ' + (j + 1) + ' ' + wLbl}
-        onFocus=${selAll} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
+        onFocus=${e => { selAll(e); setFoc('w'); }} onBlur=${() => setFoc(f => f === 'w' ? null : f)} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
-        onFocus=${selAll} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
+        onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       ${noteCell}
-    </div></div>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note">${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div>${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note">${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -2119,7 +2171,8 @@ function IntervalMini() {
 }
 function Toast() {
   const t = S.toast; if (!t || Date.now() > t.until) return null;
-  return html`<div class=${'toast ' + (t.kind || 'info')} role="status">${t.kind === 'pr' ? I.plate : null}<span>${t.text}</span>${t.action ? html`<button onClick=${() => { const f = t.fn; S.toast = null; if (f) f(); S.rerender(); }}>${t.action}</button>` : null}</div>`;
+  const hold = () => { if (S.toast === t) t.until = Math.max(t.until, Date.now() + 6000); };
+  return html`<div class=${'toast ' + (t.kind || 'info')} role="status" onPointerEnter=${hold} onPointerDown=${hold} onFocusIn=${hold}>${t.kind === 'pr' ? I.plate : null}<span>${t.text}</span>${t.action ? html`<button onClick=${() => { const f = t.fn; S.toast = null; if (f) f(); S.rerender(); }}>${t.action}</button>` : null}</div>`;
 }
 /* ---------- LOG ---------- */
 function LogScreen() {
@@ -2581,7 +2634,7 @@ function switchMainUnit(u) {
     st.unit = u;
   }, keys);
 }
-const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
+const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
 const markBackedUp = () => { lsSet('lastBackup', String(Date.now())); S.rerender(); };
 async function saveBackupFile() {
   const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null;
@@ -2638,7 +2691,7 @@ function ProfileScreen() {
   };
   const copyBackup = async () => { try { await navigator.clipboard.writeText(backup()); markBackedUp(); setMsg('Backup copied.'); } catch (e) { setMsg('Copy is blocked in this view. Use Save backup file.'); } };
   const restField = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="numeric" value=${st[k]} onChange=${e => { const v = e.target.value.trim(); set(k, v === '' ? DEFAULT_SETTINGS[k] : Math.min(900, Math.max(0, Math.round(num(v))))); }}/></div>`;
-  const field = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="decimal" value=${st[k]} onChange=${e => set(k, num(e.target.value) || DEFAULT_SETTINGS[k])}/></div>`;
+  const field = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="decimal" value=${st[k]} onChange=${e => set(k, Math.abs(num(e.target.value)) || DEFAULT_SETTINGS[k])}/></div>`;
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span>${sub ? html`<span class="d">${sub}</span>` : null}</span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${!!st[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   const exR = Object.entries(S.meta.exRest || {});
   return html`<div class="stack" style="gap:12px">
@@ -2687,7 +2740,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6c7e0dc</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version cd3c2a1</p></div>
     <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
     <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
   </div>`;
@@ -2768,7 +2821,7 @@ function buildPhases(c) {
 }
 function tElapsed(T) { const now = Date.now(); return (now - T.startedAt - T.pausedTotal - (T.pausedAt ? now - T.pausedAt : 0)) / 1000; }
 function tLocate(T) { const el = tElapsed(T); let acc = 0; for (let i = 0; i < T.phases.length; i++) { const p = T.phases[i]; if (el < acc + p.secs) return { idx: i, phase: p, into: el - acc, left: acc + p.secs - el, el }; acc += p.secs; } return null; }
-function startInterval(cfg) { const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); S.rerender(); }
+function startInterval(cfg) { const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); lsSave(); S.rerender(); }
 function tPause(T) { if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; } else T.pausedAt = Date.now(); bgTimer(); S.rerender(); }
 function tSkip(T) { const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; bgTimer(); S.rerender(); }
 function tBack(T) { const p = tLocate(T); if (!p) return; const back = p.into > 2 || p.idx === 0 ? p.into : p.into + T.phases[p.idx - 1].secs; T.startedAt += back * 1000; T.beeped = {}; bgTimer(); S.rerender(); }
@@ -2814,7 +2867,7 @@ function TimerEdit({ cfg, setCfg }) {
   </div>`;
 }
 function TimerRun({ T }) {
-  const c = T.cfg; const stop = () => { S.itimer = null; bgStop(); S.rerender(); };
+  const c = T.cfg; const stop = () => { S.itimer = null; bgStop(); lsSave(); S.rerender(); };
   if (c.mode === 'stopwatch') {
     const el = tElapsed(T);
     return html`<div><div class=${'tm-card stop' + (T.pausedAt ? ' paused' : '')} role="timer"><div class="tm-phase">${T.pausedAt ? 'Paused' : 'Stopwatch'}</div><div class="tm-big">${clockT(el)}</div><div class="tm-sub">${T.laps.length} lap${T.laps.length === 1 ? '' : 's'}</div></div>
@@ -3040,7 +3093,7 @@ function restoreInto(st, d) {
     const deleted = [...new Set([...(m.deleted || []), ...(st.meta.deleted || [])])];
     st.meta = { ...m, deleted };
   } else {
-    Object.assign(st.meta.exercises, m.exercises || {});
+    for (const [k, e] of Object.entries(m.exercises || {})) if (!st.meta.exercises[k]) st.meta.exercises[k] = e;  /* never overwrite an exercise renamed here */
     for (const [k, r] of Object.entries(m.routines || {})) if (!st.meta.routines[k]) st.meta.routines[k] = r;
     for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
@@ -3297,7 +3350,8 @@ function SlotSheet({ it }) {
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
     ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
     ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
-    <button class="opt" style="color:var(--stop)" onClick=${() => { a.items.splice(idx, 1); closeSheet(); touch(); }}>${I.trash}<div>Remove from this workout</div></button>
+    <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; a.items.splice(idx, 1); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
+      showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
     ${alsoBox}
   <//>`;
 }
@@ -3341,7 +3395,7 @@ function ActivitySheet({ id, day }) {
   const pick = k => { setAct(k); if (!dist) setDu(actUnit(k)); };
   const save = () => {
     const m = Math.max(0, Math.round(num(dur))); let start;
-    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) start = Date.now() - Math.max(m, 1) * 60000; else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
+    if (s0 && ymd(s0.startedAt) === d) start = s0.startedAt; else if (d === today) { const d0 = new Date(); d0.setHours(0, 0, 0, 0); start = Math.max(+d0 + 60000, Date.now() - Math.max(m, 1) * 60000); }  /* a run finished just after midnight stays on today */ else { const x = parseYmd(d); x.setHours(12, 0, 0, 0); start = +x; }
     const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : info[1], startedAt: start, endedAt: start + Math.max(m, 1) * 60000,
       updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
     commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });
@@ -3368,9 +3422,10 @@ function SessionSheet({ id }) {
   if (s0.kind === 'activity') return html`<${ActivitySheet} id=${id}/>`;
   const s = edit || s0;
   const mins = Math.max(1, Math.round(((s.endedAt || s.startedAt) - s.startedAt) / 60000));
-  const save = () => { edit.items.forEach(it => { it.note = (it.note || '').trim(); it.sets = it.sets.map(x => { const o = { w: num(x.w), r: Math.round(num(x.r)) }; if (x.n && String(x.n).trim()) o.n = String(x.n).trim(); return o; }).filter(x => x.r > 0); }); edit.items = edit.items.filter(it => it.sets.length);
+  const save = () => { edit.items.forEach(it => { it.note = (it.note || '').trim(); it.sets = it.sets.map(x => { const o = { w: Math.max(0, num(x.w)), r: Math.round(num(x.r)) }; if (x.n && String(x.n).trim()) o.n = String(x.n).trim(); if (x.p) o.p = x.p; return o; }).filter(x => x.r > 0); }); edit.items = edit.items.filter(it => it.sets.length);
     edit.updatedAt = Date.now(); const e = clone(edit); commit(st => { st.sessions[id] = e; }, 's_' + id); commit(st => { st.sessions[id].prs = detectPRs(st.sessions[id]); }, 's_' + id); setEdit(null); };
-  const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
+  const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
+    showToast({ kind: 'info', ms: 8000, text: 'Workout deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label="Workout details"><div class="eyebrow">${shortDate(s.startedAt)} · ${mins} min${s.routineName ? ' · ' + s.routineName : ''}</div><h2>${s.name}</h2>
     ${s.items.map((it, i) => { const kind = exKind(it.ex); const u = it.u || U(); return html`<div key=${i} class="ex-block"><div class="row"><h3 style="flex:1">${exName(it.ex)}</h3>${groupChip(it.group)}</div>
       ${edit ? html`<input class="ex-note" id=${'een-' + i} value=${it.note || ''} placeholder="Exercise note" aria-label="Exercise note" onInput=${e => { it.note = e.target.value; }}/>` : it.note ? html`<p class="small muted" style="margin-top:4px">${it.note}</p>` : null}
@@ -3416,6 +3471,7 @@ function RestoreSheet() {
       catch (e) { setErr('Couldn’t save the photos on this device.'); } finally { setBusy(false); } return;
     }
     if (!d || d.app !== 'liftbook' || !d.meta || typeof d.meta !== 'object') { setErr('That file isn’t an Ironwood backup.'); return; }
+    if (+d.schema > SCHEMA) { setErr('That backup is from a newer version of Ironwood. Update the app, then restore it.'); return; }
     if (d.sessions != null && (typeof d.sessions !== 'object' || Array.isArray(d.sessions))) { setErr('That backup is damaged: its workouts can’t be read.'); return; }
     let r; commit(st => { r = restoreInto(st, d); }, 'meta');
     schedule(r.keys); S.ver++; applyDisplay && applyDisplay(); S.rerender(); closeSheet();
@@ -3536,8 +3592,10 @@ function CrashScreen({ err, retry }) {
   </div></main>`;
 }
 (function boot() {
-  const l = lsLoad();
-  if (l) { S.meta = normalizeMeta(l.meta); S.sessions = cleanSessions(l.sessions).sessions; S.active = l.active && typeof l.active === 'object' ? l.active : null; S.activeAt = l.activeAt || 0; S.dirty = new Set(Array.isArray(l.dirty) ? l.dirty : []); }
+  const l = migrateData(lsLoad());
+  if (l) { S.meta = normalizeMeta(l.meta);
+    if (l.rest && typeof l.rest === 'object' && +l.rest.until > Date.now()) S.rest = l.rest;
+    if (l.itimer && typeof l.itimer === 'object' && l.itimer.cfg && Array.isArray(l.itimer.phases)) S.itimer = l.itimer; S.sessions = cleanSessions(l.sessions).sessions; S.active = l.active && typeof l.active === 'object' ? l.active : null; S.activeAt = l.activeAt || 0; S.dirty = new Set(Array.isArray(l.dirty) ? l.dirty : []); }
   if (window.claude && window.claude.standalone) S.dirty = new Set();
   migrateExIds(S);
   applyDisplay(); l10nLoad();

@@ -6,6 +6,7 @@
 - Portrait only, dark appearance, dark launch screen, app icon (1024 px, opaque).
 - Camera and save-to-Photos permission messages in Info.plist.
 - `ITSAppUsesNonExemptEncryption = NO`, so App Store Connect won't ask about encryption on every build.
+- `PrivacyInfo.xcprivacy` (Oct 11): no tracking, no collected data, UserDefaults declared with reason CA92.1. Added to the Resources build phase; check it shows under App in Xcode.
 - The web app inside is the same build as the home-screen version (`../dist`). `sync.sh` copies the latest build in.
 
 ## Not tested

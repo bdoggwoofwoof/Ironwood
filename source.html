@@ -505,23 +505,23 @@ function parseProgram(text) {
 const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus (N)
 3x Decline Chest Press
-3x Incline Dumbbell Pinky Press
+3x Incline Reverse-Grip Squeeze Press
 3x x Hybrid Curls
 3x Cable Fly
 3x x Tricep Pushdowns
 3x Cable Crunch
-3x Russian Behind-the-Back Cable Flies
+3x Behind-the-Back Cable Fly
 Day 2 - Back / Rear Delts (N)
 3x Bent-Over Barbell Rows
 3x Lat Pulldown
 3x x Cuban Press
-4x Russian Behind-the-Back Cable Flies
+4x Behind-the-Back Cable Fly
 3x x Hybrid Curls
 3x Scapular Shrugs
 3x Cable Crunch
 Day 3 - Shoulders / Tris (N)
 3x Overhead Barbell Press
-3x Russian Behind-the-Back Cable Flies
+3x Behind-the-Back Cable Fly
 3x x Tricep Pushdowns
 3x Face Pulls
 3x x Overhead Cable Tricep Extension
@@ -572,7 +572,11 @@ function cleanSession(k, s) {
   return o;
 }
 /* Built-in exercises that were renamed: old ids in saved data point at the new exercise, so history carries over */
-const EX_RENAMED = { 'b-russian-tits-to-l-stretch': 'b-incline-dumbbell-pinky-press' };
+const EX_RENAMED = {
+  'b-russian-tits-to-l-stretch': 'b-incline-reverse-grip-squeeze-press', 'b-incline-dumbbell-pinky-press': 'b-incline-reverse-grip-squeeze-press',
+  'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-fly', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
+  'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
+  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
 const exIdNow = id => EX_RENAMED[id] || id;
 function migrateExIds(st) {
   const keys = Object.keys(EX_RENAMED); if (!keys.length) return;

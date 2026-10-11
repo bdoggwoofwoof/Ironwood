@@ -101,8 +101,8 @@ swap('</body></html>', BOOT)
 
 
 # 4b. About section in Profile: privacy policy and support pages (copied into the site below)
-swap('<div class="section-h"><h2>Nutrition</h2>',
-     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>\n    <div class="section-h"><h2>Nutrition</h2>')
+swap('<div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>\n    <div class="card note">Meal logging will live here once lifting tracking is settled.</div>',
+     '<div class="section-h"><h2>About</h2></div>\n    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>')
 
 os.makedirs(OUT, exist_ok=True)
 import shutil

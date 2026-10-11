@@ -234,16 +234,16 @@ function TourOverlay() {
     </div></div>`;
 }
 function FeedbackSheet() {
-  const [text, setText] = useState(''); const [tech, setTech] = useState(true); const [msg, setMsg] = useState('');
+  const [text, setText] = useState(''); const [tech, setTech] = useState(false); const [msg, setMsg] = useState('');
   const details = () => ['Ironwood ' + (window.claude && window.claude.standalone ? 'home-screen app' : 'Claude version'), 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + '×' + innerHeight,
     'Saved: ' + S.sync, ERRS.length ? 'Recent errors:\n- ' + ERRS.join('\n- ') : 'Recent errors: none'].join('\n');
   const body = () => text.trim() + (tech ? '\n\n---\n' + details() : '');
   const url = () => SUPPORT + '/new?title=' + encodeURIComponent('Feedback: ' + (text.trim().split('\n')[0].slice(0, 60) || 'Ironwood')) + '&body=' + encodeURIComponent(body().slice(0, 6000));
   const copy = async () => { try { await navigator.clipboard.writeText(body()); setMsg('Copied. Paste it wherever you like.'); } catch (e) { setMsg('Copy is blocked here. Use the button above.'); } };
   return html`<${Sheet} label="Send feedback"><h2>Send feedback</h2>
-    <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. No workouts or personal data are included.</p>
+    <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. It posts as a public issue on the Ironwood support page; no workouts or personal data are included.</p>
     <div class="stack"><textarea class="field" id="fb-text" style="min-height:120px;font-family:var(--body);font-size:16px" placeholder="What happened? What did you expect?" value=${text} onInput=${e => setText(e.target.value)}></textarea>
-      <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device and recent errors</label>
+      <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device model and recent error messages (helps with bugs; visible on the public issue)</label>
       ${tech ? html`<pre class="fb-details">${details()}</pre>` : null}
       <a class=${'btn primary wide' + (text.trim() ? '' : ' disabled')} id="fb-send" href=${text.trim() ? url() : null} target="_blank" rel="noopener" aria-disabled=${!text.trim()}>Send on the support page</a>
       <p class="small faint">Opens the Ironwood support page on GitHub (a free account is needed to post).</p>

@@ -19,8 +19,8 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(800); await pg.evaluate(SEED); await pg.reload(); await pg.wait_for_timeout(1500)
         # renamed built-in exercise: old id migrated everywhere
         st = await pg.evaluate("JSON.parse(localStorage.getItem('liftbook.v1'))") if await pg.evaluate("S.sessions.s0.items[0].ex") else None
-        check('renamed exercise id migrated in history and settings', await pg.evaluate("S.sessions.s0.items[0].ex === 'b-incline-dumbbell-pinky-press' && S.meta.exRest['b-incline-dumbbell-pinky-press'] === 90 && !('b-russian-tits-to-l-stretch' in S.meta.exRest)"))
-        check('renamed exercise resolves to a name', await pg.evaluate("exName('b-incline-dumbbell-pinky-press')") == 'Incline Dumbbell Pinky Press', await pg.evaluate("exName('b-incline-dumbbell-pinky-press')"))
+        check('renamed exercise id migrated in history and settings', await pg.evaluate("S.sessions.s0.items[0].ex === 'b-incline-reverse-grip-squeeze-press' && S.meta.exRest['b-incline-reverse-grip-squeeze-press'] === 90 && !('b-russian-tits-to-l-stretch' in S.meta.exRest)"))
+        check('renamed exercise resolves to a name', await pg.evaluate("exName('b-incline-reverse-grip-squeeze-press')") == 'Incline Reverse-Grip Squeeze Press', await pg.evaluate("exName('b-incline-reverse-grip-squeeze-press')"))
         # History: 30 at a time
         await pg.locator('.tab', has_text='Train').click(); await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(500)
         check('History shows 30 then a Show more button', await pg.locator('.log-item').count() == 30 and await pg.locator('#log-more').count() == 1, await pg.locator('.log-item').count())

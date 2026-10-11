@@ -494,7 +494,7 @@ function parseProgram(text) {
 const BUILTIN_EX = {};
 const NEWT_TEXT = `Day 1 - Chest Focus (N)
 3x Decline Chest Press
-3x Russian Tits to L Stretch
+3x Incline Dumbbell Pinky Press
 3x x Hybrid Curls
 3x Cable Fly
 3x x Tricep Pushdowns
@@ -555,10 +555,21 @@ function cleanSession(k, s) {
   if (!isFinite(t) || t <= 0) return null;
   const o = { ...s, id: typeof s.id === 'string' && s.id ? s.id : String(k), startedAt: +s.startedAt || t };
   if (!isFinite(+o.endedAt)) o.endedAt = o.startedAt;
-  o.items = (Array.isArray(s.items) ? s.items : []).filter(it => it && typeof it.ex === 'string').map(it => ({ ...it,
+  o.items = (Array.isArray(s.items) ? s.items : []).filter(it => it && typeof it.ex === 'string').map(it => ({ ...it, ex: exIdNow(it.ex),
     sets: (Array.isArray(it.sets) ? it.sets : []).filter(x => x && typeof x === 'object' && isFinite(+x.w) && isFinite(+x.r)).map(x => ({ ...x, w: +x.w, r: Math.round(+x.r) })) }));
   if (!Array.isArray(o.prs)) o.prs = [];
   return o;
+}
+/* Built-in exercises that were renamed: old ids in saved data point at the new exercise, so history carries over */
+const EX_RENAMED = { 'b-russian-tits-to-l-stretch': 'b-incline-dumbbell-pinky-press' };
+const exIdNow = id => EX_RENAMED[id] || id;
+function migrateExIds(st) {
+  const keys = Object.keys(EX_RENAMED); if (!keys.length) return;
+  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; };
+  for (const s of Object.values(st.sessions || {})) (s.items || []).forEach(fix);
+  if (st.active) (st.active.items || []).forEach(fix);
+  for (const r of Object.values(st.meta.routines || {})) for (const d of r.days || []) (d.items || []).forEach(fix);
+  for (const f of ['exUnit', 'exRest', 'exCat']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o && !(b in o)) { o[b] = o[a]; delete o[a]; } }
 }
 function cleanSessions(obj) {
   const out = {}; let skipped = 0;
@@ -861,10 +872,17 @@ function lsSave() {
 const lsGet = k => { try { return localStorage.getItem('liftbook.' + k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem('liftbook.' + k, v); } catch (e) {} };
 let col = null, flushing = false, flushTimer = null;
+/* Typing during a workout changes only the active workout; those saves wait 400 ms so each keystroke doesn't rewrite
+   the whole database. Anything else saves at once, and a pending save is written before the app goes to the background. */
+let lsTimer = null;
+function lsFlush() { if (lsTimer) { clearTimeout(lsTimer); lsTimer = null; lsSave(); } }
+addEventListener('pagehide', lsFlush);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') lsFlush(); });
 function schedule(keys, delay = 700) {
   const standalone = !!(window.claude && window.claude.standalone);
   for (const k of [].concat(keys)) { if (!standalone) S.dirty.add(k); if (k === 'active') S.activeAt = Date.now(); }
-  lsSave();
+  if ([].concat(keys).every(k => k === 'active')) { clearTimeout(lsTimer); lsTimer = setTimeout(() => { lsTimer = null; lsSave(); }, 400); }
+  else { clearTimeout(lsTimer); lsTimer = null; lsSave(); }
   if (!col) return;
   if (S.sync === 'synced') S.sync = 'pending';
   clearTimeout(flushTimer); flushTimer = setTimeout(flush, delay);
@@ -1179,6 +1197,13 @@ async function wakeSync() {
 }
 document.addEventListener('visibilitychange', () => { wakeSync(); });
 function useWake() { useEffect(() => { WAKE.hold++; wakeSync(); return () => { WAKE.hold--; wakeSync(); }; }, []); }
+/* The elapsed clock ticks on its own, so the set rows aren't redrawn every second */
+function WoClock({ since }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const iv = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(iv); }, []);
+  const el = Math.max(0, Math.floor((Date.now() - since) / 1000));
+  return html`<div class="wo-clock" role="timer" aria-label="Elapsed time">${clock(el)}</div>`;
+}
 function showToast(t) { const ms = t.ms || 3500; S.toast = { ...t, until: Date.now() + ms }; S.rerender(); setTimeout(() => S.rerender(), ms + 60); }
 let SUPPRESS = 0;
 const SW = { open: null };
@@ -1250,13 +1275,21 @@ function toggleUnit(it) {
   commit(st => { if (to === U()) delete st.meta.exUnit[it.ex]; else st.meta.exUnit[it.ex] = to; }, 'meta', 1200);
   touch();
 }
-function finishWorkout() {
+const timeOfDay = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function finishWorkout(opts = {}) {
   const a = S.active; if (!a) return;
+  /* A workout left open for hours (phone pocketed, forgotten overnight) shouldn't be saved as a 14-hour session */
+  const lastSet = Math.max(0, ...a.items.flatMap(it => it.sets.filter(isDone).map(x => +x.c || 0)));
+  if (!opts.endedAt && lastSet && Date.now() - lastSet > 3 * 3600e3) {
+    const when = Date.now() - lastSet > DAY ? shortDate(lastSet) + ' ' + timeOfDay(lastSet) : timeOfDay(lastSet);
+    openSheet({ type: 'confirm', title: 'Finished a while ago?', body: 'The last set was logged at ' + when + '. Save the workout as ending then, so its time isn’t counted up to now?', ok: 'End at ' + when, onOk: () => { closeSheet(); finishWorkout({ endedAt: lastSet + 60000 }); }, alt: 'End now', onAlt: () => { closeSheet(); finishWorkout({ endedAt: Date.now() }); } });
+    return;
+  }
   const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
     sets: it.sets.filter(isDone).map(x => { const o = { w: num(x.w || x.gw), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
-  const now = Date.now();
-  const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: now, updatedAt: now, items, prs: [] };
+  const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
+  const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
   session.prs = detectPRs(session);
   commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);
   openSheet({ type: 'summary', id: session.id });
@@ -1317,13 +1350,11 @@ function TrainHome() {
   </div>`;
 }
 function ActiveWorkout() {
-  const a = S.active; const [, tick] = useState(0);
+  const a = S.active;
   useWake();
-  useEffect(() => { const iv = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(iv); }, []);
-  const el = Math.max(0, Math.floor((Date.now() - a.startedAt) / 1000));
   const total = a.items.reduce((n, it) => n + it.sets.length, 0), done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   return html`<div>
-    <div class="wo-head"><div style="min-width:0"><div class="eyebrow">${a.routineName || 'Workout'}</div><h2 class="wo-title">${a.name}</h2></div><div class="wo-clock" aria-label="Elapsed time">${clock(el)}</div></div>
+    <div class="wo-head"><div style="min-width:0"><div class="eyebrow">${a.routineName || 'Workout'}</div><h2 class="wo-title">${a.name}</h2></div><${WoClock} since=${a.startedAt}/></div>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax=${total} aria-valuenow=${done}><div style=${{ width: (total ? done / total * 100 : 0) + '%' }}></div></div>
     <div class="small muted num" style="margin-top:6px">${done} of ${total} sets done</div>
     ${lsGet('swiped') !== '1' ? html`<p class="swipe-hint">Swipe a set right to log it as shown. Swipe part way for Complete or Copy, or left to delete. Typing the reps logs it too.</p>` : null}
@@ -1459,7 +1490,8 @@ function Toast() {
 }
 /* ---------- LOG ---------- */
 function LogScreen() {
-  const list = sessionList().slice().reverse();
+  const all = sessionList().slice().reverse(); const [shown, setShown] = useState(30);
+  const list = all.slice(0, shown);  /* 30 at a time: years of history shouldn't build thousands of rows at once */
   if (!list.length) return html`<div class="empty"><h3>No workouts yet</h3><p>Finished workouts show up here with your best set for each exercise.</p></div>`;
   let lastMonth = '';
   return html`<div>${list.map(s => { const d = new Date(s.startedAt); const mk = MON[d.getMonth()] + ' ' + d.getFullYear(); const head = mk !== lastMonth ? (lastMonth = mk, html`<div class="month-h">${MON[d.getMonth()]} ${d.getFullYear()}</div>`) : null;
@@ -1469,7 +1501,8 @@ function LogScreen() {
       <div style="min-width:0"><div class="log-top"><h3>${s.name}</h3><span class="mins">${mins} min</span></div>
         <ul class="log-ex">${s.items.map((it, k) => html`<li key=${k}><span>${it.sets.length}× ${exName(it.ex)}${it.group ? ' · ' + it.group : ''}</span><span class="best">${bestSetLabel(it.sets, exKind(it.ex))}${it.u && it.u !== U() ? ' ' + it.u : ''}</span></li>`)}</ul>
         ${noE1(s.prs).length ? html`<div class="log-prs">${noE1(s.prs).slice(0, 3).map((p, k) => html`<span key=${k} class="pr-badge">${I.plate} ${p.label}</span>`)}${noE1(s.prs).length > 3 ? html`<span class="chip">+${noE1(s.prs).length - 3} more</span>` : null}</div>` : null}
-      </div></button>`; })}</div>`;
+      </div></button>`; })}
+    ${all.length > shown ? html`<button class="btn wide" style="margin-top:12px" id="log-more" onClick=${() => setShown(shown + 30)}>Show ${Math.min(30, all.length - shown)} more · ${all.length - shown} older</button>` : null}</div>`;
 }
 
 /* ---------- ROUTINES ---------- */
@@ -1821,6 +1854,23 @@ function ExerciseStats({ ex, group }) {
 
 /* ---------- PROFILE ---------- */
 const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
+/* Changing the main unit: older entries carry no unit stamp and mean "the main unit at the time", so they are stamped
+   with the old unit first (185 lb must not turn into 185 kg). Bar weight and weight jump only move to the new defaults
+   when they were still at the old defaults. */
+const UNIT_DEFAULTS = { lb: { bar: 45, inc: 5 }, kg: { bar: 20, inc: 2.5 } };
+function switchMainUnit(u) {
+  const from = S.meta.settings.unit; if (from === u || !UNIT_DEFAULTS[u]) return;
+  const keys = ['meta'];
+  commit(x => {
+    for (const [id, s] of Object.entries(x.sessions)) { let hit = false; for (const it of s.items || []) if (!it.u) { it.u = from; hit = true; } if (hit) { s.updatedAt = Date.now(); keys.push('s_' + id); } }
+    for (const b of x.meta.bw || []) if (!b.u) b.u = from;
+    if (x.active) { let hit = false; for (const it of x.active.items || []) if (!it.u) { it.u = from; hit = true; } if (hit) keys.push('active'); }
+    const st = x.meta.settings, d0 = UNIT_DEFAULTS[from] || {}, d1 = UNIT_DEFAULTS[u];
+    if (+st.bar === d0.bar) st.bar = d1.bar;
+    if (+st.inc === d0.inc) st.inc = d1.inc;
+    st.unit = u;
+  }, keys);
+}
 const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
 const markBackedUp = () => { lsSet('lastBackup', String(Date.now())); S.rerender(); };
 async function saveBackupFile() {
@@ -1879,7 +1929,7 @@ function ProfileScreen() {
     <${DisplayCard}/>
     <div class="section-h"><h2>Training</h2></div>
     <div class="card stack" style="gap:14px">
-      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => commit(x => { x.meta.settings.unit = u; x.meta.settings.bar = u === 'kg' ? 20 : 45; x.meta.settings.inc = u === 'kg' ? 2.5 : 5; }, 'meta')}>${u}</button>`)}</div>
+      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => switchMainUnit(u)}>${u}</button>`)}</div>
         <p class="note" style="margin-top:6px">Any exercise can switch between lb and kg during a workout by tapping the unit above its sets. Stats convert everything to your main unit.</p></div>
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
@@ -2558,9 +2608,9 @@ function RestoreSheet() {
       ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
       <button class="btn primary wide" disabled=${!text.trim()} onClick=${restore}>Restore</button></div><//>`;
 }
-function ConfirmSheet({ title, body, ok, danger, onOk }) {
+function ConfirmSheet({ title, body, ok, danger, onOk, alt, onAlt }) {
   return html`<${Sheet} label=${title}><h2>${title}</h2><p class="note" style="margin-bottom:14px">${body}</p>
-    <div class="stack"><button class=${'btn wide ' + (danger ? 'danger' : 'primary')} onClick=${onOk}>${ok}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+    <div class="stack"><button class=${'btn wide ' + (danger ? 'danger' : 'primary')} onClick=${onOk}>${ok}</button>${alt ? html`<button class="btn wide" onClick=${onAlt}>${alt}</button>` : null}<button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 function SheetHost({ sheet }) {
   if (!sheet) return null;
@@ -2663,6 +2713,7 @@ function CrashScreen({ err, retry }) {
   const l = lsLoad();
   if (l) { S.meta = normalizeMeta(l.meta); S.sessions = cleanSessions(l.sessions).sessions; S.active = l.active && typeof l.active === 'object' ? l.active : null; S.activeAt = l.activeAt || 0; S.dirty = new Set(Array.isArray(l.dirty) ? l.dirty : []); }
   if (window.claude && window.claude.standalone) S.dirty = new Set();
+  migrateExIds(S);
   applyDisplay(); l10nLoad();
   if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }
   render(html`<${Guard}><${App}/><//>`, document.getElementById('app'));

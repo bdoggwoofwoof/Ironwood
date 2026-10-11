@@ -39,11 +39,14 @@ PHOTO_FNS = r'''
 /* Photo backups: a separate file (photos are large), restored by Profile -> Restore. */
 const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
 const b64ToBlob = (s, type) => { const bin = atob(s); const a = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k); return new Blob([a], { type: type || 'image/jpeg' }); };
+/* The photos file is assembled from one part per photo, never as one huge string, so a few hundred photos don't
+   run the page out of memory. Same JSON shape as before: { app, version, exportedAt, photos: [...] }. */
 async function photoBackup() {
-  const all = (await pdbTx('readonly', st => st.getAll())) || []; const photos = [];
-  for (const p of all) { if (!p || !p.blob) continue; const { blob, ...rest } = p; photos.push({ ...rest, type: blob.type || 'image/jpeg', data: await blobToB64(blob) }); }
-  photos.sort((a, b) => (a.t || 0) - (b.t || 0));
-  return { app: 'liftbook-photos', version: 1, exportedAt: new Date().toISOString(), photos };
+  const all = ((await pdbTx('readonly', st => st.getAll())) || []).filter(p => p && p.blob).sort((a, b) => (a.t || 0) - (b.t || 0));
+  const parts = ['{"app":"liftbook-photos","version":1,"exportedAt":' + JSON.stringify(new Date().toISOString()) + ',"photos":[']; let n = 0;
+  for (const p of all) { const { blob, ...rest } = p; parts.push((n ? ',' : '') + JSON.stringify({ ...rest, type: blob.type || 'image/jpeg', data: await blobToB64(blob) })); n++; }
+  parts.push(']}');
+  return { count: n, blob: new Blob(parts, { type: 'application/json' }) };
 }
 async function photoRestore(d) {
   const have = new Set(); try { ((await pdbTx('readonly', st => st.getAllKeys())) || []).forEach(k => have.add(k)); } catch (e) {}
@@ -73,6 +76,7 @@ function restoreInto(st, d) {
   let added = 0;
   const cs = cleanSessions(d.sessions);
   for (const [k, s] of Object.entries(cs.sessions)) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
+  migrateExIds(st);
   return { keys, added, fresh, skipped: cs.skipped };
 }'''
 src = src[:j + 1] + PHOTO_FNS.lstrip('\n') + '\n' + src[j + 1:]
@@ -80,17 +84,17 @@ src = src[:j + 1] + PHOTO_FNS.lstrip('\n') + '\n' + src[j + 1:]
 # 3. Profile: photo backup button (two steps, so the save happens right on the tap)
 swap("  const copyBackup = async () => {",
      r'''  const [phb, setPhb] = useState(null);
-  const preparePhotos = async () => { setMsg('Gathering photos…'); try { const d = await photoBackup(); if (!d.photos.length) { setMsg('No progress photos to back up yet.'); return; } setPhb(d); setMsg(''); } catch (e) { setMsg('Couldn’t read the photos on this device.'); } };
+  const preparePhotos = async () => { setMsg('Gathering photos…'); try { const d = await photoBackup(); if (!d.count) { setMsg('No progress photos to back up yet.'); return; } setPhb(d); setMsg(''); } catch (e) { setMsg('Couldn’t read the photos on this device.'); } };
   const savePhotos = async () => {
-    const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null; const n = phb.photos.length;
+    const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null; const n = phb.count;
     if (!dl) { setMsg('Saving files isn’t available here.'); return; }
-    try { await dl.save({ filename: 'ironwood-photos-' + ymd(new Date()) + '.json', data: new Blob([JSON.stringify(phb)], { type: 'application/json' }) }); setMsg(n + ' photo' + (n === 1 ? '' : 's') + ' saved. Restore this file in Ironwood to bring them back.'); setPhb(null); }
+    try { await dl.save({ filename: 'ironwood-photos-' + ymd(new Date()) + '.json', data: phb.blob }); setMsg(n + ' photo' + (n === 1 ? '' : 's') + ' saved. Restore this file in Ironwood to bring them back.'); setPhb(null); }
     catch (e) { setMsg(e && e.code === 'declined' ? 'Photos backup not saved.' : 'Could not save the file here.'); }
   };
   const copyBackup = async () => {''')
 swap('''<button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>''',
      '''<button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>
-      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.photos.length} photo${phb.photos.length === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
+      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.count} photo${phb.count === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
       <p class="note">The backup file has workouts, routines and settings. Progress photos are large, so they go in their own file.</p>''')
 
 # 4. Restore sheet: either backup type, big files straight from the file picker
@@ -310,12 +314,12 @@ const MY_PLANS = [
   ['bi-core-1', 'Core 1', ['Core'], 'On a decline sit-up machine, use weights.', [['Kettlebell Around the World', 3], ['Weighted Decline Sit-Ups', 3], ['Hanging Leg Raise Holds', 3, '10', 'With a 5-second release'], ['Dumbbell/Cable Bends', 3, '12', 'Weight in one hand, then crunch the opposite direction']]],
   ['bi-core-2', 'Core 2', ['Core'], '', [['Kettlebell Around the World', 3], ['Plank Twists', 3, '15', 'Each side'], ['Plank Single Leg Up', 3, '15', 'Each leg. Like mountain climbers, but bringing the knee across the body'], ['Side Plank Crunches', 3, '20', 'Each side'], ['Plank Crunches', 3, '15'], ['Toe Touches', 3, '10'], ['Ankle Taps', 3, '20', 'Each side'], ['Knee Roll-Ups', 3]]],
   ['bi-core-3', 'Core 3', ['Core'], '', [['Kettlebell Around the World', 3, '20'], ['Russian Twists', 3, '20', 'Each side'], ['Scissor Kicks', 3, '20'], ['Scullers', 3, '30'], ['90-Degree Leg Lowers', 3, '10', 'Slow and controlled'], ['Bicycles', 3, '30', 'Each leg']]],
-  ['bi-sere-pyramid', 'SERE - Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Erg', 1, '', '20 min, 1 on / 1 off']]],
-  ['bi-sere-trot', 'SERE - Elephant Trot', ['Conditioning'], '', [['Run 400m', 3], ['Kettlebell Swing', 3, '', '45 lb'], ['Pull-Up', 3], ['100m Sprints', 10, '', 'Sprint 100 m at the top of every minute; rest for whatever is left of that minute']]],
-  ['bi-sere-buster', 'SERE - Buster', ['Conditioning'], '', [['Run 400m', 8, '', 'Under 1:50 each, rest 2:00'], ['Pull-Up', 5, '20'], ['Push-Ups', 5, '30'], ['Sit-Ups', 5, '40'], ['Air Squat', 5, '50']]],
-  ['bi-sere-swim', 'SERE - Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
-  ['bi-sere-burp', 'SERE - Burp', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
-  ['bi-sere-ruck', 'SERE - 4 Mile Ruck+', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
+  ['bi-sere-pyramid', 'Calisthenics Pyramid', ['Conditioning'], 'Multiply the round number by the number in each note. Round 1 (10): 10 pull-ups, 20 dips, 30 push-ups, 40 sit-ups, 50 squats. Round 2 (9): 9, 18, 27, 36, 45. And so on.', [['Pull-Up', 6, '', '1× the round number'], ['Dips', 6, '', '2× the round number'], ['Push-Ups', 6, '', '3× the round number'], ['Sit-Ups', 6, '', '4× the round number'], ['Air Squat', 6, '', '5× the round number'], ['Erg', 1, '', '20 min, 1 on / 1 off']]],
+  ['bi-sere-trot', 'Run & Swing Circuit', ['Conditioning'], '', [['Run 400m', 3], ['Kettlebell Swing', 3, '', '45 lb'], ['Pull-Up', 3], ['100m Sprints', 10, '', 'Sprint 100 m at the top of every minute; rest for whatever is left of that minute']]],
+  ['bi-sere-buster', '400m Repeats + Calisthenics', ['Conditioning'], '', [['Run 400m', 8, '', 'Under 1:50 each, rest 2:00'], ['Pull-Up', 5, '20'], ['Push-Ups', 5, '30'], ['Sit-Ups', 5, '40'], ['Air Squat', 5, '50']]],
+  ['bi-sere-swim', 'Swim AMRAP', ['Conditioning'], '30-minute cap.', [['50m Swim', 10], ['Push-Ups', 10, '10'], ['Air Squat', 10, '15']]],
+  ['bi-sere-burp', 'Burpee Grinder', ['Conditioning'], 'Split it however you want.', [['Run 4 Miles', 1, '', 'Under 31:30'], ['Pull-Up', 1, '50'], ['Burpees', 1, '100'], ['Wall Ball', 1, '50']]],
+  ['bi-sere-ruck', '4-Mile Ruck + Calisthenics', ['Conditioning'], '', [['Ruck 4 Miles', 1, '', 'Under 60 min at 55 lb'], ['Push-Ups', 5, '', '50-40-30-20-10'], ['Sit-Ups', 5, '', '50-40-30-20-10'], ['Kettlebell Swing', 5, '', '50-40-30-20-10']]],
   ['bi-lifter-mobility', "Lifter's Mobility", ['Mobility'], '3–5 sessions a week. Keep it easy: about a 6 out of 10 effort.', [['Knee-to-Wall Ankle Dorsiflexion', 3, '', '3 min'], ['Banded Ankle Distractions', 3, '', '20 s each set'], ['Slant Board Calf Stretch', 3, '', '20 s each set'], ['Seated Tibialis Raise', 3, '15'], ['90/90 Hip Rotations', 3, '8'], ['Pigeon Stretch with Thoracic Rotation', 3, '6'], ['Hip Airplanes', 3, '6'], ['Quadruped T-Spine Rotations', 3, '8'], ['Hanging Lat Stretch', 3, '', '20 s each set'], ['Banded Shoulder Dislocates', 3, '10'], ['Banded Terminal Knee Extensions', 3, '15'], ['Peterson Step-Ups', 3, '12'], ['Weighted Wrist Extension', 3, '10'], ['Floor Wrist Stretch', 3, '', '20 s each set'], ['Dead Bug', 3, '', '20 s each set'], ['Side Plank Rotations', 3, '', '20 s each set']]],
   ['bi-mobility-flow', 'Mobility Flow', ['Mobility'], '', [["World's Greatest Stretch", 3], ['90/90 Hip Flow', 3], ['Cat-Cow and T-Spine Rotation', 3], ['Half-Kneeling Adductor Rock Back', 3], ['Thread the Needle', 3], ['Achilles Opener', 3], ['Thoracic Extension Stretch', 3], ['Figure-4 Windshield Wipers', 3], ['Air Squat', 3], ['Bodyweight Bulgarian Split Squat', 3]]],
   ['bi-full-body-hlm', 'Full Body: Heavy, Light, Medium', null, 'Three full-body days a week: one heavy, one light with high reps, one in between. Add weight on a day once you hit all its reps.', [
@@ -477,7 +481,7 @@ function RoutineView({ id }) {
 """
 src = src[:start] + SCREENS + src[end:]
 # 8. Newt's 4-Day Split as he edited it in the app (Oct 10): rep ranges, new supersets, no pull-ups on legs day, plain day names.
-swap("Day 1 - Chest Focus (N)\n3x Decline Chest Press\n3x Russian Tits to L Stretch\n3x x Hybrid Curls\n3x Cable Fly\n3x x Tricep Pushdowns\n3x Cable Crunch\n3x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts (N)\n3x Bent-Over Barbell Rows\n3x Lat Pulldown\n3x x Cuban Press\n4x Russian Behind-the-Back Cable Flies\n3x x Hybrid Curls\n3x Scapular Shrugs\n3x Cable Crunch\nDay 3 - Shoulders / Tris (N)\n3x Overhead Barbell Press\n3x Russian Behind-the-Back Cable Flies\n3x x Tricep Pushdowns\n3x Face Pulls\n3x x Overhead Cable Tricep Extension\n3x Scapular Shrugs\n3x Cable Crunch\nDay 4 - Legs (N/BJJ)\n3x Squat\n3x Romanian Deadlift\n3x Leg Curls\n3x Calf Raises\n3x Assisted Pull-Up", "Day 1 - Chest Focus\n3x5-8 Decline Chest Press\n3x5-8 Russian Tits to L Stretch\n3x5-8 x Hybrid Curls\n3x5-8 Cable Fly\n3x5-8 x Tricep Pushdowns\n3x5-8 Cable Crunch\n3x10-12 x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts\n3x5-8 Bent-Over Barbell Rows\n3x5-8 Lat Pulldown\n3x10-12 x Cuban Press\n4x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Hybrid Curls\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 3 - Shoulders / Tris\n3x5-8 Overhead Barbell Press\n3x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Tricep Pushdowns\n3x5-8 Face Pulls\n3x5-8 x Overhead Cable Tricep Extension\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 4 - Legs\n3x5-8 Squat\n3x5-8 x Romanian Deadlift\n3x5-8 Leg Curls\n3x10-12 x Calf Raises")
+swap("Day 1 - Chest Focus (N)\n3x Decline Chest Press\n3x Incline Dumbbell Pinky Press\n3x x Hybrid Curls\n3x Cable Fly\n3x x Tricep Pushdowns\n3x Cable Crunch\n3x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts (N)\n3x Bent-Over Barbell Rows\n3x Lat Pulldown\n3x x Cuban Press\n4x Russian Behind-the-Back Cable Flies\n3x x Hybrid Curls\n3x Scapular Shrugs\n3x Cable Crunch\nDay 3 - Shoulders / Tris (N)\n3x Overhead Barbell Press\n3x Russian Behind-the-Back Cable Flies\n3x x Tricep Pushdowns\n3x Face Pulls\n3x x Overhead Cable Tricep Extension\n3x Scapular Shrugs\n3x Cable Crunch\nDay 4 - Legs (N/BJJ)\n3x Squat\n3x Romanian Deadlift\n3x Leg Curls\n3x Calf Raises\n3x Assisted Pull-Up", "Day 1 - Chest Focus\n3x5-8 Decline Chest Press\n3x5-8 Incline Dumbbell Pinky Press\n3x5-8 x Hybrid Curls\n3x5-8 Cable Fly\n3x5-8 x Tricep Pushdowns\n3x5-8 Cable Crunch\n3x10-12 x Russian Behind-the-Back Cable Flies\nDay 2 - Back / Rear Delts\n3x5-8 Bent-Over Barbell Rows\n3x5-8 Lat Pulldown\n3x10-12 x Cuban Press\n4x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Hybrid Curls\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 3 - Shoulders / Tris\n3x5-8 Overhead Barbell Press\n3x10-12 Russian Behind-the-Back Cable Flies\n3x5-8 x Tricep Pushdowns\n3x5-8 Face Pulls\n3x5-8 x Overhead Cable Tricep Extension\n3x10-12 Scapular Shrugs\n3x10-12 x Cable Crunch\nDay 4 - Legs\n3x5-8 Squat\n3x5-8 x Romanian Deadlift\n3x5-8 Leg Curls\n3x10-12 x Calf Raises")
 # 7. Exercise notes on routines (shown in the routine and during the workout), workout-type tags in the editor.
 swap("note: '', target: { sets: n, reps: item.reps || '' },", "note: '', target: { sets: n, reps: item.reps || '', cue: item.note || '' },")
 swap("""${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div></div>""",

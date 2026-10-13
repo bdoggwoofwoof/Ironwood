@@ -732,6 +732,77 @@ src = src[:a] + r"""function Sheet({ children, label }) {
 swap(".grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}",
      ".grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}\n.grab-zone{display:block;width:100%;margin:-8px 0 0;padding:8px 0 2px;background:none;touch-action:none;cursor:grab}\n.grab-zone:active{cursor:grabbing}.grab-zone:active .grab{background:var(--ink-3)}\n.sheet.big{max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);height:calc(100% - env(safe-area-inset-top,0px) - 12px)}\n.sheet h2:focus,.sheet:focus{outline:none}")
 
+# 12. Meal prep: a Meals tab with recipe ideas and ready-made preps, scaling by people / servings / weeks, a shopping
+#     list added up and sorted by aisle, and your own recipes (meals.js). Saved in meta.meals, so backups carry it.
+MEALSJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'meals.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", MEALSJS + "\n/* ---------- APP ---------- */")
+swap("const TABS = [['train', 'Train'], ['routines', 'Routines'], ['stats', 'Stats'], ['profile', 'Profile']];",
+     "const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];")
+swap(".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);")
+swap("  if (tab === 'routines' && vt === 'routine') title = 'Routines';",
+     "  if (tab === 'routines' && vt === 'routine') title = 'Routines';\n  if (tab === 'meals' && vt === 'meal') title = 'Recipe';\n  if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';")
+swap("vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : null)",
+     "vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : vt === 'mealEdit' && !view.isNew ? { type: 'meal', id: view.draft.id } : null)")
+swap("tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ", "tab === 'meals' ? html`<${MealsScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ")
+swap("  globe: ic(", "  meals: ic(() => html`<path d=\"M3.5 11.5h17a8.5 8.5 0 0 1-17 0z\"/><path d=\"M8 8c0-1.4 1-1.8 1-3.2M12 8c0-1.4 1-1.8 1-3.2M16 8c0-1.4 1-1.8 1-3.2\"/>`),\n  globe: ic(")
+swap("challenges: m.challenges || {}, timers:", "challenges: m.challenges || {}, meals: normMeals(m.meals), timers:")
+# Restoring into a used app adds recipes it doesn't have, and the prep if there isn't one yet
+swap("    const tIds = new Set((st.meta.timers || []).map(x => x.id));",
+     "    if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan; }\n    const tIds = new Set((st.meta.timers || []).map(x => x.id));")
+swap("  ['profile', null, '.pal-grid', 'Make it yours',",
+     "  ['meals', null, '.topsw', 'Meal prep', 'Plan the week’s cooking, scale recipes for more people or weeks, and get one shopping list sorted by aisle. Save your own recipes too.'],\n  ['profile', null, '.pal-grid', 'Make it yours',")
+swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
+/* Meals */
+.mstep{display:inline-flex;align-items:center;background:var(--raised);border-radius:12px;flex:none}
+.mstep button{width:44px;height:44px;font-size:22px;font-weight:600;color:var(--accent);line-height:1}
+.mstep button:disabled{color:var(--ink-3);opacity:.5}
+.mstep .v{min-width:30px;text-align:center;font-weight:700;font-size:17px}
+.mp-who{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.mp-cell .lbl{margin-bottom:6px}
+.mp-item{background:var(--surface);border-radius:var(--r);padding:12px 8px 12px 14px;display:flex;flex-direction:column;gap:8px}
+.mp-name{flex:1;min-width:0;text-align:left;padding:2px 0}
+.mp-name .t{font-weight:700;font-size:17px;line-height:1.25}
+.mp-name .s{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+.mp-warn{font-size:13.5px;color:var(--ink-2);background:var(--raised);border-radius:10px;padding:8px 10px;line-height:1.4;margin-right:6px}
+.mp-sum{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.mp-scale{display:flex;align-items:center;gap:12px}
+.prep-card h3{font-size:20px}
+.meal-row{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:12px;padding:4px 6px 4px 14px;width:100%}
+.meal-row .main{flex:1;min-width:0;text-align:left;padding:9px 0}
+.meal-row .t{font-weight:600;line-height:1.25}
+.meal-row .s{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+.meal-add{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--accent);flex:none;box-shadow:inset 0 0 0 1.5px var(--line)}
+.meal-add.on{background:var(--accent-bg);color:var(--accent-ink);box-shadow:none}
+.meal-add svg{width:20px;height:20px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:calc(-1 * var(--gut));padding-inline:var(--gut)}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{font-size:14px;padding:8px 13px;min-height:36px}
+.meal-title{font-family:var(--display);font-size:30px;font-weight:700;text-transform:uppercase;line-height:1.02;margin-top:4px}
+.ing-list{margin:0;padding:4px 16px}
+.ing-list li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);list-style:none;line-height:1.35}
+.ing-list li:last-child{border-bottom:none}
+.ing-list .q{flex:none;width:96px;white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
+.step-list{margin:0;padding:14px 16px 14px 36px;display:flex;flex-direction:column;gap:12px;line-height:1.45}
+.step-list li::marker{font-weight:700;color:var(--accent)}
+.me-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.me-ta{min-height:150px;font-family:inherit}
+.me-prev{padding:10px 14px}
+.me-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.me-row:last-child{border-bottom:none}
+.me-row .q{flex:none;width:70px;font-weight:700}.me-row .n{flex:1;min-width:0}
+.me-row .chip{flex:none;min-height:32px}
+.aisle-h{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--ink-2);margin:20px 0 6px}
+.shop-card{padding:2px 12px}
+.shop-row{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:11px 2px;border-bottom:1px solid var(--line);min-height:48px}
+.shop-card>:last-child{border-bottom:none}
+.shop-x{display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0}
+.shop-row .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--ink-3);flex:none;display:grid;place-items:center;margin-top:1px}
+.shop-row.on .box{background:var(--accent-bg);border-color:var(--accent-bg);color:var(--accent-ink)}
+.shop-row .box svg{width:16px;height:16px}
+.shop-row .nm{display:block;line-height:1.35}
+.shop-row.on .nm{text-decoration:line-through;color:var(--ink-3)}
+.shop-row .from{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

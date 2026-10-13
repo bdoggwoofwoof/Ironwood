@@ -1,0 +1,85 @@
+"""Meals: recipe library, scaling, ready-made preps, shopping list, your own recipes, backup restore."""
+import asyncio, json, subprocess, sys, time
+from playwright.async_api import async_playwright
+PORT = 8772
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+URL = f'http://localhost:{PORT}/'; results = []
+def check(name, ok, detail=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + (' - ' + str(detail) if detail else ''))
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); errs = []
+        await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        # parsing and scaling
+        r = await pg.evaluate("""[parseIng('1 1/2 cups rice (dry)'), parseIng('2 cans black beans (15 oz), rinsed'), parseIng('3 cloves garlic, minced'), parseIng('salt and pepper'), parseIng('1½ lb chicken breast'), parseIng('1 (14 oz) can coconut milk')]""")
+        check('parses amounts, units and names', r[0]['q'] == 1.5 and r[0]['u'] == 'cup' and r[1]['u'] == 'can' and r[1]['a'] == 'canned' and r[2]['u'] == 'clove' and r[3]['q'] is None and r[4]['q'] == 1.5 and r[4]['a'] == 'protein', r)
+        check('can size in brackets moves into the name', r[5]['u'] == 'can' and '(14 oz)' in r[5]['n'], r[5])
+        check('fractions', await pg.evaluate("[fracStr(1.5), fracStr(0.33), fracStr(2.74), fracStr(0.02)].join(' ')") == '1½ ⅓ 2¾ ⅛')
+        check('spoons roll up into cups', await pg.evaluate("ingLine(parseIng('4 tbsp honey'), 3).q") == '¾ cup')
+        check('every built-in recipe parses', await pg.evaluate("Object.values(MEAL_BUILTIN).every(r => r.ing.length === MEAL_LIB.find(x => x.id === r.id).ing.length && r.ing.every(g => g.a !== 'other'))"))
+        check('every ready-made prep points at real recipes', await pg.evaluate("MEAL_PREPS.every(p => p.items.every(([r]) => MEAL_BUILTIN[r]))"))
+        # tab and a ready-made prep
+        await pg.locator('.tabs button', has_text='Meals').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.prep-card', has_text='Bowl Week').locator('button').click(); await pg.wait_for_timeout(300)
+        check('ready-made prep fills the prep', await pg.locator('.mp-item').count() == 4)
+        # scale: 2 people doubles the shopping list
+        await pg.locator('#to-list').click(); await pg.wait_for_timeout(300)
+        one = await pg.evaluate("shoppingList().find(x => x.key === 'boneless skinless chicken breast').qty")
+        await pg.locator('.topsw button', has_text='Prep').click(); await pg.locator('button[aria-label="More people"]').click(); await pg.wait_for_timeout(200)
+        two = await pg.evaluate("shoppingList().find(x => x.key === 'boneless skinless chicken breast').qty")
+        check('2 people doubles the chicken (rounded up to ¼ lb)', one == '2 lb' and two == '3¾ lb', (one, two))
+        await pg.locator('button[aria-label="More weeks"]').click(); await pg.wait_for_timeout(200)
+        check('more weeks warns about the fridge', await pg.locator('.mp-warn').count() >= 4)
+        await pg.locator('button[aria-label="Fewer weeks"]').click(); await pg.locator('button[aria-label="Fewer people"]').click(); await pg.wait_for_timeout(200)
+        check('eggs scale to 5 servings of 2', await pg.evaluate("(() => { const e = shoppingList().find(x => x.key === 'egg'); return e && e.qty === '10' && e.from.length === 1; })()"))
+        # shopping list ticks and extras
+        await pg.locator('.topsw button', has_text='List').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.shop-row').first.click(); await pg.wait_for_timeout(200)
+        await pg.locator('#extra-item').fill('coffee'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(200)
+        check('tick an item and add your own', await pg.locator('.shop-row.on').count() == 1 and await pg.locator('.shop-row', has_text='coffee').count() == 1)
+        txt = await pg.evaluate("listText()")
+        check('shared list skips ticked items, keeps added ones', 'coffee' in txt and 'PRODUCE' in txt and txt.count('\n- ') == len([1 for l in txt.split('\n') if l.startswith('- ')]), txt[:120])
+        # recipe scaling on its page
+        await pg.locator('.topsw button', has_text='Recipes').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.meal-row .main', has_text='Turkey & Bean Chili').click(); await pg.wait_for_timeout(300)
+        before = await pg.locator('.ing-list li').first.locator('.q').inner_text()
+        for _ in range(8): await pg.locator('button[aria-label="More servings"]').click()
+        after = await pg.locator('.ing-list li').first.locator('.q').inner_text()
+        check('servings stepper scales the recipe', before == '2 lb' and after == '4 lb', (before, after))
+        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200)
+        check('add to prep from a recipe', await pg.evaluate("!!planItemFor('m-turkey-chili')"))
+        # your own recipe
+        await pg.locator('.pill-btn', has_text='Back').click(); await pg.wait_for_timeout(200)
+        await pg.locator('#new-recipe').click(); await pg.wait_for_timeout(200)
+        await pg.locator('#me-name').fill('Lemon Pepper Chicken')
+        await pg.locator('#me-serves').fill('4')
+        await pg.locator('#me-ing').fill('2 lb chicken breast\n1 tbsp lemon pepper seasoning\n2 cups frozen green beans')
+        await pg.locator('#me-steps').fill('Season.\nBake at 425°F to 165°F.')
+        await pg.locator('#me-save').click(); await pg.wait_for_timeout(300)
+        check('saved recipe opens', (await pg.locator('.meal-title').inner_text()).upper() == 'LEMON PEPPER CHICKEN')
+        saved = await pg.evaluate("JSON.parse(localStorage.getItem('liftbook.v1')).meta.meals")
+        own = [r for r in saved['recipes'].values() if r['name'] == 'Lemon Pepper Chicken']
+        check('your recipe is stored', len(own) == 1 and len(own[0]['ing']) == 3 and own[0]['ing'][2]['a'] == 'frozen', own)
+        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200)
+        # editing a built-in keeps the id and can be reset
+        await pg.evaluate("UI.setView({ type: 'meal', id: 'm-rice' })"); await pg.wait_for_timeout(200)
+        await pg.locator('button', has_text='Edit').first.click(); await pg.wait_for_timeout(200)
+        await pg.locator('#me-name').fill('Jasmine Rice'); await pg.locator('#me-save').click(); await pg.wait_for_timeout(200)
+        check('edited built-in keeps its place', await pg.evaluate("getRecipe('m-rice').name === 'Jasmine Rice' && getRecipe('m-rice').edited"))
+        await pg.locator('button', has_text='Reset to original').click(); await pg.locator('.sheet .btn.danger').click(); await pg.wait_for_timeout(200)
+        check('reset brings the original back', await pg.evaluate("getRecipe('m-rice').name") == 'Batch Rice')
+        # backup carries meals; restoring into a used app adds missing recipes without touching the prep
+        bk = await pg.evaluate("backupJSON()")
+        check('backup includes meals', 'Lemon Pepper Chicken' in bk)
+        await pg.reload(); await pg.wait_for_timeout(1200)
+        check('prep survives a reload', await pg.evaluate("ML().plan.items.length") == 6)
+        d = json.loads(bk); d['meta']['meals']['recipes']['m-extra'] = {'name': 'From Backup', 'cat': 'snack', 'serves': 2, 'ing': [{'q': 1, 'u': '', 'n': 'apple', 'a': 'produce'}], 'steps': []}
+        d['meta']['meals']['plan']['items'] = []
+        r = await pg.evaluate("d => { S.sessions['s-x'] = { id: 's-x', name: 'x', startedAt: 1, endedAt: 2, items: [], prs: [] }; const r = restoreInto(S, d); return [!!S.meta.meals.recipes['m-extra'], S.meta.meals.plan.items.length]; }", d)
+        check('restore adds recipes, keeps the prep', r == [True, 6], r)
+        check('no page errors', not errs, errs)
+        await b.close()
+asyncio.run(main()); srv.terminate()
+print(f'{sum(results)}/{len(results)} passed'); sys.exit(0 if all(results) else 1)

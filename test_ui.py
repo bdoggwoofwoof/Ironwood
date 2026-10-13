@@ -14,7 +14,7 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         tabs = await pg.locator('.tabs .tab').all_inner_texts()
-        check('four tabs, no Log', [t.strip() for t in tabs] == ['Train', 'Routines', 'Stats', 'Profile'], tabs)
+        check('five tabs, no Log', [t.strip() for t in tabs] == ['Train', 'Routines', 'Meals', 'Stats', 'Profile'], tabs)
         check('no program by default', await pg.locator('#get-started').count() == 1 and await pg.locator('.next-card', has_text="Newt's").count() == 0)
         # Self-log
         await pg.get_by_role('button', name='Create or select a program').click(); await pg.wait_for_timeout(300)
@@ -60,10 +60,10 @@ async def main():
         # Tour visits every page
         await pg.locator('#help-btn').click(); await pg.locator('#help-tour').click(); await pg.wait_for_timeout(300)
         seen = []
-        for _ in range(11):
+        for _ in range(12):
             await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train'] * 5 + ['Routines', 'Routines', 'Stats', 'Profile', 'Train', 'Train'], seen)
+        check('tour walks through each page', seen == ['Train'] * 5 + ['Routines', 'Routines', 'Stats', 'Meals', 'Profile', 'Train', 'Train'], seen)
         check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
@@ -126,7 +126,7 @@ async def main():
         await q.locator('#profile-tour').click(); await q.wait_for_timeout(300)
         check('tour can be redone from Profile', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         await q.screenshot(path='shot-tour.png')
-        for _ in range(11): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
+        for _ in range(12): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
         check('finishing the tour clears sample data too', await q.evaluate("sessionList().length") == 0 and await q.locator('.tour').count() == 0)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())

@@ -20,10 +20,17 @@ async def main():
         check('spoons roll up into cups', await pg.evaluate("ingLine(parseIng('4 tbsp honey'), 3).q") == '¾ cup')
         check('every built-in recipe parses', await pg.evaluate("Object.values(MEAL_BUILTIN).every(r => r.ing.length === MEAL_LIB.find(x => x.id === r.id).ing.length && r.ing.every(g => g.a !== 'other'))"))
         check('every ready-made prep points at real recipes', await pg.evaluate("MEAL_PREPS.every(p => p.items.every(([r]) => MEAL_BUILTIN[r]))"))
+        # macros
+        mc = await pg.evaluate("(() => { const m = macros(MEAL_BUILTIN['m-taco-chicken']); const e = macros(MEAL_BUILTIN['m-hb-eggs']); return [m.p, m.kcal, e.kcal, Object.values(MEAL_BUILTIN).every(r => !macros(r).missing.length)]; })()")
+        check('macros estimated from ingredients', 30 <= mc[0] <= 38 and 170 <= mc[1] <= 240 and 130 <= mc[2] <= 160 and mc[3], mc)
+        un = await pg.evaluate("estimateMacros([parseIng('2 lb chicken breast'), parseIng('1 cup dragonfruit puree')])")
+        check('unknown ingredients are listed, not guessed', un['missing'] == ['dragonfruit puree'] and 200 <= un['p'] <= 210, un)
+        check('typed-in numbers win', await pg.evaluate("macros({ serves: 2, ing: [parseIng('1 lb chicken breast')], macros: { kcal: 300 } }).kcal") == 300)
         # tab and a ready-made prep
         await pg.locator('.tabs button', has_text='Meals').click(); await pg.wait_for_timeout(300)
         await pg.locator('.prep-card', has_text='Bowl Week').locator('button').click(); await pg.wait_for_timeout(300)
         check('ready-made prep fills the prep', await pg.locator('.mp-item').count() == 4)
+        check('prep shows daily macros', await pg.locator('#prep-macros .mac').count() == 4)
         # scale: 2 people doubles the shopping list
         await pg.locator('#to-list').click(); await pg.wait_for_timeout(300)
         one = await pg.evaluate("shoppingList().find(x => x.key === 'boneless skinless chicken breast').qty")
@@ -57,10 +64,12 @@ async def main():
         await pg.locator('#me-serves').fill('4')
         await pg.locator('#me-ing').fill('2 lb chicken breast\n1 tbsp lemon pepper seasoning\n2 cups frozen green beans')
         await pg.locator('#me-steps').fill('Season.\nBake at 425°F to 165°F.')
+        check('editor shows the estimate as a hint', int(await pg.locator('#me-m-p').get_attribute('placeholder')) > 40)
         await pg.locator('#me-save').click(); await pg.wait_for_timeout(300)
         check('saved recipe opens', (await pg.locator('.meal-title').inner_text()).upper() == 'LEMON PEPPER CHICKEN')
         saved = await pg.evaluate("JSON.parse(localStorage.getItem('liftbook.v1')).meta.meals")
         own = [r for r in saved['recipes'].values() if r['name'] == 'Lemon Pepper Chicken']
+        check('recipe page shows macros', await pg.locator('#recipe-macros .mac').count() == 4 and 'Not counted' not in await pg.locator('#recipe-macros').inner_text())
         check('your recipe is stored', len(own) == 1 and len(own[0]['ing']) == 3 and own[0]['ing'][2]['a'] == 'frozen', own)
         await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200)
         # editing a built-in keeps the id and can be reset

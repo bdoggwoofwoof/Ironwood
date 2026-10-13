@@ -801,7 +801,15 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .shop-row .box svg{width:16px;height:16px}
 .shop-row .nm{display:block;line-height:1.35}
 .shop-row.on .nm{text-decoration:line-through;color:var(--ink-3)}
-.shop-row .from{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}""")
+.shop-row .from{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.mac-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.mac{background:var(--raised);border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.mac b{font-size:18px;font-weight:700;line-height:1.1;white-space:nowrap}
+.mac span{font-size:11.5px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+.mac.p b{color:var(--accent)}
+.me-mac{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.me-mac label{display:block;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-mac .field{padding-inline:8px;text-align:center}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

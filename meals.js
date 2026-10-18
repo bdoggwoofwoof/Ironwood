@@ -103,10 +103,10 @@ const MEAL_PREPS = [
 const UFRAC = { '½': 1 / 2, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 1 / 4, '¾': 3 / 4, '⅛': 1 / 8 };
 const UNIT_ALIAS = { tsp: 'tsp', teaspoon: 'tsp', teaspoons: 'tsp', tbsp: 'tbsp', tbs: 'tbsp', tablespoon: 'tbsp', tablespoons: 'tbsp', cup: 'cup', cups: 'cup', oz: 'oz', ounce: 'oz', ounces: 'oz', lb: 'lb', lbs: 'lb', pound: 'lb', pounds: 'lb',
   g: 'g', gram: 'g', grams: 'g', kg: 'kg', kgs: 'kg', ml: 'ml', l: 'l', liter: 'l', liters: 'l', litre: 'l', litres: 'l', can: 'can', cans: 'can', clove: 'clove', cloves: 'clove', pinch: 'pinch', bunch: 'bunch', bunches: 'bunch',
-  bag: 'bag', bags: 'bag', jar: 'jar', jars: 'jar', head: 'head', heads: 'head', pkg: 'package', package: 'package', packages: 'package', box: 'box', boxes: 'box', stalk: 'stalk', stalks: 'stalk', pint: 'pint', pints: 'pint', scoop: 'scoop', scoops: 'scoop', slice: 'slice', slices: 'slice' };
+  bag: 'bag', bags: 'bag', jar: 'jar', jars: 'jar', head: 'head', heads: 'head', pkg: 'package', package: 'package', packages: 'package', box: 'box', boxes: 'box', stalk: 'stalk', stalks: 'stalk', pint: 'pint', pints: 'pint', scoop: 'scoop', scoops: 'scoop', slice: 'slice', slices: 'slice', serving: 'serving', servings: 'serving' };
 const VOL = { tsp: 1, tbsp: 3, cup: 48, ml: 1 / 4.929, l: 1000 / 4.929 };   /* in teaspoons */
 const WT = { g: 1, kg: 1000, oz: 28.3495, lb: 453.592 };                    /* in grams */
-const UNIT_PL = { clove: 'cloves', pinch: 'pinches', bunch: 'bunches', bag: 'bags', jar: 'jars', head: 'heads', package: 'packages', box: 'boxes', stalk: 'stalks', pint: 'pints', scoop: 'scoops', slice: 'slices', can: 'cans' };
+const UNIT_PL = { clove: 'cloves', pinch: 'pinches', bunch: 'bunches', bag: 'bags', jar: 'jars', head: 'heads', package: 'packages', box: 'boxes', stalk: 'stalks', pint: 'pints', scoop: 'scoops', slice: 'slices', can: 'cans', serving: 'servings' };
 function numOf(s) {
   s = String(s).trim().replace(',', '.'); let v = 0;
   const u = s.match(/[½⅓⅔¼¾⅛]/); if (u) { v += UFRAC[u[0]]; s = s.replace(u[0], '').trim(); }
@@ -195,126 +195,167 @@ function ingLine(g, f) {
   return { q: qtyText(v, u, dec), n: nameFor(g.n, v, u) };
 }
 /* ---- macros ---- */
-/* Rough nutrition per 100 g as bought (USDA-style averages), plus grams per cup / piece / can for converting amounts.
-   Spices, salt and vinegar count as zero. Anything not here shows as "not counted". */
-const F = (k, kcal, p, c, f, g) => ({ re: new RegExp(k), kcal, p, c, f, g: g || {} });
+/* Rough nutrition per 100 g as bought (USDA-style averages): calories, protein, carbs, fat, fiber, sugar (g) and
+   sodium (mg), plus grams per cup / piece / can for converting amounts. The first entry whose pattern matches an
+   ingredient's name is used unless you picked a food for it; spices count as zero. */
+const NUT = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' g'], ['f', 'Fat', ' g'], ['fib', 'Fiber', ' g'], ['sug', 'Sugar', ' g'], ['na', 'Sodium', ' mg']];
+const MACRO_KEYS = NUT.slice(0, 4), EXTRA_KEYS = NUT.slice(4);
+const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: new RegExp(k), kcal, p, c, f, fib, sug, na, g: g || {} });
 const FOODS = [
-  F('protein powder', 400, 80, 10, 5, { cup: 120, scoop: 30 }),
-  F('powder|seasoning|cumin|paprika|oregano|cinnamon|nutmeg|\\bsalt\\b|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary', 0, 0, 0, 0, { cup: 100 }),
-  F('canned chicken', 106, 23, 0, 1.8, { can: 113 }),
-  F('canned salmon', 140, 20, 0, 6.5, { can: 340 }),
-  F('tuna', 116, 25.5, 0, 0.8, { can: 113 }),
-  F('salmon', 208, 20, 0, 13, { each: 170 }),
-  F('chicken thigh', 135, 19, 0, 6, { each: 110 }),
-  F('chicken', 120, 22.5, 0, 2.6, { each: 200 }),
-  F('turkey', 150, 18.7, 0, 8.3, {}),
-  F('shrimp', 85, 20, 0, 0.5, {}),
-  F('tofu', 144, 17, 3, 9, { package: 397, block: 397 }),
-  F('egg white', 52, 11, 0.7, 0.2, { cup: 243, each: 33 }),
-  F('\\beggs?\\b', 143, 12.6, 0.7, 9.5, { each: 50 }),
-  F('yogurt', 59, 10.3, 3.6, 0.4, { cup: 245 }),
-  F('coconut milk', 60, 0.6, 1.4, 5.8, { can: 400, cup: 240 }),
-  F('\\bmilk\\b', 50, 3.3, 4.8, 2, { cup: 244 }),
-  F('peanut butter|almond butter', 588, 25, 20, 50, { cup: 258 }),
-  F('\\bbutter\\b', 717, 0.9, 0.1, 81, { cup: 227 }),
-  F('chocolate', 480, 4.2, 63, 30, { cup: 170 }),
-  F('black bean', 120, 7.5, 21, 0.4, { can: 240, cup: 172 }),
-  F('kidney bean|pinto bean|white bean|cannellini', 120, 7.8, 21, 0.5, { can: 240, cup: 177 }),
-  F('chickpea', 139, 7, 22, 2.5, { can: 250, cup: 164 }),
-  F('lentil', 358, 24, 63, 2.2, { cup: 192 }),
-  F('crushed tomato|tomato sauce', 38, 1.6, 7.3, 0.3, { can: 794, cup: 245 }),
-  F('diced tomato', 24, 1.1, 4.5, 0.2, { can: 411, cup: 240 }),
-  F('tomato', 18, 0.9, 3.9, 0.2, { pint: 300, each: 120, cup: 150 }),
-  F('sweet potato', 86, 1.6, 20, 0.1, { each: 180 }),
-  F('potato', 77, 2, 17, 0.1, { each: 210 }),
-  F('carrot', 41, 0.9, 9.6, 0.2, { each: 60, cup: 128 }),
-  F('bell pepper|jalape', 26, 1, 6, 0.3, { each: 120, cup: 150 }),
-  F('green onion|scallion', 32, 1.8, 7.3, 0.2, { each: 15, bunch: 100 }),
-  F('onion|shallot', 40, 1.1, 9.3, 0.1, { each: 150, cup: 160 }),
-  F('garlic', 149, 6.4, 33, 0.5, { clove: 3, head: 50 }),
-  F('ginger', 80, 1.8, 18, 0.8, { cup: 96 }),
-  F('broccoli|cauliflower', 34, 2.8, 6.6, 0.4, { head: 300, cup: 91 }),
-  F('spinach|kale|lettuce|romaine|greens', 23, 2.9, 3.6, 0.4, { cup: 30, bag: 142, head: 450 }),
-  F('zucchini|squash', 17, 1.2, 3.1, 0.3, { each: 200 }),
-  F('cucumber', 15, 0.7, 3.6, 0.1, { each: 300 }),
-  F('celery', 14, 0.7, 3, 0.2, { stalk: 40, cup: 101 }),
-  F('mushroom', 22, 3.1, 3.3, 0.3, { cup: 70 }),
-  F('green bean', 31, 1.8, 7, 0.2, { cup: 110 }),
-  F('cornstarch', 381, 0.3, 91, 0.1, { cup: 128 }),
-  F('\\bcorn\\b', 88, 3, 20.7, 0.8, { cup: 140, each: 100 }),
-  F('snap pea|snow pea|\\bpeas\\b', 42, 2.8, 7.6, 0.2, { cup: 98 }),
-  F('coleslaw|cabbage', 25, 1.3, 5.8, 0.1, { bag: 397, head: 900, cup: 89 }),
-  F('cilantro|parsley|basil|\\bdill\\b|\\bmint\\b|herb', 23, 2.1, 3.7, 0.5, { bunch: 50, cup: 16 }),
-  F('\\blimes?\\b', 30, 0.7, 10.5, 0.2, { each: 44 }),
-  F('lemon', 29, 1.1, 9.3, 0.3, { each: 60 }),
-  F('berr', 50, 0.8, 12, 0.3, { cup: 145, pint: 300 }),
-  F('banana', 89, 1.1, 23, 0.3, { each: 118 }),
-  F('grape', 69, 0.7, 18, 0.2, { cup: 151 }),
-  F('apple', 52, 0.3, 14, 0.2, { each: 180 }),
-  F('avocado', 160, 2, 8.5, 14.7, { each: 150 }),
-  F('hummus', 166, 7.9, 14.3, 9.6, { cup: 246 }),
-  F('salsa', 36, 1.5, 7, 0.2, { jar: 454, cup: 260 }),
-  F('marinara|pasta sauce', 50, 1.5, 8, 1.5, { jar: 680, cup: 250 }),
-  F('pickle', 12, 0.5, 2.4, 0.2, { cup: 140, each: 35 }),
-  F('olive|\\boil\\b', 884, 0, 0, 100, { cup: 216 }),
-  F('soy sauce|tamari', 53, 8, 4.9, 0.6, { cup: 255 }),
-  F('mustard|dijon', 66, 4, 5, 4, { cup: 250 }),
-  F('honey', 304, 0.3, 82, 0, { cup: 339 }),
-  F('maple|syrup', 260, 0, 67, 0.1, { cup: 315 }),
-  F('sugar', 387, 0, 100, 0, { cup: 200 }),
-  F('tahini', 595, 17, 21, 54, { cup: 240 }),
-  F('chia|flax', 486, 17, 42, 31, { cup: 192 }),
-  F('sesame seed', 573, 18, 23, 50, { cup: 144 }),
-  F('almond|walnut|pecan|cashew|\\bnuts?\\b', 579, 21, 22, 50, { cup: 92 }),
-  F('granola', 470, 10, 64, 20, { cup: 120 }),
-  F('cracker', 440, 9, 68, 15, { box: 255 }),
-  F('crumb|panko', 370, 12, 75, 2.5, { cup: 60 }),
-  F('tortilla|\\bwraps?\\b', 300, 8, 50, 7.5, { each: 70, package: 560 }),
-  F('bread|bun|roll\\b|bagel|pita', 265, 9, 49, 3.2, { slice: 30, each: 60 }),
-  F('pasta|noodle|spaghetti|penne', 371, 13, 75, 1.5, { cup: 100, box: 454 }),
-  F('\\brice\\b', 365, 7.1, 80, 0.7, { cup: 185 }),
-  F('quinoa', 368, 14.1, 64, 6.1, { cup: 170 }),
-  F('\\boats?\\b', 379, 13, 68, 6.5, { cup: 81 }),
-  F('flour', 364, 10, 76, 1, { cup: 125 }),
+  F('protein-powder', 'Protein powder (whey)', 'protein powder', 400, 80, 10, 5, 2, 5, 300, { cup: 120, scoop: 30 }),
+  F('salt', 'Salt', '\\bsalt\\b', 0, 0, 0, 0, 0, 0, 38758, { cup: 292 }),
+  F('spices', 'Spices & dried herbs', 'italian seasoning|powder|cumin|paprika|oregano|cinnamon|nutmeg|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary|bay lea', 0, 0, 0, 0, 0, 0, 0, { cup: 100 }),
+  F('seasoning', 'Seasoning blend (with salt)', 'seasoning', 0, 0, 0, 0, 0, 0, 6000, { cup: 100 }),
+  F('water', 'Water', '^water$|\\bwater\\b', 0, 0, 0, 0, 0, 0, 0, { cup: 237 }),
+  F('broth', 'Broth or stock', 'broth|\\bstock\\b', 5, 0.5, 0.4, 0.2, 0, 0.3, 370, { cup: 240, can: 400 }),
+  F('canned-chicken', 'Chicken, canned (drained)', 'canned chicken', 106, 23, 0, 1.8, 0, 0, 400, { can: 113 }),
+  F('canned-salmon', 'Salmon, canned', 'canned salmon', 140, 20, 0, 6.5, 0, 0, 400, { can: 340 }),
+  F('tuna-oil', 'Tuna in oil (drained)', 'tuna.*\\boil\\b', 198, 29, 0, 8, 0, 0, 350, { can: 113 }),
+  F('tuna', 'Tuna in water (drained)', 'tuna', 116, 25.5, 0, 0.8, 0, 0, 300, { can: 113 }),
+  F('salmon', 'Salmon, fresh', 'salmon', 208, 20, 0, 13, 0, 0, 59, { each: 170 }),
+  F('chicken-thigh', 'Chicken thigh, boneless skinless', 'chicken thigh', 135, 19, 0, 6, 0, 0, 80, { each: 110 }),
+  F('chicken', 'Chicken breast, boneless skinless', 'chicken', 120, 22.5, 0, 2.6, 0, 0, 45, { each: 200 }),
+  F('turkey-99', 'Ground turkey, 99% lean', 'turkey.*99|99%.*turkey', 112, 25, 0, 1.5, 0, 0, 55, {}),
+  F('turkey-85', 'Ground turkey, 85% lean', 'turkey.*85|85%.*turkey', 213, 17, 0, 15, 0, 0, 70, {}),
+  F('turkey', 'Ground turkey, 93% lean', 'turkey', 150, 18.7, 0, 8.3, 0, 0, 70, {}),
+  F('shrimp', 'Shrimp, raw', 'shrimp', 85, 20, 0, 0.5, 0, 0, 119, {}),
+  F('tofu', 'Tofu, firm', 'tofu', 144, 17, 3, 9, 2.3, 0.6, 14, { package: 397, block: 397 }),
+  F('egg-white', 'Egg whites', 'egg white', 52, 11, 0.7, 0.2, 0, 0.7, 166, { cup: 243, each: 33 }),
+  F('egg', 'Eggs, large', '\\beggs?\\b', 143, 12.6, 0.7, 9.5, 0, 0.4, 142, { each: 50 }),
+  F('yogurt-whole', 'Greek yogurt, whole milk', '(whole|full.?fat).*yogurt|yogurt.*(whole|full.?fat)', 97, 9, 4, 5, 0, 4, 35, { cup: 245 }),
+  F('yogurt-2', 'Greek yogurt, 2%', '(2%|low.?fat).*yogurt|yogurt.*(2%|low.?fat)', 73, 9.9, 3.9, 1.9, 0, 3.6, 34, { cup: 245 }),
+  F('yogurt', 'Greek yogurt, nonfat', 'yogurt', 59, 10.3, 3.6, 0.4, 0, 3.2, 36, { cup: 245 }),
+  F('coconut-milk', 'Coconut milk, light (canned)', 'coconut milk', 60, 0.6, 1.4, 5.8, 0, 1, 15, { can: 400, cup: 240 }),
+  F('plant-milk', 'Almond, oat or soy milk, unsweetened', 'almond milk|oat milk|soy milk', 15, 0.6, 0.6, 1.2, 0.2, 0, 70, { cup: 240 }),
+  F('milk-skim', 'Milk, skim', '(skim|nonfat|fat.free).*milk', 34, 3.4, 5, 0.1, 0, 5, 42, { cup: 245 }),
+  F('milk-whole', 'Milk, whole', 'whole milk', 61, 3.2, 4.8, 3.3, 0, 5, 43, { cup: 244 }),
+  F('milk', 'Milk, 2%', '\\bmilk\\b', 50, 3.3, 4.8, 2, 0, 5, 44, { cup: 244 }),
+  F('peanut-butter', 'Peanut or almond butter', 'peanut butter|almond butter', 588, 25, 20, 50, 6, 9, 430, { cup: 258 }),
+  F('butter', 'Butter, salted', '\\bbutter\\b', 717, 0.9, 0.1, 81, 0, 0.1, 643, { cup: 227 }),
+  F('chocolate', 'Chocolate chips, semisweet', 'chocolate', 480, 4.2, 63, 30, 6, 55, 20, { cup: 170 }),
+  F('black-beans', 'Black beans, canned (drained)', 'black bean', 120, 7.5, 21, 0.4, 7.5, 0.3, 300, { can: 240, cup: 172 }),
+  F('kidney-beans', 'Kidney, pinto or white beans, canned', 'kidney bean|pinto bean|white bean|cannellini', 120, 7.8, 21, 0.5, 6.4, 2, 300, { can: 240, cup: 177 }),
+  F('chickpeas', 'Chickpeas, canned (drained)', 'chickpea|garbanzo', 139, 7, 22, 2.5, 6.6, 0.3, 250, { can: 250, cup: 164 }),
+  F('lentils', 'Lentils, dry', 'lentil', 358, 24, 63, 2.2, 10.7, 2, 6, { cup: 192 }),
+  F('crushed-tomatoes', 'Crushed tomatoes or tomato sauce, canned', 'crushed tomato|tomato sauce|tomato puree', 38, 1.6, 7.3, 0.3, 1.9, 4.4, 180, { can: 794, cup: 245 }),
+  F('diced-tomatoes', 'Diced tomatoes, canned', 'diced tomato', 24, 1.1, 4.5, 0.2, 1, 2.7, 120, { can: 411, cup: 240 }),
+  F('tomato', 'Tomatoes, fresh', 'tomato', 18, 0.9, 3.9, 0.2, 1.2, 2.6, 5, { pint: 300, each: 120, cup: 150 }),
+  F('sweet-potato', 'Sweet potato', 'sweet potato', 86, 1.6, 20, 0.1, 3, 4.2, 55, { each: 180 }),
+  F('potato', 'Potato', 'potato', 77, 2, 17, 0.1, 2.2, 0.8, 6, { each: 210 }),
+  F('carrot', 'Carrots', 'carrot', 41, 0.9, 9.6, 0.2, 2.8, 4.7, 69, { each: 60, cup: 128 }),
+  F('pepper', 'Bell pepper', 'bell pepper|jalape', 26, 1, 6, 0.3, 2.1, 4.2, 4, { each: 120, cup: 150 }),
+  F('green-onion', 'Green onions', 'green onion|scallion', 32, 1.8, 7.3, 0.2, 2.6, 2.3, 16, { each: 15, bunch: 100 }),
+  F('onion', 'Onion', 'onion|shallot', 40, 1.1, 9.3, 0.1, 1.7, 4.2, 4, { each: 150, cup: 160 }),
+  F('garlic', 'Garlic', 'garlic', 149, 6.4, 33, 0.5, 2.1, 1, 17, { clove: 3, head: 50 }),
+  F('ginger', 'Ginger, fresh', 'ginger', 80, 1.8, 18, 0.8, 2, 1.7, 13, { cup: 96 }),
+  F('broccoli', 'Broccoli or cauliflower', 'broccoli|cauliflower', 34, 2.8, 6.6, 0.4, 2.6, 1.7, 33, { head: 300, cup: 91 }),
+  F('greens', 'Spinach, kale or lettuce', 'spinach|kale|lettuce|romaine|greens|arugula', 23, 2.9, 3.6, 0.4, 2.2, 0.4, 79, { cup: 30, bag: 142, head: 450 }),
+  F('zucchini', 'Zucchini or summer squash', 'zucchini|squash', 17, 1.2, 3.1, 0.3, 1, 2.5, 8, { each: 200 }),
+  F('cucumber', 'Cucumber', 'cucumber', 15, 0.7, 3.6, 0.1, 0.5, 1.7, 2, { each: 300 }),
+  F('celery', 'Celery', 'celery', 14, 0.7, 3, 0.2, 1.6, 1.3, 80, { stalk: 40, cup: 101 }),
+  F('mushroom', 'Mushrooms', 'mushroom', 22, 3.1, 3.3, 0.3, 1, 2, 5, { cup: 70 }),
+  F('green-beans', 'Green beans', 'green bean', 31, 1.8, 7, 0.2, 2.7, 3.3, 6, { cup: 110 }),
+  F('cornstarch', 'Cornstarch', 'cornstarch', 381, 0.3, 91, 0.1, 0.9, 0, 9, { cup: 128 }),
+  F('corn', 'Corn kernels', '\\bcorn\\b', 88, 3, 20.7, 0.8, 2.4, 3.2, 15, { cup: 140, each: 100 }),
+  F('peas', 'Peas or snap peas', 'snap pea|snow pea|\\bpeas\\b', 42, 2.8, 7.6, 0.2, 2.6, 4, 4, { cup: 98 }),
+  F('cabbage', 'Cabbage or coleslaw mix', 'coleslaw|cabbage', 25, 1.3, 5.8, 0.1, 2.5, 3.2, 18, { bag: 397, head: 900, cup: 89 }),
+  F('herbs', 'Fresh herbs', 'cilantro|parsley|basil|\\bdill\\b|\\bmint\\b|herb', 23, 2.1, 3.7, 0.5, 2.8, 0.9, 46, { bunch: 50, cup: 16 }),
+  F('lime', 'Lime', '\\blimes?\\b', 30, 0.7, 10.5, 0.2, 2.8, 1.7, 2, { each: 44 }),
+  F('lemon', 'Lemon', 'lemon', 29, 1.1, 9.3, 0.3, 2.8, 2.5, 2, { each: 60 }),
+  F('berries', 'Berries', 'berr', 50, 0.8, 12, 0.3, 3, 7, 1, { cup: 145, pint: 300 }),
+  F('banana', 'Banana', 'banana', 89, 1.1, 23, 0.3, 2.6, 12.2, 1, { each: 118 }),
+  F('grapes', 'Grapes', 'grape', 69, 0.7, 18, 0.2, 0.9, 15.5, 2, { cup: 151 }),
+  F('apple', 'Apple', 'apple', 52, 0.3, 14, 0.2, 2.4, 10.4, 1, { each: 180 }),
+  F('avocado', 'Avocado', 'avocado', 160, 2, 8.5, 14.7, 6.7, 0.7, 7, { each: 150 }),
+  F('hummus', 'Hummus', 'hummus', 166, 7.9, 14.3, 9.6, 6, 0.3, 430, { cup: 246 }),
+  F('salsa', 'Salsa', 'salsa', 36, 1.5, 7, 0.2, 1.5, 4, 700, { jar: 454, cup: 260 }),
+  F('marinara', 'Marinara sauce', 'marinara|pasta sauce', 50, 1.5, 8, 1.5, 1.8, 5, 400, { jar: 680, cup: 250 }),
+  F('pickle', 'Pickles', 'pickle', 12, 0.5, 2.4, 0.2, 1.2, 1.3, 800, { cup: 140, each: 35 }),
+  F('oil', 'Olive or other oil', 'olive|\\boil\\b', 884, 0, 0, 100, 0, 0, 2, { cup: 216 }),
+  F('soy-sauce', 'Soy sauce', 'soy sauce|tamari', 53, 8, 4.9, 0.6, 0.8, 0.4, 5500, { cup: 255 }),
+  F('mustard', 'Mustard', 'mustard|dijon', 66, 4, 5, 4, 3.3, 0.9, 1100, { cup: 250 }),
+  F('honey', 'Honey', 'honey', 304, 0.3, 82, 0, 0.2, 82, 4, { cup: 339 }),
+  F('syrup', 'Maple syrup', 'maple|syrup', 260, 0, 67, 0.1, 0, 60, 12, { cup: 315 }),
+  F('sugar', 'Sugar', 'sugar', 387, 0, 100, 0, 0, 100, 1, { cup: 200 }),
+  F('tahini', 'Tahini', 'tahini', 595, 17, 21, 54, 9.3, 0.5, 115, { cup: 240 }),
+  F('chia', 'Chia or flax seeds', 'chia|flax', 486, 17, 42, 31, 34, 0, 16, { cup: 192 }),
+  F('sesame', 'Sesame seeds', 'sesame seed', 573, 18, 23, 50, 11.8, 0.3, 11, { cup: 144 }),
+  F('nuts', 'Nuts (almonds, walnuts, cashews)', 'almond|walnut|pecan|cashew|\\bnuts?\\b', 579, 21, 22, 50, 12.5, 4.4, 1, { cup: 92 }),
+  F('granola', 'Granola', 'granola', 470, 10, 64, 20, 7, 25, 100, { cup: 120 }),
+  F('crackers', 'Crackers, whole-grain', 'cracker', 440, 9, 68, 15, 6, 10, 750, { box: 255 }),
+  F('breadcrumbs', 'Breadcrumbs (panko)', 'crumb|panko', 370, 12, 75, 2.5, 3, 3.5, 200, { cup: 60 }),
+  F('tortilla', 'Flour tortillas', 'tortilla|\\bwraps?\\b', 300, 8, 50, 7.5, 3.5, 2.5, 700, { each: 70, package: 560 }),
+  F('bread', 'Bread, rolls or pita', 'bread|\\bbuns?\\b|\\brolls?\\b|bagel|pita', 265, 9, 49, 3.2, 2.7, 5, 490, { slice: 30, each: 60 }),
+  F('pasta', 'Pasta, dry', 'pasta|noodle|spaghetti|penne', 371, 13, 75, 1.5, 3.2, 2.7, 6, { cup: 100, box: 454 }),
+  F('brown-rice', 'Brown rice, dry', 'brown rice', 367, 7.5, 76, 2.7, 3.4, 0.9, 7, { cup: 190 }),
+  F('rice', 'White rice, dry', '\\brice\\b', 365, 7.1, 80, 0.7, 1.3, 0.1, 5, { cup: 185 }),
+  F('quinoa', 'Quinoa, dry', 'quinoa', 368, 14.1, 64, 6.1, 7, 0, 5, { cup: 170 }),
+  F('oats', 'Rolled oats', '\\boats?\\b', 379, 13, 68, 6.5, 10, 1, 6, { cup: 81 }),
+  F('flour', 'Flour', 'flour', 364, 10, 76, 1, 2.7, 0.3, 2, { cup: 125 }),
 ];
-function foodFor(g) { const t = (g.u === 'can' ? 'canned ' : '') + shopName(g.n).toLowerCase(); return FOODS.find(x => x.re.test(t)) || null; }
+const FOOD_BY_ID = Object.fromEntries(FOODS.map(f => [f.id, f]));
+const NOFOOD = { id: 'none', label: 'Don’t count this', skip: true, kcal: 0, p: 0, c: 0, f: 0, fib: 0, sug: 0, na: 0, g: {} };
+/* Your own foods are saved as their nutrition label (per serving) and turned into per-100 g values here. */
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const _myFoods = new WeakMap();
+function myFoods() {
+  const src = ML().foods; const hit = _myFoods.get(src); if (hit) return hit;
+  const out = Object.values(src).filter(x => x && x.name && x.sv && +x.sv.gr > 0).map(x => {
+    const gr = +x.sv.gr, lab = x.lab || {}; const o = { id: x.id, label: x.name, mine: true, g: { serving: gr }, sv: x.sv, lab };
+    const nm = String(x.name).trim().toLowerCase(); o.re = new RegExp('(^|\\W)' + reEsc(nm.replace(/(e?s)$/, '')) + '(e?s)?(\\W|$)');
+    for (const [k] of NUT) o[k] = (+lab[k] || 0) / gr * 100;
+    const q = +x.sv.q || 1, u = x.sv.u;
+    if (VOL[u]) o.g.cup = gr / (q * VOL[u] / 48); else if (u && !WT[u]) o.g[u === 'piece' ? 'each' : u] = gr / q;
+    return o;
+  }).sort((a, b) => b.label.length - a.label.length);
+  _myFoods.set(src, out); return out;
+}
+const foodById = id => id === 'none' ? NOFOOD : FOOD_BY_ID[id] || myFoods().find(f => f.id === id) || null;
+function foodFor(g) {
+  if (g.fk) { const f = foodById(g.fk); if (f) return f; }
+  const t = (g.u === 'can' ? 'canned ' : '') + shopName(g.n).toLowerCase();
+  return myFoods().find(x => x.re.test(t)) || FOODS.find(x => x.re.test(t)) || null;
+}
 /* grams of an ingredient line, or null when the amount can't be turned into grams */
 function gramsOf(g, food) {
-  if (g.q == null) return food && !food.kcal ? 0 : null;
+  if (food.skip) return 0;
+  if (g.q == null) return food.kcal ? null : 0;
   if (WT[g.u]) return g.q * WT[g.u];
   if (VOL[g.u]) { const c = food.g.cup; return g.q * VOL[g.u] * (c ? c / 48 : 4.93); }
-  const per = food.g[g.u || 'each']; return per ? g.q * per : null;
+  const per = food.g[g.u || 'each'] || ((!g.u || g.u === 'serving') ? food.g.serving : null); return per ? g.q * per : null;
 }
-/* Estimated macros for the whole recipe from its ingredients: { kcal, p, c, f, missing: [names] } */
+/* Nutrition for a list of ingredient lines, all of it: { kcal, p, c, f, fib, sug, na, missing: [names] } */
 function estimateMacros(ing) {
-  const t = { kcal: 0, p: 0, c: 0, f: 0, missing: [] };
+  const t = { missing: [] }; for (const [k] of NUT) t[k] = 0;
   for (const g of ing || []) {
     if (!g || !g.n) continue; const food = foodFor(g); const gr = food ? gramsOf(g, food) : null;
     if (gr == null) { t.missing.push(shopName(g.n)); continue; }
-    for (const k of ['kcal', 'p', 'c', 'f']) t[k] += food[k] * gr / 100;
+    for (const [k] of NUT) t[k] += food[k] * gr / 100;
   }
   return t;
 }
-const MACRO_KEYS = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' g'], ['f', 'Fat', ' g']];
+const roundNut = o => { const r = {}; for (const [k] of NUT) r[k] = k === 'na' ? Math.round((o[k] || 0) / 5) * 5 : Math.round(o[k] || 0); return r; };
 /* Per serving. Numbers you typed in win; the rest come from the ingredients. */
 function macros(r) {
   if (!r) return null;
-  if (r._mac && r._mac.v === r.updatedAt) return r._mac.m;
-  const e = estimateMacros(r.ing); const sv = r.serves || 1; const man = r.macros || {}; const out = { missing: e.missing, manual: false, est: false };
-  for (const [k] of MACRO_KEYS) {
+  const e = estimateMacros(r.ing); const sv = r.serves || 1; const man = r.macros || {}; const raw = {}; let manual = false, est = false;
+  for (const [k] of NUT) {
     const typed = man[k] != null && man[k] !== '' ? +man[k] : k === 'p' && r.protein ? +r.protein : null;
-    if (typed != null && isFinite(typed)) { out[k] = typed; out.manual = true; } else { out[k] = e[k] / sv; out.est = true; }
+    if (typed != null && isFinite(typed)) { raw[k] = typed; manual = true; } else { raw[k] = e[k] / sv; if (MACRO_KEYS.some(x => x[0] === k)) est = true; }
   }
-  for (const [k] of MACRO_KEYS) out[k] = Math.round(out[k]);
   const counted = (r.ing || []).length - e.missing.length;
-  if (!out.manual && !counted) return null;
-  try { Object.defineProperty(r, '_mac', { value: { v: r.updatedAt, m: out }, enumerable: false, configurable: true, writable: true }); } catch (x) {}
-  return out;
+  if (!manual && !counted) return null;
+  return { ...roundNut(raw), missing: e.missing, manual, est };
 }
 const macroLine = m => m ? m.kcal + ' kcal · ' + m.p + ' g protein' : '';
+const fmtNut = (k, v) => (k === 'na' || k === 'kcal' ? Math.round(v).toLocaleString('en-US') : String(Math.round(v * 10) / 10));
 function MacroTiles({ m }) {
-  return html`<div class="mac-tiles">${MACRO_KEYS.map(([k, l, u]) => html`<div key=${k} class=${'mac ' + k}><b class="num">${m[k]}${u}</b><span>${l}</span></div>`)}</div>`;
+  return html`<div class="mac-tiles">${MACRO_KEYS.map(([k, l, u]) => html`<div key=${k} class=${'mac ' + k}><b class="num">${fmtNut(k, m[k])}${u}</b><span>${l}</span></div>`)}</div>`;
 }
+const ExtraLine = ({ m }) => html`<div class="mac-extra num">${EXTRA_KEYS.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, m[k] || 0)}${u}</b></span>`)}</div>`;
+const per100 = f => f.skip ? 'Counts as nothing, like water or a garnish' : f.mine
+  ? Math.round(f.lab.kcal || 0) + ' kcal · ' + (Math.round((+f.lab.p || 0) * 10) / 10) + ' g protein per ' + qtyText(+f.sv.q || 1, f.sv.u === 'piece' ? '' : f.sv.u) + (f.sv.u === 'piece' ? ' piece' : '') + (WT[f.sv.u] ? '' : ' (' + Math.round(f.sv.gr) + ' g)')
+  : Math.round(f.kcal) + ' kcal · ' + (Math.round(f.p * 10) / 10) + ' g protein per 100 g';
 const ingToText = g => (g.q != null ? fracStr(g.q) + ' ' : '') + (g.u ? g.u + ' ' : '') + g.n;
 
 /* ---- data ---- */
@@ -328,6 +369,9 @@ function normMeals(x) {
     plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: clampInt(i.n, 1, 21, 3) })) },
     checks: x.checks && typeof x.checks === 'object' ? x.checks : {},
     extras: (Array.isArray(x.extras) ? x.extras : []).filter(e => e && e.t).map(e => ({ id: String(e.id || uid('mx')), t: String(e.t), c: !!e.c })),
+    foods: Object.fromEntries(Object.entries(x.foods && typeof x.foods === 'object' ? x.foods : {}).filter(([, f]) => f && f.name && f.sv && +f.sv.gr > 0)),
+    log: Object.fromEntries(Object.entries(x.log && typeof x.log === 'object' ? x.log : {}).map(([d, l]) => [d, (Array.isArray(l) ? l : []).filter(e => e && e.id && e.m && typeof e.m === 'object')]).filter(([d, l]) => /^\d{4}-\d\d-\d\d$/.test(d) && l.length)),
+    goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
@@ -385,20 +429,21 @@ async function shareList() {
 }
 
 /* ---- screens ---- */
-const MEALS = { mode: ['plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all' };
+const MEALS = { mode: ['log', 'plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null };
 const setMealsMode = m => { MEALS.mode = m; lsSet('mealsMode', m); S.rerender(); scrollTo(0, 0); };
-function MStep({ value, min, max, onChange, label, unit }) {
+function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
   return html`<div class="mstep" role="group" aria-label=${label}>
-    <button aria-label=${'Fewer ' + label} disabled=${value <= min} onClick=${() => onChange(Math.max(min, value - 1))}>−</button>
-    <span class="v num" aria-live="polite">${value}${unit ? html`<small>${unit}</small>` : null}</span>
-    <button aria-label=${'More ' + label} disabled=${value >= max} onClick=${() => onChange(Math.min(max, value + 1))}>+</button></div>`;
+    <button aria-label=${'Fewer ' + label} disabled=${value <= min} onClick=${() => onChange(Math.max(min, value - step))}>−</button>
+    <span class="v num" aria-live="polite">${step < 1 ? fracStr(value) : value}${unit ? html`<small>${unit}</small>` : null}</span>
+    <button aria-label=${'More ' + label} disabled=${value >= max} onClick=${() => onChange(Math.min(max, value + step))}>+</button></div>`;
 }
 function MealsScreen({ view }) {
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
-  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
-    ${MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
+  if (vt === 'foods') return html`<${MyFoods}/>`;
+  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
+    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
@@ -462,7 +507,7 @@ function RecipesPane() {
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
     <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
-    <button class="btn ghost wide" id="new-recipe" style="margin-top:12px" onClick=${newRecipe}>${I.plus} New recipe</button>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${newRecipe}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
     ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); return rs.length ? html`<div key=${c}><div class="section-h"><h2>${label}</h2></div><div class="stack">${rs.map(row)}</div></div>` : null; })}
     ${!list.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}
@@ -486,7 +531,7 @@ function RecipeView({ id }) {
       <div style="flex:1;min-width:0"><div style="font-weight:700">Servings</div><div class="small muted num">${Math.abs(f - 1) < 0.01 ? 'Original recipe' : fracStr(f) + ' × the recipe (makes ' + r.serves + ')'}</div></div>
       <${MStep} label="servings" value=${sv} min=${1} max=${99} onChange=${setSv}/></div>
     ${(() => { const m = macros(r); return m ? html`<div class="section-h"><h2>Per serving</h2>${r.size ? html`<span class="aside">${r.size}</span>` : null}</div>
-      <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/>
+      <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = ingLine(g, f); return html`<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
@@ -510,15 +555,17 @@ function RecipeEditor({ view }) {
   const [ingTxt, setIngTxt] = useState(() => (d0.ing || []).map(ingToText).join('\n'));
   const [stepTxt, setStepTxt] = useState(() => (d0.steps || []).join('\n'));
   const [ov, setOv] = useState(() => Object.fromEntries((d0.ing || []).filter(g => g.a && g.a !== guessAisle(g.n, g.u)).map(g => [ingKey(g.n), g.a])));
+  const [fov, setFov] = useState(() => Object.fromEntries((d0.ing || []).filter(g => g.fk).map(g => [ingKey(g.n), g.fk])));
   const [err, setErr] = useState('');
   const set = (k, v) => setD({ ...d, [k]: v });
-  const parsed = ingTxt.split('\n').map(parseIng).filter(Boolean).map(g => ({ ...g, a: ov[ingKey(g.n)] || g.a }));
+  const parsed = ingTxt.split('\n').map(parseIng).filter(Boolean).map(g => { const fk = fov[ingKey(g.n)]; return { ...g, a: ov[ingKey(g.n)] || g.a, ...(fk ? { fk } : {}) }; });
+  const pickFood = g => openSheet({ type: 'foodPick', current: g.fk || '', q: shopName(g.n), onPick: id => setFov(o => { const k = ingKey(g.n); const n = { ...o }; if (id) n[k] = id; else delete n[k]; return n; }) });
   const cycle = g => { const k = ingKey(g.n); const i = AISLES.findIndex(a => a[0] === g.a); setOv({ ...ov, [k]: AISLES[(i + 1) % AISLES.length][0] }); };
   const save = () => {
     const name = String(d.name || '').trim(); if (!name) { setErr('Give the recipe a name.'); return; }
     if (!parsed.length) { setErr('Add at least one ingredient.'); return; }
     const isBuiltin = !!MEAL_BUILTIN[d.id];
-    const rec = { id: d.id, name, cat: d.cat || 'main', serves: clampInt(d.serves, 1, 99, 4), size: String(d.size || '').trim(), macros: Object.fromEntries(MACRO_KEYS.map(([k]) => [k, d.macros[k]]).filter(([, v]) => v !== '' && v != null && isFinite(+v)).map(([k, v]) => [k, +v])), mins: +d.mins > 0 ? Math.round(+d.mins) : null,
+    const rec = { id: d.id, name, cat: d.cat || 'main', serves: clampInt(d.serves, 1, 99, 4), size: String(d.size || '').trim(), macros: Object.fromEntries(NUT.map(([k]) => [k, d.macros[k]]).filter(([, v]) => v !== '' && v != null && isFinite(+v)).map(([k, v]) => [k, +v])), mins: +d.mins > 0 ? Math.round(+d.mins) : null,
       keeps: clampInt(d.keeps, 1, 14, 4), freezes: !!d.freezes, week: d.week || 3, ing: parsed, steps: stepTxt.split('\n').map(s => s.trim()).filter(Boolean), note: String(d.note || '').trim(), base: isBuiltin || undefined, updatedAt: Date.now() };
     mealCommit(m => { m.recipes[d.id] = rec; });
     UI.setView({ type: 'meal', id: d.id });
@@ -536,10 +583,12 @@ function RecipeEditor({ view }) {
     <div><label class="lbl" for="me-ing">Ingredients, one per line</label>
       <textarea class="field me-ta" id="me-ing" placeholder=${'2 lb chicken breast\n1 cup rice (dry)\n3 cloves garlic, minced\nsalt and pepper'} value=${ingTxt} onInput=${e => { setIngTxt(e.target.value); setErr(''); }}></textarea>
       <p class="small muted" style="margin-top:6px">Write amounts first. Anything after a comma is prep and stays off the shopping list.</p></div>
-    ${parsed.length ? html`<div class="card me-prev"><div class="lbl" style="margin-bottom:2px">How it reads · tap an aisle to change it</div>${parsed.map((g, i) => html`<div key=${i} class="me-row"><span class="q num">${g.q != null ? qtyText(g.q, g.u) : '—'}</span><span class="n">${g.n}</span><button class="chip" onClick=${() => cycle(g)}>${AISLE_NAME[g.a]}</button></div>`)}</div>` : null}
+    ${parsed.length ? html`<div class="card me-prev"><div class="lbl" style="margin-bottom:2px">How it reads · tap an aisle or a food to change it</div>${parsed.map((g, i) => { const fd = foodFor(g); const gr = fd ? gramsOf(g, fd) : null;
+      return html`<div key=${i} class="me-row"><div class="me-top"><span class="q num">${g.q != null ? qtyText(g.q, g.u) : '—'}</span><span class="n">${g.n}</span><button class="chip" onClick=${() => cycle(g)}>${AISLE_NAME[g.a]}</button></div>
+        <button class=${'me-food' + (gr == null ? ' miss' : '')} onClick=${() => pickFood(g)}>${!fd ? 'Not counted · choose a food' : fd.skip ? 'Not counted (your choice) · change' : gr == null ? fd.label + ' · add an amount, or change' : fd.label + ' · ' + (!fd.kcal && fd.na ? fmtNut('na', fd.na * gr / 100) + ' mg sodium' : Math.round(fd.kcal * gr / 100) + ' kcal')}${g.fk ? '' : fd && !fd.skip ? ' · change' : ''}</button></div>`; })}</div>` : null}
     ${(() => { const e = estimateMacros(parsed); const sv = clampInt(d.serves, 1, 99, 4); const setM = (k, v) => setD({ ...d, macros: { ...d.macros, [k]: v } });
-      return html`<div><div class="lbl">Macros per serving</div><div class="me-mac">${MACRO_KEYS.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'me-m-' + k}>${l}${u ? ' (g)' : ''}</label>
-        <input class="field" id=${'me-m-' + k} inputmode="decimal" value=${d.macros[k] != null ? d.macros[k] : ''} placeholder=${parsed.length ? String(Math.round(e[k] / sv)) : '—'} onInput=${ev => setM(k, ev.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
+      return html`<div><div class="lbl">Nutrition per serving</div><div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'me-m-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label>
+        <input class="field" id=${'me-m-' + k} inputmode="decimal" value=${d.macros[k] != null ? d.macros[k] : ''} placeholder=${parsed.length ? fmtNut(k, k === 'na' ? Math.round(e[k] / sv / 5) * 5 : e[k] / sv).replace(',', '') : '—'} onInput=${ev => setM(k, ev.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
         <p class="small muted" style="margin-top:6px">Leave blank to use the estimate shown, worked out from the ingredients.${e.missing.length ? ' Not counted: ' + e.missing.join(', ') + '. Type the numbers in if those matter.' : ''}</p></div>`; })()}
     <div><label class="lbl" for="me-steps">Steps, one per line</label><textarea class="field me-ta" id="me-steps" value=${stepTxt} placeholder="Heat the oven to 425°F…" onInput=${e => setStepTxt(e.target.value)}></textarea></div>
     <div><label class="lbl" for="me-note">Notes</label><input class="field" id="me-note" value=${d.note || ''} placeholder="optional" onInput=${e => set('note', e.target.value)}/></div>
@@ -570,4 +619,186 @@ function ShopPane() {
     <div class="section-h"><h2>Add an item</h2></div>
     <div class="row"><input class="field" id="extra-item" placeholder="e.g. coffee, paper towels" value=${txt} onInput=${e => setTxt(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') addExtra(); }}/><button class="btn primary" aria-label="Add to the list" disabled=${!txt.trim()} onClick=${addExtra}>${I.plus}</button></div>
   </div>`;
+}
+
+/* ---- your own foods ---- */
+const SV_UNITS = ['g', 'oz', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
+function FoodList({ current, q, onPick, onNew }) {
+  const term = q.trim().toLowerCase(); const hit = f => !term || f.label.toLowerCase().includes(term) || f.re.test(term);
+  const mine = myFoods().filter(hit); const lib = FOODS.filter(hit).sort((a, b) => a.label.localeCompare(b.label));
+  const opt = f => html`<button key=${f.id} class="opt" aria-pressed=${current === f.id} onClick=${() => onPick(f.id)}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${per100(f)}</div></div>${current === f.id ? I.check : null}</button>`;
+  return html`<div class="food-list">
+    ${!term ? html`<button class="opt" onClick=${() => onPick('')}><div style="flex:1;min-width:0"><div>Match automatically</div><div class="d">Use whatever food the name matches</div></div>${!current ? I.check : null}</button>` : null}
+    ${opt(NOFOOD)}
+    ${onNew ? html`<button class="btn ghost wide" style="margin:10px 0 2px" id="food-new" onClick=${() => onNew(q)}>${I.plus} New food from a nutrition label</button>` : null}
+    ${mine.length ? html`<div class="aisle-h">Your foods</div>${mine.map(opt)}` : null}
+    ${lib.length ? html`<div class="aisle-h">Built in</div>${lib.map(opt)}` : null}
+    ${!mine.length && !lib.length ? html`<p class="note" style="margin-top:10px">No food matches “${q.trim()}”. Clear the search, or add it from its nutrition label.</p>` : null}
+  </div>`;
+}
+function FoodPickSheet({ current, q, onPick }) {
+  const [t, setT] = useState(q || '');
+  return html`<${Sheet} label="Choose a food"><h2>Counts as</h2>
+    <input class="field" type="search" id="food-q" placeholder="Search foods" value=${t} onInput=${e => setT(e.target.value)} style="margin:8px 0 4px"/>
+    <${FoodList} current=${current} q=${t} onPick=${id => { closeSheet(); onPick(id); }} onNew=${name => openSheet({ type: 'foodEdit', name, then: id => onPick(id) })}/><//>`;
+}
+function FoodEditSheet({ id, name, then }) {
+  const f0 = id ? ML().foods[id] : null;
+  const [d, setD] = useState(() => f0 ? { name: f0.name, q: fracStr(+f0.sv.q || 1), u: f0.sv.u || 'g', gr: String(f0.sv.gr || ''), ...Object.fromEntries(NUT.map(([k]) => [k, f0.lab && f0.lab[k] != null ? String(f0.lab[k]) : ''])) }
+    : { name: name ? String(name).trim().replace(/^./, c => c.toUpperCase()) : '', q: '1', u: 'g', gr: '', ...Object.fromEntries(NUT.map(([k]) => [k, ''])) });
+  const [err, setErr] = useState('');
+  const set = (k, v) => { setD({ ...d, [k]: v }); setErr(''); };
+  const q = numOf(d.q) || 0; const gr = d.u === 'g' ? q : d.u === 'oz' ? q * WT.oz : +d.gr;
+  const save = () => {
+    const nm = d.name.trim(); if (!nm) return setErr('Give the food a name.');
+    if (!(q > 0)) return setErr('Enter the serving size from the label.');
+    if (!(gr > 0)) return setErr('Enter how many grams one serving is. It’s next to the serving size on the label.');
+    if (d.kcal === '' || !(+d.kcal >= 0)) return setErr('Enter the calories per serving.');
+    const fid = id || uid('my-');
+    mealCommit(m => { m.foods[fid] = { id: fid, name: nm, sv: { q, u: d.u, gr: Math.round(gr * 10) / 10 }, lab: Object.fromEntries(NUT.filter(([k]) => d[k] !== '' && isFinite(+d[k])).map(([k]) => [k, +d[k]])), updatedAt: Date.now() }; });
+    closeSheet(); showToast({ kind: 'info', text: nm + ' saved' }); if (then) then(fid);
+  };
+  const del = () => { mealCommit(m => { delete m.foods[id]; }); closeSheet(); showToast({ kind: 'info', text: f0.name + ' deleted' }); };
+  return html`<${Sheet} label=${id ? 'Edit food' : 'New food'}><h2>${id ? 'Edit food' : 'New food'}</h2>
+    <p class="note">Copy the numbers from the nutrition label, per serving.</p>
+    <div class="stack" style="margin-top:12px">
+      <div><label class="lbl" for="fd-name">Name</label><input class="field" id="fd-name" value=${d.name} placeholder="e.g. Protein bar" onInput=${e => set('name', e.target.value)}/>
+        <p class="small muted" style="margin-top:6px">Recipe ingredients and log entries with this name count as this food.</p></div>
+      <div><label class="lbl" for="fd-q">Serving size</label><div class="row" style="gap:8px">
+        <input class="field" id="fd-q" style="width:70px;text-align:center" inputmode="decimal" value=${d.q} onInput=${e => set('q', e.target.value)}/>
+        <select class="field" id="fd-u" style="flex:1;min-width:0" aria-label="Serving unit" value=${d.u} onChange=${e => set('u', e.target.value)}>${SV_UNITS.map(u => html`<option key=${u} value=${u}>${u}</option>`)}</select>
+        ${d.u === 'g' || d.u === 'oz' ? null : html`<input class="field" id="fd-gr" style="width:84px;text-align:center" inputmode="decimal" placeholder="grams" aria-label="Grams per serving" value=${d.gr} onInput=${e => set('gr', e.target.value.replace(/[^\d.]/g, ''))}/><span class="small muted">g</span>`}</div></div>
+      <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'fd-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'fd-' + k} inputmode="decimal" value=${d[k]} onInput=${e => set(k, e.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
+      ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
+      <button class="btn primary wide" id="fd-save" onClick=${save}>Save food</button>
+      ${id ? html`<button class="btn danger wide" onClick=${del}>Delete food</button>` : null}
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+function MyFoods() {
+  const list = myFoods().slice().sort((a, b) => a.label.localeCompare(b.label));
+  return html`<div>
+    <p class="note" style="margin-top:6px">Foods you add from a nutrition label, like a protein bar or a shake. Recipes and the log count them whenever an ingredient’s name matches, or when you pick them.</p>
+    <button class="btn primary wide" id="food-add" style="margin-top:12px" onClick=${() => openSheet({ type: 'foodEdit' })}>${I.plus} New food</button>
+    ${list.length ? html`<div class="card shop-card" style="margin-top:12px">${list.map(f => html`<button key=${f.id} class="opt" onClick=${() => openSheet({ type: 'foodEdit', id: f.id })}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${per100(f)}</div></div>${I.edit}</button>`)}</div>`
+      : html`<div class="card note" style="margin-top:12px">No foods of your own yet.</div>`}
+  </div>`;
+}
+
+/* ---- daily log and goals ---- */
+const LIMITS = { sug: 1, na: 1 };
+const sumNut = list => { const t = {}; for (const [k] of NUT) t[k] = 0; for (const e of list || []) for (const [k] of NUT) t[k] += +(e.m && e.m[k]) || 0; return t; };
+const scaleNut = (m, f) => roundNut(Object.fromEntries(NUT.map(([k]) => [k, (+m[k] || 0) * f])));
+const logDayName = k => { if (k === ymd(new Date())) return 'Today'; if (k === ymd(addDays(new Date(), -1))) return 'Yesterday'; const d = parseYmd(k); return DOW_FULL[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate(); };
+function addLog(day, e) { const entry = { id: uid('l'), at: Date.now(), ...e }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
+const dropLog = (day, id) => mealCommit(m => { m.log[day] = (m.log[day] || []).filter(x => x.id !== id); if (!m.log[day].length) delete m.log[day]; });
+function removeLog(day, id) {
+  const gone = (ML().log[day] || []).find(x => x.id === id); if (!gone) return; dropLog(day, id);
+  showToast({ kind: 'info', text: 'Removed ' + gone.name, action: 'Undo', ms: 6000, fn: () => mealCommit(m => { (m.log[day] = m.log[day] || []).push(gone); }) });
+}
+function logRecipe(day, r, sv) { const m1 = macros(r); if (!m1) return null; const { missing, manual, est, ...per } = m1; return addLog(day, { k: 'recipe', r: r.id, name: r.name, sv, m1: per, m: scaleNut(per, sv) }); }
+function weekServings(day) { const s = startOfWeek(parseYmd(day)); const out = {}; const L = ML().log; for (let i = 0; i < 7; i++) for (const e of L[ymd(addDays(s, i))] || []) if (e.r) out[e.r] = (out[e.r] || 0) + (+e.sv || 0); return out; }
+function GoalBar({ k, label, unit, v, goal }) {
+  const lim = LIMITS[k]; const over = v - goal; const pct = Math.min(100, v / goal * 100);
+  const note = lim ? (over > 0 ? fmtNut(k, over) + unit + ' over your limit' : fmtNut(k, -over) + unit + ' under your limit') : over >= 0 ? (Math.round(over) ? fmtNut(k, over) + unit + ' past your goal' : 'Goal reached') : fmtNut(k, -over) + unit + ' to go';
+  return html`<div class="goal-row"><div class="row" style="gap:8px"><span class="gl">${label}${lim ? ' (limit)' : ''}</span><span class="gv num"><b>${fmtNut(k, v)}</b> / ${fmtNut(k, goal)}${unit}</span></div>
+    <div class=${'goal-bar' + (lim && over > 0 ? ' over' : '')} role="progressbar" aria-label=${label} aria-valuenow=${Math.round(v)} aria-valuemin="0" aria-valuemax=${goal}><i style=${{ width: pct + '%' }}></i></div>
+    <div class="small muted num">${note}</div></div>`;
+}
+function LogPane() {
+  const m = ML(); const today = ymd(new Date()); const day = MEALS.day && MEALS.day < today ? MEALS.day : today;
+  const go = n => { const d = ymd(addDays(parseYmd(day), n)); MEALS.day = d >= today ? null : d; S.rerender(); };
+  const list = (m.log[day] || []).slice().sort((a, b) => a.at - b.at); const tot = sumNut(list); const G = m.goals;
+  const gk = NUT.filter(([k]) => G[k]); const rest = NUT.filter(([k]) => !G[k]);
+  const prep = m.plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && macros(x.r)); const wk = weekServings(day);
+  const quick = r => { const e = logRecipe(day, r, 1); if (e) showToast({ kind: 'info', text: '1 serving of ' + r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); };
+  return html`<div>
+    <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
+      <button class="pill-btn flip" aria-label="Next day" disabled=${day === today} onClick=${() => go(1)}>${I.back}</button></div>
+    <div class="card" id="log-totals">
+      ${gk.length ? html`<div class="stack" style="gap:14px">${gk.map(([k, l, u]) => html`<${GoalBar} key=${k} k=${k} label=${l} unit=${u} v=${tot[k]} goal=${G[k]}/>`)}</div>
+        ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
+      : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
+      <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>
+    <button class="btn primary wide" id="log-add" style="margin-top:12px" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button>
+    ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
+      <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
+        <div class="s num">${n ? fracStr(n) + ' of ' + it.n + ' this week' : it.n + ' planned this week'} · ${macroLine(macros(r))}</div></div><span class="go">${I.plus}</span></button>`; })}</div>` : null}
+    <div class="section-h"><h2>${day === today ? 'Eaten today' : 'Eaten'}</h2>${list.length ? html`<span class="aside num">${list.length} item${list.length === 1 ? '' : 's'}</span>` : null}</div>
+    ${list.length ? html`<div class="card shop-card">${list.map(e => html`<button key=${e.id} class="opt log-row" onClick=${() => openSheet({ type: 'logEntry', day, id: e.id })}><div style="flex:1;min-width:0"><div>${e.name}</div>
+        <div class="d num">${e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : ''}${fmtNut('kcal', e.m.kcal)} kcal · ${Math.round(e.m.p)} g protein</div></div></button>`)}</div>`
+      : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack.'}</div>`}
+    <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
+  </div>`;
+}
+function MealLogSheet({ day, tab: tab0, txt, fk }) {
+  const [tab, setTab] = useState(tab0 || 'recipe');
+  return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>
+    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
+}
+function LogRecipe({ day }) {
+  const [sel, setSel] = useState(null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
+  const inPrep = new Set(ML().plan.items.map(i => i.r)); const term = q.trim().toLowerCase();
+  const r = sel && getRecipe(sel); const m = r && macros(r);
+  if (r && m) return html`<div class="stack">
+    <div class="row"><div style="flex:1;min-width:0"><div style="font-weight:700">${r.name}</div><div class="small muted">${r.size ? 'A serving is ' + r.size : 'The recipe makes ' + r.serves}</div></div><button class="btn text" onClick=${() => setSel(null)}>Change</button></div>
+    <div class="row"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>
+    <${MacroTiles} m=${scaleNut(m, sv)}/>
+    <button class="btn primary wide" id="log-save" onClick=${() => { logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' }); }}>Log it</button></div>`;
+  const list = allRecipes().filter(x => macros(x) && (!term || x.name.toLowerCase().includes(term))).sort((a, b) => (inPrep.has(b.id) ? 1 : 0) - (inPrep.has(a.id) ? 1 : 0));
+  return html`<div><input class="field" type="search" id="lr-q" placeholder="Search recipes" value=${q} onInput=${e => setQ(e.target.value)}/>
+    <div class="food-list">${list.map(x => html`<button key=${x.id} class="opt" onClick=${() => { setSel(x.id); setSv(1); }}><div style="flex:1;min-width:0"><div>${x.name}</div><div class="d">${inPrep.has(x.id) ? 'In your prep · ' : ''}${macroLine(macros(x))} a serving</div></div></button>`)}
+      ${!list.length ? html`<p class="note" style="margin-top:10px">No recipe matches.</p>` : null}</div></div>`;
+}
+function LogFood({ day, txt0, fk0 }) {
+  const [txt, setTxt] = useState(txt0 || ''); const [fk, setFk] = useState(fk0 || ''); const [pick, setPick] = useState(false); const [pq, setPq] = useState('');
+  const g0 = parseIng(txt); const g = g0 && fk ? { ...g0, fk } : g0;
+  const fd = g && foodFor(g); const gr = fd && !fd.skip ? gramsOf(g, fd) : null;
+  const m = gr != null ? roundNut(Object.fromEntries(NUT.map(([k]) => [k, fd[k] * gr / 100]))) : null;
+  const save = () => { const nm = shopName(g.n); addLog(day, { k: 'food', name: nm.replace(/^./, c => c.toUpperCase()), txt: g.q != null ? qtyText(g.q, g.u) : '', fk: fd.id, m }); closeSheet(); showToast({ kind: 'info', text: nm + ' logged' }); };
+  if (pick) return html`<div><div class="row"><input class="field" type="search" id="lf-q" placeholder="Search foods" value=${pq} onInput=${e => setPq(e.target.value)}/><button class="btn text" onClick=${() => setPick(false)}>Back</button></div>
+    <${FoodList} current=${fk} q=${pq} onPick=${id => { setFk(id); setPick(false); }} onNew=${name => openSheet({ type: 'foodEdit', name: name || (g && shopName(g.n)), then: id => openSheet({ type: 'mealLog', day, tab: 'food', txt, fk: id }) })}/></div>`;
+  return html`<div class="stack">
+    <div><label class="lbl" for="lf-txt">What did you eat?</label><input class="field" id="lf-txt" placeholder="e.g. 1 cup Greek yogurt" value=${txt} onInput=${e => setTxt(e.target.value)}/>
+      <p class="small muted" style="margin-top:6px">Amount first: 2 eggs, 150 g chicken, 1 banana. For your own foods, “1 serving protein bar” works.</p></div>
+    ${g ? html`<button class=${'me-food' + (m ? '' : ' miss')} id="lf-food" onClick=${() => { setPq(''); setPick(true); }}>${!fd ? 'No match · choose a food' : fd.skip ? 'Not counted · change' : m ? 'Counts as ' + fd.label + ' · change' : fd.label + ' · add an amount like 150 g or 1 cup'}</button>` : null}
+    ${m ? html`<${MacroTiles} m=${m}/>` : null}
+    <button class="btn primary wide" id="lf-save" disabled=${!m} onClick=${save}>Log it</button></div>`;
+}
+function LogNumbers({ day }) {
+  const [d, setD] = useState({ name: '' }); const set = (k, v) => setD({ ...d, [k]: v });
+  const ok = NUT.some(([k]) => +d[k] > 0);
+  const save = () => { addLog(day, { k: 'num', name: d.name.trim() || 'Quick add', m: roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))) }); closeSheet(); showToast({ kind: 'info', text: 'Logged' }); };
+  return html`<div class="stack"><div><label class="lbl" for="ln-name">Name</label><input class="field" id="ln-name" placeholder="e.g. Lunch out" value=${d.name} onInput=${e => set('name', e.target.value)}/></div>
+    <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'ln-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'ln-' + k} inputmode="decimal" value=${d[k] || ''} onInput=${e => set(k, e.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
+    <button class="btn primary wide" id="ln-save" disabled=${!ok} onClick=${save}>Log it</button></div>`;
+}
+function LogEntrySheet({ day, id }) {
+  const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;
+  const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });
+  return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
+    ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
+    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    <div class="stack" style="margin-top:14px"><button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
+}
+function GoalsSheet() {
+  const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));
+  const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); };
+  return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
+    <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>
+    <p class="small faint" style="margin-top:10px">Your own targets, for planning. Not medical or diet advice.</p>
+    <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="goal-save" onClick=${save}>Save goals</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+/* Stats → Overall: the last 7 days of logged food */
+function NutritionStatsCard() {
+  const L = ML().log; if (!Object.keys(L).length) return null;
+  const met = lsGet('statsNut') === 'kcal' ? 'kcal' : 'p'; const G = ML().goals;
+  const d0 = addDays(startOfDay(new Date()), -6); const days = [];
+  for (let i = 0; i < 7; i++) { const t = addDays(d0, i); const l = L[ymd(t)] || []; days.push({ t: +t, l, s: sumNut(l) }); }
+  const had = days.filter(x => x.l.length); const avg = k => had.length ? had.reduce((a, x) => a + x.s[k], 0) / had.length : 0;
+  return html`<div id="nutrition-stats"><div class="section-h"><h2>Nutrition</h2><span class="aside">Last 7 days</span></div>
+    <div class="kpis kpis3">${kpi(fmtNut('kcal', avg('kcal')), 'Avg calories')}${kpi(Math.round(avg('p')) + ' g', 'Avg protein')}${kpi(had.length + ' of 7', 'Days logged')}</div>
+    <div class="card" style="margin-top:8px"><div class="seg wide">${[['p', 'Protein'], ['kcal', 'Calories']].map(([k, l]) => html`<button key=${k} class=${met === k ? 'on' : ''} aria-pressed=${met === k} onClick=${() => { lsSet('statsNut', k); S.rerender(); }}>${l}</button>`)}</div>
+      <${BarChart} data=${days.map(x => ({ t: x.t, v: x.s[met] }))} fmtV=${v => fmtNut(met, v)} unit=${met === 'p' ? 'g protein' : 'calories'} daily=${true}/>
+      <p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p></div></div>`;
 }

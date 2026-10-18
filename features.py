@@ -740,15 +740,18 @@ swap("const TABS = [['train', 'Train'], ['routines', 'Routines'], ['stats', 'Sta
      "const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];")
 swap(".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);")
 swap("  if (tab === 'routines' && vt === 'routine') title = 'Routines';",
-     "  if (tab === 'routines' && vt === 'routine') title = 'Routines';\n  if (tab === 'meals' && vt === 'meal') title = 'Recipe';\n  if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';")
+     "  if (tab === 'routines' && vt === 'routine') title = 'Routines';\n  if (tab === 'meals' && vt === 'meal') title = 'Recipe';\n  if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';\n  if (tab === 'meals' && vt === 'foods') title = 'My foods';")
 swap("vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : null)",
      "vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : vt === 'mealEdit' && !view.isNew ? { type: 'meal', id: view.draft.id } : null)")
 swap("tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ", "tab === 'meals' ? html`<${MealsScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ")
+swap("    case 'photo': return html`<${PhotoSheet} id=${sheet.id}/>`;",
+     "    case 'photo': return html`<${PhotoSheet} id=${sheet.id}/>`;\n    case 'foodPick': return html`<${FoodPickSheet} ...${sheet}/>`;\n    case 'foodEdit': return html`<${FoodEditSheet} ...${sheet}/>`;\n    case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;\n    case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;\n    case 'mealGoals': return html`<${GoalsSheet}/>`;")
+swap("    <${BodyweightCard}/>\n  </div>`;", "    <${BodyweightCard}/>\n    <${NutritionStatsCard}/>\n  </div>`;")
 swap("  globe: ic(", "  meals: ic(() => html`<path d=\"M3.5 11.5h17a8.5 8.5 0 0 1-17 0z\"/><path d=\"M8 8c0-1.4 1-1.8 1-3.2M12 8c0-1.4 1-1.8 1-3.2M16 8c0-1.4 1-1.8 1-3.2\"/>`),\n  globe: ic(")
 swap("challenges: m.challenges || {}, timers:", "challenges: m.challenges || {}, meals: normMeals(m.meals), timers:")
 # Restoring into a used app adds recipes it doesn't have, and the prep if there isn't one yet
 swap("    const tIds = new Set((st.meta.timers || []).map(x => x.id));",
-     "    if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan; }\n    const tIds = new Set((st.meta.timers || []).map(x => x.id));")
+     "    if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;\n      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; if (!Object.keys(a.goals).length) a.goals = b.goals;\n      for (const [d, l] of Object.entries(b.log)) { const have = new Set((a.log[d] || []).map(e => e.id)); const add = l.filter(e => !have.has(e.id)); if (add.length) a.log[d] = (a.log[d] || []).concat(add); } }\n    const tIds = new Set((st.meta.timers || []).map(x => x.id));")
 swap("  ['profile', null, '.pal-grid', 'Make it yours',",
      "  ['meals', null, '.topsw', 'Meal prep', 'Plan the week’s cooking, scale recipes for more people or weeks, and get one shopping list sorted by aisle. Save your own recipes too.'],\n  ['profile', null, '.pal-grid', 'Make it yours',")
 swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
@@ -787,7 +790,28 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .me-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
 .me-ta{min-height:150px;font-family:inherit}
 .me-prev{padding:10px 14px}
-.me-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.me-row{padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.me-top{display:flex;align-items:center;gap:10px}
+.me-food{display:block;width:100%;text-align:left;font-size:13px;color:var(--accent);padding:4px 0 0 80px;line-height:1.35}
+.me-food.miss{color:var(--ink-2)}
+.stack>.me-food{padding:0}
+.mac-extra{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:13.5px;color:var(--ink-2)}
+.mac-extra b{color:var(--ink);font-weight:600}
+.day-nav{display:flex;align-items:center;gap:10px;margin:6px 0 12px}
+.day-nav .t{flex:1;text-align:center;font-weight:700;font-size:17px}
+.day-nav .pill-btn{width:44px;height:44px;padding:0;justify-content:center}
+.day-nav .pill-btn:disabled{opacity:.35}
+.pill-btn.flip svg{transform:scaleX(-1)}
+.goal-row{display:flex;flex-direction:column;gap:5px}
+.goal-row .gl{flex:1;font-weight:600}
+.goal-row .gv{font-size:14px;color:var(--ink-2)}.goal-row .gv b{color:var(--ink);font-size:16px}
+.goal-bar{height:8px;border-radius:4px;background:var(--raised);overflow:hidden}
+.goal-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.goal-bar.over i{background:var(--stop)}
+.prep-log .go svg{width:22px;height:22px}
+.food-list{margin-top:6px}
+.food-list .opt svg{color:var(--accent)}
+.log-row{padding-inline:2px}
 .me-row:last-child{border-bottom:none}
 .me-row .q{flex:none;width:70px;font-weight:700}.me-row .n{flex:1;min-width:0}
 .me-row .chip{flex:none;min-height:32px}

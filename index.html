@@ -2958,7 +2958,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 25c8f92</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 3325fed</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -5266,9 +5266,31 @@ const WEEK_LABEL = ['', 'Base', 'Build', 'Build', 'Lighter', 'Build', 'Build', '
 const RUN_DAYS = { 3: { A: 2, B: 5, C: 4 }, 2: { 1: 2, 2: 4, T: 1 } };
 const RUN_LIFTS = { 1: 'Push', 3: 'Legs', 4: 'Pull', 6: 'Full Body' };
 /* The week's sessions: [{ key, name, s: session, dow }] */
+/* Runs past the first three are extra easy runs (keys E4…E21). They go to the days with the fewest runs,
+   in this order (Sat, Mon, Sun, Wed, Tue, Thu, Fri), so up to 7 runs is one a day and more makes doubles, then triples. */
+const RUN_MAX = 21;
+const EXTRA_FILL = [6, 1, 0, 3, 2, 4, 5];
+const EXTRA_MIN = [0, 20, 20, 25, 15, 25, 25, 30, 20];
+function sessE(w, c, runs) {
+  const m = runs > 7 ? Math.min(EXTRA_MIN[w], w === 4 ? 15 : 20) : EXTRA_MIN[w];
+  return { t: 'Easy', easy: true, extra: true, items: [rIt('Easy run', m + ' min, extra easy run' + (w === 8 ? '. Skip it the day before a test' : ''), easyR(c), { ex: 'Easy Run', sets: 1, tg: { dur: m * 60, lo: c.easyLo, hi: c.easyHi, judge: 'easy' } })] };
+}
 function weekSessions(w, c, runs, days) {
-  const A = sessA(w, c), B = sessB(w, c), C = sessC(w, c); days = days || {};
+  runs = Math.min(RUN_MAX, Math.max(1, Math.round(+runs) || 3)); days = days || {};
+  if (runs > 3) {
+    const base = weekSessions(w, c, 3, days); const n = {}; for (const x of base) n[x.dow] = (n[x.dow] || 0) + 1;
+    const E = sessE(w, c, runs); const out = base.slice();
+    for (let i = 4; i <= runs; i++) {
+      const key = 'E' + i; let dow;
+      if (days[key] != null) dow = +days[key];
+      else { let best = null; for (const d of EXTRA_FILL) if (best == null || (n[d] || 0) < (n[best] || 0)) best = d; dow = best; }
+      n[dow] = (n[dow] || 0) + 1; out.push({ key, name: 'Run ' + i, s: E, dow });
+    }
+    return out;
+  }
+  const A = sessA(w, c), B = sessB(w, c), C = sessC(w, c);
   const dd = (key, def) => days[key] != null ? +days[key] : def;
+  if (runs === 1 && w !== 8) { const p = w === 4 ? 'B' : PICK2[c.focus].charAt(w - 1); return [{ key: '1', name: 'Run 1', s: p === 'A' ? A : B, dow: dd('1', 2) }]; }
   if (runs === 3) return [{ key: 'A', name: 'Run A', s: A, dow: dd('A', 2) }, { key: 'C', name: 'Run C', s: C, dow: dd('C', 4) }, { key: 'B', name: 'Run B', s: B, dow: dd('B', 5) }];
   if (w === 4) return [{ key: '1', name: 'Run 1', s: B, dow: dd('1', 2) }, { key: '2', name: 'Run 2', s: C, dow: dd('2', 4) }];
   if (w === 8) return [{ key: 'T', name: '100 m test', s: { t: 'Before lifting', test: 't100', hard: 'sprint', items: [A.items[0], A.items[1]] }, dow: dd('T', 1) }, { key: '1', name: 'Run 1', s: B, dow: dd('1', 2) }, { key: '2', name: 'Run 2', s: C, dow: days['2'] != null ? +days['2'] : 0 }];
@@ -5279,7 +5301,7 @@ function weekSessions(w, c, runs, days) {
 function normRun(r) {
   if (!r || typeof r !== 'object') return null;
   const o = { runs: 3, block: 1, hist: [], days: {}, lifts: { ...RUN_LIFTS }, swaps: {}, marks: {}, ...r };
-  o.runs = o.runs === 2 ? 2 : 3; o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks', 'easy']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
+  o.runs = Math.min(RUN_MAX, Math.max(1, Math.round(+o.runs) || 3)); o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks', 'easy']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
   return o;
 }
 const runSt = () => normRun(S.meta.run);
@@ -5493,7 +5515,7 @@ function RunTimesForm({ onSave, saveLabel, first }) {
   return html`<div class="stack" style="gap:14px">
     <div class="run-ins">${field('t100', '100 m sprint', 'Seconds, e.g. 14.5', '14.5')}${field('t1', '1 mile', 'Minutes:seconds, e.g. 7:45', '7:45')}${field('t3', '3 miles', 'Minutes:seconds, e.g. 26:00', '26:00')}</div>
     <p class="note">Use honest, recent, all-out efforts: the 100 m from a standing start, the mile and 3 miles on flat ground or a track.</p>
-    ${first ? html`<div><span class="lbl">Runs a week</span><div class="seg" role="group" aria-label="Runs a week" style="margin-top:6px">${[2, 3].map(n => html`<button key=${n} id=${'runs-' + n} class=${runs === n ? 'on' : ''} aria-pressed=${runs === n} onClick=${() => setRuns(n)}>${n} runs</button>`)}</div></div>
+    ${first ? html`<${RunsPicker} value=${runs} set=${setRuns} pre="runs"/>
       <div><label class="lbl" for="run-start">Week 1 starts</label><input type="date" class="field" id="run-start" style="margin-top:6px" value=${start} onChange=${e => e.target.value && setStart(e.target.value)}/></div>` : null}
     <button class="btn primary wide" id="run-save" disabled=${!ok} onClick=${() => onSave({ ...t, runs, start })}>${saveLabel}</button>
   </div>`;
@@ -5527,6 +5549,7 @@ function RunPlan({ R, c }) {
   const clashes = ws.map(x => ({ x, c: legsClash(R, x.dow, x.s.hard && !(R.swaps[sessId(R, w, x.key)] && swapPlan(x.s, R.swaps[sessId(R, w, x.key)]).ok)) })).filter(y => y.c);
   return html`<div>
     <div class="row" style="margin-top:14px;align-items:baseline"><h2 class="run-h">${head}</h2><span class="spacer"></span><span class="small muted">Block ${R.block || 1} · ${R.runs} runs a week</span></div>
+    <${RunLoadWarn} n=${R.runs} id="plan-load" compact=${true}/>
     ${cur > 8 ? html`<div class="card stack" style="margin-top:10px" id="run-next-block"><div style="font-weight:700">Start the next block</div><p class="note">Your retest times are in. A new 8-week block starts next Monday with paces from your latest times.</p>
       <button class="btn primary" onClick=${() => { runCommit(r => { r.block = (r.block || 1) + 1; r.start = nextMonday(); r.swaps = {}; }); RUN_SEL.w = 1; showToast({ kind: 'info', text: 'Block ' + ((R.block || 1) + 1) + ' starts ' + shortDate(parseYmd(nextMonday())) }); }}>Start block ${(R.block || 1) + 1}</button></div>` : null}
     <div class="weekbar" role="tablist" aria-label="Week">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (n === 4 || n === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${WEEK_LABEL[n]}</span></button>`)}</div>
@@ -5535,7 +5558,7 @@ function RunPlan({ R, c }) {
     <${RunAdapt} R=${R} w=${w} cur=${cur}/>
     ${clashes.length ? html`<div class="run-warn" role="alert" id="legs-warn">${clashes.map(({ x, c: k }) => html`<p key=${x.key}><b>${x.name} (${DOW[x.dow]})</b> is a ${x.s.hard === 'sprint' ? 'sprint' : 'hard interval'} session ${k === 'after' ? 'the day after Legs' : 'on a Legs day'}. Move it to another day, or swap it for cross-training.</p>`)}</div>` : null}
     ${w === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the first three weeks, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and weeks 5–8 use the new paces.</p>` : null}
-    ${w === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs === 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
+    ${w === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs <= 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
     <div class="stack" style="margin-top:12px">${ws.map(x => html`<${RunSession} key=${x.key} R=${R} w=${w} x=${x}/>`)}</div>
     <div class="section-h"><h2>Every session</h2></div>
     <div class="card prl run-rules">
@@ -5614,7 +5637,7 @@ function RunTimes() {
     <div class="card"><${RunTimeChart}/></div>
     <div class="section-h"><h2>Settings</h2></div>
     <div class="card stack" style="gap:12px">
-      <div><span class="lbl">Runs a week</span><div class="seg" role="group" aria-label="Runs a week" style="margin-top:6px">${[2, 3].map(n => html`<button key=${n} id=${'set-runs-' + n} class=${R.runs === n ? 'on' : ''} aria-pressed=${R.runs === n} onClick=${() => runCommit(r => { r.runs = n; })}>${n} runs</button>`)}</div></div>
+      <${RunsPicker} value=${R.runs} set=${n => runCommit(r => { r.runs = n; })} pre="set-runs"/>
       <div><label class="lbl" for="set-start">Week 1 starts</label><input type="date" class="field" id="set-start" style="margin-top:6px" value=${R.start} onChange=${e => e.target.value && runCommit(r => { r.start = e.target.value; })}/></div>
       <p class="small muted">Changing these rebuilds the plan from your current times. Logged runs stay in History.</p></div>
     <div class="section-h"><h2>History</h2></div>
@@ -5810,6 +5833,51 @@ function offerPlanLink(a) {
   if (a.activity !== 'run' || a.run) return; const m = planSessionFor(new Date(a.startedAt)); if (!m) return;
   const id = sessId(m.R, m.w, m.x.key);
   showToast({ kind: 'info', ms: 10000, text: 'Running logged. Count it as week ' + m.w + ' ' + m.x.name + '?', action: 'Count it', fn: () => { commit(st => { const s = st.sessions[a.id]; if (s) s.run = { id, w: m.w, key: m.x.key, block: m.R.block || 1, status: null, msg: 'Logged as an activity.' }; }, 's_' + a.id); showToast({ kind: 'info', text: m.x.name + ' done' }); } });
+}
+
+/* Runs a week: any number from 1 to 21. Quick picks for the common ones, a stepper for the rest. */
+function runsNote(n) {
+  if (n === 1) return 'One run a week alternates speed and threshold. Week 8 still has all three tests.';
+  if (n <= 3) return n === 3 ? 'Speed, threshold and an easy run each week.' : 'A quality run and an easy run each week.';
+  if (n <= 7) return 'Speed, threshold and an easy run, plus ' + (n - 3) + ' extra easy run' + (n === 4 ? '' : 's') + '. Add runs a little at a time: big jumps in running raise the risk of shin, knee and Achilles pain.';
+  return 'More than 7 means two' + (n > 14 ? ' or three' : '') + ' runs on some days; the extra runs are 20 minutes, easy. Read the warning below before you start.';
+}
+/* Warnings for a high run count. Never a limit: shown on the picker and on the plan. */
+function runLoad(n) {
+  if (n <= 3) return null;
+  const mins = n > 7 ? (n - 3) * 20 : null;
+  if (n <= 7) return { lvl: 'info', head: n + ' runs a week', items: ['Add runs gradually: one more run a week every week or two, not all at once.'] };
+  const base = [
+    'Build up to it. Going from a few runs to ' + n + ' in one step is the most common way runners end up with shin splints, stress fractures or Achilles and knee pain. Add 1–2 runs a week and hold there before adding more.',
+    'Keep the extra runs truly easy (conversational pace). They are only safe because they are easy.',
+    'Stop and rest for a few days if you get pain in one spot on a bone (shin, foot, hip), pain that is worse the next morning, or a limp. Pain on a bone that hurts when you press it needs a doctor, not more running.',
+    'Watch for overtraining: a resting heart rate several beats higher than usual, worse sleep, feeling flat for days, or your lifts going backwards. Any two of these means cut back.',
+    'Eat and sleep for the extra work. ' + (mins ? 'The extra runs alone add about ' + Math.round(mins / 60 * 10) / 10 + ' hours a week. ' : '') + 'Running this much without eating enough raises the risk of bone injuries and stalls muscle gain.'];
+  if (n <= 14) return { lvl: 'warn', head: n + ' runs a week means doubles', items: base.concat(['Leave at least 4–6 hours between two runs on the same day, and keep one day a week with no runs if you can.']) };
+  return { lvl: 'high', head: n + ' runs a week is more than most competitive runners do', items: base.concat([
+    'Three runs a day leaves very little time for recovery from running, never mind from four lifting days. Expect muscle gain to slow or stop.',
+    'Leave at least 4 hours between runs on the same day, and take at least one rest day every week or two.',
+    'Consider shorter, gentler extras instead: an easy bike, walk or swim gives much of the same aerobic benefit with less pounding (see Swap on each run).',
+    'If you have heart, blood pressure or joint conditions, check with a doctor before training this much.']) };
+}
+function RunLoadWarn({ n, id, compact }) {
+  const L = runLoad(n); if (!L || L.lvl === 'info') return null;
+  if (compact) return html`<details class="run-warn" id=${id} style=${L.lvl === 'warn' ? 'color:var(--ink)' : ''}><summary style="cursor:pointer"><b>${L.head}</b><span class="small" style="display:block;margin-top:4px">${L.items[0]}</span><span class="small muted" style="display:block;margin-top:4px">Show all ${L.items.length} warnings</span></summary>
+    <ul style="margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${L.items.slice(1).map((x, i) => html`<li key=${i}>${x}</li>`)}</ul>
+    <p class="small muted" style="margin-top:6px">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p></details>`;
+  return html`<div class="run-warn" role="note" id=${id} style=${L.lvl === 'warn' ? 'color:var(--ink)' : ''}><p><b>${L.head}</b></p>
+    <ul style="margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${L.items.map((x, i) => html`<li key=${i}>${x}</li>`)}</ul>
+    <p class="small muted" style="margin-top:6px">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p></div>`;
+}
+function RunsPicker({ value, set, pre }) {
+  const n = Math.min(RUN_MAX, Math.max(1, value || 3));
+  return html`<div><span class="lbl">Runs a week</span>
+    <div class="row wrap" style="margin-top:6px;gap:8px;align-items:center">
+      <div class="seg" role="group" aria-label="Runs a week, quick picks">${[2, 3, 5, 7].map(k => html`<button key=${k} id=${pre + '-' + k} class=${n === k ? 'on' : ''} aria-pressed=${n === k} onClick=${() => set(k)}>${k}</button>`)}</div>
+      <span class="stepper" id=${pre + '-step'}><button aria-label="Fewer runs a week" id=${pre + '-dec'} disabled=${n <= 1} onClick=${() => set(n - 1)}>−</button><b class="num" aria-live="polite">${n}</b><button aria-label="More runs a week" id=${pre + '-inc'} disabled=${n >= RUN_MAX} onClick=${() => set(n + 1)}>+</button></span>
+      <span class="small muted">of up to ${RUN_MAX}</span></div>
+    <p class="small muted" style="margin-top:6px">${runsNote(n)}${runLoad(n) && runLoad(n).lvl === 'info' ? ' ' + runLoad(n).items[0] : ''}</p>
+    <${RunLoadWarn} n=${n} id=${pre + '-load'}/></div>`;
 }
 
 /* ============ Oct 21 review improvements ============ */

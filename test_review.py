@@ -53,9 +53,12 @@ async def main():
         await ev("commit(st => { st.meta.exJump = {}; }, 'meta')"); await ev(SEED, [[4, 'b-squat', 135, [5] * 5]])
         await ev("startWorkout(getRoutine('bi-5x5'), getRoutine('bi-5x5').days[0])"); await pg.wait_for_timeout(300)
         await pg.locator('.slot .icon-btn').first.click(); await pg.click('#opt-jump'); await pg.wait_for_timeout(200)
+        check('jump presets stop at 20 lb', await pg.locator('.sheet .preset-grid .chip').all_inner_texts() == ['+2.5', '+5', '+10', '+15', '+20'])
         await pg.locator('.sheet .chip', has_text='+10').first.click(); await pg.wait_for_timeout(300)
         check('setting a jump during a workout updates the suggestion', await ev("S.active.items[0].sets[0].gw") == '145' and await ev("S.meta.exJump['b-squat'].v") == 10)
-        await ev("commit(st => { st.active = null; }, 'active')")
+        await ev("commit(st => { st.meta.exJump = { 'b-squat': { v: 45, u: 'lb' } }; }, 'meta')")
+        check('a bigger saved jump is capped at 20 lb', await ev("jumpFor('b-squat', 'lb')") == 20)
+        await ev("commit(st => { st.active = null; st.meta.exJump = {}; }, 'active')")
         # ---- older holds logged as reps ----
         await ev("""(() => { const now = Date.now(); S.sessions = { old: { id: 'old', name: 'Core', startedAt: now - 5 * 864e5, endedAt: now - 5 * 864e5 + 2e6, prs: [], items: [{ ex: 'b-plank', u: 'lb', sets: [{ w: 0, r: 60 }] }, { ex: 'b-dead-hang', u: 'lb', sets: [{ w: 25, r: 40 }] }] } }; delete S.meta.settings.legacyTimed; S.ver++; touch(); })()""")
         check('old hold labels keep their reps', await ev("[measLabel({ w: 25, r: 40 }, 'timed', 'lb'), measLabel({ w: 0, r: 60 }, 'timed', 'lb')]") == ['25 lb × 40 reps', '60 reps'])
@@ -116,7 +119,7 @@ async def main():
         check('undo', await ev("runSt().start") == start0)
         # goal race
         g = await ev("(() => { runCommit(r => { r.goal = { d: 5000, t: 29 * 60 }; }); const R = runSt(); const c1 = ctxWeek(R, 1), c8 = ctxWeek(R, 8), G = goalInfo(R); return { t1w1: c1.t1, t1w8: c8.t1, aim1: G.aim1, reach: G.reach, h1: runGoal(c8).h1, base: R.t1 }; })()")
-        check('goal paces step from current toward the goal', abs(g['t1w1'] - g['base']) < 1e-6 and g['t1w8'] < g['base'] and abs(g['t1w8'] - g['aim1']) < 1e-6, g)
+        check('goal paces step from current toward the goal', abs(g['t1w1'] - g['base']) < 1e-6 and g['t1w8'] < g['base'] and abs(g['t1w8'] - g['aim1']) < 1e-6 and abs(g['h1'] - g['aim1']) < 1e-6, g)
         g2 = await ev("(() => { runCommit(r => { r.goal = { d: 5000, t: 22 * 60 }; }); const R = runSt(); const G = goalInfo(R); const T = runTargets(runCtx(R)); return [G.reach, Math.abs(G.aim1 - T.t1.fast) < 1e-6]; })()")
         check('an out-of-reach goal is capped at the 8-week range', g2 == [False, True], g2)
         await ev("runCommit(r => { delete r.goal; })")

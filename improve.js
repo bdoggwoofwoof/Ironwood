@@ -5,7 +5,9 @@
    settings.deload: after three sessions short at one weight, suggest about 10% less.
    meta.exJump: { exercise id: { v, u } } — a weight jump just for that exercise (total added to the bar or machine). */
 const FINE_OPTS = { lb: [5, 2.5, 1], kg: [2.5, 1, 0.5] };
-const JUMP_PRESETS = { lb: [2.5, 5, 10, 15, 20, 25, 45, 90], kg: [1.25, 2.5, 5, 10, 20, 40] };
+const JUMP_PRESETS = { lb: [2.5, 5, 10, 15, 20], kg: [1, 2.5, 5, 10] };
+/* The biggest jump: 20 lb (10 each side) or 10 kg. Bigger jumps miss more often than they save time. */
+const MAX_JUMP = { lb: 20, kg: 10 };
 const unitInc = u => u === U() ? +S.meta.settings.inc || UNIT_DEFAULTS[u].inc : UNIT_DEFAULTS[u].inc;
 function fineFor(u) {
   const st = S.meta.settings; const base = u === st.unit ? +st.fine : NaN;
@@ -19,7 +21,7 @@ const isDeadlift = ex => /deadlift/.test(norm(exName(ex))) && !/romanian|stiff|d
 function jumpDefault(ex, u) { const b = unitInc(u); return exKind(ex) === 'barbell' && isDeadlift(ex) ? b * 2 : b; }
 function jumpFor(ex, u) {
   const j = (S.meta.exJump || {})[ex];
-  if (j && +j.v > 0) return j.u === u ? +j.v : roundToInc(conv(+j.v, j.u, u), fineFor(u)) || fineFor(u);
+  if (j && +j.v > 0) return Math.min(MAX_JUMP[u], j.u === u ? +j.v : roundToInc(conv(+j.v, j.u, u), fineFor(u)) || fineFor(u));
   return jumpDefault(ex, u);
 }
 const repBottom = reps => { const m = String(reps || '').match(/^(\d+)/); return m ? +m[1] : 0; };
@@ -95,10 +97,10 @@ function ExJumpSheet({ ex, u0 }) {
   const set = val => { commit(x => { x.meta.exJump = x.meta.exJump || {}; if (val == null) delete x.meta.exJump[ex]; else x.meta.exJump[ex] = { v: val, u }; }, 'meta', 600); if (S.active) S.active.items.filter(i => i.ex === ex).forEach(i => refill(i)); touch(); closeSheet(); };
   const now = jumpFor(ex, u);
   return html`<${Sheet} label="Weight jump"><h2>Weight jump for ${exName(ex)}</h2>
-    <p class="note" style="margin-bottom:12px">How much to add when you hit the top of the rep range on every set. The total added, in ${u}. If a jump is too big and you fall short, the next workout suggests half of it.</p>
+    <p class="note" style="margin-bottom:12px">How much to add when you hit the top of the rep range on every set. The total added, in ${u}, up to ${MAX_JUMP[u]} ${u} (${MAX_JUMP[u] / 2} each side). If a jump is too big and you fall short, the next workout suggests half of it.</p>
     <div class="preset-grid">${JUMP_PRESETS[u].map(p => html`<button key=${p} class=${'chip' + (now === p && cur ? ' on' : '')} aria-pressed=${now === p && !!cur} onClick=${() => set(p)}>+${fmt(p)}</button>`)}</div>
-    <div class="row" style="margin-top:12px;align-items:flex-end"><div style="flex:1"><label class="lbl" for="jump-own">Your own amount (${u})</label><input class="field" id="jump-own" inputmode="decimal" placeholder=${fmt(now)} value=${v} onInput=${e => setV(e.target.value)}/></div>
-      <button class="btn primary" id="jump-save" disabled=${!(num(v) > 0)} onClick=${() => set(Math.min(500, r1(num(v))))}>Save</button></div>
+    <div class="row" style="margin-top:12px;align-items:flex-end"><div style="flex:1"><label class="lbl" for="jump-own">Your own amount (${u})</label><input class="field" id="jump-own" inputmode="decimal" placeholder=${fmt(now)} value=${v} onInput=${e => setV(e.target.value)}/>${num(v) > MAX_JUMP[u] ? html`<span class="small muted">Saved as ${MAX_JUMP[u]} ${u}, the most per jump.</span>` : null}</div>
+      <button class="btn primary" id="jump-save" disabled=${!(num(v) > 0)} onClick=${() => set(Math.min(MAX_JUMP[u], r1(num(v))))}>Save</button></div>
     <button class=${'opt' + (!cur ? ' on' : '')} style="margin-top:10px" onClick=${() => set(null)}>Use the default (+${fmt(def)} ${u}${isDeadlift(ex) && exKind(ex) === 'barbell' ? ', twice the main jump for deadlifts' : ''})</button><//>`;
 }
 const exUnitOf = ex => (S.meta.exUnit && S.meta.exUnit[ex]) || U();

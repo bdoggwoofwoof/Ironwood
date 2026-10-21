@@ -396,7 +396,7 @@ function runCtx(t) {
     stride: t.t100 / 0.80, s150: t.t100 * 1.48 / 0.90, s200: t.t100 * 2.06 / 0.90, reserve: (MILE / t.t1) / (100 / t.t100) };
 }
 const GOAL_PCT = { balanced: [0.02, 0.045, 0.06], endurance: [0.015, 0.045, 0.075], speed: [0.03, 0.045, 0.05] };
-function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = Math.min(o.h1, c.h.h1); if (c.h.h3) o.h3 = Math.min(o.h3, c.h.h3); } return o; }
+function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = c.h.h1; if (c.h.h3) o.h3 = c.h.h3; } return o; }
 /* 8-week target ranges: the faster end is 1.4× the goal improvement, the slower end 0.6× */
 function runTargets(c) { const g = runGoal(c).g; const r = (now, x) => ({ now, fast: now * (1 - x * 1.4), slow: now * (1 - x * 0.6) }); return { t100: r(c.t100, g[0]), t1: r(c.t1, g[1]), t3: r(c.t3, g[2]) }; }
 const plusN = (c, n) => c.focus === 'speed' ? n + 1 : n;

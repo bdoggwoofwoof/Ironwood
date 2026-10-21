@@ -49,8 +49,12 @@ async def main():
         check('7 runs: one every day; 8 runs makes one double', many['seven'][:2] == [7, 1] and many['eight'][:2] == [8, 2], [many['seven'], many['eight']])
         hard3 = await ev("(() => { const c = runCtx({ t100: 16, t1: 540, t3: 1700 }); return [3, 8].map(w => weekSessions(w, c, 3).filter(x => x.s.hard).length); })()")
         check('21 runs: three a day, no more hard sessions than the 3-run plan', many['max'][:3] == [21, 3, 18] and [many['max'][3], many['w8'][3]] == hard3, [many['max'], many['w8'], hard3])
-        warn = await ev("[runLoad(3), runLoad(7).lvl, runLoad(12).lvl, runLoad(21).lvl, runLoad(21).items.length]")
-        check('warnings scale with runs a week: none to 7, doubles at 8+, strongest at 15+', warn[0] is None and warn[1:4] == ['info', 'warn', 'high'] and warn[4] >= 5, warn)
+        warn = await ev("[runLoad(3), runLoad(7).lvl, runLoad(12).lvl, runLoad(21).lvl, runLoad(21).groups.map(g => g.h), runLoad(21).groups.reduce((a, g) => a + g.items.length, 0)]")
+        check('warnings scale with runs a week: none to 7, doubles at 8+, strongest at 15+', warn[0] is None and warn[1:4] == ['info', 'warn', 'high'] and warn[4] == ['Build up slowly', 'Three runs a day', 'When to stop', 'Recovery'] and warn[5] >= 9, warn)
+        jmp = await ev("""(() => { const R = normRun({ runs: 3, start: '2026-10-26' }); const before = [runLoad(4, 3).lvl, runLoad(5, 3).lvl, runLoad(5, 3).head, runLoad(5, 4).lvl];
+          S.meta.run = R; setRunsCount(4); setRunsCount(5); const R2 = runSt(); const after = [R2.runs, R2.runsFrom, runJump(R2)];
+          setRunsCount(3); const R3 = runSt(); return [before, after, [R3.runsFrom, runJump(R3)], (runLoad(5, 3).groups[0].items[0].match(/\*\*/g) || []).length]; })()""")
+        check('3 → 5 in plan settings flags a big jump; one step at a time does not', jmp[0] == ['info', 'warn', 'Big jump: 3 → 5 runs a week', 'info'] and jmp[1] == [5, 3, 3] and jmp[2] == [None, None] and jmp[3] >= 6, jmp)
         check('extra runs: 20–30 min, 20 min once there are doubles', many['extraMin'] == ['20 min, extra easy run', '30 min, extra easy run', '20 min, extra easy run'], many['extraMin'])
         check('runs a week clamped to 1–21; extras can be moved', many['clamp'] == [3, 21, 9, 3] and many['moved'] == 3, many)
         check('endurance profile adds 5 min to easy runs', await ev("[sessC(1, runCtx({ t100: 14.5, t1: 465, t3: 1560 })).items[0].d, sessC(1, runCtx({ t100: 16, t1: 540, t3: 1700 })).items[0].d]") == ['30 min', '25 min'])
@@ -83,6 +87,7 @@ async def main():
         if await pg.locator('#plan-load').count(): await pg.click('#plan-load summary')
         w21 = await pg.locator('#plan-load').inner_text() if await pg.locator('#plan-load').count() else ''
         check('21 runs: plan shows the warning, 21 runs in the week grid', 'more than most competitive runners' in w21 and "won't stop you" in w21 and await pg.locator('.rg-run').count() == 21, w21[:80])
+        check('warning is grouped with headers and bold words', await pg.locator('#plan-load .load-h').count() >= 3 and await pg.locator('#plan-load li b').count() >= 8)
         await ev("runCommit(r => { r.runs = 3; })"); await pg.wait_for_timeout(300)
         check('3 runs: no warning', await pg.locator('#plan-load').count() == 0)
         check('labelled as estimates, not advice', 'not medical or coaching advice' in body)

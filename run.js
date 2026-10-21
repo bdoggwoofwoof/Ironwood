@@ -751,7 +751,7 @@ function RunPlan({ R, c }) {
   const clashes = ws.map(x => ({ x, c: legsClash(R, x.dow, x.s.hard && !(R.swaps[sessId(R, w, x.key)] && swapPlan(x.s, R.swaps[sessId(R, w, x.key)]).ok)) })).filter(y => y.c);
   return html`<div>
     <div class="row" style="margin-top:14px;align-items:baseline"><h2 class="run-h">${head}</h2><span class="spacer"></span><span class="small muted">Block ${R.block || 1} · ${R.runs} runs a week</span></div>
-    <${RunLoadWarn} n=${R.runs} id="plan-load" compact=${true}/>
+    <${RunLoadWarn} n=${R.runs} from=${runJump(R)} id="plan-load" compact=${true}/>
     ${cur > 8 ? html`<div class="card stack" style="margin-top:10px" id="run-next-block"><div style="font-weight:700">Start the next block</div><p class="note">Your retest times are in. A new 8-week block starts next Monday with paces from your latest times.</p>
       <button class="btn primary" onClick=${() => { runCommit(r => { r.block = (r.block || 1) + 1; r.start = nextMonday(); r.swaps = {}; }); RUN_SEL.w = 1; showToast({ kind: 'info', text: 'Block ' + ((R.block || 1) + 1) + ' starts ' + shortDate(parseYmd(nextMonday())) }); }}>Start block ${(R.block || 1) + 1}</button></div>` : null}
     <div class="weekbar" role="tablist" aria-label="Week">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (n === 4 || n === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${WEEK_LABEL[n]}</span></button>`)}</div>
@@ -839,7 +839,7 @@ function RunTimes() {
     <div class="card"><${RunTimeChart}/></div>
     <div class="section-h"><h2>Settings</h2></div>
     <div class="card stack" style="gap:12px">
-      <${RunsPicker} value=${R.runs} set=${n => runCommit(r => { r.runs = n; })} pre="set-runs"/>
+      <${RunsPicker} value=${R.runs} from=${runJump(R)} set=${setRunsCount} pre="set-runs"/>
       <div><label class="lbl" for="set-start">Week 1 starts</label><input type="date" class="field" id="set-start" style="margin-top:6px" value=${R.start} onChange=${e => e.target.value && runCommit(r => { r.start = e.target.value; })}/></div>
       <p class="small muted">Changing these rebuilds the plan from your current times. Logged runs stay in History.</p></div>
     <div class="section-h"><h2>History</h2></div>
@@ -1044,40 +1044,68 @@ function runsNote(n) {
   if (n <= 7) return 'Speed, threshold and an easy run, plus ' + (n - 3) + ' extra easy run' + (n === 4 ? '' : 's') + '. Add runs a little at a time: big jumps in running raise the risk of shin, knee and Achilles pain.';
   return 'More than 7 means two' + (n > 14 ? ' or three' : '') + ' runs on some days; the extra runs are 20 minutes, easy. Read the warning below before you start.';
 }
-/* Warnings for a high run count. Never a limit: shown on the picker and on the plan. */
-function runLoad(n) {
-  if (n <= 3) return null;
-  const mins = n > 7 ? (n - 3) * 20 : null;
-  if (n <= 7) return { lvl: 'info', head: n + ' runs a week', items: ['Add runs gradually: one more run a week every week or two, not all at once.'] };
-  const base = [
-    'Build up to it. Going from a few runs to ' + n + ' in one step is the most common way runners end up with shin splints, stress fractures or Achilles and knee pain. Add 1–2 runs a week and hold there before adding more.',
-    'Keep the extra runs truly easy (conversational pace). They are only safe because they are easy.',
-    'Stop and rest for a few days if you get pain in one spot on a bone (shin, foot, hip), pain that is worse the next morning, or a limp. Pain on a bone that hurts when you press it needs a doctor, not more running.',
-    'Watch for overtraining: a resting heart rate several beats higher than usual, worse sleep, feeling flat for days, or your lifts going backwards. Any two of these means cut back.',
-    'Eat and sleep for the extra work. ' + (mins ? 'The extra runs alone add about ' + Math.round(mins / 60 * 10) / 10 + ' hours a week. ' : '') + 'Running this much without eating enough raises the risk of bone injuries and stalls muscle gain.'];
-  if (n <= 14) return { lvl: 'warn', head: n + ' runs a week means doubles', items: base.concat(['Leave at least 4–6 hours between two runs on the same day, and keep one day a week with no runs if you can.']) };
-  return { lvl: 'high', head: n + ' runs a week is more than most competitive runners do', items: base.concat([
-    'Three runs a day leaves very little time for recovery from running, never mind from four lifting days. Expect muscle gain to slow or stop.',
-    'Leave at least 4 hours between runs on the same day, and take at least one rest day every week or two.',
-    'Consider shorter, gentler extras instead: an easy bike, walk or swim gives much of the same aerobic benefit with less pounding (see Swap on each run).',
-    'If you have heart, blood pressure or joint conditions, check with a doctor before training this much.']) };
+/* Warnings for a high run count or a big jump in runs. Never a limit: shown on the picker and on the plan.
+   meta.run.runsFrom / runsAt: the runs a week before the latest change, and that day (an increase shows on the
+   plan for 14 days). Text marks **important words** in bold. */
+const JUMP_DAYS = 14;
+function runJump(R) {
+  if (!R || R.runsFrom == null || !R.runsAt || !(R.runs - R.runsFrom >= 2)) return null;
+  const days = Math.floor((startOfDay(new Date()) - parseYmd(R.runsAt)) / DAY);
+  return days >= 0 && days < JUMP_DAYS ? R.runsFrom : null;
 }
-function RunLoadWarn({ n, id, compact }) {
-  const L = runLoad(n); if (!L || L.lvl === 'info') return null;
-  if (compact) return html`<details class="run-warn" id=${id} style=${L.lvl === 'warn' ? 'color:var(--ink)' : ''}><summary style="cursor:pointer"><b>${L.head}</b><span class="small" style="display:block;margin-top:4px">${L.items[0]}</span><span class="small muted" style="display:block;margin-top:4px">Show all ${L.items.length} warnings</span></summary>
-    <ul style="margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${L.items.slice(1).map((x, i) => html`<li key=${i}>${x}</li>`)}</ul>
-    <p class="small muted" style="margin-top:6px">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p></details>`;
-  return html`<div class="run-warn" role="note" id=${id} style=${L.lvl === 'warn' ? 'color:var(--ink)' : ''}><p><b>${L.head}</b></p>
-    <ul style="margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${L.items.map((x, i) => html`<li key=${i}>${x}</li>`)}</ul>
-    <p class="small muted" style="margin-top:6px">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p></div>`;
+function runLoad(n, from) {
+  const jump = from != null && n - from >= 2 ? from : null;
+  if (n <= 3 && jump == null) return null;
+  if (n <= 7 && jump == null) return { lvl: 'info', head: n + ' runs a week', groups: [{ h: 'Build up slowly', items: ['Add runs **one at a time**, every week or two, not all at once.'] }] };
+  const hours = n > 7 ? Math.round((n - 3) * 20 / 60 * 10) / 10 : null;
+  const groups = [];
+  const build = [];
+  if (jump != null) build.push('You went from **' + jump + ' to ' + n + ' runs** a week. Big jumps in running are the **most common cause of shin splints, stress fractures and Achilles or knee pain**. Try **' + (jump + 1) + ' runs for 1–2 weeks** first, then add one at a time.');
+  else build.push('Get to ' + n + ' by adding **1–2 runs a week**, and hold each step for a week or two before adding more.');
+  build.push('Keep the extra runs **truly easy, at conversational pace**. They are only safe because they are easy.');
+  groups.push({ h: 'Build up slowly', items: build });
+  if (n >= 8) {
+    const d = ['Leave **at least 4–6 hours between runs** on the same day.'];
+    if (n >= 15) d.push('**Three runs a day** leaves very little recovery from running, never mind from four lifting days. **Expect muscle gain to slow or stop.**', 'Take **at least one rest day** every week or two.');
+    else d.push('Keep **one day a week with no runs** if you can.');
+    groups.push({ h: n >= 15 ? 'Three runs a day' : 'Two runs a day', items: d });
+  }
+  groups.push({ h: 'When to stop', items: [
+    '**Pain in one spot on a bone** (shin, foot, hip), pain that is **worse the next morning**, or a **limp**: rest for a few days. Bone pain that **hurts when you press it** needs a **doctor**, not more running.',
+    '**Signs of overtraining:** resting heart rate several beats higher than usual, worse sleep, feeling flat for days, or **lifts going backwards**. Any two of these means **cut back**.'] });
+  const rec = ['**Eat and sleep for the extra work.** ' + (hours ? 'The extra runs add about **' + hours + ' hours a week**. ' : '') + 'Running a lot **without eating enough** raises the risk of bone injuries and stalls muscle gain.'];
+  if (n >= 15) rec.push('Swap some extras for an **easy bike, walk or swim** (Swap on each run): much of the same aerobic benefit with **less pounding**.', 'If you have **heart, blood pressure or joint conditions**, check with a **doctor** before training this much.');
+  groups.push({ h: 'Recovery', items: rec });
+  const head = n >= 15 ? n + ' runs a week is more than most competitive runners do' : jump != null ? 'Big jump: ' + jump + ' → ' + n + ' runs a week' : n + ' runs a week means doubles';
+  return { lvl: n >= 15 ? 'high' : 'warn', head, groups, jump };
 }
-function RunsPicker({ value, set, pre }) {
+/* **bold** → <b> */
+const rich = t => String(t).split('**').map((x, i) => i % 2 ? html`<b key=${i}>${x}</b>` : x);
+function LoadGroups({ L, skipFirst }) {
+  return L.groups.map((g, gi) => { const items = skipFirst && gi === 0 ? g.items.slice(1) : g.items; if (!items.length) return null;
+    return html`<div key=${g.h} class="load-g"><div class="load-h">${g.h}</div><ul>${items.map((x, i) => html`<li key=${i}>${rich(x)}</li>`)}</ul></div>`; });
+}
+function RunLoadWarn({ n, from, id, compact }) {
+  const L = runLoad(n, from); if (!L || L.lvl === 'info') return null;
+  const cls = 'run-warn load ' + L.lvl; const foot = html`<p class="small muted">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p>`;
+  const count = L.groups.reduce((a, g) => a + g.items.length, 0);
+  if (compact) return html`<details class=${cls} id=${id}><summary><b class="load-title">${L.head}</b><span class="load-first">${rich(L.groups[0].items[0])}</span><span class="small muted load-more">Show all ${count} warnings</span></summary>
+    <${LoadGroups} L=${L} skipFirst=${true}/>${foot}</details>`;
+  return html`<div class=${cls} role="note" id=${id}><b class="load-title">${L.head}</b><${LoadGroups} L=${L}/>${foot}</div>`;
+}
+function RunsPicker({ value, set, pre, from }) {
   const n = Math.min(RUN_MAX, Math.max(1, value || 3));
   return html`<div><span class="lbl">Runs a week</span>
     <div class="row wrap" style="margin-top:6px;gap:8px;align-items:center">
       <div class="seg" role="group" aria-label="Runs a week, quick picks">${[2, 3, 5, 7].map(k => html`<button key=${k} id=${pre + '-' + k} class=${n === k ? 'on' : ''} aria-pressed=${n === k} onClick=${() => set(k)}>${k}</button>`)}</div>
       <span class="stepper" id=${pre + '-step'}><button aria-label="Fewer runs a week" id=${pre + '-dec'} disabled=${n <= 1} onClick=${() => set(n - 1)}>−</button><b class="num" aria-live="polite">${n}</b><button aria-label="More runs a week" id=${pre + '-inc'} disabled=${n >= RUN_MAX} onClick=${() => set(n + 1)}>+</button></span>
       <span class="small muted">of up to ${RUN_MAX}</span></div>
-    <p class="small muted" style="margin-top:6px">${runsNote(n)}${runLoad(n) && runLoad(n).lvl === 'info' ? ' ' + runLoad(n).items[0] : ''}</p>
-    <${RunLoadWarn} n=${n} id=${pre + '-load'}/></div>`;
+    <p class="small muted" style="margin-top:6px">${runsNote(n)}${runLoad(n, from) && runLoad(n, from).lvl === 'info' ? ' Add runs one at a time, every week or two.' : ''}</p>
+    <${RunLoadWarn} n=${n} from=${from} id=${pre + '-load'}/></div>`;
+}
+
+/* Change runs a week from plan settings, remembering where you started that day so a jump can be flagged */
+function setRunsCount(n) {
+  const today = ymd(new Date());
+  runCommit(r => { if (n === r.runs) return; if (!(r.runsAt === today && r.runsFrom != null)) { r.runsFrom = r.runs; r.runsAt = today; } r.runs = n; if (r.runs <= r.runsFrom) { delete r.runsFrom; delete r.runsAt; } });
 }

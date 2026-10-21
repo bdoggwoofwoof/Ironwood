@@ -963,6 +963,10 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .rg-run.test{box-shadow:inset 0 0 0 1.5px var(--accent)}
 .rg-none{color:var(--ink-3)}.rg-did{color:var(--good);font-weight:600}
 .run-warn{margin-top:10px;background:var(--raised);border-radius:12px;padding:10px 12px;color:var(--red-text);font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:6px}
+.run-warn.load{color:var(--ink);gap:10px}.run-warn.load .load-title{font-size:16px;line-height:1.3}.run-warn.load.high .load-title{color:var(--red-text)}.run-warn.load.warn .load-title{color:var(--red-text)}
+.load-g{display:flex;flex-direction:column;gap:4px}.load-h{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.load-g ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}.load-g b{font-weight:700}
+.run-warn.load summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:5px}.run-warn.load summary::-webkit-details-marker{display:none}.run-warn.load[open] .load-more{display:none}
 .run-sess{background:var(--surface);border-radius:var(--r);padding:14px}
 .run-sess-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .run-sess-h h3{font-family:var(--display);font-size:22px;font-weight:700;text-transform:uppercase;line-height:1}

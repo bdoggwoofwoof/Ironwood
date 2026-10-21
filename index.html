@@ -2958,7 +2958,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 9776081</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version b8c35ee</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -5194,7 +5194,7 @@ function runCtx(t) {
     stride: t.t100 / 0.80, s150: t.t100 * 1.48 / 0.90, s200: t.t100 * 2.06 / 0.90, reserve: (MILE / t.t1) / (100 / t.t100) };
 }
 const GOAL_PCT = { balanced: [0.02, 0.045, 0.06], endurance: [0.015, 0.045, 0.075], speed: [0.03, 0.045, 0.05] };
-function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = Math.min(o.h1, c.h.h1); if (c.h.h3) o.h3 = Math.min(o.h3, c.h.h3); } return o; }
+function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = c.h.h1; if (c.h.h3) o.h3 = c.h.h3; } return o; }
 /* 8-week target ranges: the faster end is 1.4× the goal improvement, the slower end 0.6× */
 function runTargets(c) { const g = runGoal(c).g; const r = (now, x) => ({ now, fast: now * (1 - x * 1.4), slow: now * (1 - x * 0.6) }); return { t100: r(c.t100, g[0]), t1: r(c.t1, g[1]), t3: r(c.t3, g[2]) }; }
 const plusN = (c, n) => c.focus === 'speed' ? n + 1 : n;

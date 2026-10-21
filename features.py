@@ -740,7 +740,8 @@ swap("const TABS = [['train', 'Train'], ['routines', 'Routines'], ['stats', 'Sta
      "const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];")
 swap(".tabs-in{display:grid;grid-template-columns:repeat(4,1fr);", ".tabs-in{display:grid;grid-template-columns:repeat(5,1fr);")
 swap("  if (tab === 'routines' && vt === 'routine') title = 'Routines';",
-     "  if (tab === 'routines' && vt === 'routine') title = 'Routines';\n  if (tab === 'meals' && vt === 'meal') title = 'Recipe';\n  if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';\n  if (tab === 'meals' && vt === 'foods') title = 'My foods';")
+     "  if (tab === 'routines' && vt === 'routine') title = 'Routines';\n  if (tab === 'meals' && vt === 'meal') title = 'Recipe';\n  if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';\n  if (tab === 'meals' && vt === 'foods') title = 'My foods';\n  if (tab === 'meals' && vt === 'base') title = 'Mix & match';")
+swap("onClick=${() => UI.setView(vt === 'edit' && !view.isNew", "onClick=${() => UI.setView(view.from ? view.from : vt === 'edit' && !view.isNew")
 swap("vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : null)",
      "vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : vt === 'mealEdit' && !view.isNew ? { type: 'meal', id: view.draft.id } : null)")
 swap("tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ", "tab === 'meals' ? html`<${MealsScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : ")
@@ -812,6 +813,12 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .food-list{margin-top:6px}
 .food-list .opt svg{color:var(--accent)}
 .log-row{padding-inline:2px}
+.ing-list li.ing-h{display:block;font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--ink-2);padding:14px 0 4px;border-bottom:none}
+.ing-list li.ing-h:first-child{padding-top:8px}
+.mix-plain{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-top:14px}
+.mix-plain .go,.mix-base .go{color:var(--accent);font-weight:600;font-size:15px;white-space:nowrap}
+.mix-flavor .s.faint{color:var(--ink-3)}
+.chip.goes{font-size:14px;padding:8px 13px;min-height:36px;background:var(--accent-soft);color:var(--accent)}
 .me-row:last-child{border-bottom:none}
 .me-row .q{flex:none;width:70px;font-weight:700}.me-row .n{flex:1;min-width:0}
 .me-row .chip{flex:none;min-height:32px}

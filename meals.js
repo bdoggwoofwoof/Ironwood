@@ -96,6 +96,7 @@ const MEAL_PREPS = [
   { id: 'p-newt', name: 'Newt’s Sunday Prep', d: 'Egg muffins, two chicken flavors so you don’t get tired of one, rice, roasted vegetables, beans and yogurt jars.', items: [['m-egg-muffins', 5], ['m-yogurt-jars', 5], ['m-taco-chicken', 4], ['m-italian-chicken', 4], ['m-rice', 5], ['m-roast-veg', 6], ['m-black-beans', 4]] },
   { id: 'p-bowls', name: 'Bowl Week', d: 'Two complete bowls to trade off, plus a grab-and-go breakfast and snack.', items: [['m-burrito-bowls', 3], ['m-med-bowls', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] },
   { id: 'p-lowcook', name: 'Low-Cook Week', d: 'Canned chicken and fish, yogurt jars and snack boxes. The only cooking is boiling eggs.', items: [['m-tuna-salad', 3], ['m-chicken-salad', 3], ['m-yogurt-jars', 5], ['m-snack-box', 5]] },
+  { id: 'p-mix', name: 'Mix & Match Week', d: 'Three bases, eight flavors: one chicken batch split two ways, turkey tacos, two kinds of rice and two vegetable trays.', items: [['b-chicken~teriyaki', 3], ['b-chicken~shawarma', 3], ['b-turkey~taco', 3], ['b-rice~sesame-rice', 3], ['b-rice~cilantro-lime', 3], ['b-veg~sesame-ginger', 3], ['b-veg~zaatar', 3], ['b-eggs~southwest', 5], ['b-oats~pb-banana', 5]] },
   { id: 'p-freezer', name: 'Freezer Stock-Up', d: 'Big batches that freeze well. Portion them, freeze, and pull a few out each week.', items: [['m-turkey-chili', 4], ['m-meatballs', 3], ['m-salmon-patties', 2], ['m-curry', 3], ['m-breakfast-burritos', 4]] },
 ];
 
@@ -204,7 +205,10 @@ const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: ne
 const FOODS = [
   F('protein-powder', 'Protein powder (whey)', 'protein powder', 400, 80, 10, 5, 2, 5, 300, { cup: 120, scoop: 30 }),
   F('salt', 'Salt', '\\bsalt\\b', 0, 0, 0, 0, 0, 0, 38758, { cup: 292 }),
-  F('spices', 'Spices & dried herbs', 'italian seasoning|powder|cumin|paprika|oregano|cinnamon|nutmeg|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary|bay lea', 0, 0, 0, 0, 0, 0, 0, { cup: 100 }),
+  F('cocoa', 'Cocoa powder, unsweetened', 'cocoa', 228, 20, 58, 14, 37, 2, 21, { cup: 86 }),
+  F('coconut-flakes', 'Shredded coconut, unsweetened', 'shredded coconut|coconut flakes', 660, 7, 24, 65, 16, 7, 37, { cup: 80 }),
+  F('balsamic', 'Balsamic vinegar', 'balsamic', 88, 0.5, 17, 0, 0, 15, 23, { cup: 255 }),
+  F('spices', 'Spices & dried herbs', 'italian seasoning|cayenne|turmeric|allspice|coriander|cardamom|za.?atar|sumac|ground ginger|powder|cumin|paprika|oregano|cinnamon|nutmeg|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary|bay lea', 0, 0, 0, 0, 0, 0, 0, { cup: 100 }),
   F('seasoning', 'Seasoning blend (with salt)', 'seasoning', 0, 0, 0, 0, 0, 0, 6000, { cup: 100 }),
   F('water', 'Water', '^water$|\\bwater\\b', 0, 0, 0, 0, 0, 0, 0, { cup: 237 }),
   F('broth', 'Broth or stock', 'broth|\\bstock\\b', 5, 0.5, 0.4, 0.2, 0, 0.3, 370, { cup: 240, can: 400 }),
@@ -270,6 +274,13 @@ const FOODS = [
   F('hummus', 'Hummus', 'hummus', 166, 7.9, 14.3, 9.6, 6, 0.3, 430, { cup: 246 }),
   F('salsa', 'Salsa', 'salsa', 36, 1.5, 7, 0.2, 1.5, 4, 700, { jar: 454, cup: 260 }),
   F('marinara', 'Marinara sauce', 'marinara|pasta sauce', 50, 1.5, 8, 1.5, 1.8, 5, 400, { jar: 680, cup: 250 }),
+  F('hot-sauce', 'Hot sauce or sriracha', 'hot sauce|sriracha|buffalo sauce', 20, 1, 3, 0.5, 0.5, 1.5, 2600, { cup: 240 }),
+  F('bbq-sauce', 'BBQ sauce', 'bbq sauce|barbecue sauce', 172, 0.8, 41, 0.6, 0.6, 33, 1000, { cup: 280 }),
+  F('gochujang', 'Gochujang', 'gochujang', 200, 4, 44, 1.5, 2, 24, 2500, { cup: 304 }),
+  F('chipotle', 'Chipotle peppers in adobo', 'chipotle|adobo', 70, 1.5, 9, 3, 4, 4, 1000, { each: 15, can: 198, cup: 240 }),
+  F('olives', 'Olives, kalamata', '\\bolives\\b|kalamata', 115, 0.8, 6, 11, 3, 0, 735, { cup: 135, each: 4 }),
+  F('raisins', 'Raisins', 'raisin', 299, 3, 79, 0.5, 3.7, 59, 11, { cup: 145 }),
+  F('tropical-fruit', 'Pineapple or mango', 'pineapple|mango', 55, 0.6, 14, 0.2, 1.5, 10.5, 1, { cup: 165, each: 200 }),
   F('pickle', 'Pickles', 'pickle', 12, 0.5, 2.4, 0.2, 1.2, 1.3, 800, { cup: 140, each: 35 }),
   F('oil', 'Olive or other oil', 'olive|\\boil\\b', 884, 0, 0, 100, 0, 0, 2, { cup: 216 }),
   F('soy-sauce', 'Soy sauce', 'soy sauce|tamari', 53, 8, 4.9, 0.6, 0.8, 0.4, 5500, { cup: 255 }),
@@ -379,7 +390,7 @@ const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normM
 function getRecipe(id) {
   const own = ML().recipes[id]; const b = MEAL_BUILTIN[id];
   if (own) return { ...own, id, builtin: !!b, edited: !!b };
-  return b || null;
+  return b || comboRecipe(id);
 }
 function allRecipes() {
   const ids = [...Object.keys(MEAL_BUILTIN), ...Object.keys(ML().recipes).filter(k => !MEAL_BUILTIN[k])];
@@ -442,6 +453,7 @@ function MealsScreen({ view }) {
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
   if (vt === 'foods') return html`<${MyFoods}/>`;
+  if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
     ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
 }
@@ -478,6 +490,7 @@ function PrepPane() {
           <button class="tip-x" aria-label=${'Remove ' + r.name} onClick=${() => removeFromPlan(r.id)}>${I.x}</button></div>
         <div class="row"><span class="small muted" style="flex:1">Times a week${P.people > 1 ? ', per person' : ''}</span><${MStep} label=${'times a week for ' + r.name} value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(mm => { const x = mm.plan.items.find(i => i.id === it.id); if (x) x.n = v; })}/></div>
         ${kn ? html`<div class="mp-warn">${kn}</div>` : null}</div>`; })}</div>
+      ${sharedBases(items).map(({ base, list }) => html`<div key=${base.id} class="tip-card mix-share" style="margin-top:10px;padding-right:14px">${list.map(x => x.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} use the same base, so make them in one session: ${list.every(x => MIX_FLAVOR[x.mix.flavor].kind === 'sauce') ? 'cook the ' + base.name.toLowerCase() + ' together, then split it and add each sauce.' : 'season each portion on its own before it cooks, and add any sauce after.'}</div>`)}
       ${withM.length || mins ? html`<div class="card mp-sum" id="prep-macros">
         ${withM.length ? html`<div style="font-weight:700">${partial ? 'At least, a day' : 'A day, on average'}${P.people > 1 ? ', per person' : ''}</div><${MacroTiles} m=${perDay}/>
           <div class="small muted">Estimated from the ingredients, spread over 7 days. Counts only the meals in your prep.</div>` : null}
@@ -496,8 +509,9 @@ function RecipesPane() {
   const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat);
   const own = ML().recipes;
   const term = q.trim().toLowerCase();
-  const list = allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
+  const list = cat === 'mix' ? [] : allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
   const mine = list.filter(r => !r.builtin); const lib = list.filter(r => r.builtin);
+  const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
     return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>
@@ -506,11 +520,15 @@ function RecipesPane() {
   const newRecipe = () => UI.setView({ type: 'mealEdit', isNew: true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
-    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['mix', 'Mix & match'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
     <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${newRecipe}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
+    ${!term && (cat === 'all' || cat === 'mix') ? html`<div class="section-h"><h2>Mix & match</h2></div>
+      <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/>` : null}
+    ${cat === 'mix' ? null : html`<div>
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
+    ${combos.length ? html`<div class="section-h"><h2>Mix & match</h2><span class="aside">${combos.length} match${combos.length === 1 ? '' : 'es'}</span></div><div class="stack">${combos.slice(0, 30).map(row)}</div>` : null}
     ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); return rs.length ? html`<div key=${c}><div class="section-h"><h2>${label}</h2></div><div class="stack">${rs.map(row)}</div></div>` : null; })}
-    ${!list.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}
+    ${!list.length && !combos.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}</div>`}
   </div>`;
 }
 function RecipeView({ id }) {
@@ -525,6 +543,7 @@ function RecipeView({ id }) {
   return html`<div class="meal-view">
     <div class="eyebrow" style="margin-top:4px">${MEAL_CAT_NAME[r.cat] || 'Recipe'}${r.mins ? ' · ' + r.mins + ' min' : ''}${r.edited ? ' · edited' : !r.builtin ? ' · my recipe' : ''}</div>
     <h2 class="meal-title">${r.name}</h2>
+    ${r.mix ? html`<button class="btn text" id="mix-base-link" style="padding-left:0;min-height:36px" onClick=${() => UI.setView({ type: 'base', id: r.mix.base })}>${r.mix.flavor ? 'Base: ' + MIX_BASE[r.mix.base].name + ' · see other flavors' : 'See flavors for this base'}</button>` : null}
     <div class="row wrap" style="gap:6px;margin-top:8px">
       <span class="chip">Fridge: ${r.keeps || 4} days</span>${r.freezes ? html`<span class="chip">Freezes well</span>` : null}</div>
     <div class="card mp-scale" style="margin-top:14px">
@@ -534,18 +553,20 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
-    <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = ingLine(g, f); return html`<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
+    <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = ingLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
       ${Math.abs(f - 1) > 0.01 ? html`<p class="small muted" style="margin:-4px 0 8px">Written for ${r.serves} servings. Cooking times stay about the same; use more pans so food isn’t crowded.</p>` : null}
       <ol class="step-list card">${r.steps.map((s, i) => html`<li key=${i}>${s}</li>`)}</ol>` : null}
     ${r.note ? html`<div class="tip-card" style="margin-top:12px;padding-right:14px">${r.note}</div>` : null}
+    ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(comboRecipe) ? html`<div class="section-h"><h2>Goes with</h2></div>
+      <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(comboRecipe).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
     ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">In your prep · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
     <div class="row wrap" style="margin-top:14px">
-      <button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>
-      <button class="btn" style="flex:1" onClick=${copy}>${I.copy} Copy</button></div>
+      ${r.mix ? null : html`<button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>`}
+      <button class="btn" style="flex:1" onClick=${copy}>${I.copy} ${r.mix ? 'Copy to my recipes to change it' : 'Copy'}</button></div>
     ${!r.builtin || r.edited ? html`<button class="btn text wide" style="color:var(--stop);margin-top:6px" onClick=${del}>${r.builtin ? 'Reset to original' : 'Delete recipe'}</button>` : null}
   </div>`;
 }
@@ -745,7 +766,9 @@ function LogRecipe({ day }) {
     <div class="row"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>
     <${MacroTiles} m=${scaleNut(m, sv)}/>
     <button class="btn primary wide" id="log-save" onClick=${() => { logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' }); }}>Log it</button></div>`;
-  const list = allRecipes().filter(x => macros(x) && (!term || x.name.toLowerCase().includes(term))).sort((a, b) => (inPrep.has(b.id) ? 1 : 0) - (inPrep.has(a.id) ? 1 : 0));
+  const prepMix = ML().plan.items.map(i => i.r).filter(x => !MEAL_BUILTIN[x] && !ML().recipes[x]).map(getRecipe).filter(Boolean);
+  const pool = term ? allRecipes().concat(allCombos().filter(c => !prepMix.includes(c))).concat(prepMix) : allRecipes().concat(prepMix);
+  const list = pool.filter(x => macros(x) && (!term || x.name.toLowerCase().includes(term))).sort((a, b) => (inPrep.has(b.id) ? 1 : 0) - (inPrep.has(a.id) ? 1 : 0));
   return html`<div><input class="field" type="search" id="lr-q" placeholder="Search recipes" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="food-list">${list.map(x => html`<button key=${x.id} class="opt" onClick=${() => { setSel(x.id); setSv(1); }}><div style="flex:1;min-width:0"><div>${x.name}</div><div class="d">${inPrep.has(x.id) ? 'In your prep · ' : ''}${macroLine(macros(x))} a serving</div></div></button>`)}
       ${!list.length ? html`<p class="note" style="margin-top:10px">No recipe matches.</p>` : null}</div></div>`;
@@ -801,4 +824,216 @@ function NutritionStatsCard() {
     <div class="card" style="margin-top:8px"><div class="seg wide">${[['p', 'Protein'], ['kcal', 'Calories']].map(([k, l]) => html`<button key=${k} class=${met === k ? 'on' : ''} aria-pressed=${met === k} onClick=${() => { lsSet('statsNut', k); S.rerender(); }}>${l}</button>`)}</div>
       <${BarChart} data=${days.map(x => ({ t: x.t, v: x.s[met] }))} fmtV=${v => fmtNut(met, v)} unit=${met === 'p' ? 'g protein' : 'calories'} daily=${true}/>
       <p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p></div></div>`;
+}
+
+/* ---------- Mix & match: one plain base, many flavors ---------- */
+/* A base is cooked plain; a flavor (a spice rub, a sauce or mix-ins) turns it into a different meal. Each pairing is a
+   full recipe with the id 'base~flavor', so it scales, adds to the prep and shopping list, and counts macros like any
+   other. Flavor amounts are written for `per` servings and scale to the base's batch. */
+const MIX_BASES = [
+  { id: 'b-chicken', name: 'Baked Chicken', short: 'Chicken', fam: 'protein', cat: 'base', serves: 6, size: '4 oz cooked', mins: 30, keeps: 4, freezes: true, week: 4,
+    d: 'Plain, juicy chicken breast. Slice it for bowls, wraps and salads.',
+    ing: ['2 lb boneless skinless chicken breast', '1 tbsp olive oil', '1 tsp salt', '½ tsp black pepper'],
+    steps: ['Heat the oven to 425°F (220°C). Pat the chicken dry.', 'Rub the chicken with the oil, salt and pepper.', 'Bake 18–22 minutes, until the thickest piece reaches 165°F (74°C).', 'Rest 5 minutes, then slice or shred.'],
+    rubAt: 1, rubStep: 'Then rub on the spice mix.', sauceAt: 3, sauceStep: 'Toss the chicken in the sauce, or pack the sauce on the side so it stays fresh.',
+    tip: 'Cook a double batch plain, split it, and give each half a different flavor.' },
+  { id: 'b-turkey', name: 'Ground Turkey Crumble', short: 'Turkey', fam: 'protein', cat: 'base', serves: 6, size: '⅔ cup', mins: 20, keeps: 4, freezes: true, week: 4,
+    d: 'Browned turkey with onion and garlic. Good in bowls, lettuce wraps, tortillas and sweet potatoes.',
+    ing: ['2 lb ground turkey (93% lean)', '1 yellow onion, diced', '3 cloves garlic, minced', '1 tbsp olive oil', '1 tsp salt'],
+    steps: ['Cook the onion in the oil over medium heat until soft, about 5 minutes. Add the garlic for 1 minute.', 'Add the turkey and brown it, breaking it up, 8–10 minutes until no pink remains.', 'Season with the salt and spoon off any liquid.'],
+    rubAt: 1, rubStep: 'Stir in the spice mix for the last 2 minutes.', sauceAt: 2, sauceStep: 'Stir in the sauce and simmer 2 minutes until it coats the turkey.',
+    tip: 'Brown it all at once, then split it between two pans to flavor each half.' },
+  { id: 'b-chickpeas', name: 'Roasted Chickpeas', short: 'Chickpeas', fam: 'protein', cat: 'base', serves: 5, size: '¾ cup', mins: 35, keeps: 4, freezes: false, week: 3,
+    d: 'Crispy chickpeas for bowls, salads and snacking. No meat, still filling.',
+    ing: ['3 cans chickpeas (15 oz), rinsed', '2 tbsp olive oil', '½ tsp salt'],
+    steps: ['Heat the oven to 425°F (220°C). Rinse the chickpeas and pat them very dry.', 'Toss with the oil and salt and spread on a sheet pan.', 'Roast 25–30 minutes, shaking the pan halfway, until crisp.', 'Cool on the pan.'],
+    rubAt: 1, rubStep: 'Toss with the spice mix too.', sauceAt: 3, sauceStep: 'Pack the sauce on the side and toss just before eating so they stay crisp.',
+    tip: 'Sauced chickpeas soften in the fridge, so dry rubs keep best.' },
+  { id: 'b-rice', name: 'Batch Rice', short: 'Rice', fam: 'grain', cat: 'base', serves: 6, size: '1 cup cooked', mins: 30, keeps: 4, freezes: true, week: 5,
+    d: 'Plain long-grain rice. Swap in quinoa or brown rice with the same flavors.',
+    ing: ['2 cups long-grain rice (dry)', '1 tsp salt'],
+    steps: ['Rinse the rice until the water runs mostly clear.', 'Bring 3 cups of water and the salt to a boil, add the rice, cover and simmer on low 18 minutes.', 'Rest 10 minutes covered, then fluff.', 'Spread on a tray to cool quickly, then refrigerate within an hour.'],
+    rubAt: 1, rubStep: 'Add the flavorings to the pot with the water.', sauceAt: 2, sauceStep: 'Fold in the flavorings.' },
+  { id: 'b-veg', name: 'Roasted Vegetables', short: 'Roasted Vegetables', fam: 'veg', cat: 'base', serves: 6, size: '1 cup', mins: 40, keeps: 4, freezes: false, week: 6,
+    d: 'A tray of mixed vegetables. Use whatever is cheap that week.',
+    ing: ['1 head broccoli, cut into florets', '2 bell peppers, chopped', '2 zucchini, chopped', '1 red onion, cut into wedges', '3 carrots, sliced', '3 tbsp olive oil', '1 tsp salt'],
+    steps: ['Heat the oven to 425°F (220°C).', 'Toss the vegetables with the oil and salt.', 'Spread over two sheet pans so they roast instead of steam.', 'Roast 25–30 minutes, stirring once, until browned at the edges.'],
+    rubAt: 1, rubStep: 'Toss with the spice mix too.', sauceAt: 3, sauceStep: 'Toss the hot vegetables with the sauce.' },
+  { id: 'b-eggs', name: 'Egg Muffins', short: 'Egg Muffins', fam: 'eggs', cat: 'breakfast', serves: 6, size: '2 muffins', mins: 35, keeps: 4, freezes: true, week: 5,
+    d: 'Twelve egg muffins. The mix-ins decide the flavor.',
+    ing: ['12 eggs', '½ cup milk', '½ tsp salt', '¼ tsp black pepper', '1 tbsp olive oil, for the pan'],
+    steps: ['Heat the oven to 350°F (175°C). Oil a 12-cup muffin pan well.', 'Whisk the eggs, milk, salt and pepper.', 'Pour the eggs into the cups until about three-quarters full.', 'Bake 20–25 minutes, until the centers are set.', 'Cool on a rack before packing. Reheat 30–45 seconds.'],
+    rubAt: 2, rubStep: 'Split the mix-ins between the cups first.', sauceAt: 4, sauceStep: '' },
+  { id: 'b-oats', name: 'Overnight Oats', short: 'Overnight Oats', fam: 'oats', cat: 'breakfast', serves: 5, size: '1 jar', mins: 10, keeps: 4, freezes: false, week: 5,
+    d: 'Oats, milk, Greek yogurt and chia in five jars.',
+    ing: ['2½ cups rolled oats', '2½ cups milk', '1¼ cups plain Greek yogurt', '5 tbsp chia seeds', '1 tsp vanilla extract'],
+    steps: ['Mix the oats, milk, yogurt, chia seeds and vanilla in a big bowl.', 'Divide between five jars.', 'Refrigerate overnight. Eat cold, or warm 1–2 minutes with a splash of milk.'],
+    rubAt: 0, rubStep: 'Stir in the flavorings.', sauceAt: 1, sauceStep: 'Spoon the toppings over the jars.' },
+  { id: 'b-salad', name: 'Canned Chicken Salad', short: 'Chicken Salad', fam: 'salad', cat: 'main', serves: 4, size: '¾ cup', mins: 10, keeps: 3, freezes: false, week: 3,
+    d: 'Canned chicken and Greek yogurt. Works the same with canned tuna or salmon.',
+    ing: ['4 cans chicken (5 oz), drained', '½ cup plain Greek yogurt', '2 stalks celery, diced', '1 tbsp Dijon mustard', '¼ tsp black pepper'],
+    steps: ['Flake the chicken into a bowl.', 'Stir in the yogurt, celery, mustard and pepper.', 'Pack in four containers. Eat in a wrap, on greens, or with crackers.'],
+    rubAt: 1, rubStep: 'Stir in the flavorings too.', sauceAt: 1, sauceStep: '',
+    tip: 'For tuna or salmon, copy the recipe and change the first line.' },
+];
+/* kind: 'rub' goes on before cooking, 'sauce' after. `for`: which bases it suits. */
+const MIX_FLAVORS = [
+  { id: 'teriyaki', name: 'Teriyaki', for: ['protein', 'veg'], kind: 'sauce', per: 6, d: 'Sweet, salty and sticky', part: 'Teriyaki sauce',
+    ing: ['⅓ cup soy sauce', '3 tbsp honey', '2 cloves garlic, minced', '1 tbsp fresh ginger, grated', '1 tbsp cornstarch', '1 tsp sesame oil', '1 tbsp sesame seeds', '2 green onions, sliced'],
+    make: 'Make the sauce: simmer the soy sauce, honey, garlic, ginger, sesame oil and ½ cup water for 2 minutes, then stir in the cornstarch mixed with 2 tbsp water until thick.', finish: 'Top with the sesame seeds and green onions.', goes: ['b-rice~sesame-rice', 'b-veg~sesame-ginger'] },
+  { id: 'buffalo', name: 'Buffalo', for: ['protein', 'salad'], kind: 'sauce', per: 6, d: 'Tangy and hot', part: 'Buffalo sauce',
+    ing: ['½ cup hot sauce', '2 tbsp butter', '1 tsp garlic powder', '½ cup plain Greek yogurt', '1 tsp dried dill'],
+    make: 'Make the sauce: melt the butter and whisk in the hot sauce and garlic powder. Stir the dill into the yogurt for a dip.', finish: 'Serve with the yogurt dip and celery or carrot sticks.', goes: ['b-rice~lemon-rice', 'b-veg~italian'] },
+  { id: 'lemon-herb', name: 'Lemon Herb', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Bright, garlicky, goes with anything', part: 'Lemon herb rub',
+    ing: ['2 lemons', '4 cloves garlic, minced', '2 tsp dried oregano', '1 tsp dried thyme', '2 tbsp olive oil'],
+    make: 'Mix the zest and juice of the lemons with the garlic, herbs and oil.', goes: ['b-rice~lemon-rice', 'b-veg~zaatar'] },
+  { id: 'taco', name: 'Taco', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Smoky Tex-Mex spice', part: 'Taco spice mix',
+    ing: ['1 tbsp chili powder', '2 tsp ground cumin', '1 tsp smoked paprika', '1 tsp garlic powder', '1 tsp onion powder', '½ tsp dried oregano', '1 lime'],
+    make: 'Mix the spices.', finish: 'Squeeze the lime over before packing.', goes: ['b-rice~cilantro-lime', 'b-veg~taco'] },
+  { id: 'bbq', name: 'BBQ', for: ['protein'], kind: 'sauce', per: 6, d: 'Sweet and smoky', part: 'BBQ sauce',
+    ing: ['¾ cup BBQ sauce', '1 tsp smoked paprika', '1 tbsp apple cider vinegar'],
+    make: 'Stir the paprika and vinegar into the BBQ sauce.', finish: 'Good with coleslaw mix or on a bun.', goes: ['b-veg~cajun'] },
+  { id: 'shawarma', name: 'Shawarma', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Warm Middle Eastern spices with garlic yogurt sauce', part: 'Shawarma spice and sauce',
+    ing: ['2 tsp ground cumin', '2 tsp smoked paprika', '1 tsp ground turmeric', '½ tsp ground cinnamon', '½ tsp ground allspice', '4 cloves garlic, minced', '2 lemons', '2 tbsp olive oil', '1 cup plain Greek yogurt'],
+    make: 'Mix the spices with 3 cloves of the garlic, the juice of one lemon and the oil. For the sauce, stir the last clove of garlic, the juice of the other lemon and a pinch of salt into the yogurt.', finish: 'Serve with the garlic yogurt sauce, in pita or over rice with cucumber and tomato.', goes: ['b-rice~turmeric-rice', 'b-veg~zaatar'] },
+  { id: 'zaatar', name: 'Za’atar Lemon', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Herby, tangy and nutty', part: 'Za’atar rub',
+    ing: ['3 tbsp za’atar', '1 lemon', '2 tbsp olive oil', '2 cloves garlic, minced'],
+    make: 'Mix the za’atar with the lemon zest and juice, oil and garlic.', finish: 'A spoon of Greek yogurt on top is good.', goes: ['b-rice~turmeric-rice'] },
+  { id: 'peanut', name: 'Peanut', for: ['protein', 'veg'], kind: 'sauce', per: 6, d: 'Creamy satay-style sauce', part: 'Peanut sauce',
+    ing: ['⅓ cup peanut butter', '3 tbsp soy sauce', '2 tbsp honey', '1 lime', '1 tbsp sriracha', '2 cloves garlic, minced'],
+    make: 'Whisk the peanut butter, soy sauce, honey, lime juice, sriracha and garlic with 3–4 tbsp warm water until pourable.', finish: 'Top with chopped peanuts or green onions if you have them.', goes: ['b-rice~coconut-rice', 'b-veg~sesame-ginger'] },
+  { id: 'jerk', name: 'Jerk', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Hot, sweet Caribbean spice', part: 'Jerk spice mix',
+    ing: ['1 tsp ground allspice', '1 tsp dried thyme', '1 tsp smoked paprika', '½ tsp cayenne', '1 tsp garlic powder', '1 tbsp brown sugar', '1 lime', '1 tbsp olive oil'],
+    make: 'Mix the spices and sugar with the lime juice and oil.', goes: ['b-rice~coconut-rice'] },
+  { id: 'honey-garlic', name: 'Honey Garlic', for: ['protein'], kind: 'sauce', per: 6, d: 'Sweet and garlicky glaze', part: 'Honey garlic sauce',
+    ing: ['¼ cup honey', '3 tbsp soy sauce', '5 cloves garlic, minced', '1 tsp rice vinegar', '1 tsp cornstarch'],
+    make: 'Simmer the honey, soy sauce, garlic, vinegar and ¼ cup water for 2 minutes, then stir in the cornstarch mixed with 1 tbsp water until thick.', goes: ['b-rice~sesame-rice'] },
+  { id: 'gochujang', name: 'Gochujang', for: ['protein'], kind: 'sauce', per: 6, d: 'Spicy-sweet Korean chili sauce', part: 'Gochujang sauce',
+    ing: ['3 tbsp gochujang', '2 tbsp soy sauce', '2 tbsp honey', '1 tbsp rice vinegar', '1 tsp sesame oil', '2 cloves garlic, minced', '1 tbsp sesame seeds'],
+    make: 'Whisk everything except the sesame seeds with 2 tbsp water.', finish: 'Top with the sesame seeds. Good over rice with a fried egg.', goes: ['b-rice~sesame-rice', 'b-veg~sesame-ginger'] },
+  { id: 'pesto', name: 'Basil Pesto', for: ['protein', 'veg'], kind: 'sauce', per: 6, d: 'Fresh basil, no cheese', part: 'Pesto',
+    ing: ['2 cups fresh basil', '⅓ cup olive oil', '¼ cup walnuts', '2 cloves garlic', '1 lemon', '¼ tsp salt'],
+    make: 'Blend the basil, oil, walnuts, garlic, lemon juice and salt until smooth.', finish: 'Good with pasta, rice or roasted tomatoes.', goes: ['b-rice~lemon-rice', 'b-veg~italian'] },
+  { id: 'cajun', name: 'Cajun', for: ['protein', 'veg'], kind: 'rub', per: 6, d: 'Peppery Louisiana spice', part: 'Cajun spice mix',
+    ing: ['2 tsp smoked paprika', '1 tsp garlic powder', '1 tsp onion powder', '1 tsp dried oregano', '1 tsp dried thyme', '½ tsp cayenne', '½ tsp black pepper', '1 tbsp olive oil'],
+    make: 'Mix the spices with the oil.', goes: ['b-rice~spanish-rice', 'b-veg~cajun'] },
+  { id: 'chipotle-lime', name: 'Chipotle Lime', for: ['protein', 'salad'], kind: 'sauce', per: 6, d: 'Smoky heat with lime', part: 'Chipotle lime sauce',
+    ing: ['2 chipotle peppers in adobo, minced', '2 tbsp adobo sauce', '2 limes', '2 tbsp honey', '2 cloves garlic, minced', '1 tbsp olive oil'],
+    make: 'Stir the chipotles, adobo sauce, lime juice, honey, garlic and oil together.', finish: 'Top with cilantro if you have it.', goes: ['b-rice~cilantro-lime'] },
+  /* rice */
+  { id: 'cilantro-lime', name: 'Cilantro Lime', for: ['grain'], kind: 'sauce', per: 6, d: 'Burrito-bowl rice', part: 'Cilantro lime',
+    ing: ['2 limes', '1 bunch cilantro, chopped', '1 tbsp olive oil'], use: 'Fold in the lime zest and juice, cilantro and oil.' },
+  { id: 'coconut-rice', name: 'Coconut Ginger', for: ['grain'], kind: 'rub', per: 6, d: 'Rich and lightly sweet', part: 'Coconut ginger',
+    ing: ['1 can light coconut milk (13.5 oz)', '1 tbsp fresh ginger, grated'], use: 'Use the coconut milk for part of the water (still 3 cups of liquid in all) and add the ginger.' },
+  { id: 'spanish-rice', name: 'Spanish Tomato', for: ['grain'], kind: 'rub', per: 6, d: 'Tomato, cumin and onion', part: 'Tomato flavorings',
+    ing: ['1 can tomato sauce (8 oz)', '½ yellow onion, diced', '1 tsp ground cumin', '1 tsp garlic powder', '1 tbsp olive oil'],
+    make: 'Before the water, toast the rinsed rice and onion in the oil for 3 minutes.', use: 'Use the tomato sauce for part of the water (3 cups of liquid in all) and add the cumin and garlic powder.' },
+  { id: 'lemon-rice', name: 'Lemon Herb', for: ['grain'], kind: 'sauce', per: 6, d: 'Fresh and light', part: 'Lemon herb',
+    ing: ['1 lemon', '½ bunch parsley, chopped', '1 tbsp olive oil'], use: 'Fold in the lemon zest and juice, parsley and oil.' },
+  { id: 'sesame-rice', name: 'Garlic Sesame Fried', for: ['grain'], kind: 'sauce', per: 6, d: 'Quick fried rice with egg and peas', part: 'Fried rice',
+    ing: ['3 tbsp soy sauce', '1 tbsp sesame oil', '3 cloves garlic, minced', '1 cup frozen peas', '2 eggs', '3 green onions, sliced'],
+    use: 'Once the rice is cool, stir-fry the garlic and peas in the sesame oil for 2 minutes, scramble in the eggs, then add the rice and soy sauce and toss until hot. Finish with the green onions.' },
+  { id: 'turmeric-rice', name: 'Turmeric Spiced', for: ['grain'], kind: 'rub', per: 6, d: 'Golden rice with warm spice', part: 'Spices',
+    ing: ['1 tsp ground turmeric', '1 tsp ground cumin', '¼ tsp ground cinnamon', '1 tbsp olive oil', '¼ cup sliced almonds'],
+    use: 'Add the turmeric, cumin, cinnamon and oil.', finish: 'Top with the almonds, toasted in a dry pan.' },
+  /* vegetables */
+  { id: 'italian', name: 'Italian Herb', for: ['veg'], kind: 'rub', per: 6, d: 'Garlic and herbs', part: 'Italian seasoning',
+    ing: ['1 tbsp Italian seasoning', '1 tsp garlic powder'] },
+  { id: 'sesame-ginger', name: 'Sesame Ginger', for: ['veg'], kind: 'sauce', per: 6, d: 'For Asian-style bowls', part: 'Sesame ginger sauce',
+    ing: ['2 tbsp soy sauce', '1 tbsp sesame oil', '1 tbsp honey', '1 tsp fresh ginger, grated', '1 tbsp sesame seeds'], make: 'Whisk the soy sauce, sesame oil, honey and ginger.', finish: 'Sprinkle with the sesame seeds.' },
+  { id: 'balsamic', name: 'Balsamic Glaze', for: ['veg'], kind: 'sauce', per: 6, d: 'Sweet and tangy', part: 'Balsamic glaze',
+    ing: ['3 tbsp balsamic vinegar', '1 tbsp honey'], make: 'Simmer the vinegar and honey 3–4 minutes until syrupy.' },
+  /* egg muffins */
+  { id: 'southwest', name: 'Southwest', for: ['eggs'], kind: 'rub', per: 6, d: 'Black beans, peppers and salsa', part: 'Mix-ins',
+    ing: ['1 cup black beans, rinsed', '1 bell pepper, diced', '½ cup salsa', '1 tsp ground cumin'], finish: 'Top with more salsa when you eat them.' },
+  { id: 'med-eggs', name: 'Mediterranean', for: ['eggs'], kind: 'rub', per: 6, d: 'Spinach, tomato and olives', part: 'Mix-ins',
+    ing: ['5 oz baby spinach, chopped', '1 cup cherry tomatoes, quartered', '¼ cup kalamata olives, chopped', '1 tsp dried oregano'] },
+  { id: 'turkey-eggs', name: 'Turkey & Spinach', for: ['eggs'], kind: 'rub', per: 6, d: 'Extra protein', part: 'Mix-ins',
+    ing: ['½ lb ground turkey (93% lean)', '2 cups baby spinach, chopped', '1 tsp Italian seasoning'], make: 'Brown the turkey with the Italian seasoning and let it cool a little.' },
+  { id: 'everything', name: 'Everything Bagel', for: ['eggs'], kind: 'rub', per: 6, d: 'Green onion and everything seasoning', part: 'Mix-ins',
+    ing: ['4 green onions, sliced', '1 cup baby spinach, chopped', '2 tbsp everything bagel seasoning'], use: 'Split the green onions and spinach between the cups first, and sprinkle the seasoning on top after pouring.' },
+  { id: 'broccoli-eggs', name: 'Broccoli Garlic', for: ['eggs'], kind: 'rub', per: 6, d: 'Simple and green', part: 'Mix-ins',
+    ing: ['2 cups broccoli, finely chopped', '2 cloves garlic, minced', '½ tsp onion powder'] },
+  /* oats */
+  { id: 'pb-banana', name: 'PB Banana', for: ['oats'], kind: 'rub', per: 5, d: 'Peanut butter and banana', part: 'Flavorings',
+    ing: ['⅓ cup peanut butter', '2 bananas, sliced', '2 tbsp honey'], use: 'Stir in the peanut butter and honey; top with the banana.' },
+  { id: 'berry', name: 'Berry Vanilla', for: ['oats'], kind: 'rub', per: 5, d: 'Fresh or frozen berries', part: 'Flavorings',
+    ing: ['2 cups mixed berries', '3 tbsp honey'], use: 'Stir in the honey; top with the berries.' },
+  { id: 'apple-pie', name: 'Apple Pie', for: ['oats'], kind: 'rub', per: 5, d: 'Apple, cinnamon and walnuts', part: 'Flavorings',
+    ing: ['2 apples, diced', '2 tsp ground cinnamon', '3 tbsp maple syrup', '¼ cup walnuts, chopped'] },
+  { id: 'choc-pb', name: 'Chocolate PB', for: ['oats'], kind: 'rub', per: 5, d: 'Tastes like dessert', part: 'Flavorings',
+    ing: ['3 tbsp cocoa powder', '¼ cup peanut butter', '3 tbsp maple syrup'] },
+  { id: 'carrot-cake', name: 'Carrot Cake', for: ['oats'], kind: 'rub', per: 5, d: 'Carrot, raisins and spice', part: 'Flavorings',
+    ing: ['2 carrots, grated', '1 tsp ground cinnamon', '¼ tsp ground nutmeg', '3 tbsp maple syrup', '¼ cup walnuts, chopped', '¼ cup raisins'] },
+  { id: 'tropical', name: 'Tropical', for: ['oats'], kind: 'rub', per: 5, d: 'Pineapple and coconut', part: 'Flavorings',
+    ing: ['1½ cups pineapple, diced', '¼ cup shredded coconut', '2 tbsp honey'], use: 'Stir in the honey and coconut; top with the pineapple.' },
+  /* chicken salad */
+  { id: 'lemon-dill', name: 'Lemon Dill', for: ['salad'], kind: 'rub', per: 4, d: 'Classic and fresh', part: 'Flavorings',
+    ing: ['1 lemon', '2 tbsp fresh dill, chopped', '¼ cup dill pickles, chopped'] },
+  { id: 'curry-salad', name: 'Curry', for: ['salad'], kind: 'rub', per: 4, d: 'Curry, grapes and almonds', part: 'Flavorings',
+    ing: ['2 tsp curry powder', '1 cup grapes, halved', '¼ cup sliced almonds'] },
+  { id: 'med-salad', name: 'Mediterranean', for: ['salad'], kind: 'rub', per: 4, d: 'Cucumber, olives and oregano', part: 'Flavorings',
+    ing: ['1 cucumber, diced', '¼ cup kalamata olives, chopped', '1 tsp dried oregano', '1 lemon'] },
+  { id: 'ranch', name: 'Ranch', for: ['salad'], kind: 'rub', per: 4, d: 'Herby and creamy', part: 'Flavorings',
+    ing: ['1 tsp dried dill', '1 tsp garlic powder', '1 tsp onion powder', '½ tsp dried parsley', '1 tbsp lemon juice'] },
+];
+const MIX_BASE = Object.fromEntries(MIX_BASES.map(b => [b.id, b]));
+const MIX_FLAVOR = Object.fromEntries(MIX_FLAVORS.map(f => [f.id, f]));
+const flavorsFor = b => MIX_FLAVORS.filter(f => f.for.includes(b.fam));
+const _combo = new Map();
+/* The recipe for a base on its own (id 'b-chicken') or with a flavor ('b-chicken~teriyaki') */
+function comboRecipe(id) {
+  if (_combo.has(id)) return _combo.get(id);
+  const [bid, fid] = String(id).split('~'); const b = MIX_BASE[bid]; const fl = fid ? MIX_FLAVOR[fid] : null;
+  if (!b || (fid && (!fl || !fl.for.includes(b.fam)))) return null;
+  const ing = b.ing.map(parseIng).filter(Boolean); let steps = b.steps.slice(); let r;
+  if (!fl) r = { id, name: b.name, cat: b.cat, serves: b.serves, size: b.size, mins: b.mins, keeps: b.keeps, freezes: b.freezes, week: b.week, ing, steps, note: b.tip || '', builtin: true, mix: { base: bid } };
+  else {
+    const k = b.serves / (fl.per || b.serves);
+    const fi = fl.ing.map(parseIng).filter(Boolean).map(g => g.q != null ? { ...g, q: g.q * k } : g);
+    steps = [];
+    if (fl.make) steps.push(fl.make);
+    b.steps.forEach((s, i) => {
+      steps.push(i === b.rubAt && fl.kind === 'rub' ? s + ' ' + (fl.use || b.rubStep) : s);
+      if (i === b.sauceAt && fl.kind === 'sauce') { const t = fl.use || b.sauceStep; if (t) steps.push(t); }
+    });
+    if (fl.finish) steps.push(fl.finish);
+    r = { id, name: fl.name + ' ' + b.short, cat: b.cat, serves: b.serves, size: b.size, mins: b.mins + (fl.make ? 5 : 0), keeps: b.keeps, freezes: b.freezes,
+      week: b.week, ing: ing.concat(fi), steps, note: b.tip || '', builtin: true, mix: { base: bid, flavor: fid, split: ing.length, part: fl.part || fl.name } };
+  }
+  _combo.set(id, r); return r;
+}
+const comboName = id => { const r = comboRecipe(id); return r ? r.name : ''; };
+/* Every pairing, for search */
+const allCombos = () => MIX_BASES.flatMap(b => flavorsFor(b).map(f => comboRecipe(b.id + '~' + f.id)));
+/* Pairings in the prep that share a base: cook the base once, then split it */
+function sharedBases(items) {
+  const by = {}; for (const { r } of items) if (r.mix && r.mix.flavor) (by[r.mix.base] = by[r.mix.base] || []).push(r);
+  return Object.entries(by).filter(([, l]) => l.length > 1).map(([b, l]) => ({ base: MIX_BASE[b], list: l }));
+}
+function MixList() {
+  return html`<div class="stack" id="mix-list">${MIX_BASES.map(b => { const fl = flavorsFor(b);
+    return html`<button key=${b.id} class="day-btn mix-base" onClick=${() => UI.setView({ type: 'base', id: b.id })}><div style="min-width:0"><div class="t">${b.name}</div>
+      <div class="s">${fl.length} flavors · ${fl.slice(0, 3).map(f => f.name).join(', ')}…</div></div><span class="go">Open</span></button>`; })}</div>`;
+}
+function BaseView({ id }) {
+  const b = MIX_BASE[id]; if (!b) return html`<div class="card note" style="margin-top:12px">That base isn’t here.</div>`;
+  const plain = comboRecipe(b.id); const pm = macros(plain);
+  return html`<div>
+    <div class="eyebrow" style="margin-top:4px">Mix & match base · ${MEAL_CAT_NAME[b.cat]}</div>
+    <h2 class="meal-title">${b.name}</h2>
+    <p class="note" style="margin-top:6px">${b.d}</p>
+    <button class="card mix-plain" onClick=${() => UI.setView({ type: 'meal', id: b.id, from: { type: 'base', id: b.id } })}><div style="flex:1;min-width:0"><div style="font-weight:700">The plain base</div>
+      <div class="small muted">${b.ing.map(x => shopName(parseIng(x).n)).join(', ')} · makes ${b.serves}</div>
+      ${pm ? html`<div class="small muted num">${macroLine(pm)} a serving</div>` : null}</div><span class="go">Recipe</span></button>
+    ${b.tip ? html`<div class="tip-card" style="margin-top:10px;padding-right:14px">${b.tip}</div>` : null}
+    <div class="section-h"><h2>Pick a flavor</h2><span class="aside">${flavorsFor(b).length} ideas</span></div>
+    <div class="stack">${flavorsFor(b).map(f => { const cid = b.id + '~' + f.id; const r = comboRecipe(cid); const m = macros(r); const inP = planItemFor(cid);
+      return html`<div key=${f.id} class="meal-row mix-flavor"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: cid, from: { type: 'base', id: b.id } })}><div class="t">${r.name}</div>
+        <div class="s">${f.d}${f.kind === 'rub' && b.fam !== 'eggs' && b.fam !== 'oats' && b.fam !== 'salad' ? ' · spice rub' : f.kind === 'sauce' && (b.fam === 'protein' || b.fam === 'veg') ? ' · sauce' : ''}</div>
+        <div class="s faint">Adds ${f.ing.map(x => shopName(parseIng(x).n).replace(/\s*\(.*\)$/, '')).join(', ')}</div>
+        ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}</button>
+        <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
+    <p class="small faint" style="margin-top:14px">Add two or three flavors to your prep and the shopping list buys the base once, in the total amount.</p>
+  </div>`;
 }

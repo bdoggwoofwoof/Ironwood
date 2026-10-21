@@ -23,7 +23,7 @@ async def main():
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
         await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         pnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        check('12 routines and 16 plans (10 + 6 conditioning)', len(names) == 12 and len(pnames) == 16, (len(names), len(pnames)))
+        check('12 routines and 23 plans (10 + 6 conditioning + 7 joint care)', len(names) == 12 and len(pnames) == 23, (len(names), len(pnames)))
         check("4-Day Split first among plans; Efficient PPL is one plan", pnames[0].upper() == "NEWT'S 4-DAY SPLIT" and pnames[1].upper() == 'EFFICIENT PUSH/PULL/LEGS', pnames[:3])
         page = await pg.content()
         check('no source labels', not any(w in page for w in ('From RepCount', 'Ready to run', 'Your plan')))
@@ -41,7 +41,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('plans still 16, one tagged Edited', await pg.locator('.r-card').count() == 16 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('plans still 23, one tagged Edited', await pg.locator('.r-card').count() == 23 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
@@ -97,7 +97,7 @@ async def main():
         check('routine type sections', [s.title() for s in secs] == ['Full Body', 'Core', 'Mobility', 'Conditioning'], secs)
         await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         secs = await pg.locator('.wsec-h h2').all_inner_texts()
-        check('plan type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Conditioning'], secs)
+        check('plan type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Conditioning', 'Joint Care'], secs)
         check('sections start closed', await pg.locator('.wk-row').count() == 0)
         await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
         push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()

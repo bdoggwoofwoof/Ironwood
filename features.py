@@ -1048,6 +1048,17 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}""")
 
+# 15. Joint care programs (care.js): seven two-day strength and mobility programs for common aches (shoulders, ankles and
+#     shins, lower back, knees, hips, elbows and wrists, neck and upper back), with a pain rule, signs to see a doctor or
+#     physical therapist, and no therapy or treatment claims. A finder on Routines; a pointer from Run → Programs.
+CAREJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'care.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", CAREJS + "\n/* ---------- APP ---------- */")
+swap("${r.info ? html`<${CondInfo} r=${r}/>` : null}", "${r.info ? (r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}")
+swap('    <div class="row" style="margin-top:12px">${seg}</div>`;', '    <${CareFinder}/>\n    <div class="row" style="margin-top:12px">${seg}</div>`;')
+swap('    <div class="section-h"><h2>Fitting them in</h2></div>',
+     '    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab(\'routines\'); UI.setView({ type: \'routine\', id: \'bi-care-ankle\' }); }}>Ankle & Foot Care</button> builds them up. Other joint care programs are in Routines.</p>\n    <div class="section-h"><h2>Fitting them in</h2></div>')
+swap(".sess-acts{gap:8px}", ".care-red .lbl{color:var(--red-text)}\n.care-finder .chip{font-size:14px;padding:8px 12px;min-height:36px}\n.sess-acts{gap:8px}")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

@@ -6,6 +6,7 @@ The `main` branch is the published web app. This `source` branch holds what buil
 - `meals.js` — the Meals tab (meal prep, recipes, scaling, shopping list), added by features.py.
 - `run.js` — running and conditioning (Oct 21): exercises logged by time, distance and splits; Train → Run (paces, profile, 8-week targets and plan from the 100 m, mile and 3 mile, next to the lifting days); cross-training swaps; six conditioning programs with timers; running PRs and stats. Added by features.py step 13. `test_run.py` covers the pace math and plan logic.
 - `improve.js` — Oct 21 review improvements (features.py step 14): progression with a weight jump per exercise, smaller jumps after a miss and a ~10% drop after three misses; last time's sets; older holds converted to seconds; an IndexedDB copy of the data; weekly goal from the program; repeat / save a past workout; body measurements; workout picture. `test_review.py` covers them.
+- `care.js` — Joint care programs (features.py step 15): seven two-day strength and mobility programs for common aches, with a pain rule and signs to see a doctor or physical therapist; no therapy or treatment claims. `test_care.py` covers them.
 - `features.py` — applies the Oct 10 changes (Ironwood name, photos backup, fuller restore) → `app.html`.
 - `build.py` — turns `app.html` into the installable offline web app in `dist/`.
 - `package.sh` — runs both, refreshes the zip and the `site/` repo, pushes to GitHub.

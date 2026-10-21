@@ -1078,6 +1078,29 @@ swap(".sess-acts{gap:8px}", """.also-card{background:var(--surface);border-radiu
 .wo-addons{margin-bottom:6px}
 .sess-acts{gap:8px}""")
 
+# 17. Tour (Oct 21): covers programs together, weights that adjust, running plan options, joint care, History actions,
+#     measurements and the meal log. Replaces the whole step list.
+_t0 = src.index("const TOUR = [\n"); _t1 = src.index("\n];\n", _t0) + 4
+src = src[:_t0] + """const TOUR = [
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about two minutes, and you can skip it any time.'],
+  ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
+  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Train shows what each one has next, and you can add its exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
+  ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
+  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
+  ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
+  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
+  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. Overall also tracks running, bodyweight and body measurements. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['meals', null, '.topsw', 'Meals', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Log what you eat against daily goals.'],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, and rest timers.'],
+  ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
+  ['train', 'train', null, 'You’re set', 'Time to train.'],
+];
+""" + src[_t1:]
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

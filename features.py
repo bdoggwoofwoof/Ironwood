@@ -1059,6 +1059,25 @@ swap('    <div class="section-h"><h2>Fitting them in</h2></div>',
      '    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab(\'routines\'); UI.setView({ type: \'routine\', id: \'bi-care-ankle\' }); }}>Ankle & Foot Care</button> builds them up. Other joint care programs are in Routines.</p>\n    <div class="section-h"><h2>Fitting them in</h2></div>')
 swap(".sess-acts{gap:8px}", ".care-red .lbl{color:var(--red-text)}\n.care-finder .chip{font-size:14px;padding:8px 12px;min-height:36px}\n.sess-acts{gap:8px}")
 
+# 16. Programs together (together.js): a main program plus others alongside (joint care, conditioning, any plan), and
+#     the running plan, all in Train; an add-on's next day can be added to the main workout or done on its own.
+TOGJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'together.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", TOGJS + "\n/* ---------- APP ---------- */")
+swap('      ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2>', '      <${AlsoToday} nx=${nx}/>\n      ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2>')
+swap("    ${nx ? html`\n      <div class=\"section-h\"><h2>Up next</h2>", "    ${!nx ? html`<${AlsoToday} nx=${null} quiet=${!pid}/>` : null}\n    ${nx ? html`\n      <div class=\"section-h\"><h2>Up next</h2>")
+swap("      <button class=\"btn ghost wide\" onClick=${() => openSheet({ type: 'pick', title: 'Add exercise'", "      <${WorkoutAddons} a=${a}/>\n      <button class=\"btn ghost wide\" onClick=${() => openSheet({ type: 'pick', title: 'Add exercise'")
+swap("  if (a.run) session.run = { ...a.run };", "  if (a.run) session.run = { ...a.run };\n  if (a.addons && a.addons.length) session.addons = a.addons.slice();")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'addons': return html`<${AddonsSheet}/>`;")
+swap("""      ${programId() === r.id ? null : html`<button class="btn primary" id="follow\"""",
+     """      ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); showToast({ kind: 'info', text: on ? r.name + ' added alongside your program. It shows in Train.' : r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
+      ${programId() === r.id ? null : html`<button class="btn primary" id="follow\"""")
+swap(".sess-acts{gap:8px}", """.also-card{background:var(--surface);border-radius:var(--r);padding:14px}
+.also-h{display:flex;align-items:center;gap:8px}.also-h .eyebrow{flex:1}
+.also-t{font-weight:700;font-size:18px;margin-top:2px}
+.also-s{font-size:14px;color:var(--ink-2);margin-top:2px;line-height:1.35}
+.wo-addons{margin-bottom:6px}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

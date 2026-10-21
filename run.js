@@ -103,11 +103,10 @@ function tgLabel(it) {
 /* One logged set, for reading */
 function measLabel(x, kind, u) {
   const t = +x.t || 0, d = +x.d || 0, w = +x.w || 0; const p = [];
-  if (kind === 'carry' && w) p.push(fmt(w) + ' ' + (u || U()));
+  if (!t && !d && +x.r > 0) return (w ? fmt(w) + ' ' + (u || U()) + ' × ' : '') + x.r + ' reps';   /* logged before this exercise tracked time */
   if (d) p.push(fmtDist(d)); if (t) p.push(rfmt(t));
   if (kind === 'timed' && w) p.push('+' + fmt(w) + ' ' + (u || U()));
   if (kind === 'distance' && t && d >= 200) p.push(paceTxt(t / (d / MILE)));
-  if (!p.length && (+x.r > 0)) return fmt(w) + ' × ' + x.r;   /* logged before this exercise tracked time */
   return p.join(' · ');
 }
 function measBest(sets, kind) {
@@ -177,6 +176,7 @@ function stdPool(type, beforeT, excludeSid) {
   const out = [];
   for (const s of sessionList()) { if (s.id === excludeSid || (beforeT && s.startedAt >= beforeT)) continue;
     for (const it of s.items) if (exKind(it.ex) === 'distance') for (const x of it.sets) { const st = stdOf(+x.d || 0); if (st && st[0] === type && +x.t > 0) out.push(+x.t); } }
+  for (const s of sessionList()) { if (s.id === excludeSid || (beforeT && s.startedAt >= beforeT) || s.kind !== 'activity' || s.activity !== 'run') continue; const m = actMeters(s); const st = m && stdOf(m); if (st && st[0] === type && +s.dur > 0) out.push(+s.dur * 60); }
   const R = S.meta.run; const key = { run100: 't100', mile: 't1', mile3: 't3' }[type];
   if (R && R.hist) for (const h of R.hist) if (h[key] && (!beforeT || parseYmd(h.d) < beforeT)) out.push(h[key]);
   return out;
@@ -396,7 +396,7 @@ function runCtx(t) {
     stride: t.t100 / 0.80, s150: t.t100 * 1.48 / 0.90, s200: t.t100 * 2.06 / 0.90, reserve: (MILE / t.t1) / (100 / t.t100) };
 }
 const GOAL_PCT = { balanced: [0.02, 0.045, 0.06], endurance: [0.015, 0.045, 0.075], speed: [0.03, 0.045, 0.05] };
-function runGoal(c) { const g = GOAL_PCT[c.focus]; return { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; }
+function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = Math.min(o.h1, c.h.h1); if (c.h.h3) o.h3 = Math.min(o.h3, c.h.h3); } return o; }
 /* 8-week target ranges: the faster end is 1.4× the goal improvement, the slower end 0.6× */
 function runTargets(c) { const g = runGoal(c).g; const r = (now, x) => ({ now, fast: now * (1 - x * 1.4), slow: now * (1 - x * 0.6) }); return { t100: r(c.t100, g[0]), t1: r(c.t1, g[1]), t3: r(c.t3, g[2]) }; }
 const plusN = (c, n) => c.focus === 'speed' ? n + 1 : n;
@@ -481,7 +481,7 @@ function weekSessions(w, c, runs, days) {
 function normRun(r) {
   if (!r || typeof r !== 'object') return null;
   const o = { runs: 3, block: 1, hist: [], days: {}, lifts: { ...RUN_LIFTS }, swaps: {}, marks: {}, ...r };
-  o.runs = o.runs === 2 ? 2 : 3; o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
+  o.runs = o.runs === 2 ? 2 : 3; o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks', 'easy']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
   return o;
 }
 const runSt = () => normRun(S.meta.run);
@@ -554,7 +554,7 @@ function swapPlan(s, mode) {
 function runItems(specs) { return specs.map((l, j) => ({ id: 'rp-' + j, ex: (findIn(BUILTIN_EX)(l.ex) || ensureEx(l.ex, 'distance')).id, sets: l.sets, reps: '', group: '', ss: false, note: '', tg: { ...l.tg, k: l.k || '' } })); }
 function startRunSession(w, key, force) {
   const R = runSt(); const c = runCtxNow(); if (!R || !c) return;
-  const ws = weekSessions(w, c, R.runs, R.days).find(x => x.key === key); if (!ws) return;
+  const ws = planWeek(R, w).find(x => x.key === key); if (!ws) return;
   const id = sessId(R, w, key); const mode = R.swaps[id]; const sw = mode ? swapPlan(ws.s, mode) : null;
   if (!force && ws.s.hard && !(sw && sw.ok) && legsYesterday()) {
     openSheet({ type: 'confirm', title: 'Legs yesterday', body: 'Sprints and hard intervals the day after Legs raise the risk of a strain. Do an easy run or a cross-training swap today and move this session, or start it anyway.', ok: 'Start anyway', onOk: () => { closeSheet(); startRunSession(w, key, true); } });
@@ -723,7 +723,7 @@ function RunPlan({ R, c }) {
   const today = new Date(); const cur = runWeekOf(R, today);
   const w = RUN_SEL.w || (cur >= 1 && cur <= 8 ? cur : cur > 8 ? 8 : 1);
   const setW = x => { RUN_SEL.w = x; S.rerender(); };
-  const ws = weekSessions(w, c, R.runs, R.days).sort((a, b) => ((a.dow - parseYmd(R.start).getDay() + 7) % 7) - ((b.dow - parseYmd(R.start).getDay() + 7) % 7));
+  const ws = planWeek(R, w).sort((a, b) => ((a.dow - parseYmd(R.start).getDay() + 7) % 7) - ((b.dow - parseYmd(R.start).getDay() + 7) % 7));
   const a = weekStart(R, w), b = addDays(a, 6);
   const head = cur === 0 ? 'Starts ' + shortDate(parseYmd(R.start)) : cur > 8 ? 'All 8 weeks are done' : 'Week ' + cur + ' of 8 · ' + WEEK_LABEL[cur];
   const clashes = ws.map(x => ({ x, c: legsClash(R, x.dow, x.s.hard && !(R.swaps[sessId(R, w, x.key)] && swapPlan(x.s, R.swaps[sessId(R, w, x.key)]).ok)) })).filter(y => y.c);
@@ -734,6 +734,7 @@ function RunPlan({ R, c }) {
     <div class="weekbar" role="tablist" aria-label="Week">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (n === 4 || n === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${WEEK_LABEL[n]}</span></button>`)}</div>
     <div class="small muted" style="margin:8px 0 2px">Week ${w} · ${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}</div>
     <${RunWeekGrid} R=${R} w=${w} ws=${ws}/>
+    <${RunAdapt} R=${R} w=${w} cur=${cur}/>
     ${clashes.length ? html`<div class="run-warn" role="alert" id="legs-warn">${clashes.map(({ x, c: k }) => html`<p key=${x.key}><b>${x.name} (${DOW[x.dow]})</b> is a ${x.s.hard === 'sprint' ? 'sprint' : 'hard interval'} session ${k === 'after' ? 'the day after Legs' : 'on a Legs day'}. Move it to another day, or swap it for cross-training.</p>`)}</div>` : null}
     ${w === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the first three weeks, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and weeks 5–8 use the new paces.</p>` : null}
     ${w === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs === 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
@@ -760,9 +761,9 @@ function RunWeekGrid({ R, w, ws }) {
 }
 function RunSession({ R, w, x }) {
   const id = sessId(R, w, x.key); const mode = R.swaps[id]; const sw = mode ? swapPlan(x.s, mode) : null; const st = runStatus(R, w, x.key);
-  const date = sessDate(R, w, x.dow); const cls = x.s.test ? 'test' : x.s.easy ? 'easy' : '';
+  const date = sessDate(R, w, x.dow); const cls = x.s.test ? 'test' : x.s.easy ? 'easy' : ''; const missed = !st && date < startOfDay(new Date());
   return html`<div class=${'run-sess' + (st ? ' logged' : '')} id=${'rs-' + x.key}>
-    <div class="run-sess-h"><h3>${x.name}</h3><span class=${'chip run-chip ' + cls}>${x.s.t}</span><span class="spacer"></span><span class="small muted">${shortDate(date)}</span></div>
+    <div class="run-sess-h"><h3>${x.name}</h3><span class=${'chip run-chip ' + cls}>${x.s.t}</span><span class="spacer"></span>${missed ? html`<span class="chip run-missed">Missed</span>` : null}<span class="small muted">${shortDate(date)}</span></div>
     ${sw && sw.ok ? html`<div class="run-swap-line"><b>Swapped for ${(SWAPS.find(y => y[0] === mode) || [])[1].toLowerCase()}:</b> ${sw.txt} <button class="btn text" onClick=${() => runCommit(r => { delete r.swaps[id]; })}>Undo</button></div>` : null}
     <div class=${'run-items' + (sw && sw.ok ? ' dim' : '')}>${x.s.items.map((i, k) => html`<div key=${k} class="run-item"><span class="k">${i.k}</span><span class="d">${i.d}</span>${i.r ? html`<span class="r num">${i.r}</span>` : null}</div>`)}</div>
     ${st ? html`<div class="run-st"><button class=${'tg-badge big ' + (st.st || 'none')} id=${'mark-' + x.key} onClick=${() => openSheet({ type: 'runMark', id, auto: st.auto })}>${st.st === 'on' ? '✓ On target' : st.st === 'off' ? 'Off target' : 'Done'}${st.manual ? ' (yours)' : ''}</button>
@@ -771,15 +772,17 @@ function RunSession({ R, w, x }) {
       <button class=${'btn ' + (st ? '' : 'primary')} style="flex:2" id=${'start-' + x.key} onClick=${() => startRunSession(w, x.key)}>${st ? 'Log again' : 'Start'}</button>
       ${x.s.test ? null : html`<button class="btn" style="flex:1" id=${'swap-' + x.key} onClick=${() => openSheet({ type: 'runSwap', w, k: x.key })}>${I.swap} Swap</button>`}</div></div>`;
 }
-function RunPaces({ c }) {
-  const f = FOCUS_TXT(c); const T = runTargets(c);
+function RunPaces({ c: c0 }) {
+  const R = runSt(); const cur = runWeekOf(R, new Date()); const wk = Math.min(8, Math.max(1, cur)); const c = R.goal ? ctxWeek(R, wk) : c0;
+  const f = FOCUS_TXT(c0); const T = runTargets(c0);
   const rows = [['Easy', 'Most of your running. Conversational.', easyR(c)], ['Threshold', 'Comfortably hard, about 1 hour race effort.', paceTxt(c.T)],
     ['Interval', 'Hard, about 2 mile race effort.', paceTxt(c.I) + ' · ' + rfmt(splitAt(c.I, 400)) + ' /400'], ['Mile pace', 'Your current mile, for reps.', rfmt(splitAt(c.R, 200)) + ' /200 · ' + rfmt(splitAt(c.R, 400)) + ' /400'],
     ['Speed', '90% sprints, full rest.', rfmt(c.s150) + ' /150 · ' + rfmt(c.s200) + ' /200'], ['Strides', 'Relaxed and fast, about 80%.', rfmt(c.stride) + ' /100']];
   const tgt = (l, x) => html`<div class="kpi run-tgt"><span class="lbl">${l}</span><b class="num">${rfmt(x.fast)}</b><span>to ${rfmt(x.slow)} · from ${rfmt(x.now)}</span></div>`;
   return html`<div>
     <div class="run-focus" id="run-focus"><span class="lbl">Your profile</span><b>${f[0]}</b><p class="note">${f[1]} Your mile pace uses ${Math.round(c.reserve * 100)}% of your 100 m speed.</p></div>
-    <div class="section-h"><h2>Training paces</h2><span class="aside">Estimates</span></div>
+    <${RunGoalCard}/>
+    <div class="section-h"><h2>Training paces</h2><span class="aside">${R.goal && goalInfo(R) && !goalInfo(R).slower ? 'Week ' + wk + ' · estimates' : 'Estimates'}</span></div>
     <div class="card prl run-paces">${rows.map(r => html`<div key=${r[0]}><div style="min-width:0"><div style="font-weight:700">${r[0]}</div><div class="small muted">${r[1]}</div></div><span class="num run-pv">${r[2]}</span></div>`)}</div>
     <div class="section-h"><h2>8-week targets</h2><span class="aside">Estimates</span></div>
     <div class="kpis kpis3" id="run-targets">${tgt('100 m', T.t100)}${tgt('1 mile', T.t1)}${tgt('3 miles', T.t3)}</div>
@@ -846,7 +849,7 @@ function runTestPoints(k) {
 }
 /* Sheets */
 function RunDaySheet({ dow }) {
-  const R = runSt(); const c = runCtxNow(); const w = RUN_SEL.w || Math.min(8, Math.max(1, runWeekOf(R, new Date()))); const ws = weekSessions(w, c, R.runs, R.days);
+  const R = runSt(); const c = runCtxNow(); const w = RUN_SEL.w || Math.min(8, Math.max(1, runWeekOf(R, new Date()))); const ws = planWeek(R, w);
   const LIFTS = ['', 'Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms'];
   const setLift = v => runCommit(r => { if (v) r.lifts[dow] = v; else delete r.lifts[dow]; });
   const move = key => runCommit(r => { r.days[key] = dow; });
@@ -859,7 +862,7 @@ function RunDaySheet({ dow }) {
     <button class="btn primary wide" style="margin-top:12px" onClick=${closeSheet}>Done</button><//>`;
 }
 function RunSwapSheet({ w, k: key }) {
-  const R = runSt(); const c = runCtxNow(); const x = weekSessions(w, c, R.runs, R.days).find(y => y.key === key); if (!x) return null;
+  const R = runSt(); const c = runCtxNow(); const x = planWeek(R, w).find(y => y.key === key); if (!x) return null;
   const id = sessId(R, w, key); const cur = R.swaps[id];
   return html`<${Sheet} label="Swap this run"><h2>Swap ${x.name}</h2><p class="note">Week ${w} · ${x.s.t}. Rough equivalents in training effect.</p>
     <div class="stack" style="gap:6px;margin-top:10px">${SWAPS.map(([m, l]) => { const p = swapPlan(x.s, m);
@@ -925,4 +928,88 @@ function MeasuredRows({ rows }) {
       return html`<button key=${r.ex} class="lift-row" onClick=${() => UI.setView({ type: 'exercise', ex: r.ex, group: '' })}>
         <div style="min-width:0"><div class="nm">${exName(r.ex)}</div><div class="sub"><span>${KINDS[kind]} · ${all.length} workout${all.length === 1 ? '' : 's'}</span></div></div>
         <div class="v"><span class="small muted">Last</span><b class="small">${last ? measBest(last.raw, kind) : '–'}</b></div></button>`; })}</div></div>`;
+}
+
+/* ============ Oct 21: the plan adapts, goal times, quick-logged runs ============ */
+/* meta.run.goal: { d: meters, t: seconds } — a goal race. Each week's paces move from your current times toward the
+   goal-equivalent mile and 3 miles, never past the fast end of the 8-week range. meta.run.easy: { 'block-week': true }
+   turns a week easy ("Not feeling 100%"). Pushing the plan back moves the start a week later. */
+const GOAL_RACES = [[MILE, 'Mile'], [5000, '5K'], [3 * MILE, '3 miles'], [10000, '10K'], [21097.5, 'Half marathon']];
+const raceName = d => (GOAL_RACES.find(g => Math.abs(g[0] - d) < 1) || [0, fmtDist(d)])[1];
+const riegel = (t, d1, d2) => t * Math.pow(d2 / d1, 1.06);
+function goalInfo(R) {
+  const c0 = R && R.t1 && R.t3 && R.t100 ? runCtx(R) : null; if (!c0 || !R.goal || !(R.goal.t > 0) || !(R.goal.d > 0)) return null;
+  const T = runTargets(c0); const eq1 = riegel(R.goal.t, R.goal.d, MILE), eq3 = riegel(R.goal.t, R.goal.d, 3 * MILE);
+  const now = riegel(R.t3, 3 * MILE, R.goal.d);
+  const reach = eq3 >= T.t3.fast - 0.5 && eq1 >= T.t1.fast - 0.5;
+  return { c0, T, eq1, eq3, now, reach, aim1: Math.max(eq1, T.t1.fast), aim3: Math.max(eq3, T.t3.fast), slower: eq1 >= R.t1 && eq3 >= R.t3 };
+}
+function ctxWeek(R, w) {
+  const c0 = runCtxNow(); const G = goalInfo(R); if (!c0 || !G || G.slower) return c0;
+  const f = Math.min(1, Math.max(0, (w - 1) / 7));
+  const t1 = G.aim1 < R.t1 ? R.t1 + (G.aim1 - R.t1) * f : R.t1, t3 = G.aim3 < R.t3 ? R.t3 + (G.aim3 - R.t3) * f : R.t3;
+  const c = runCtx({ t100: R.t100, t1, t3 }); c.focus = c0.focus; c.h = { h1: G.aim1, h3: G.aim3 }; return c;
+}
+const easyKey = (R, w) => (R.block || 1) + '-' + w;
+/* The week as planned: goal paces, then an easy week if you said you're not feeling 100% */
+function planWeek(R, w) {
+  const c = ctxWeek(R, w); const ws = weekSessions(w, c, R.runs, R.days);
+  if (!(R.easy || {})[easyKey(R, w)]) return ws;
+  return ws.map(x => { const s = x.s; if (s.easy && !s.test) {
+      const m = Math.max(15, Math.round((s.items.find(i => i.log && i.log.ex === 'Easy Run') || { log: { tg: { dur: 1800 } } }).log.tg.dur / 60 * 0.66 / 5) * 5);
+      return { ...x, s: { t: 'Easy', easy: true, lite: true, items: [rIt('Easy run', m + ' min, no strides', easyR(c), { ex: 'Easy Run', sets: 1, tg: { dur: m * 60, lo: c.easyLo, hi: c.easyHi, judge: 'easy' } })] } }; }
+    return { ...x, s: { t: s.test ? 'Easy (test moved)' : 'Easy', easy: true, lite: true, items: [rIt('Easy run', '20 min, or rest if you feel worse', easyR(c), { ex: 'Easy Run', sets: 1, tg: { dur: 1200, lo: c.easyLo, hi: c.easyHi, judge: 'easy' } })] } }; });
+}
+/* Sessions whose day has passed with nothing logged */
+function runMissed(R, w) {
+  const today = startOfDay(new Date()); if (w < 1 || w > 8) return [];
+  return planWeek(R, w).filter(x => sessDate(R, w, x.dow) < today && !runLogged(R, w, x.key).length);
+}
+function pushPlanBack() {
+  const R = runSt(); const before = R.start;
+  runCommit(r => { r.start = ymd(addDays(parseYmd(r.start), 7)); });
+  showToast({ kind: 'info', ms: 8000, text: 'Plan moved back a week', action: 'Undo', fn: () => runCommit(r => { r.start = before; }) });
+}
+function toggleEasyWeek(w) { const R = runSt(); const k = easyKey(R, w); const on = !(R.easy || {})[k]; runCommit(r => { r.easy = r.easy || {}; if (on) r.easy[k] = true; else delete r.easy[k]; }); showToast({ kind: 'info', text: on ? 'Week ' + w + ' is easy now. Rest if you feel worse.' : 'Week ' + w + ' is back to the plan' }); }
+/* Shown on the Plan tab: missed runs, an easy week, pushing back */
+function RunAdapt({ R, w, cur }) {
+  const prevMiss = cur >= 2 && cur <= 8 ? runMissed(R, cur - 1) : []; const easy = !!(R.easy || {})[easyKey(R, w)];
+  const inPlan = cur >= 1 && cur <= 8;
+  return html`<div class="run-adapt" id="run-adapt">
+    ${prevMiss.length && w === cur ? html`<div class="run-warn" style="color:var(--ink)"><p><b>${prevMiss.length} run${prevMiss.length === 1 ? '' : 's'} missed last week</b> (${prevMiss.map(x => x.name).join(', ')}). If you lost the week, move the plan back so you don't skip ahead.</p><button class="btn" id="push-back" onClick=${pushPlanBack}>Move the plan back a week</button></div>` : null}
+    ${easy ? html`<p class="note" style="margin-top:10px">Week ${w} is easy: runs are short and easy, tests are moved. When you're ready, turn it off, or move the plan back a week to keep every session.</p>` : null}
+    <div class="row wrap" style="margin-top:10px;gap:8px">
+      ${inPlan && w >= cur ? html`<button class=${'btn' + (easy ? ' primary' : '')} id="easy-week" aria-pressed=${easy} onClick=${() => toggleEasyWeek(w)}>${easy ? 'Easy week on' : 'Not feeling 100%'}</button>` : null}
+      ${inPlan && !(prevMiss.length && w === cur) ? html`<button class="btn text" id="push-back-any" onClick=${pushPlanBack}>Move the plan back a week</button>` : null}</div></div>`;
+}
+/* Goal race */
+function RunGoalCard() {
+  const R = runSt(); const G = goalInfo(R);
+  return html`<div class="card stack" id="run-goal" style="gap:8px;margin-top:14px"><div class="row"><span class="lbl" style="flex:1">Goal race</span><button class="btn text" id="goal-edit" onClick=${() => openSheet({ type: 'runGoal' })}>${R.goal ? 'Change' : 'Set a goal'}</button></div>
+    ${!G ? html`<p class="note">Optional. Set a race and a time, and each week's paces step from where you are toward it.</p>`
+      : html`<div><b style="font-size:19px">${raceName(R.goal.d)} in ${rfmt(R.goal.t)}</b><p class="note" style="margin-top:4px">Your times predict about ${rfmt(G.now)} now (estimate). ${G.slower ? 'You are already there; paces stay at your current times.' : G.reach ? 'Within reach of the 8-week range. Paces step toward it each week.' : 'Further than 8 weeks usually brings. This block aims for ' + rfmt(G.aim1) + ' mile and ' + rfmt(G.aim3) + ' 3 miles; keep the goal for the next block.'}</p></div>`}</div>`;
+}
+function RunGoalSheet() {
+  const R = runSt(); const [d, setD] = useState(R.goal ? R.goal.d : 5000); const [t, setT] = useState(R.goal ? rfmt(R.goal.t) : '');
+  const sec = parseClock(t, false); const est = riegel(R.t3, 3 * MILE, d);
+  const ok = sec > est * 0.6 && sec < est * 2;
+  const save = () => { runCommit(r => { r.goal = { d, t: sec }; }); closeSheet(); };
+  return html`<${Sheet} label="Goal race"><h2>Goal race</h2>
+    <div class="range-grid" role="group" aria-label="Race">${GOAL_RACES.map(([m, l]) => html`<button key=${l} class=${'chip' + (Math.abs(d - m) < 1 ? ' on' : '')} aria-pressed=${Math.abs(d - m) < 1} onClick=${() => setD(m)}>${l}</button>`)}</div>
+    <label class="lbl" for="goal-time" style="margin-top:12px;display:block">Goal time</label><input class="field" id="goal-time" inputmode="decimal" placeholder=${rfmt(est * 0.95)} value=${t} onInput=${e => setT(e.target.value)}/>
+    <p class="small muted" style="margin-top:4px">Your 3 miles predicts about ${rfmt(est)} now. ${t && !ok ? 'That time looks far off; check it.' : ''}</p>
+    <div class="row" style="margin-top:12px">${R.goal ? html`<button class="btn" style="flex:1" onClick=${() => { runCommit(r => { delete r.goal; }); closeSheet(); }}>Remove goal</button>` : null}<button class="btn primary" style="flex:2" id="goal-save" disabled=${!ok} onClick=${save}>Save goal</button></div><//>`;
+}
+/* A run quick-logged from Log another activity can count as that day's plan session */
+const actMeters = s => !(+s.dist > 0) ? 0 : +s.dist * ({ mi: MILE, km: 1000, m: 1, yd: 0.9144 }[s.distU || 'mi'] || MILE);
+function planSessionFor(day) {
+  const R = runSt(); if (!R || !runCtxNow()) return null; const w = runWeekOf(R, day); if (w < 1 || w > 8) return null;
+  const open = planWeek(R, w).filter(x => !x.s.test && !runLogged(R, w, x.key).length && sessDate(R, w, x.dow) <= startOfDay(day));
+  const same = open.find(x => ymd(sessDate(R, w, x.dow)) === ymd(day));
+  const x = same || open[open.length - 1]; return x ? { R, w, x } : null;
+}
+function offerPlanLink(a) {
+  if (a.activity !== 'run' || a.run) return; const m = planSessionFor(new Date(a.startedAt)); if (!m) return;
+  const id = sessId(m.R, m.w, m.x.key);
+  showToast({ kind: 'info', ms: 10000, text: 'Running logged. Count it as week ' + m.w + ' ' + m.x.name + '?', action: 'Count it', fn: () => { commit(st => { const s = st.sessions[a.id]; if (s) s.run = { id, w: m.w, key: m.x.key, block: m.R.block || 1, status: null, msg: 'Logged as an activity.' }; }, 's_' + a.id); showToast({ kind: 'info', text: m.x.name + ' done' }); } });
 }

@@ -990,6 +990,59 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .cond-card .tag{font-size:12.5px;color:var(--ink-2);font-weight:600}
 .run-result p{line-height:1.45;margin-top:4px}""")
 
+# 14. Oct 21 review improvements (improve.js; review in the Launch Plan's Review findings tab):
+#     progression (jump per exercise, smallest jump, smaller jump after a miss, ~10% drop after three misses, target reps,
+#     last time's sets on each exercise), older holds logged as reps, IndexedDB copy of the data, weekly goal from the
+#     program, repeat / save a past workout, body measurements, share a workout picture; running plan adapts (missed runs,
+#     easy week, push back), goal race, quick-logged runs count (run.js).
+IMPJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'improve.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", IMPJS + "\n/* ---------- APP ---------- */")
+_a = src.index("  const prev = lastEntryOcc(it.ex, it.group || '', occ);\n  const kind = exKind(it.ex); const u = it.u || U();\n  const inc")
+_b = src.index("x.gr = String(top && bump ? (lowRep || p.r) : p.r);\n  });\n}", _a) + len("x.gr = String(top && bump ? (lowRep || p.r) : p.r);\n  });\n}")
+src = src[:_a] + "  refillLift(it, occ);\n}" + src[_b:]
+swap("""    ${it.bump ? html`<div class="hint">${I.up} ${kind === 'assisted' ? 'Less assist' : '+' + fmt(inc) + ' ' + u} today. You hit every rep last time.</div>` : null}""",
+     """    ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}""")
+swap("""${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.target && it.target.cue""",
+     """${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last · ${shortDate(it.prevT)}: ${lastLine(it)}</div>` : null}${it.target && it.target.cue""")
+swap("""    <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>""",
+     """    ${['bodyweight'].includes(exKind(it.ex)) || isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-jump" onClick=${() => openSheet({ type: 'exJump', ex: it.ex, u0: u })}>${I.up}<div><div>Weight jump: +${fmt(jumpFor(it.ex, u))} ${u}${(S.meta.exJump || {})[it.ex] ? '' : ' (default)'}</div><div class="d">How much to add when every set hits the top of the range</div></div></button>`}
+    <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>""")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;",
+     "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;\n    case 'measure': return html`<${MeasureSheet}/>`;\n    case 'runGoal': return html`<${RunGoalSheet}/>`;")
+swap("""      <p class="note">When an exercise has a rep range and you hit the top of it on every set, the next workout adds one weight jump.</p>""",
+     """      <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
+      <${ProgressionSettings} set=${set}/>""")
+swap("    if (+st.inc === d0.inc) st.inc = d1.inc;", "    if (+st.inc === d0.inc) st.inc = d1.inc;\n    delete st.fine;")
+swap("return 'Per side: ' + out.map(fmt).join(' · ')", "return 'Per side: ' + out.map(x => x < 2 ? String(x) : fmt(x)).join(' · ')")
+swap("const P = u === 'kg' ? [25, 20, 15, 10, 5, 2.5, 1.25] : [45, 35, 25, 10, 5, 2.5];",
+     "const fn = typeof fineFor === 'function' ? fineFor(u) : 5; const P = u === 'kg' ? [25, 20, 15, 10, 5, 2.5, 1.25].concat(fn <= 1 ? [0.5] : [], fn <= 0.5 ? [0.25] : []) : [45, 35, 25, 10, 5, 2.5].concat(fn <= 2.5 ? [1.25] : [], fn <= 1 ? [0.5] : []);")
+swap("  it.u = to;\n  commit(st => { if (to === U()) delete st.meta.exUnit", "  it.u = to; if (!isMeasured(exKind(it.ex))) refill(it);\n  commit(st => { if (to === U()) delete st.meta.exUnit")
+swap("Each time you get all 25 reps, add 5 lb next session (10 lb on deadlift).", "Each time you get all 25 reps, add 5 lb (2.5 kg) next session, twice that on deadlift; Ironwood suggests it.")
+swap("    ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}", "    <${LegacyTimedCard}/>\n    ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}")
+swap("showToast({ kind: 'info', text: id === 'self' ? 'Self-log it is' : 'Following ' + getRoutine(id).name });", "showToast(followToast(id));")
+swap("onClick=${() => { setProgram(r.id); showToast({ kind: 'info', text: 'Following ' + r.name }); }}", "onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}")
+swap("  S.active = { id: uid('s'), routineId:", "  if (S.toast && S.toast.kind === 'info') S.toast = null;\n  S.active = { id: uid('s'), routineId:")
+swap(""": html`<div class="row"><button class="btn" style="flex:1" onClick=${() => setEdit(clone(s0))}>${I.edit} Edit</button>""",
+     """: html`<${SessionActions} id=${id} summary=${false}/><div class="row"><button class="btn" style="flex:1" onClick=${() => setEdit(clone(s0))}>${I.edit} Edit</button>""")
+swap("""<button class="btn primary wide" style="margin-top:18px" onClick=${closeSheet}>Done</button><//>""", """<${SessionActions} id=${id}/>\n    <button class="btn primary wide" style="margin-top:18px" onClick=${closeSheet}>Done</button><//>""")
+swap("    <${BodyweightCard}/>\n", "    <${BodyweightCard}/>\n    <${MeasureCard}/>\n")
+swap("    const bwDays = new Set(", "    const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));\n    const bwDays = new Set(")
+swap("for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges'])", "for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump'])")
+swap("commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });",
+     "commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') }); if (!s0) offerPlanLink(x);")
+swap("  globe: ic(", "  share: ic(() => html`<path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5\"/><path d=\"M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7\"/>`),\n  globe: ic(")
+# Storage: every save also goes to IndexedDB; launch loads the newer copy
+swap("function lsSave() {\n  if (lsBroken) return false;", "function lsSave() { return storeSave(); }\nfunction lsSaveLocalOnly() {\n  if (lsBroken) return false;")
+swap("(function boot() {\n  const l = migrateData(lsLoad());", "(async function boot() {\n  const l = migrateData(await storeLoad());")
+swap("  if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }",
+     "  if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }\n  if (storeBlocked) { render(html`<${StoreBlockedScreen}/>`, document.getElementById('app')); return; }")
+swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
+/* Oct 21 */
+.last-line{font-size:13.5px;color:var(--ink-2);margin-top:4px;line-height:1.35}
+.hint.prog-step,.hint.prog-deload{color:var(--ink-2)}
+.run-missed{background:var(--raised);color:var(--red-text)}
+.sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

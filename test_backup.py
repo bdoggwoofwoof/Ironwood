@@ -97,7 +97,13 @@ async def main():
         check('app and History open after a damaged restore', await pb.locator('.tabs').count() == 1 and await pb.locator('.log-item').count() >= 4, await pb.locator('.log-item').count())
 
         # Unreadable saved data: a recovery screen, a kept copy, and no overwrite
-        await pb.evaluate("localStorage.setItem('liftbook.v1', '{not json')"); await pb.reload(); await pb.wait_for_timeout(1200)
+        # With the IndexedDB copy, damaged localStorage is recovered from it (and the damaged text kept)
+        n_before = await pb.evaluate("sessionList().length")
+        await pb.evaluate("localStorage.setItem('liftbook.v1', '{not json')"); await pb.reload(); await pb.wait_for_timeout(1500)
+        check('damaged localStorage recovered from the IndexedDB copy', await pb.locator('.tabs').count() == 1 and await pb.evaluate("sessionList().length") == n_before and await pb.evaluate("Object.keys(localStorage).some(k => k.startsWith('liftbook.v1.corrupt-'))"), n_before)
+        # Both copies unreadable: the recovery screen, as before
+        await pb.evaluate("new Promise(r => { IDB.db && IDB.db.close(); const q = indexedDB.deleteDatabase('ironwood'); q.onsuccess = q.onerror = q.onblocked = () => r(); })")
+        await pb.evaluate("localStorage.setItem('liftbook.v1', '{not json')"); await pb.reload(); await pb.wait_for_timeout(1500)
         keys = await pb.evaluate("Object.keys(localStorage).filter(k => k.startsWith('liftbook.v1.corrupt-'))")
         check('recovery screen with a kept copy', await pb.locator('h2', has_text='couldn’t be read').count() == 1 and len(keys) >= 1, keys)
         check('damaged data left untouched', await pb.evaluate("localStorage.getItem('liftbook.v1')") == '{not json')
@@ -106,14 +112,19 @@ async def main():
 
         # Full storage is reported, not hidden
         await pb.evaluate("(() => { const o = localStorage.setItem.bind(localStorage); localStorage.setItem = (k, v) => { if (k === 'liftbook.v1') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return o(k, v); }; })()")
-        await pb.evaluate("commit(st => { st.meta.settings.goal = 3; }, 'meta')"); await pb.wait_for_timeout(300)
-        check('full storage shows a warning', await pb.locator('.toast.bad').count() == 1 and await pb.evaluate("S.sync") == 'full')
+        await pb.evaluate("commit(st => { st.meta.settings.goal = 3; }, 'meta')"); await pb.wait_for_timeout(400)
+        check('full localStorage: saves continue in IndexedDB, no false alarm', await pb.locator('.toast.bad').count() == 0 and await pb.evaluate("S.sync") != 'full' and await pb.evaluate("IDB.savedAt > 0 && !IDB.failed"))
+        await pb.reload(); await pb.wait_for_timeout(1500)
+        check('change made while localStorage was full survives a reload', await pb.evaluate("S.meta.settings.goal") == 3)
+        await pb.evaluate("(() => { const o = localStorage.setItem.bind(localStorage); localStorage.setItem = (k, v) => { if (k === 'liftbook.v1') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return o(k, v); }; idbPut = () => Promise.reject(new Error('quota')); })()")
+        await pb.evaluate("commit(st => { st.meta.settings.goal = 4; }, 'meta')"); await pb.wait_for_timeout(400)
+        check('both full: storage warning shows', await pb.locator('.toast.bad').count() == 1 and await pb.evaluate("S.sync") == 'full')
 
         # Backup nudge: six older workouts and no backup yet
         await pb.reload(); await pb.wait_for_timeout(800)
         await pb.evaluate("""(() => { const now = Date.now(), day = 864e5; const d = JSON.parse(localStorage.getItem('liftbook.v1')) || { meta: null, sessions: {}, active: null, activeAt: 0, dirty: [] }; d.sessions = {};
           for (let i = 0; i < 6; i++) d.sessions['n' + i] = { id: 'n' + i, startedAt: now - (30 - i) * day, endedAt: now - (30 - i) * day + 3600e3, updatedAt: now, prs: [], items: [{ ex: 'b-squat', sets: [{ w: 100, r: 5 }] }] };
-          localStorage.setItem('liftbook.v1', JSON.stringify(d)); })()""")
+          d.at = Date.now() + 1e9; localStorage.setItem('liftbook.v1', JSON.stringify(d)); })()""")
         await pb.reload(); await pb.wait_for_timeout(1500); await pb.locator('.tab', has_text='Train').click(); await pb.locator('.topsw button', has_text='Train').click(); await pb.wait_for_timeout(300)
         check('backup nudge appears', await pb.locator('#backup-nudge').count() == 1)
         await pb.locator('#backup-nudge button', has_text='Later').click(); await pb.wait_for_timeout(200)

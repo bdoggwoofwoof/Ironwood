@@ -842,6 +842,154 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .me-mac label{display:block;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-mac .field{padding-inline:8px;text-align:center}""")
 
+# 13. Running and conditioning (Oct 21, 2026; run.js): exercises logged by time, distance and splits (planks, hangs,
+#     runs, carries); Train → Run with paces, a profile and 8-week targets from the 100 m, mile and 3 mile, the 8-week
+#     plan for 2 or 3 runs a week next to the lifting days, session targets on the workout screen, on/off target checks,
+#     week 4 and week 8 tests that update times; cross-training swaps; six conditioning programs with timers;
+#     running PRs and stats. Saved in meta.run and on each set (t, d, sp), so backups carry it. Nothing leaves the phone.
+RUNJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'run.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", RUNJS + "\n/* ---------- APP ---------- */")
+# A measured set is done once it is logged with a time or distance
+swap("const isDone = x => Math.round(num(x.r)) >= 1;", "const isDone = x => Math.round(num(x.r)) >= 1 || (!!x.c && (num(x.t) > 0 || num(x.d) > 0));")
+swap("  if (/assist/.test(n)) return 'assisted';\n",
+     "  if (/assist/.test(n)) return 'assisted';\n  if (/\\b(run|running|jog|jogging|sprints?|swim|swimming|cycling|elliptical|rowing machine|erg|treadmill)\\b/.test(n)) return 'distance';\n  if (/\\b(carry|carries|ruck|rucking|sled push|sled drag|yoke)\\b/.test(n)) return 'carry';\n  if (/\\b(plank|dead hang|wall sit|l-sit|hollow hold)\\b/.test(n) && !/jack|up|walk|row/.test(n)) return 'timed';\n")
+swap("function refill(it, occ) {\n", "function refill(it, occ) {\n  if (isMeasured(exKind(it.ex))) { if (occ === undefined) { const same = S.active ? S.active.items.filter(o => o.ex === it.ex) : []; occ = Math.max(0, same.indexOf(it)); } refillMeasured(it, occ); return; }\n")
+swap("target: { sets: n, reps: item.reps || '', cue: item.note || '' },",
+     "target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),")
+swap("if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; return o; }) })).filter(it => it.sets.length);",
+     "if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; return o; }) })).filter(it => it.sets.length);")
+swap("dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };\n  session.prs = detectPRs(session);\n  commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);",
+     "dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };\n  if (a.run) session.run = { ...a.run };\n  session.prs = detectPRs(session);\n  commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);\n  if (session.run) runFinished(session);")
+swap("    const kind = exKind(it.ex); const u = it.u || U(); const cur = toMain(it.sets, it.u)",
+     "    const kind = exKind(it.ex); if (isMeasured(kind)) { prs.push(...measuredPRs(session, it)); continue; }\n    const u = it.u || U(); const cur = toMain(it.sets, it.u)")
+swap("function bestSetLabel(sets, kind) {\n", "function bestSetLabel(sets, kind) {\n  if (isMeasured(kind)) return measBest(sets, kind);\n")
+swap("function SlotCard({ it, nextSS }) {", "function SlotCard(p) { return isMeasured(exKind(p.it.ex)) ? html`<${MeasSlot} ...${p}/>` : html`<${LiftSlot} ...${p}/>`; }\nfunction LiftSlot({ it, nextSS }) {")
+swap("function ExerciseStats({ ex, group }) {", "function ExerciseStats(p) { return isMeasured(exKind(p.ex)) ? html`<${MeasuredStats} ex=${p.ex}/>` : html`<${LiftStats} ...${p}/>`; }\nfunction LiftStats({ ex, group }) {")
+swap("const setsLabel = it => it.sets", "const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets")
+swap("const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return '';",
+     "const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; if (isMeasured(exKind(it.ex))) return ' · last ' + measBest(e.raw, exKind(it.ex));")
+swap("""<input class="ed-reps" id=${'reps-' + it.id} aria-label="Target reps" placeholder="reps" value=${it.reps} onInput=${e => { it.reps = e.target.value.replace(/[^\\d\\-–]/g, ''); }}/>""",
+     """${isMeasured(exKind(it.ex)) ? html`<${TargetInput} key=${it.ex} it=${it} re=${re}/>` : html`<input class="ed-reps" id=${'reps-' + it.id} aria-label="Target reps" placeholder="reps" value=${it.reps} onInput=${e => { it.reps = e.target.value.replace(/[^\\d\\-–]/g, ''); }}/>`}""")
+# Saved workouts: time, distance and splits are kept when edited, and read as time and distance
+swap("if (x.p) o.p = x.p; return o; }).filter(x => x.r > 0); });",
+     "if (x.p) o.p = x.p; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; return o; }).filter(x => x.r > 0 || x.t > 0 || x.d > 0); });")
+swap("      ${edit ? it.sets.map((x, j) => html`<div key=${j} class=\"edit-set\">",
+     "      ${edit && isMeasured(kind) ? it.sets.map((x, j) => html`<${MeasEditSet} key=${j} x=${x} j=${j} i=${i} kind=${kind} onRemove=${() => { it.sets.splice(j, 1); setEdit({ ...edit }); }}/>`) : edit ? it.sets.map((x, j) => html`<div key=${j} class=\"edit-set\">")
+swap("<span>${kind === 'bodyweight' && !x.w ? x.r + ' reps' : fmt(x.w) + ' ' + u + ' × ' + x.r}",
+     "<span>${isMeasured(kind) ? measLabel(x, kind, u) : kind === 'bodyweight' && !x.w ? x.r + ' reps' : fmt(x.w) + ' ' + u + ' × ' + x.r}")
+swap("<span class=\"faint\">${kind === 'bodyweight' || kind === 'assisted' ? '' :", "<span class=\"faint\">${kind === 'bodyweight' || kind === 'assisted' || isMeasured(kind) ? '' :")
+# Stats
+swap("  const rows = liftRows(); const now = Date.now();",
+     "  const rows0 = liftRows(); const rows = rows0.filter(r => !isMeasured(exKind(r.ex))); const mrows = rows0.filter(r => isMeasured(exKind(r.ex)) && entries(r.ex).length); const now = Date.now();")
+swap("    ${recentPRs.length ? html`<div class=\"section-h\"><h2>Recent PRs</h2></div>",
+     "    ${mrows.length ? html`<${MeasuredRows} rows=${mrows}/>` : null}\n    ${recentPRs.length ? html`<div class=\"section-h\"><h2>Recent PRs</h2></div>")
+swap("    <${NutritionStatsCard}/>\n  </div>`;", "    <${RunStatsCard}/>\n    <${NutritionStatsCard}/>\n  </div>`;")
+swap("const PR_DEF = { weight: true, reps: true, setvol: false, sessvol: true, ranges: true, sound: true };",
+     "const PR_DEF = { weight: true, reps: true, setvol: false, sessvol: true, run: true, ranges: true, sound: true };")
+swap("    ${tog('sessvol', 'Session volume',", "    ${tog('run', 'Times and distances', 'Fastest 100 m, mile and 3 miles from any run, fastest time at a distance, longest hold and heaviest carry.')}\n    ${tog('sessvol', 'Session volume',")
+# Workouts: a day's timer setup comes along; the workout screen shows what a plan run is for
+swap("items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };\n  touch(500);",
+     "items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };\n  if (day && day.timer) S.active.timer = clone(day.timer);\n  touch(500);")
+swap("    <div class=\"small muted num\" style=\"margin-top:6px\">${done} of ${total} sets done</div>",
+     "    <div class=\"small muted num\" style=\"margin-top:6px\">${done} of ${total} sets done</div>\n    <${WorkoutExtras} a=${a}/>")
+swap("<span>${U()} moved</span></div></div>", "<span>${U()} moved</span></div></div>\n    <${RunSummary} s=${s}/>")
+swap("{ id: 'p-tabata', name: 'Tabata',", "{ id: 'p-tabata', name: '20 on / 10 off',")
+swap('"Tabata", ', '"20 on / 10 off", ')
+swap("    ${r.note ? html`<p class=\"note\">${r.note}</p>` : null}\n    <div class=\"row wrap\" style=\"margin:14px 0 4px\">",
+     "    ${r.note ? html`<p class=\"note\">${r.note}</p>` : null}\n    ${r.info ? html`<${CondInfo} r=${r}/>` : null}\n    <div class=\"row wrap\" style=\"margin:14px 0 4px\">")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;",
+     "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;\n    case 'runDay': return html`<${RunDaySheet} ...${sheet}/>`;\n    case 'runSwap': return html`<${RunSwapSheet} ...${sheet}/>`;\n    case 'runMark': return html`<${RunMarkSheet} ...${sheet}/>`;")
+# Train → Train / Run / History
+swap("const TRAIN = { mode: lsGet('trainMode') === 'history' ? 'history' : 'train' };",
+     "const TRAIN = { mode: ['history', 'run'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };")
+swap("options=${[['train', 'Train'], ['history', 'History']]} onChange=${pick}/>", "options=${[['train', 'Train'], ['run', 'Run'], ['history', 'History']]} onChange=${pick}/>")
+swap("<${LogScreen}/></div>` : html`<${TrainHome}/>`}</div>`;", "<${LogScreen}/></div>` : TRAIN.mode === 'run' ? html`<${RunScreen}/>` : html`<${TrainHome}/>`}</div>`;")
+swap("  ['train', 'history', '.log-item', 'History',",
+     "  ['train', 'run', '.run-seg, #run-setup', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and an 8-week running plan that fits around your lifting days. Conditioning programs live here too.'],\n  ['train', 'history', '.log-item', 'History',")
+# Restoring into a used app brings the running plan if there isn't one here yet
+swap("    const tIds = new Set((st.meta.timers || []).map(x => x.id));",
+     "    if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;\n    const tIds = new Set((st.meta.timers || []).map(x => x.id));")
+swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}
+/* Timed and distance sets */
+.meas-row{display:grid;gap:8px;align-items:center;padding:4px;border-radius:10px;background:var(--surface)}
+.meas-row.k-timed{grid-template-columns:30px minmax(0,1.3fr) minmax(0,1fr) 46px}
+.meas-row.k-distance{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 46px}
+.meas-row.k-carry{grid-template-columns:30px minmax(0,.9fr) minmax(0,1fr) minmax(0,1fr) 46px}
+.meas-row.th{background:none;font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);padding-block:0}
+.meas-row.th span{text-align:center}.meas-row.th span:first-child{text-align:center}
+.meas-row .n{font-family:var(--display);font-weight:700;font-size:18px;text-align:center;color:var(--ink-2)}
+.meas-row .n.pr{background:var(--pr);color:var(--pr-ink);border-radius:8px;padding:3px 0}
+.meas-row input{width:100%;min-width:0;text-align:center;background:var(--raised);border:1.5px solid transparent;border-radius:9px;padding:9px 4px;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.meas-row input:focus{border-color:var(--accent);outline:none}
+.meas-row input::placeholder{color:var(--ink-3);opacity:1;font-weight:500}
+.meas-row.done{background:linear-gradient(var(--accent-soft),var(--accent-soft)),var(--surface)}
+.meas-row.done input{background:transparent}
+.meas-ok{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--ink-3);box-shadow:inset 0 0 0 1.5px var(--line)}
+.meas-ok svg{width:22px;height:22px}.meas-ok.on{background:var(--accent-bg);color:var(--accent-ink);box-shadow:none}
+.meas-info{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:4px 6px 2px 42px}
+.meas-info .sp-btn{margin-left:auto;min-height:36px;padding:4px 6px}
+.tg-badge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--raised);color:var(--ink-2)}
+.tg-badge.on{background:var(--accent-soft);color:var(--good)}
+.tg-badge.slow,.tg-badge.short,.tg-badge.off{background:var(--raised);color:var(--red-text)}
+.tg-badge.fast{background:var(--raised);color:var(--accent)}
+.tg-badge.big{font-size:14px;padding:6px 12px;min-height:36px}
+.hint.warn{color:var(--red-text);font-weight:600;line-height:1.35}
+.sp-clock{font-family:var(--display);font-size:52px;font-weight:700;text-align:center;margin-top:8px}
+.sp-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;background:var(--raised);border-radius:12px;padding:10px 12px}
+.edit-set.meas{grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) 36px}
+.edit-set.meas input{min-width:0}
+.ed-tg{min-width:120px;flex:1}
+/* Run */
+.run-h{font-size:19px;font-weight:700}
+.run-seg{display:flex;width:100%}.run-seg button{flex:1;padding:8px 4px}
+.run-ins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.run-in{display:flex;flex-direction:column;gap:4px;min-width:0}
+.run-in .field{text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.weekbar{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin-top:12px}
+.weekbar button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 0;border-radius:10px;background:var(--surface);color:var(--ink-2);min-height:48px}
+.weekbar b{font-size:16px;color:var(--ink)}.weekbar span{font-size:10px;letter-spacing:.02em}
+.weekbar .test{box-shadow:inset 0 0 0 1.5px var(--line)}
+.weekbar .now b{color:var(--accent)}
+.weekbar .on{background:var(--accent-bg);color:var(--accent-ink)}.weekbar .on b{color:var(--accent-ink)}
+.run-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:6px}
+.rg-day{display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:6px 3px;border-radius:10px;background:var(--surface);min-height:96px;text-align:center}
+.rg-day b{font-size:12px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.rg-day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.rg-date{font-size:12px;color:var(--ink-3)}
+.rg-lift,.rg-run,.rg-none,.rg-did{font-size:10.5px;line-height:1.15;border-radius:6px;padding:3px 2px;overflow-wrap:anywhere}
+.rg-lift{background:var(--raised);color:var(--ink)}.rg-lift.legs{font-weight:700}
+.rg-run{background:var(--accent-soft);color:var(--ink);font-weight:700}
+.rg-run.hard{background:var(--accent-bg);color:var(--accent-ink)}
+.rg-run.test{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.rg-none{color:var(--ink-3)}.rg-did{color:var(--good);font-weight:600}
+.run-warn{margin-top:10px;background:var(--raised);border-radius:12px;padding:10px 12px;color:var(--red-text);font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:6px}
+.run-sess{background:var(--surface);border-radius:var(--r);padding:14px}
+.run-sess-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.run-sess-h h3{font-family:var(--display);font-size:22px;font-weight:700;text-transform:uppercase;line-height:1}
+.run-chip.test{background:var(--accent-bg);color:var(--accent-ink)}
+.run-items{display:flex;flex-direction:column;margin-top:8px}
+.run-items.dim{opacity:.45}
+.run-item{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,2fr) auto;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;line-height:1.35}
+.run-item .k{font-weight:700}.run-item .r{font-weight:700;white-space:nowrap;text-align:right}
+.run-swap-line{margin-top:8px;font-size:14px;line-height:1.4;background:var(--raised);border-radius:10px;padding:8px 10px}
+.run-st{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.card.run-rules>div{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;text-align:left}.run-rules span{font-size:14.5px;color:var(--ink-2);line-height:1.4}
+.run-focus{margin-top:14px;background:var(--surface);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:4px}
+.run-focus b{font-size:19px}
+.run-paces>div{padding:2px 0}.run-pv{font-weight:700;text-align:right;font-size:14.5px;max-width:48%}
+.run-tgt b{font-size:22px}.run-tgt span:last-child{font-size:12px;color:var(--ink-2);display:block}
+.run-tbl{font-size:13.5px;min-width:560px}.run-tbl td{vertical-align:top}
+.run-ul{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.4}
+.run-svg{width:100%;height:auto;margin-top:8px}
+.run-svg .ax{font-size:11px;fill:var(--ink-3)}.run-svg .gl{stroke:var(--line);stroke-width:1}
+.run-svg .ln{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}.run-svg .dt{fill:var(--accent)}
+.run-banner{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:4px;margin-top:12px}
+.wo-extra{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.run-sum{margin-top:14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.cond-info{margin-top:10px}.cond-info .kpis3 .kpi b{font-size:15px;white-space:normal;line-height:1.2}
+.cond-card .tag{font-size:12.5px;color:var(--ink-2);font-weight:600}
+.run-result p{line-height:1.45;margin-top:4px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

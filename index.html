@@ -211,6 +211,11 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .run-missed{background:var(--raised);color:var(--red-text)}
 .care-red .lbl{color:var(--red-text)}
 .care-finder .chip{font-size:calc(14 * var(--u));padding:8px 12px;min-height:36px}
+.also-card{background:var(--surface);border-radius:var(--r);padding:14px}
+.also-h{display:flex;align-items:center;gap:8px}.also-h .eyebrow{flex:1}
+.also-t{font-weight:700;font-size:calc(18 * var(--u));margin-top:2px}
+.also-s{font-size:calc(14 * var(--u));color:var(--ink-2);margin-top:2px;line-height:1.35}
+.wo-addons{margin-bottom:6px}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -1837,6 +1842,7 @@ function finishWorkout(opts = {}) {
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
   if (a.run) session.run = { ...a.run };
+  if (a.addons && a.addons.length) session.addons = a.addons.slice();
   session.prs = detectPRs(session);
   commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);
   if (session.run) runFinished(session);
@@ -1940,6 +1946,7 @@ function TrainHome() {
     ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}
     ${chs.length ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${newCh}>New</button></div>
       <div class="stack">${chs.map(ch => html`<${ChallengeCard} key=${ch.id} ch=${ch}/>`)}</div>` : null}
+    ${!nx ? html`<${AlsoToday} nx=${null} quiet=${!pid}/>` : null}
     ${nx ? html`
       <div class="section-h"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'First workout'}</span></div>
       <div class="next-card">
@@ -1947,6 +1954,7 @@ function TrainHome() {
         <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
+      <${AlsoToday} nx=${nx}/>
       ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>` : html`<div style="height:12px"></div>`}
       <div class="stack">${routine.days.filter(d => d.id !== nx.day.id).map(d => html`<button key=${d.id} class="day-btn" onClick=${() => startWorkout(routine, d)}>
         <div><div class="t">${d.name}</div><div class="s">${d.items.length} exercises</div></div><span class="go">Start</span></button>`)}
@@ -2245,6 +2253,7 @@ function ActiveWorkout() {
     ${a.items.map((it, i) => html`<${SlotCard} key=${it.id} it=${it} i=${i} nextSS=${!!(a.items[i + 1] && a.items[i + 1].ss)}/>`)}
     ${!a.items.length ? html`<div class="empty"><h3>Empty workout</h3><p>Add the first exercise below.</p></div>` : null}
     <div class="stack" style="margin-top:16px">
+      <${WorkoutAddons} a=${a}/>
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add exercise', onPick: ex => { a.items.push(makeSlot({ ex: ex.id, sets: 3 })); closeSheet(); touch(); } })}>${I.plus} Add exercise</button>
       <button class="btn wide" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
       <button class="btn primary wide" onClick=${() => openSheet({ type: 'finish' })}>Finish workout</button>
@@ -2509,6 +2518,7 @@ function RoutineView({ id }) {
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
     ${r.info ? (r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
     <div class="row wrap" style="margin:14px 0 4px">
+      ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); showToast({ kind: 'info', text: on ? r.name + ' added alongside your program. It shows in Train.' : r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
@@ -2966,7 +2976,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 104f18f</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 88d2717</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3754,6 +3764,7 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
+    case 'addons': return html`<${AddonsSheet}/>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
@@ -6392,6 +6403,77 @@ function CareFinder() {
   return html`<div class="card care-finder" id="care-finder" style="margin-top:12px"><div class="row"><span style="font-weight:700;flex:1">Joint care</span><span class="small muted">15–20 min, 3× a week</span></div>
     <p class="small muted" style="margin-top:2px">Strength and mobility for common aches. What’s bothering you?</p>
     <div class="range-grid" style="margin-top:8px">${CARE.map(P => html`<button key=${P.id} class="chip" id=${'care-' + P.id.slice(8)} onClick=${() => UI.setView({ type: 'routine', id: P.id })}>${P.area}</button>`)}</div></div>`;
+}
+
+/* ============ Programs together ============ */
+/* Follow one main program and add others alongside it (joint care, conditioning, any plan or routine); the running plan
+   shows too. Train lists what each one has next, and an add-on's day can be started on its own or added to the main
+   workout. settings.addons: [routine id]. A workout records the add-on days it included (session.addons: [{ id, dayId }]),
+   so each add-on moves on to its next day. */
+const addonIds = () => (S.meta.settings.addons || []).filter(id => id !== programId() && getRoutine(id));
+function setAddon(id, on) {
+  commit(st => { const a = new Set(st.meta.settings.addons || []); if (on) a.add(id); else a.delete(id); st.meta.settings.addons = [...a]; }, 'meta');
+}
+function nextFor(r) {
+  const list = sessionList();
+  for (let i = list.length - 1; i >= 0; i--) { const s = list[i];
+    const hit = s.routineId === r.id ? s.dayId : ((s.addons || []).find(a => a.id === r.id) || {}).dayId;
+    if (!hit) continue; const idx = r.days.findIndex(d => d.id === hit); return { day: r.days[(idx + 1) % r.days.length], last: s }; }
+  return { day: r.days[0], last: null };
+}
+const doneToday = id => sessionList().some(s => ymd(s.startedAt) === ymd(new Date()) && (s.routineId === id || (s.addons || []).some(a => a.id === id)));
+/* Add an add-on day to the workout in progress (or start the main day with it) */
+function addDayToWorkout(r, day) {
+  const a = S.active; if (!a) return;
+  const base = a.items.length;
+  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); if (i === 0) it.ss = false; a.items.push(it); });
+  a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
+  if (day.timer && !a.timer) a.timer = clone(day.timer);
+  touch(); showToast({ kind: 'info', text: r.name + ' · ' + day.name + ' added' });
+  setTimeout(() => { const el = document.querySelectorAll('.slot')[base]; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+}
+function startTogether(main, mainDay, r, day) { startWorkout(main, mainDay); if (S.active && S.active.dayId === mainDay.id) addDayToWorkout(r, day); }
+const shortName = r => r.name.replace(/ Care$/, '');
+/* Train: what else is on your plate */
+function AlsoToday({ nx, quiet }) {
+  const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
+  const run = R && runCtxNow() ? (() => { const w = runWeekOf(R, new Date()); if (w < 1 || w > planLen(R)) return null;
+    const today = ymd(new Date()); const ws = planWeek(R, w);
+    const due = ws.filter(x => ymd(sessDate(R, w, x.dow)) === today); const x = due.find(y => !runLogged(R, w, y.key).length) || due[0];
+    return x ? { w, x, done: !!runLogged(R, w, x.key).length } : null; })() : null;
+  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning or another plan alongside</button>`;
+  return html`<div id="also-today"><div class="section-h"><h2>Also on your plan</h2><button class="btn text" id="edit-addons" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
+    <div class="stack">
+    ${run ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : null}</div>
+      <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
+      <div class="row" style="margin-top:8px"><button class=${'btn' + (run.done ? '' : ' primary')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : 'Start run'}</button>
+        <button class="btn text" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); }}>Plan</button></div></div>` : null}
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info ? 'Conditioning' : (r.meta || 'Plan');
+      return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : null}</div>
+        <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
+        <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
+        <div class="row wrap" style="margin-top:8px;gap:8px">
+          ${nx ? html`<button class=${'btn' + (done ? '' : ' primary')} style="flex:2" id=${'also-add-' + id} onClick=${() => startTogether(nx.routine, nx.day, r, n.day)}>Add to ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>` : null}
+          <button class=${'btn' + (nx || done ? '' : ' primary')} style="flex:1" id=${'also-start-' + id} onClick=${() => startWorkout(r, n.day)}>On its own</button></div></div>`; })}
+    </div></div>`;
+}
+/* During a workout: add an add-on's next day */
+function WorkoutAddons({ a }) {
+  const ids = addonIds().filter(id => id !== a.routineId && !(a.addons || []).some(x => x.id === id)); if (!ids.length) return null;
+  return html`<div class="wo-addons" id="wo-addons"><span class="lbl">Add from your other programs</span><div class="row wrap" style="gap:8px;margin-top:6px">${ids.map(id => { const r = getRoutine(id); const n = nextFor(r);
+    return html`<button key=${id} class="btn" id=${'wo-add-' + id} onClick=${() => addDayToWorkout(r, n.day)}>${I.plus} ${shortName(r)}${r.days.length > 1 ? ' · ' + n.day.name.split(':')[0] : ''}</button>`; })}</div></div>`;
+}
+/* Pick the programs that sit alongside the main one */
+function AddonsSheet() {
+  const pid = programId(); const on = new Set(addonIds()); const R = typeof runSt === 'function' ? runSt() : null;
+  const all = [...myRoutines(), ...libRoutines()].filter(r => r.id !== pid && r.days.length);
+  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Conditioning', all.filter(r => r.info && !r.info.care)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]];
+  const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
+  return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
+    <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
+    <div class="opt" style="cursor:default"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On: today’s run shows in Train' : 'Set it up in Train → Run'}</div></div>${R && runCtxNow() ? I.check : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
+    <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }
 
 /* ---------- APP ---------- */

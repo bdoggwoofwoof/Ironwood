@@ -70,6 +70,16 @@ async def main():
           measStatus({ judge: 'easy', dur: 1800, lo: 634, hi: 686 }, { t: 1500 }).st, measStatus({ judge: 'goal', goal: 465, tol: 16 }, { t: 470 }).st, measStatus({ judge: 'dur', dur: 60 }, { t: 45 }).st]""")
         check('on target within 2 s per 200 m', st == ['on', 'slow', 'fast', 'short', 'on', 'short'], st)
         check('session on target at 75% of checked sets', await ev("""[sessionStatus([{ ex: 'b-strides', target: { judge: 'split', d: 100, t: 18 }, sets: [{ t: 18 }, { t: 18.5 }, { t: 17 }, { t: 22 }] }]), sessionStatus([{ ex: 'b-strides', target: { judge: 'split', d: 100, t: 18 }, sets: [{ t: 18 }, { t: 21 }, { t: 22 }, { t: 22 }] }])]""") == ['on', 'off'])
+        # ---- plan length: 8 weeks by default, 4-12 to choose ----
+        pl = await ev("""(() => { const t = { t100: 16, t1: 540, t3: 1700 }; const out = {};
+          for (const n of [4, 6, 8, 10, 12]) { const R = normRun({ ...t, weeks: n, start: '2026-10-26' }); out[n] = { map: Array.from({ length: n }, (_, i) => tw(R, i + 1)), after: runWeekOf(R, addDays(parseYmd('2026-10-26'), 7 * n)), fast1: runTargets(runCtx(t), n).t1.fast,
+            last: weekSessions(tw(R, n), runCtx(t), 3).map(x => x.s.t) }; }
+          out.def = normRun({}).weeks; return out; })()""")
+        check('default plan length is 8 weeks', pl['def'] == 8 and pl['8']['map'] == [1, 2, 3, 4, 5, 6, 7, 8])
+        check('every length ends with the test week', all(pl[str(n)]['map'][-1] == 8 and pl[str(n)]['last'] == ['100 m test', '3 mile test', 'Mile test'] for n in (4, 6, 8, 10, 12)))
+        check('longer plans add a lighter week every fourth week', [i + 1 for i, x in enumerate(pl['12']['map']) if x == 4] == [4, 8] and [i + 1 for i, x in enumerate(pl['10']['map']) if x == 4] == [4, 7])
+        check('plan week count follows the length', [pl[str(n)]['after'] for n in (4, 8, 12)] == [5, 9, 13])
+        check('targets scale with length', pl['4']['fast1'] > pl['8']['fast1'] > pl['12']['fast1'], [round(pl[str(n)]['fast1'], 1) for n in (4, 8, 12)])
         # ---- conditioning programs ----
         progs = await ev("BUILTIN_ROUTINES.filter(r => r.info).map(r => [r.name, r.days.length, r.days.filter(d => d.timer).length, r.info.strengths.length > 0 && !!r.info.result && r.info.watch.length > 0])")
         check('six conditioning programs with strengths, results and watch-outs', len(progs) == 6 and all(p[3] for p in progs) and sum(p[2] for p in progs) >= 6, progs)
@@ -91,6 +101,13 @@ async def main():
         await ev("runCommit(r => { r.runs = 3; })"); await pg.wait_for_timeout(300)
         check('3 runs: no warning', await pg.locator('#plan-load').count() == 0)
         check('labelled as estimates, not advice', 'not medical or coaching advice' in body)
+        check('plan shows 8 weeks by default', await pg.locator('.weekbar button').count() == 8)
+        await pg.click('#run-tab-times'); await pg.wait_for_timeout(200); await pg.click('#set-len-12'); await pg.wait_for_timeout(200)
+        await pg.click('#run-tab-plan'); await pg.wait_for_timeout(200)
+        check('choosing 12 weeks shows 12', await pg.locator('.weekbar button').count() == 12 and 'of 12' in await pg.locator('.run-h').inner_text())
+        await pg.click('#run-tab-paces'); await pg.wait_for_timeout(200)
+        check('targets say 12-week', await pg.locator('h2', has_text='12-week targets').count() == 1)
+        await pg.click('#run-tab-times'); await pg.wait_for_timeout(200); await pg.click('#set-len-8'); await pg.wait_for_timeout(200)
         await pg.click('#run-tab-paces'); await pg.wait_for_timeout(200)
         check('paces tab', 'Speed and endurance are even' in await pg.locator('#run-focus').inner_text() and await pg.locator('#run-targets .kpi').count() == 3)
         await pg.click('#run-tab-programs'); await pg.wait_for_timeout(200)

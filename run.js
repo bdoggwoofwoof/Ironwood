@@ -396,9 +396,12 @@ function runCtx(t) {
     stride: t.t100 / 0.80, s150: t.t100 * 1.48 / 0.90, s200: t.t100 * 2.06 / 0.90, reserve: (MILE / t.t1) / (100 / t.t100) };
 }
 const GOAL_PCT = { balanced: [0.02, 0.045, 0.06], endurance: [0.015, 0.045, 0.075], speed: [0.03, 0.045, 0.05] };
-function runGoal(c) { const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0]), h1: c.t1 * (1 - g[1]), h3: c.t3 * (1 - g[2]), g }; if (c.h) { if (c.h.h1) o.h1 = c.h.h1; if (c.h.h3) o.h3 = c.h.h3; } return o; }
-/* 8-week target ranges: the faster end is 1.4× the goal improvement, the slower end 0.6× */
-function runTargets(c) { const g = runGoal(c).g; const r = (now, x) => ({ now, fast: now * (1 - x * 1.4), slow: now * (1 - x * 0.6) }); return { t100: r(c.t100, g[0]), t1: r(c.t1, g[1]), t3: r(c.t3, g[2]) }; }
+/* Plan length: 8 weeks by default; 4, 6, 10 or 12 to choose. Expected gains scale with length, with diminishing returns. */
+const PLAN_LENGTHS = [4, 6, 8, 10, 12];
+const spanK = n => Math.pow((n || 8) / 8, 0.6);
+function runGoal(c) { const k = spanK(c.span); const g = GOAL_PCT[c.focus]; const o = { h100: c.t100 * (1 - g[0] * k), h1: c.t1 * (1 - g[1] * k), h3: c.t3 * (1 - g[2] * k), g }; if (c.h) { if (c.h.h1) o.h1 = c.h.h1; if (c.h.h3) o.h3 = c.h.h3; } return o; }
+/* Target ranges for the plan length (8 weeks by default): the faster end is 1.4× the goal improvement, the slower end 0.6× */
+function runTargets(c, span) { const g = runGoal(c).g; const k = spanK(span || c.span); const r = (now, x) => ({ now, fast: now * (1 - x * k * 1.4), slow: now * (1 - x * k * 0.6) }); return { t100: r(c.t100, g[0]), t1: r(c.t1, g[1]), t3: r(c.t3, g[2]) }; }
 const plusN = (c, n) => c.focus === 'speed' ? n + 1 : n;
 const minsN = (c, n) => c.focus === 'endurance' ? n + 5 : n;
 /* A session item: k (name), d (what to do), r (target shown), log (how it becomes a workout exercise, or none) */
@@ -464,6 +467,12 @@ function sessC(w, c) {
 }
 const PICK2 = { endurance: 'BABxBAB', speed: 'ABAxABA', balanced: 'ABAxBAB' };
 const WEEK_LABEL = ['', 'Base', 'Build', 'Build', 'Lighter', 'Build', 'Build', 'Peak', 'Test'];
+/* Which week of the 8-week template each plan week uses. Shorter plans skip weeks; longer ones repeat build weeks and add a
+   lighter week with a mile check every fourth week. */
+const PLAN_MAP = { 4: [1, 3, 7, 8], 6: [1, 2, 3, 5, 7, 8], 8: [1, 2, 3, 4, 5, 6, 7, 8], 10: [1, 2, 3, 4, 5, 6, 4, 6, 7, 8], 12: [1, 2, 3, 4, 2, 3, 5, 4, 5, 6, 7, 8] };
+const planLen = R => PLAN_MAP[R && R.weeks] ? +R.weeks : 8;
+const tw = (R, w) => PLAN_MAP[planLen(R)][Math.min(planLen(R), Math.max(1, w)) - 1];
+const weekLabel = (R, w) => WEEK_LABEL[tw(R, w)];
 /* Default days (0 = Sunday): 3 runs → A Tue, C Thu, B Fri; 2 runs → Tue and Thu, week 8's second run on Sunday, the 100 m test on Monday */
 const RUN_DAYS = { 3: { A: 2, B: 5, C: 4 }, 2: { 1: 2, 2: 4, T: 1 } };
 const RUN_LIFTS = { 1: 'Push', 3: 'Legs', 4: 'Pull', 6: 'Full Body' };
@@ -502,8 +511,8 @@ function weekSessions(w, c, runs, days) {
 /* ---- State ---- */
 function normRun(r) {
   if (!r || typeof r !== 'object') return null;
-  const o = { runs: 3, block: 1, hist: [], days: {}, lifts: { ...RUN_LIFTS }, swaps: {}, marks: {}, ...r };
-  o.runs = Math.min(RUN_MAX, Math.max(1, Math.round(+o.runs) || 3)); o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks', 'easy']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
+  const o = { runs: 3, weeks: 8, block: 1, hist: [], days: {}, lifts: { ...RUN_LIFTS }, swaps: {}, marks: {}, ...r };
+  o.runs = Math.min(RUN_MAX, Math.max(1, Math.round(+o.runs) || 3)); o.weeks = PLAN_MAP[o.weeks] ? +o.weeks : 8; o.hist = Array.isArray(o.hist) ? o.hist : []; for (const k of ['days', 'lifts', 'swaps', 'marks', 'easy']) if (!o[k] || typeof o[k] !== 'object') o[k] = {};
   return o;
 }
 const runSt = () => normRun(S.meta.run);
@@ -513,7 +522,7 @@ const nextMonday = () => { const d = startOfDay(new Date()); const add = (8 - d.
 const weekStart = (R, w) => addDays(parseYmd(R.start), 7 * (w - 1));
 const sessDate = (R, w, dow) => { const s = parseYmd(R.start); return addDays(s, 7 * (w - 1) + ((dow - s.getDay() + 7) % 7)); };
 /* The plan week for a date: 0 before the start, 9 after week 8 */
-function runWeekOf(R, d) { const k = Math.floor((startOfDay(d) - parseYmd(R.start)) / (7 * DAY)) + 1; return k < 1 ? 0 : k > 8 ? 9 : k; }
+function runWeekOf(R, d) { const n = planLen(R); const k = Math.floor((startOfDay(d) - parseYmd(R.start)) / (7 * DAY)) + 1; return k < 1 ? 0 : k > n ? n + 1 : k; }
 const sessId = (R, w, key) => (R.block || 1) + '-' + w + '-' + key;
 /* Saved workouts for a plan session (the latest one counts) */
 function runLogged(R, w, key) { const id = sessId(R, w, key); return sessionList().filter(s => s.run && s.run.id === id); }
@@ -593,7 +602,7 @@ function runFinished(session) {
   const status = sessionStatus(session.items); const run = { ...session.run, status }; const msgs = [];
   const best = test => { const it = session.items.find(i => i.target && i.target.test === test); if (!it) return 0; const ts = it.sets.filter(x => +x.t > 0).map(x => +x.t); return ts.length ? Math.min(...ts) : 0; };
   const upd = {};
-  if (run.test === 'check') { const t = best('check'); if (t) { if (t < R.t1 - 5) { upd.t1 = t; msgs.push('Mile check ' + rfmt(t) + ': more than 5 s faster, so your mile is updated and weeks 5–8 use the new paces.'); } else msgs.push('Mile check ' + rfmt(t) + '. Your paces stay the same.'); } }
+  if (run.test === 'check') { const t = best('check'); if (t) { if (t < R.t1 - 5) { upd.t1 = t; msgs.push('Mile check ' + rfmt(t) + ': more than 5 s faster, so your mile is updated and the rest of the plan uses the new paces.'); } else msgs.push('Mile check ' + rfmt(t) + '. Your paces stay the same.'); } }
   for (const [test, k, l] of [['t100', 't100', '100 m'], ['t1', 't1', 'Mile'], ['t3', 't3', '3 miles']]) if (run.test === test) { const t = best(test); if (t) { upd[k] = t; msgs.push(l + ' retest ' + rfmt(t) + (R[k] ? (t < R[k] ? ', ' + rfmt(R[k] - t) + ' faster than before' : ', ' + rfmt(t - R[k]) + ' slower than before') : '') + '. Paces updated.'); } }
   run.msg = msgs.join(' ');
   commit(st => { const s = st.sessions[session.id]; if (s) s.run = run;
@@ -707,7 +716,7 @@ const timeIn = (v, sec) => v > 0 ? (sec ? (Math.round(v * 10) / 10).toString() :
 function RunTimesForm({ onSave, saveLabel, first }) {
   const R = runSt() || {};
   const [v, setV] = useState({ t100: timeIn(R.t100, 1), t1: timeIn(R.t1), t3: timeIn(R.t3) });
-  const [runs, setRuns] = useState(R.runs || 3); const [start, setStart] = useState(R.start || nextMonday());
+  const [runs, setRuns] = useState(R.runs || 3); const [start, setStart] = useState(R.start || nextMonday()); const [weeks, setWeeks] = useState(planLen(R));
   const t = { t100: parseClock(v.t100), t1: parseClock(v.t1, false), t3: parseClock(v.t3, false) };
   const errs = runCheck(t); const touched = k => String(v[k]).trim() !== '';
   const ok = !Object.keys(errs).length;
@@ -717,16 +726,17 @@ function RunTimesForm({ onSave, saveLabel, first }) {
   return html`<div class="stack" style="gap:14px">
     <div class="run-ins">${field('t100', '100 m sprint', 'Seconds, e.g. 14.5', '14.5')}${field('t1', '1 mile', 'Minutes:seconds, e.g. 7:45', '7:45')}${field('t3', '3 miles', 'Minutes:seconds, e.g. 26:00', '26:00')}</div>
     <p class="note">Use honest, recent, all-out efforts: the 100 m from a standing start, the mile and 3 miles on flat ground or a track.</p>
+    ${first ? html`<div><span class="lbl">Plan length</span><${LenSeg} v=${weeks} on=${setWeeks} pre="len-"/></div>` : null}
     ${first ? html`<${RunsPicker} value=${runs} set=${setRuns} pre="runs"/>
       <div><label class="lbl" for="run-start">Week 1 starts</label><input type="date" class="field" id="run-start" style="margin-top:6px" value=${start} onChange=${e => e.target.value && setStart(e.target.value)}/></div>` : null}
-    <button class="btn primary wide" id="run-save" disabled=${!ok} onClick=${() => onSave({ ...t, runs, start })}>${saveLabel}</button>
+    <button class="btn primary wide" id="run-save" disabled=${!ok} onClick=${() => onSave({ ...t, runs, start, weeks })}>${saveLabel}</button>
   </div>`;
 }
 function RunSetup() {
-  const save = x => { runCommit(r => { Object.assign(r, { t100: x.t100, t1: x.t1, t3: x.t3, runs: x.runs, start: x.start, block: r.block || 1 }); r.hist.push({ d: ymd(new Date()), t100: x.t100, t1: x.t1, t3: x.t3, why: 'start' }); }); showToast({ kind: 'info', text: 'Running plan ready' }); };
+  const save = x => { runCommit(r => { Object.assign(r, { t100: x.t100, t1: x.t1, t3: x.t3, runs: x.runs, weeks: x.weeks || 8, start: x.start, block: r.block || 1 }); r.hist.push({ d: ymd(new Date()), t100: x.t100, t1: x.t1, t3: x.t3, why: 'start' }); }); showToast({ kind: 'info', text: 'Running plan ready' }); };
   return html`<div id="run-setup">
     <div class="section-h" style="margin-top:14px"><h2>Your base times</h2></div>
-    <p class="note" style="margin-bottom:12px">Enter your 100 m, 1 mile and 3 mile times. The 8-week plan sets every pace and split from them and fits around your lifting days.</p>
+    <p class="note" style="margin-bottom:12px">Enter your 100 m, 1 mile and 3 mile times. The plan (8 weeks unless you pick another length) sets every pace and split from them and fits around your lifting days.</p>
     <${RunTimesForm} onSave=${save} saveLabel="Build my plan" first=${true}/>
     <p class="small faint" style="margin-top:14px">${RUN_NOTE}</p></div>`;
 }
@@ -743,24 +753,24 @@ function RunScreen() {
 const RUN_SEL = { w: 0 };
 function RunPlan({ R, c }) {
   const today = new Date(); const cur = runWeekOf(R, today);
-  const w = RUN_SEL.w || (cur >= 1 && cur <= 8 ? cur : cur > 8 ? 8 : 1);
+  const N = planLen(R); const w = Math.min(N, RUN_SEL.w || (cur >= 1 && cur <= N ? cur : cur > N ? N : 1)); const T8 = tw(R, w);
   const setW = x => { RUN_SEL.w = x; S.rerender(); };
   const ws = planWeek(R, w).sort((a, b) => ((a.dow - parseYmd(R.start).getDay() + 7) % 7) - ((b.dow - parseYmd(R.start).getDay() + 7) % 7));
   const a = weekStart(R, w), b = addDays(a, 6);
-  const head = cur === 0 ? 'Starts ' + shortDate(parseYmd(R.start)) : cur > 8 ? 'All 8 weeks are done' : 'Week ' + cur + ' of 8 · ' + WEEK_LABEL[cur];
+  const head = cur === 0 ? 'Starts ' + shortDate(parseYmd(R.start)) : cur > N ? 'All ' + N + ' weeks are done' : 'Week ' + cur + ' of ' + N + ' · ' + weekLabel(R, cur);
   const clashes = ws.map(x => ({ x, c: legsClash(R, x.dow, x.s.hard && !(R.swaps[sessId(R, w, x.key)] && swapPlan(x.s, R.swaps[sessId(R, w, x.key)]).ok)) })).filter(y => y.c);
   return html`<div>
     <div class="row" style="margin-top:14px;align-items:baseline"><h2 class="run-h">${head}</h2><span class="spacer"></span><span class="small muted">Block ${R.block || 1} · ${R.runs} runs a week</span></div>
     <${RunLoadWarn} n=${R.runs} from=${runJump(R)} id="plan-load" compact=${true}/>
-    ${cur > 8 ? html`<div class="card stack" style="margin-top:10px" id="run-next-block"><div style="font-weight:700">Start the next block</div><p class="note">Your retest times are in. A new 8-week block starts next Monday with paces from your latest times.</p>
+    ${cur > N ? html`<div class="card stack" style="margin-top:10px" id="run-next-block"><div style="font-weight:700">Start the next block</div><p class="note">Your retest times are in. A new ${N}-week block starts next Monday with paces from your latest times.</p>
       <button class="btn primary" onClick=${() => { runCommit(r => { r.block = (r.block || 1) + 1; r.start = nextMonday(); r.swaps = {}; }); RUN_SEL.w = 1; showToast({ kind: 'info', text: 'Block ' + ((R.block || 1) + 1) + ' starts ' + shortDate(parseYmd(nextMonday())) }); }}>Start block ${(R.block || 1) + 1}</button></div>` : null}
-    <div class="weekbar" role="tablist" aria-label="Week">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (n === 4 || n === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${WEEK_LABEL[n]}</span></button>`)}</div>
+    <div class=${'weekbar' + (N > 8 ? ' many' : '')} role="tablist" aria-label="Week" style=${{ gridTemplateColumns: 'repeat(' + N + ',minmax(0,1fr))' }}>${Array.from({ length: N }, (_, i) => i + 1).map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (tw(R, n) === 4 || tw(R, n) === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${weekLabel(R, n)}</span></button>`)}</div>
     <div class="small muted" style="margin:8px 0 2px">Week ${w} · ${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}</div>
     <${RunWeekGrid} R=${R} w=${w} ws=${ws}/>
     <${RunAdapt} R=${R} w=${w} cur=${cur}/>
     ${clashes.length ? html`<div class="run-warn" role="alert" id="legs-warn">${clashes.map(({ x, c: k }) => html`<p key=${x.key}><b>${x.name} (${DOW[x.dow]})</b> is a ${x.s.hard === 'sprint' ? 'sprint' : 'hard interval'} session ${k === 'after' ? 'the day after Legs' : 'on a Legs day'}. Move it to another day, or swap it for cross-training.</p>`)}</div>` : null}
-    ${w === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the first three weeks, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and weeks 5–8 use the new paces.</p>` : null}
-    ${w === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs <= 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
+    ${T8 === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the weeks before it, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and the rest of the plan uses the new paces.</p>` : null}
+    ${T8 === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs <= 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
     <div class="stack" style="margin-top:12px">${ws.map(x => html`<${RunSession} key=${x.key} R=${R} w=${w} x=${x}/>`)}</div>
     <div class="section-h"><h2>Every session</h2></div>
     <div class="card prl run-rules">
@@ -797,7 +807,7 @@ function RunSession({ R, w, x }) {
 }
 function RunPaces({ c: c0 }) {
   const R = runSt(); const cur = runWeekOf(R, new Date()); const wk = Math.min(8, Math.max(1, cur)); const c = R.goal ? ctxWeek(R, wk) : c0;
-  const f = FOCUS_TXT(c0); const T = runTargets(c0);
+  const f = FOCUS_TXT(c0); const T = runTargets(c0, planLen(R));
   const rows = [['Easy', 'Most of your running. Conversational.', easyR(c)], ['Threshold', 'Comfortably hard, about 1 hour race effort.', paceTxt(c.T)],
     ['Interval', 'Hard, about 2 mile race effort.', paceTxt(c.I) + ' · ' + rfmt(splitAt(c.I, 400)) + ' /400'], ['Mile pace', 'Your current mile, for reps.', rfmt(splitAt(c.R, 200)) + ' /200 · ' + rfmt(splitAt(c.R, 400)) + ' /400'],
     ['Speed', '90% sprints, full rest.', rfmt(c.s150) + ' /150 · ' + rfmt(c.s200) + ' /200'], ['Strides', 'Relaxed and fast, about 80%.', rfmt(c.stride) + ' /100']];
@@ -807,7 +817,7 @@ function RunPaces({ c: c0 }) {
     <${RunGoalCard}/>
     <div class="section-h"><h2>Training paces</h2><span class="aside">${R.goal && goalInfo(R) && !goalInfo(R).slower ? 'Week ' + wk + ' · estimates' : 'Estimates'}</span></div>
     <div class="card prl run-paces">${rows.map(r => html`<div key=${r[0]}><div style="min-width:0"><div style="font-weight:700">${r[0]}</div><div class="small muted">${r[1]}</div></div><span class="num run-pv">${r[2]}</span></div>`)}</div>
-    <div class="section-h"><h2>8-week targets</h2><span class="aside">Estimates</span></div>
+    <div class="section-h"><h2>${planLen(R)}-week targets</h2><span class="aside">Estimates</span></div>
     <div class="kpis kpis3" id="run-targets">${tgt('100 m', T.t100)}${tgt('1 mile', T.t1)}${tgt('3 miles', T.t3)}</div>
     <p class="note" style="margin-top:8px">Targets assume you run every planned session and are fairly new to structured running. If you already train hard, expect the slower end; if you’re returning after a layoff, you may beat the faster end.</p></div>`;
 }
@@ -839,6 +849,7 @@ function RunTimes() {
     <div class="card"><${RunTimeChart}/></div>
     <div class="section-h"><h2>Settings</h2></div>
     <div class="card stack" style="gap:12px">
+      <div><span class="lbl">Plan length</span><${LenSeg} v=${planLen(R)} on=${n => { runCommit(r => { r.weeks = n; }); RUN_SEL.w = 0; }} pre="set-len-"/></div>
       <${RunsPicker} value=${R.runs} from=${runJump(R)} set=${setRunsCount} pre="set-runs"/>
       <div><label class="lbl" for="set-start">Week 1 starts</label><input type="date" class="field" id="set-start" style="margin-top:6px" value=${R.start} onChange=${e => e.target.value && runCommit(r => { r.start = e.target.value; })}/></div>
       <p class="small muted">Changing these rebuilds the plan from your current times. Logged runs stay in History.</p></div>
@@ -872,7 +883,7 @@ function runTestPoints(k) {
 }
 /* Sheets */
 function RunDaySheet({ dow }) {
-  const R = runSt(); const c = runCtxNow(); const w = RUN_SEL.w || Math.min(8, Math.max(1, runWeekOf(R, new Date()))); const ws = planWeek(R, w);
+  const R = runSt(); const c = runCtxNow(); const w = RUN_SEL.w || Math.min(planLen(R), Math.max(1, runWeekOf(R, new Date()))); const ws = planWeek(R, w);
   const LIFTS = ['', 'Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms'];
   const setLift = v => runCommit(r => { if (v) r.lifts[dow] = v; else delete r.lifts[dow]; });
   const move = key => runCommit(r => { r.days[key] = dow; });
@@ -955,28 +966,28 @@ function MeasuredRows({ rows }) {
 
 /* ============ Oct 21: the plan adapts, goal times, quick-logged runs ============ */
 /* meta.run.goal: { d: meters, t: seconds } — a goal race. Each week's paces move from your current times toward the
-   goal-equivalent mile and 3 miles, never past the fast end of the 8-week range. meta.run.easy: { 'block-week': true }
+   goal-equivalent mile and 3 miles, never past the fast end of the plan's target range. meta.run.easy: { 'block-week': true }
    turns a week easy ("Not feeling 100%"). Pushing the plan back moves the start a week later. */
 const GOAL_RACES = [[MILE, 'Mile'], [5000, '5K'], [3 * MILE, '3 miles'], [10000, '10K'], [21097.5, 'Half marathon']];
 const raceName = d => (GOAL_RACES.find(g => Math.abs(g[0] - d) < 1) || [0, fmtDist(d)])[1];
 const riegel = (t, d1, d2) => t * Math.pow(d2 / d1, 1.06);
 function goalInfo(R) {
   const c0 = R && R.t1 && R.t3 && R.t100 ? runCtx(R) : null; if (!c0 || !R.goal || !(R.goal.t > 0) || !(R.goal.d > 0)) return null;
-  const T = runTargets(c0); const eq1 = riegel(R.goal.t, R.goal.d, MILE), eq3 = riegel(R.goal.t, R.goal.d, 3 * MILE);
+  const T = runTargets(c0, planLen(R)); const eq1 = riegel(R.goal.t, R.goal.d, MILE), eq3 = riegel(R.goal.t, R.goal.d, 3 * MILE);
   const now = riegel(R.t3, 3 * MILE, R.goal.d);
   const reach = eq3 >= T.t3.fast - 0.5 && eq1 >= T.t1.fast - 0.5;
   return { c0, T, eq1, eq3, now, reach, aim1: Math.max(eq1, T.t1.fast), aim3: Math.max(eq3, T.t3.fast), slower: eq1 >= R.t1 && eq3 >= R.t3 };
 }
 function ctxWeek(R, w) {
-  const c0 = runCtxNow(); const G = goalInfo(R); if (!c0 || !G || G.slower) return c0;
-  const f = Math.min(1, Math.max(0, (w - 1) / 7));
+  const c0 = runCtxNow(); if (c0) c0.span = planLen(R); const G = goalInfo(R); if (!c0 || !G || G.slower) return c0;
+  const N = planLen(R); const f = Math.min(1, Math.max(0, (w - 1) / Math.max(1, N - 1)));
   const t1 = G.aim1 < R.t1 ? R.t1 + (G.aim1 - R.t1) * f : R.t1, t3 = G.aim3 < R.t3 ? R.t3 + (G.aim3 - R.t3) * f : R.t3;
-  const c = runCtx({ t100: R.t100, t1, t3 }); c.focus = c0.focus; c.h = { h1: G.aim1, h3: G.aim3 }; return c;
+  const c = runCtx({ t100: R.t100, t1, t3 }); c.focus = c0.focus; c.span = N; c.h = { h1: G.aim1, h3: G.aim3 }; return c;
 }
 const easyKey = (R, w) => (R.block || 1) + '-' + w;
 /* The week as planned: goal paces, then an easy week if you said you're not feeling 100% */
 function planWeek(R, w) {
-  const c = ctxWeek(R, w); const ws = weekSessions(w, c, R.runs, R.days);
+  const c = ctxWeek(R, w); const ws = weekSessions(tw(R, w), c, R.runs, R.days);
   if (!(R.easy || {})[easyKey(R, w)]) return ws;
   return ws.map(x => { const s = x.s; if (s.easy && !s.test) {
       const m = Math.max(15, Math.round((s.items.find(i => i.log && i.log.ex === 'Easy Run') || { log: { tg: { dur: 1800 } } }).log.tg.dur / 60 * 0.66 / 5) * 5);
@@ -985,7 +996,7 @@ function planWeek(R, w) {
 }
 /* Sessions whose day has passed with nothing logged */
 function runMissed(R, w) {
-  const today = startOfDay(new Date()); if (w < 1 || w > 8) return [];
+  const today = startOfDay(new Date()); if (w < 1 || w > planLen(R)) return [];
   return planWeek(R, w).filter(x => sessDate(R, w, x.dow) < today && !runLogged(R, w, x.key).length);
 }
 function pushPlanBack() {
@@ -996,8 +1007,8 @@ function pushPlanBack() {
 function toggleEasyWeek(w) { const R = runSt(); const k = easyKey(R, w); const on = !(R.easy || {})[k]; runCommit(r => { r.easy = r.easy || {}; if (on) r.easy[k] = true; else delete r.easy[k]; }); showToast({ kind: 'info', text: on ? 'Week ' + w + ' is easy now. Rest if you feel worse.' : 'Week ' + w + ' is back to the plan' }); }
 /* Shown on the Plan tab: missed runs, an easy week, pushing back */
 function RunAdapt({ R, w, cur }) {
-  const prevMiss = cur >= 2 && cur <= 8 ? runMissed(R, cur - 1) : []; const easy = !!(R.easy || {})[easyKey(R, w)];
-  const inPlan = cur >= 1 && cur <= 8;
+  const prevMiss = cur >= 2 && cur <= planLen(R) ? runMissed(R, cur - 1) : []; const easy = !!(R.easy || {})[easyKey(R, w)];
+  const inPlan = cur >= 1 && cur <= planLen(R);
   return html`<div class="run-adapt" id="run-adapt">
     ${prevMiss.length && w === cur ? html`<div class="run-warn" style="color:var(--ink)"><p><b>${prevMiss.length} run${prevMiss.length === 1 ? '' : 's'} missed last week</b> (${prevMiss.map(x => x.name).join(', ')}). If you lost the week, move the plan back so you don't skip ahead.</p><button class="btn" id="push-back" onClick=${pushPlanBack}>Move the plan back a week</button></div>` : null}
     ${easy ? html`<p class="note" style="margin-top:10px">Week ${w} is easy: runs are short and easy, tests are moved. When you're ready, turn it off, or move the plan back a week to keep every session.</p>` : null}
@@ -1010,7 +1021,7 @@ function RunGoalCard() {
   const R = runSt(); const G = goalInfo(R);
   return html`<div class="card stack" id="run-goal" style="gap:8px;margin-top:14px"><div class="row"><span class="lbl" style="flex:1">Goal race</span><button class="btn text" id="goal-edit" onClick=${() => openSheet({ type: 'runGoal' })}>${R.goal ? 'Change' : 'Set a goal'}</button></div>
     ${!G ? html`<p class="note">Optional. Set a race and a time, and each week's paces step from where you are toward it.</p>`
-      : html`<div><b style="font-size:19px">${raceName(R.goal.d)} in ${rfmt(R.goal.t)}</b><p class="note" style="margin-top:4px">Your times predict about ${rfmt(G.now)} now (estimate). ${G.slower ? 'You are already there; paces stay at your current times.' : G.reach ? 'Within reach of the 8-week range. Paces step toward it each week.' : 'Further than 8 weeks usually brings. This block aims for ' + rfmt(G.aim1) + ' mile and ' + rfmt(G.aim3) + ' 3 miles; keep the goal for the next block.'}</p></div>`}</div>`;
+      : html`<div><b style="font-size:19px">${raceName(R.goal.d)} in ${rfmt(R.goal.t)}</b><p class="note" style="margin-top:4px">Your times predict about ${rfmt(G.now)} now (estimate). ${G.slower ? 'You are already there; paces stay at your current times.' : G.reach ? 'Within reach in ' + planLen(R) + ' weeks. Paces step toward it each week.' : 'Further than ' + planLen(R) + ' weeks usually brings. This block aims for ' + rfmt(G.aim1) + ' mile and ' + rfmt(G.aim3) + ' 3 miles; keep the goal for the next block.'}</p></div>`}</div>`;
 }
 function RunGoalSheet() {
   const R = runSt(); const [d, setD] = useState(R.goal ? R.goal.d : 5000); const [t, setT] = useState(R.goal ? rfmt(R.goal.t) : '');
@@ -1026,7 +1037,7 @@ function RunGoalSheet() {
 /* A run quick-logged from Log another activity can count as that day's plan session */
 const actMeters = s => !(+s.dist > 0) ? 0 : +s.dist * ({ mi: MILE, km: 1000, m: 1, yd: 0.9144 }[s.distU || 'mi'] || MILE);
 function planSessionFor(day) {
-  const R = runSt(); if (!R || !runCtxNow()) return null; const w = runWeekOf(R, day); if (w < 1 || w > 8) return null;
+  const R = runSt(); if (!R || !runCtxNow()) return null; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) return null;
   const open = planWeek(R, w).filter(x => !x.s.test && !runLogged(R, w, x.key).length && sessDate(R, w, x.dow) <= startOfDay(day));
   const same = open.find(x => ymd(sessDate(R, w, x.dow)) === ymd(day));
   const x = same || open[open.length - 1]; return x ? { R, w, x } : null;
@@ -1108,4 +1119,9 @@ function RunsPicker({ value, set, pre, from }) {
 function setRunsCount(n) {
   const today = ymd(new Date());
   runCommit(r => { if (n === r.runs) return; if (!(r.runsAt === today && r.runsFrom != null)) { r.runsFrom = r.runs; r.runsAt = today; } r.runs = n; if (r.runs <= r.runsFrom) { delete r.runsFrom; delete r.runsAt; } });
+}
+/* Plan length picker: 8 weeks is the default */
+function LenSeg({ v, on, pre }) {
+  return html`<div><div class="seg wide" role="group" aria-label="Plan length" style="margin-top:6px">${PLAN_LENGTHS.map(n => html`<button key=${n} id=${pre + n} class=${v === n ? 'on' : ''} aria-pressed=${v === n} onClick=${() => on(n)}>${n} wk</button>`)}</div>
+    <p class="small muted" style="margin-top:4px">${v === 8 ? 'The standard plan: build, a lighter week with a mile check, build, peak, test.' : v < 8 ? 'Shorter: fewer build weeks, no lighter week, and smaller expected gains.' : 'Longer: extra build weeks and a lighter week with a mile check every fourth week.'}</p></div>`;
 }

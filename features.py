@@ -1045,7 +1045,8 @@ swap(".hdr-space{height:calc(env(safe-area-inset-top,0px) + 14px)}", """.hdr-spa
 .last-line{font-size:13.5px;color:var(--ink-2);margin-top:4px;line-height:1.35}
 .hint.prog-step,.hint.prog-deload{color:var(--ink-2)}
 .run-missed{background:var(--raised);color:var(--red-text)}
-.sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}""")
+.sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
+.weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

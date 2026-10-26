@@ -100,6 +100,105 @@ const MEAL_PREPS = [
   { id: 'p-freezer', name: 'Freezer Stock-Up', d: 'Big batches that freeze well. Portion them, freeze, and pull a few out each week.', items: [['m-turkey-chili', 4], ['m-meatballs', 3], ['m-salmon-patties', 2], ['m-curry', 3], ['m-breakfast-burritos', 4]] },
 ];
 
+/* ---- Whole-food prep and four bowl weeks (Oct 26, from the Meal prep chat's plan) ----
+   One Sunday prep built on broth, a turkey crumble with a little liver, chicken thighs, beans and rice cooked in broth,
+   two vegetable trays, egg muffins, kefir oats and sauces; then a four-week bowl rotation (Levant, Korea & Japan,
+   Latin, Southern): each week two proteins, two bases, two vegetable trays and two sauces, built into a different bowl
+   every day. No beef, pork or cheese, like the rest. */
+const WF_THIGHS = (id, name, rubIng, rubTxt, note) => ({ id, name, cat: 'base', serves: 8, size: '4 oz cooked', mins: 35, keeps: 4, freezes: true, week: 4,
+  ing: ['3 lb boneless skinless chicken thighs', '2 tbsp olive oil', ...rubIng, '1 tsp salt'],
+  steps: ['Heat the oven to 425°F (220°C). Pat the thighs dry.', 'Toss the thighs with the oil, salt and ' + rubTxt + '.', 'Spread on a sheet pan in one layer and roast 25–30 minutes, until 175°F (80°C) inside.', 'Rest 5 minutes, then slice. Freeze half and move it to the fridge Wednesday night.'],
+  note: note || 'Thighs stay juicy through reheating better than breast.' });
+const WF_LIVER_NOTE = 'About 1 part liver to 8 parts turkey: the liver adds iron, B12 and vitamin A without tasting like liver. Liver is very high in vitamin A, so keep this to 2–3 servings a week, and skip the liver if you’re pregnant.';
+const WF_CRUMBLE = (id, name, spiceIng, spiceTxt) => ({ id, name, cat: 'base', serves: 8, size: '⅔ cup', mins: 25, keeps: 4, freezes: true, week: 3,
+  ing: ['4 oz chicken livers', '2 lb ground turkey (93% lean)', '1 yellow onion, diced', '4 cloves garlic, minced', '1 tbsp olive oil', ...spiceIng, '1 tsp salt'],
+  steps: ['Blend the chicken livers until smooth.', 'Soften the onion in the oil over medium heat, about 5 minutes. Add the garlic for 1 minute.', 'Add the turkey and the blended liver and brown, breaking it up, 8–10 minutes until no pink remains.', 'Stir in ' + spiceTxt + ' for the last 2 minutes and season with the salt.', 'Freeze half and move it to the fridge Wednesday night.'],
+  note: WF_LIVER_NOTE });
+const WF_SAUCE = (id, name, ing, steps, keeps, note) => ({ id, name, cat: 'base', serves: 8, size: '2 tbsp', mins: 10, keeps: keeps || 6, freezes: false, week: 8, ing, steps, note: note || '' });
+const WF_VEG = (id, name, ing, steps, note) => ({ id, name, cat: 'base', serves: 6, size: '1 cup', mins: 35, keeps: 4, freezes: false, week: 6, ing, steps, note: note || '' });
+MEAL_LIB.push(
+  { id: 'm-bone-broth', name: 'Chicken Bone Broth', cat: 'base', serves: 8, size: '1 cup', mins: 20, keeps: 5, freezes: true, week: 8,
+    ing: ['3 lb chicken backs or wings', '1 yellow onion, quartered', '2 carrots, chopped', '2 celery stalks, chopped', '2 tbsp apple cider vinegar', '1 bay leaf', '1 tsp salt'],
+    steps: ['Saturday night, put everything in a slow cooker and cover with water, about 12 cups.', 'Cook on low 12–24 hours.', 'Strain, chill, then lift off the fat.', 'Use it to cook rice, beans and lentils, or sip a mug in the evening. Freeze extra in 1–2 cup portions.'],
+    note: 'Chicken feet make the most gelatin. Nutrition is an estimate for the strained broth.', macros: { kcal: 40, p: 9, c: 1, f: 1, fib: 0, sug: 0, na: 300 } },
+  WF_CRUMBLE('m-liver-crumble', 'Turkey-Liver Crumble', ['2 tsp ground cumin', '2 tsp smoked paprika', '½ tsp black pepper'], 'the cumin, paprika and pepper'),
+  WF_THIGHS('m-thighs', 'Sheet-Pan Chicken Thighs', ['1 lemon', '2 tbsp za’atar'], 'the zest and juice of the lemon and the za’atar (or any spice rub)'),
+  { id: 'm-broth-rice', name: 'Brown Rice in Broth', cat: 'base', serves: 6, size: '1 cup', mins: 50, keeps: 5, freezes: true, week: 6,
+    ing: ['2 cups brown rice', '4 cups chicken broth', '½ tsp salt'],
+    steps: ['Rinse the rice. Bring the broth and salt to a boil.', 'Add the rice, cover and simmer on low 40–45 minutes, until the broth is absorbed.', 'Rest 10 minutes covered, fluff, and cool before packing.'],
+    note: 'Cooked and cooled rice has a little more resistant starch, which feeds gut bacteria.' },
+  { id: 'm-broth-beans', name: 'Beans in Broth (from dry)', cat: 'base', serves: 8, size: '¾ cup', mins: 90, keeps: 5, freezes: true, week: 4,
+    ing: ['1 lb dry black beans or chickpeas', '6 cups chicken broth', '1 bay leaf', '1 tsp salt'],
+    steps: ['Saturday night, soak the beans in plenty of water with a spoon of salt.', 'Drain and rinse. Simmer in the broth with the bay leaf, partly covered, 1–1½ hours until tender, adding water if needed.', 'Season with the salt and cool in their liquid.'],
+    note: 'Soaking shortens the cooking and makes beans easier on the gut. Freeze extra in their liquid.' },
+  { id: 'm-lentils', name: 'Lentils in Broth', cat: 'base', serves: 6, size: '¾ cup', mins: 30, keeps: 5, freezes: true, week: 4,
+    ing: ['1½ cups dry green or brown lentils', '4 cups chicken broth', '1 bay leaf', '½ tsp salt'],
+    steps: ['Rinse the lentils.', 'Simmer in the broth with the bay leaf 20–25 minutes, until tender but not mushy.', 'Drain any extra broth, season and cool.'] },
+  { id: 'm-farro', name: 'Batch Farro', cat: 'base', serves: 6, size: '¾ cup', mins: 35, keeps: 5, freezes: true, week: 6,
+    ing: ['2 cups farro', '6 cups chicken broth', '½ tsp salt'],
+    steps: ['Rinse the farro. Simmer in the broth, uncovered, 25–30 minutes until chewy-tender.', 'Drain, season and cool.'] },
+  { id: 'm-bep', name: 'Black-Eyed Peas', cat: 'base', serves: 6, size: '¾ cup', mins: 15, keeps: 5, freezes: true, week: 4,
+    ing: ['3 cans black-eyed peas (15 oz), rinsed', '½ yellow onion, diced', '2 cloves garlic, minced', '1 tbsp olive oil', '1 cup chicken broth', '½ tsp smoked paprika', '½ tsp salt'],
+    steps: ['Soften the onion in the oil, then add the garlic and paprika for 1 minute.', 'Add the peas and broth and simmer 8–10 minutes.', 'Season with the salt.'] },
+  WF_VEG('m-sheet-veg', 'Sheet-Pan Vegetables & Sweet Potatoes', ['1 head broccoli, cut into florets', '1 lb Brussels sprouts, halved', '4 carrots, sliced', '1 red onion, cut into wedges', '3 sweet potatoes, cubed', '3 tbsp olive oil', '1 tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss the green vegetables, carrots and onion with half the oil and salt on one pan, and the sweet potatoes with the rest on another.', 'Roast 30–35 minutes, stirring once.']),
+  WF_VEG('m-roast-cauli', 'Roasted Cauliflower & Carrots', ['1 head cauliflower, cut into florets', '1 lb carrots, sliced', '3 tbsp olive oil', '1 tsp ground cumin', '1 tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss everything together and spread over two sheet pans.', 'Roast 30 minutes, stirring once, until browned at the edges.']),
+  WF_VEG('m-cuke-salad', 'Cucumber, Tomato & Parsley Salad', ['2 cucumbers, diced', '1 pint cherry tomatoes, halved', '1 cup fresh parsley, chopped', '½ red onion, diced', '1 lemon', '2 tbsp olive oil', '½ tsp salt'],
+    ['Toss the cucumber, tomatoes, parsley and onion.', 'Dress with the lemon juice, oil and salt when you eat, so it stays crisp.'], 'Keeps 3 days undressed.'),
+  WF_VEG('m-roast-sweet-potato', 'Roasted Sweet Potatoes', ['4 sweet potatoes, cubed', '2 tbsp olive oil', '1 tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss the cubes with the oil and salt and roast 30–35 minutes, turning once.']),
+  WF_VEG('m-roast-broccoli', 'Roasted Broccoli', ['2 heads broccoli, cut into florets', '2 tbsp olive oil', '2 cloves garlic, minced', '½ tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss everything together and roast 18–22 minutes, until the edges char.']),
+  WF_VEG('m-slaw-asian', 'Cabbage & Carrot Slaw', ['½ head green cabbage, shredded', '3 carrots, shredded', '2 green onions, sliced', '2 tbsp rice vinegar', '1 tbsp sesame oil', '1 tsp honey', '½ tsp salt'],
+    ['Toss the vegetables.', 'Whisk the vinegar, oil, honey and salt, and toss with the slaw.'], 'Keeps 4 days; it softens a little each day.'),
+  WF_VEG('m-roast-peppers', 'Roasted Peppers & Onions', ['4 bell peppers, sliced', '2 yellow onions, sliced', '2 tbsp olive oil', '1 tsp ground cumin', '½ tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss everything together and roast 25 minutes, stirring once.']),
+  WF_VEG('m-slaw-lime', 'Lime Cabbage Slaw', ['½ head green cabbage, shredded', '½ red onion, sliced thin', '½ cup fresh cilantro, chopped', '2 limes', '1 tbsp olive oil', '½ tsp salt'],
+    ['Toss the cabbage, onion and cilantro.', 'Dress with the lime juice, oil and salt.']),
+  WF_VEG('m-collards', 'Garlicky Collards', ['2 bunches collard greens, stems removed, sliced', '4 cloves garlic, sliced', '2 tbsp olive oil', '1 cup chicken broth', '1 tbsp apple cider vinegar', '½ tsp salt'],
+    ['Warm the oil and garlic in a big pot for 1 minute.', 'Add the collards and broth, cover, and simmer 15–20 minutes until tender.', 'Finish with the vinegar and salt.']),
+  WF_VEG('m-butternut', 'Roasted Butternut Squash', ['1 butternut squash, peeled and cubed', '2 tbsp olive oil', '½ tsp smoked paprika', '½ tsp salt'],
+    ['Heat the oven to 425°F (220°C).', 'Toss everything together and roast 30–35 minutes, turning once.']),
+  { id: 'm-soaked-oats', name: 'Kefir Soaked Oats', cat: 'breakfast', serves: 4, size: '1 jar', mins: 10, keeps: 4, freezes: false, week: 4,
+    ing: ['2 cups rolled oats', '3 cups plain kefir', '4 tbsp chia seeds', '4 tbsp ground flaxseed', '2 cups mixed berries', '2 tbsp honey'],
+    steps: ['Mix the oats, kefir, chia and flax and divide between four jars.', 'Top with berries and a drizzle of honey.', 'Refrigerate overnight. Eat cold.'],
+    note: 'Plain yogurt works instead of kefir.' },
+  WF_SAUCE('m-sauce-tahini', 'Tahini-Lemon Sauce', ['½ cup tahini', '1 lemon', '1 clove garlic, grated', '½ tsp salt'], ['Whisk the tahini, lemon juice, garlic and salt.', 'Whisk in about ⅓ cup water, a little at a time, until it pours.'], 7),
+  WF_SAUCE('m-sauce-garlic-yogurt', 'Garlic Yogurt Sauce', ['1 cup plain Greek yogurt', '1 clove garlic, grated', '½ lemon', '1 tbsp fresh dill, chopped', '¼ tsp salt'], ['Stir everything together.'], 5),
+  WF_SAUCE('m-sauce-gochujang', 'Gochujang-Miso Sauce', ['2 tbsp gochujang', '2 tbsp white miso', '1 tbsp rice vinegar', '1 tbsp sesame oil', '1 tsp honey'], ['Whisk everything with about 3 tbsp water until smooth.'], 7),
+  WF_SAUCE('m-sauce-peanut', 'Peanut-Ginger Sauce', ['⅓ cup peanut butter', '2 tbsp tamari', '1 lime', '1 tbsp fresh ginger, grated', '1 clove garlic, grated'], ['Whisk everything, adding warm water (about ¼ cup) until it pours.'], 6),
+  WF_SAUCE('m-sauce-verde', 'Salsa Verde', ['1 lb tomatillos, husked', '1 jalapeño', '½ yellow onion', '1 cup fresh cilantro', '1 lime', '½ tsp salt'], ['Roast the tomatillos, jalapeño and onion at 450°F (230°C) for 15 minutes, until blistered.', 'Blend with the cilantro, lime juice and salt.'], 6, 'Makes about 2 cups; a serving is ¼ cup.'),
+  WF_SAUCE('m-sauce-chipotle', 'Chipotle Yogurt Sauce', ['1 cup plain Greek yogurt', '2 chipotle peppers in adobo, minced', '1 lime', '¼ tsp salt'], ['Stir everything together. Add more chipotle for heat.'], 5),
+  WF_SAUCE('m-sauce-ranch', 'Herb Yogurt Ranch', ['1 cup plain Greek yogurt', '1 tbsp fresh dill, chopped', '1 tbsp fresh chives, chopped', '1 tbsp fresh parsley, chopped', '1 clove garlic, grated', '½ lemon', '¼ tsp black pepper', '¼ tsp salt'], ['Stir everything together. Thin with kefir or water if you like.'], 5),
+  WF_SAUCE('m-sauce-hothoney', 'Hot Honey Vinaigrette', ['3 tbsp hot sauce', '2 tbsp apple cider vinegar', '1 tbsp honey', '3 tbsp olive oil'], ['Shake everything in a jar.'], 7),
+  WF_THIGHS('m-thighs-zaatar', 'Za’atar Lemon Chicken Thighs', ['2 lemons', '2 tbsp za’atar', '3 cloves garlic, minced'], 'the zest and juice of the lemons, the za’atar and the garlic'),
+  WF_CRUMBLE('m-crumble-levant', 'Cumin-Allspice Turkey-Liver Crumble', ['2 tsp ground cumin', '1 tsp ground allspice', '½ tsp ground cinnamon'], 'the cumin, allspice and cinnamon'),
+  WF_THIGHS('m-thighs-gochujang', 'Gochujang Chicken Thighs', ['3 tbsp gochujang', '1 tbsp honey', '1 tbsp soy sauce', '1 tbsp sesame oil', '2 cloves garlic, minced'], 'the gochujang, honey, soy sauce, sesame oil and garlic, stirred together'),
+  WF_CRUMBLE('m-crumble-ginger', 'Ginger-Garlic Turkey-Liver Crumble', ['2 tbsp fresh ginger, grated', '2 tbsp tamari', '1 tsp sesame oil', '3 green onions, sliced'], 'the ginger, tamari, sesame oil and green onions'),
+  WF_THIGHS('m-thighs-chili-lime', 'Chili-Lime Chicken Thighs', ['2 limes', '2 tsp chili powder', '1 tsp ground cumin', '3 cloves garlic, minced'], 'the zest and juice of the limes, the chili powder, cumin and garlic'),
+  WF_CRUMBLE('m-crumble-taco', 'Taco-Spiced Turkey-Liver Crumble', ['1 tbsp chili powder', '2 tsp ground cumin', '1 tsp smoked paprika', '1 tsp dried oregano'], 'the chili powder, cumin, paprika and oregano'),
+  WF_THIGHS('m-thighs-paprika', 'Smoked-Paprika Chicken Thighs', ['1 tbsp smoked paprika', '1 tsp garlic powder', '1 tsp onion powder', '¼ tsp cayenne'], 'the paprika, garlic powder, onion powder and cayenne'),
+  WF_CRUMBLE('m-crumble-sage', 'Sage & Black Pepper Turkey-Liver Crumble', ['1 tbsp dried sage', '1 tsp black pepper', '½ tsp dried thyme'], 'the sage, pepper and thyme'),
+  { id: 'm-ginger-cubes', name: 'Ginger-Turmeric Morning Cubes', cat: 'snack', serves: 26, size: '1 cube in ½ cup hot water', mins: 20, keeps: 90, freezes: true, week: 7,
+    ing: ['8 oz fresh ginger, chopped', '3 oz fresh turmeric, chopped', '3 lemons', '1 tsp black pepper', '2 tbsp olive oil', '¼ cup apple cider vinegar', '2 tsp ground cinnamon', '¼ tsp cayenne'],
+    steps: ['Blend everything (juice of 3 lemons, zest of 1) with 1 cup water or coconut water on high 60–90 seconds until smooth. Don’t strain.', 'Pour into a 1 oz silicone ice-cube tray and freeze overnight, then store the cubes in a freezer bag up to 3 months.', 'Each morning, pour ½ cup just-boiled water over one cube and stir until it melts. Stir again before drinking.', 'Rinse your mouth with water afterward and wait 30 minutes before brushing; the lemon and vinegar are acidic.'],
+    note: 'Start with half a cube. Check with a doctor first if you take blood thinners or diabetes medicine, have gallstones or bad reflux, or have surgery coming up. A habit, not a treatment.' },
+);
+const WF_BOWL = 'Build each bowl: 2 palms of protein, 1–2 cupped hands of a base (2 on lift and run days), 2 fists of vegetables, 2 tbsp of sauce, a forkful of sauerkraut or kimchi, a small handful of crunch (pumpkin seeds, sesame, roasted chickpeas) and a squeeze of lemon or lime.';
+MEAL_PREPS.push(
+  { id: 'p-wholefood', name: 'Whole-Food Sunday Prep', d: 'Bone broth (start it Saturday night), a turkey crumble with a little liver blended in, chicken thighs, beans and brown rice cooked in the broth, two vegetable trays, egg muffins, kefir oats and two sauces. Buy raw sauerkraut or kimchi from the refrigerated aisle.',
+    items: [['m-bone-broth', 5], ['m-liver-crumble', 3], ['m-thighs', 4], ['m-broth-beans', 4], ['m-broth-rice', 5], ['m-sheet-veg', 6], ['m-egg-muffins', 5], ['m-soaked-oats', 4], ['m-sauce-tahini', 4], ['m-sauce-garlic-yogurt', 4]] },
+  { id: 'p-bowls-levant', name: 'Bowl Rotation 1: Levant', d: 'Shawarma, mujaddara (lentils, rice, crispy onions) and fattoush bowls with toasted sourdough. ' + WF_BOWL + ' Ferment: sauerkraut or pickled turnips.',
+    items: [['m-thighs-zaatar', 4], ['m-crumble-levant', 3], ['m-broth-rice', 4], ['m-lentils', 3], ['m-roast-cauli', 4], ['m-cuke-salad', 3], ['m-sauce-tahini', 4], ['m-sauce-garlic-yogurt', 3], ['m-egg-muffins', 5]] },
+  { id: 'p-bowls-korea', name: 'Bowl Rotation 2: Korea & Japan', d: 'Bibimbap with a jammy egg, peanut-ginger chicken and miso sweet potato bowls with seaweed. ' + WF_BOWL + ' Ferment: kimchi.',
+    items: [['m-thighs-gochujang', 4], ['m-crumble-ginger', 3], ['m-broth-rice', 4], ['m-roast-sweet-potato', 3], ['m-roast-broccoli', 4], ['m-slaw-asian', 3], ['m-sauce-gochujang', 4], ['m-sauce-peanut', 3], ['m-egg-muffins', 5]] },
+  { id: 'p-bowls-latin', name: 'Bowl Rotation 3: Latin', d: 'Burrito, sweet potato and black bean, and chipotle crumble bowls with avocado. ' + WF_BOWL + ' Ferment: curtido or sauerkraut.',
+    items: [['m-thighs-chili-lime', 4], ['m-crumble-taco', 3], ['b-rice~cilantro-lime', 4], ['m-broth-beans', 3], ['m-roast-peppers', 4], ['m-slaw-lime', 3], ['m-sauce-verde', 4], ['m-sauce-chipotle', 3], ['m-egg-muffins', 5]] },
+  { id: 'p-bowls-southern', name: 'Bowl Rotation 4: Southern', d: 'Hoppin’ John, collards and crumble, and hot-honey chicken bowls. ' + WF_BOWL + ' Ferment: sauerkraut or fermented hot peppers. Then start again at week 1.',
+    items: [['m-thighs-paprika', 4], ['m-crumble-sage', 3], ['m-farro', 4], ['m-bep', 3], ['m-collards', 4], ['m-butternut', 3], ['m-sauce-ranch', 4], ['m-sauce-hothoney', 3], ['m-egg-muffins', 5]] },
+);
+
 /* ---- quantities ---- */
 const UFRAC = { '½': 1 / 2, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 1 / 4, '¾': 3 / 4, '⅛': 1 / 8 };
 const UNIT_ALIAS = { tsp: 'tsp', teaspoon: 'tsp', teaspoons: 'tsp', tbsp: 'tbsp', tbs: 'tbsp', tablespoon: 'tbsp', tablespoons: 'tbsp', cup: 'cup', cups: 'cup', oz: 'oz', ounce: 'oz', ounces: 'oz', lb: 'lb', lbs: 'lb', pound: 'lb', pounds: 'lb',
@@ -133,11 +232,11 @@ function guessAisle(n, u) {
   if (/\bfrozen\b/.test(t)) return 'frozen';
   if (/protein powder/.test(t)) return 'pantry';
   if (u === 'can' || u === 'jar' || /\bcanned\b|\bbeans?\b|chickpea|salsa|marinara|tomato (paste|sauce)|crushed tomato|diced tomato|coconut milk|broth|stock\b|pickle|olives/.test(t)) return 'canned';
-  if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
+  if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|bay lea|za.?atar|allspice|cayenne|gochujang|\bmiso\b|tamari|\bsage\b|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
   if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b/.test(t)) return 'dairy';
   if (/chicken|turkey|salmon|shrimp|tofu|tempeh|\bfish\b|\bcod\b|tilapia|steak|\bbeef\b|\bpork\b|sausage|bacon/.test(t)) return 'protein';
-  if (/\brice\b|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
-  if (/onion|garlic|pepper|broccoli|spinach|lettuce|romaine|tomato|cucumber|carrot|celery|zucchini|potato|\blimes?\b|lemon|cilantro|parsley|basil|berr|banana|apple|grape|avocado|ginger|scallion|kale|cabbage|coleslaw|\bpeas?\b|mushroom|squash|green bean|\bcorn\b|hummus|orange|cauliflower|asparagus|herb|mint|fruit/.test(t)) return 'produce';
+  if (/\brice\b|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
+  if (/onion|garlic|pepper|broccoli|spinach|lettuce|romaine|tomato|cucumber|carrot|celery|zucchini|potato|\blimes?\b|lemon|cilantro|parsley|basil|berr|banana|apple|grape|avocado|ginger|scallion|kale|cabbage|dill|chive|brussels|collard|tomatillo|jalape|turmeric|coleslaw|\bpeas?\b|mushroom|squash|green bean|\bcorn\b|hummus|orange|cauliflower|asparagus|herb|mint|fruit/.test(t)) return 'produce';
   return 'other';
 }
 function famOf(u) {
@@ -203,6 +302,17 @@ const NUT = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' 
 const MACRO_KEYS = NUT.slice(0, 4), EXTRA_KEYS = NUT.slice(4);
 const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: new RegExp(k), kcal, p, c, f, fib, sug, na, g: g || {} });
 const FOODS = [
+  /* Oct 26: foods for the whole-food prep and bowl weeks (USDA-style averages per 100 g); listed first so they win over broader matches */
+  F('celery', 'Celery', 'celery', 14, 0.7, 3, 0.2, 1.6, 1.3, 80, { stalk: 40, cup: 101, each: 40 }),
+  F('brussels', 'Brussels sprouts', 'brussels', 43, 3.4, 9, 0.3, 3.8, 2.2, 25, { cup: 88 }),
+  F('kefir', 'Kefir, plain whole milk', 'kefir', 61, 3.4, 4.5, 3.3, 0, 4.5, 40, { cup: 243 }),
+  F('miso', 'Miso paste', '\\bmiso\\b', 198, 12, 26, 6, 5, 6, 3728, { cup: 275 }),
+  F('tomatillo', 'Tomatillos', 'tomatillo', 32, 1, 5.8, 1, 1.9, 3.9, 1, { each: 34, cup: 132 }),
+  F('farro', 'Farro, dry', 'farro', 340, 12.5, 72, 2, 10, 0.5, 10, { cup: 170 }),
+  F('black-eyed', 'Black-eyed peas, canned (drained)', 'black.?eyed', 77, 4.7, 14, 0.6, 3.3, 0.4, 300, { can: 255, cup: 170 }),
+  F('collards', 'Collard greens', 'collard', 32, 3, 5.4, 0.6, 4, 0.5, 17, { bunch: 300, cup: 36 }),
+  F('chives', 'Chives, fresh', 'chive', 30, 3.3, 4.4, 0.7, 2.5, 1.9, 3, { cup: 48 }),
+  F('bay-leaf', 'Bay leaf', 'bay lea', 0, 0, 0, 0, 0, 0, 0, { each: 0.2 }),
   F('protein-powder', 'Protein powder (whey)', 'protein powder', 400, 80, 10, 5, 2, 5, 300, { cup: 120, scoop: 30 }),
   F('salt', 'Salt', '\\bsalt\\b', 0, 0, 0, 0, 0, 0, 38758, { cup: 292 }),
   F('cocoa', 'Cocoa powder, unsweetened', 'cocoa', 228, 20, 58, 14, 37, 2, 21, { cup: 86 }),
@@ -302,7 +412,7 @@ const FOODS = [
   F('rice', 'White rice, dry', '\\brice\\b', 365, 7.1, 80, 0.7, 1.3, 0.1, 5, { cup: 185 }),
   F('quinoa', 'Quinoa, dry', 'quinoa', 368, 14.1, 64, 6.1, 7, 0, 5, { cup: 170 }),
   F('oats', 'Rolled oats', '\\boats?\\b', 379, 13, 68, 6.5, 10, 1, 6, { cup: 81 }),
-  F('flour', 'Flour', 'flour', 364, 10, 76, 1, 2.7, 0.3, 2, { cup: 125 }),
+  F('flour', 'Flour', 'flour', 364, 10, 76, 1, 2.7, 0.3, 2, { cup: 125 })
 ];
 const FOOD_BY_ID = Object.fromEntries(FOODS.map(f => [f.id, f]));
 const NOFOOD = { id: 'none', label: 'Don’t count this', skip: true, kcal: 0, p: 0, c: 0, f: 0, fib: 0, sug: 0, na: 0, g: {} };

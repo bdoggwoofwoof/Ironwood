@@ -1786,7 +1786,7 @@ function completeSet(it, s, swiped) {
   if (!String(s.w).trim() && s.gw) s.w = s.gw;
   s.c = Date.now();
   const j = it.sets.indexOf(s);
-  for (const n of it.sets.slice(j + 1)) if (!isDone(n)) { n.gw = s.w; n.gr = s.r; }
+  for (const n of it.sets.slice(j + 1)) if (!isDone(n)) n.gw = s.w;
   const prs = setPR(it, s); s.pr = prs.length > 0; s.prInfo = prs.map(prText);
   if (s.pr) { showToast({ kind: 'pr', text: 'PR · ' + exName(it.ex) + ' · ' + prs.map(p => p.label).join(', ') }); if (prOpts().sound) { beep(1320, 90, 0.22); setTimeout(() => beep(1760, 150, 0.22), 110); } }
   if (swiped) lsSet('swiped', '1');
@@ -2004,17 +2004,20 @@ function HelpSheet() {
    shows sample workouts so Stats has something to show; they live only in memory and vanish when it ends. */
 /* Each step: [tab, train mode, element(s) to highlight, title, text, extra settings]. No selector = centered card. */
 const TOUR = [
-  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about a minute, and you can skip it any time.'],
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about two minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak too.'],
-  ['train', 'run', '.run-seg, #run-setup', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and an 8-week running plan that fits around your lifting days. Conditioning programs live here too.'],
-  ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets or fix a typo.', { max: 3 }],
+  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Train shows what each one has next, and you can add its exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
+  ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
   ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
-  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core and more, in sections you can open and close.'],
-  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
-  ['meals', null, '.topsw', 'Meal prep', 'Plan the week’s cooking, scale recipes for more people or weeks, and get one shopping list sorted by aisle. Save your own recipes too.'],
-  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size, units and rest timer.'],
+  ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
+  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
+  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. Overall also tracks running, bodyweight and body measurements. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['meals', null, '.topsw', 'Meals', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Log what you eat against daily goals.'],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, and rest timers.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
   ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
@@ -2329,7 +2332,7 @@ function SetRow({ it, s, j, kind }) {
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       ${noteCell}
-    </div></div>${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -2976,7 +2979,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 88d2717</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version d653832</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }

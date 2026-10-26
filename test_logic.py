@@ -46,16 +46,15 @@ async def main():
         await pg.locator('.sheet button', has_text='End at').click(); await pg.wait_for_timeout(600)
         mins = await pg.evaluate("(() => { const s = Object.values(S.sessions).sort((a, b) => b.startedAt - a.startedAt)[0]; return Math.round((s.endedAt - s.startedAt) / 60000); })()")
         check('saved as about an hour, not six', 55 <= mins <= 65, mins)
-        # Steppers under the focused field; reps stepper logs the set
+        # No steppers under a set (removed Oct 26); typing reps still logs the set
         await pg.evaluate("closeSheet()"); await pg.wait_for_timeout(300)
         await pg.evaluate("const r = getRoutine('bi-newt-4day'); startWorkout(r, r.days[0])"); await pg.wait_for_timeout(500)
         w = pg.locator('.set-row input[id^=w-]').first; await w.click(); await pg.wait_for_timeout(200)
-        check('stepper strip appears under the focused weight', await pg.locator('.step-strip').count() == 1)
-        await pg.locator('.step-strip button').nth(1).click(); await pg.locator('.step-strip button').nth(1).click(); await pg.wait_for_timeout(150)
-        check('weight steps by the jump and keeps focus', await w.input_value() == '10' and (await pg.evaluate("document.activeElement.id")).startswith('w-'), await w.input_value())
+        check('no stepper strip under the focused weight', await pg.locator('.step-strip').count() == 0)
         r = pg.locator('.set-row input[id^=r-]').first; await r.click(); await pg.wait_for_timeout(200)
-        await pg.locator('.step-strip button').nth(1).click(); await pg.wait_for_timeout(200)
-        check('reps stepper logs the set', await r.input_value() == '6' and await pg.evaluate("isDone(S.active.items[0].sets[0])"), await r.input_value())
+        check('no stepper strip under the focused reps', await pg.locator('.step-strip').count() == 0)
+        await r.fill('6'); await r.press('Enter'); await pg.wait_for_timeout(200)
+        check('typed reps log the set', await r.input_value() == '6' and await pg.evaluate("isDone(S.active.items[0].sets[0])"), await r.input_value())
         # Removing an exercise can be undone
         n0 = await pg.evaluate("S.active.items.length")
         await pg.locator('button[aria-label^="Options for"]').first.click(); await pg.wait_for_timeout(300)

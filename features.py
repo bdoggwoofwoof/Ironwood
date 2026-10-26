@@ -1101,6 +1101,13 @@ src = src[:_t0] + """const TOUR = [
 ];
 """ + src[_t1:]
 
+# 18. Reps don't carry forward (Oct 26, Newt's request). Finishing a set used to copy its reps into every set after it;
+#     now later sets keep the reps from last time (or the routine's target), and only the weight carries forward.
+swap("for (const n of it.sets.slice(j + 1)) if (!isDone(n)) { n.gw = s.w; n.gr = s.r; }",
+     "for (const n of it.sets.slice(j + 1)) if (!isDone(n)) n.gw = s.w;")
+#     The −/+ strips under a set are gone: no −1 / +1 while typing reps, no −5 / +5 while typing weight.
+swap("${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}", "")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

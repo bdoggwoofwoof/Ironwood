@@ -1192,6 +1192,26 @@ swap(".sess-acts{gap:8px}", """.wd{position:relative}
 .cal-row .toggle{display:flex;align-items:center;gap:8px}.cal-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .sess-acts{gap:8px}""")
 
+# 21. Layout fixes (layout.js, Oct 27): challenge templates you can find (Train card while you have none, Routines,
+#     a sheet with Iron 75, Iron 75 Lite, 30-Day Streak, 6-Week Protein & Sleep, or your own), and one header style:
+#     every main page starts with the same big left title row (Stats and Profile used a small centered title, and the
+#     two-option switch on Routines was bigger than the four-option ones).
+LAYJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'layout.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", LAYJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'challenges': return html`<${ChallengeSheet}/>`;")
+swap("  let title = { train: S.active ? 'Workout' : '', routines: '', stats: 'Stats', profile: 'Profile' }[tab];", "  let title = { train: S.active ? 'Workout' : '', routines: '', stats: view ? 'Stats' : '', profile: '' }[tab];")
+swap("style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${body}",
+     "style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class=\"topsw\"><h1 class=\"page-title\">${tab === 'stats' ? 'Stats' : 'Profile'}</h1></div>` : null}${body}")
+swap("    <${PlanWeekCard}/>", "    <${PlanWeekCard}/>\n    <${ChallengeFinder} where=\"train\"/>")
+swap("    <${CareFinder}/>\n", "    <${CareFinder}/>\n    <${ChallengeFinder} where=\"routines\"/>\n")
+swap(".sess-acts{gap:8px}", """main .topsw button,main .topsw.four button{font-size:24px}
+.page-title{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink);padding:2px 0 6px;border-bottom:3px solid var(--accent);margin:0;line-height:inherit}
+.ch-finder{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 14px}
+.ch-finder .ch-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent-ink);display:grid;place-items:center;flex:none}.ch-finder .ch-ic svg{width:20px;height:20px}
+.ch-finder .go{color:var(--accent);font-weight:700}
+.ch-tpl .d{line-height:1.4}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

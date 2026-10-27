@@ -14,6 +14,11 @@ PRODUCT = {'code': CODE, 'status': 1, 'product': {'product_name': 'Tomato Soup',
 SEARCH = {'products': [{'code': '123456789012', 'product_name': 'Chocolate Protein Shake', 'brands': 'Fairlife', 'serving_quantity': 340, 'serving_size': '1 bottle (340 ml)',
            'nutriments': {'energy-kcal_100g': 44, 'proteins_100g': 9, 'carbohydrates_100g': 1.2, 'fat_100g': 0.7}},
           {'code': '999', 'product_name': 'No numbers', 'nutriments': {}}]}
+# Search-a-licious answers with hits; brands can be a list there, and some hits carry no nutrition
+HITS = {'count': 2, 'hits': [{'code': '123456789012', 'product_name': 'Chocolate Protein Shake', 'brands': ['Fairlife'], 'serving_quantity': 340, 'serving_size': '1 bottle (340 ml)',
+           'nutriments': {'energy-kcal_100g': 44, 'proteins_100g': 9, 'carbohydrates_100g': 1.2, 'fat_100g': 0.7}},
+          {'code': '999', 'product_name': 'No numbers'}]}
+MODE = {'sal': 200, 'legacy': 200}
 async def main():
     tmp = tempfile.mkdtemp(); cam = os.path.join(tmp, 'cam.y4m')
     have_cam = shutil.which('ffmpeg') and subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-loop', '1', '-i', 'testdata/barcode-0041196910551.png', '-t', '0.3', '-pix_fmt', 'yuv420p', cam]).returncode == 0
@@ -28,9 +33,11 @@ async def main():
             if '/api/v2/product/' in u:
                 body = PRODUCT if (CODE in u or CODE[1:] in u) else {'status': 0}
                 return await route.fulfill(status=200 if body.get('status') else 404, content_type='application/json', body=json.dumps(body))
-            if '/cgi/search.pl' in u: return await route.fulfill(status=200, content_type='application/json', body=json.dumps(SEARCH))
+            if '/cgi/search.pl' in u: return await route.fulfill(status=MODE['legacy'], content_type='application/json', body=json.dumps(SEARCH if MODE['legacy'] == 200 else {}))
+            if 'search.openfoodfacts.org/search' in u: return await route.fulfill(status=MODE['sal'], content_type='application/json', body=json.dumps(HITS if MODE['sal'] == 200 else {}))
             await route.abort()
         await pg.route('https://world.openfoodfacts.org/**', off)
+        await pg.route('https://search.openfoodfacts.org/**', off)
         await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
         await pg.locator('.tabs button', has_text='Meals').click(); await ev("setMealsMode('log')"); await pg.wait_for_timeout(250)
         check('Scan button next to Log food', await pg.locator('#log-scan').count() == 1)
@@ -63,11 +70,22 @@ async def main():
         await pg.locator('#scan-product button', has_text='Back').click(); await pg.wait_for_timeout(150)
         # Name search
         await pg.fill('#off-q', 'fairlife chocolate'); await pg.click('#off-go'); await pg.wait_for_timeout(400)
-        check('search sends only the words', 'search_terms=fairlife%20chocolate' in sent[-1], sent[-1])
-        check('results without calories are left out', await pg.locator('#off-results .opt').count() == 1)
+        check('search uses Search-a-licious and sends only the words', sent[-1].startswith('https://search.openfoodfacts.org/search?q=fairlife%20chocolate&'), sent[-1])
+        check('results list, including one without numbers yet', await pg.locator('#off-results .opt').count() == 2 and await pg.locator('#off-results .opt', has_text='Tap for its numbers').count() == 1)
+        await pg.locator('#off-results .opt', has_text='No numbers').click(); await pg.wait_for_timeout(400)
+        check('tapping a result without numbers fetches them by barcode; none listed says so', '/api/v2/product/999.json' in sent[-1] and await pg.locator('.sheet [role=alert]', has_text='No nutrition is listed').count() == 1, sent[-1])
         await pg.locator('#off-results .opt').first.click(); await pg.wait_for_timeout(200)
         check('search result opens the product', await pg.locator('#scan-product', has_text='Chocolate Protein Shake').count() == 1)
         await pg.locator('#scan-product button', has_text='Back').click(); await pg.wait_for_timeout(150)
+        # Search-a-licious busy: one retry, then the older search
+        MODE['sal'] = 503; n = len(sent)
+        await pg.click('#off-go'); await pg.wait_for_timeout(2500)
+        tries = sent[n:]
+        check('busy new search: retried once, then the older search answers', len(tries) == 3 and 'search.openfoodfacts.org' in tries[1] and '/cgi/search.pl?search_terms=fairlife%20chocolate' in tries[2] and await pg.locator('#off-results .opt').count() == 2, tries)
+        MODE['legacy'] = 429; n = len(sent)
+        await pg.click('#off-go'); await pg.wait_for_timeout(5000)
+        check('both busy: says the database is busy, with the limit', await pg.locator('.sheet [role=alert]', has_text='busy right now').count() == 1, sent[n:])
+        MODE['sal'] = 200; MODE['legacy'] = 200
         # Unknown barcode → add from the label, which keeps the barcode
         await pg.fill('#bc-num', '00000000'); await pg.click('#bc-go'); await pg.wait_for_timeout(400)
         check('unknown barcode: add from the label', await pg.locator('#bc-miss', has_text='Not in the food database').count() == 1)
@@ -100,7 +118,7 @@ async def main():
         await pg.click('#log-add'); await pg.locator('.sheet .seg button', has_text='Food').click(); await pg.wait_for_timeout(150)
         await pg.fill('#lf-txt', '340 g fairlife chocolate'); await pg.wait_for_timeout(150)
         await pg.click('#lf-online-go'); await pg.wait_for_timeout(500)
-        check('Food tab: online lookup searches what you typed (no amount)', 'search_terms=fairlife%20chocolate' in sent[-1] and await pg.locator('#lf-online #off-results .opt').count() == 1, sent[-1])
+        check('Food tab: online lookup searches what you typed (no amount)', 'q=fairlife%20chocolate' in sent[-1] and await pg.locator('#lf-online #off-results .opt').count() == 2, sent[-1])
         check('Food tab lookup shows search only, no barcode parts', await pg.locator('#lf-online #scan-start').count() == 0 and await pg.locator('#lf-online #bc-num').count() == 0)
         await pg.locator('#lf-online #off-results .opt').first.click(); await pg.wait_for_timeout(200)
         check('amount typed in grams carries over', await ev("document.querySelector('#sp-g') && document.querySelector('#sp-g').value") == '340')
@@ -114,7 +132,7 @@ async def main():
         await pg.click('#log-add'); await pg.locator('.sheet .seg button', has_text='Food').click(); await pg.fill('#lf-txt', '1 bar fairlife'); await pg.click('#lf-online-go'); await pg.wait_for_timeout(300)
         check('Food tab asks first; nothing sent before you allow', await pg.locator('#lf-online #lookup-ask').count() == 1 and len(sent) == n)
         await pg.click('#lookup-allow'); await pg.wait_for_timeout(400)
-        check('allowing runs the search', len(sent) == n + 1 and 'fairlife' in sent[-1].split('search_terms=')[1], sent[-1])
+        check('allowing runs the search', len(sent) == n + 1 and 'fairlife' in sent[-1].split('q=')[1], sent[-1])
         await ev("closeSheet()")
         check('privacy page explains lookups', 'Food lookups' in (await (await ctx.request.get(URL + 'privacy.html')).text()))
         sw = await (await ctx.request.get(URL + 'sw.js')).text()

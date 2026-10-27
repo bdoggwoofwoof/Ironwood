@@ -108,8 +108,9 @@ function LookupNote() {
   return html`<p class="small faint" style="margin-top:10px">Online lookups send only the barcode number or the words you search to Open Food Facts, a free public food database. Nothing else leaves your phone. Numbers come from the product’s label as entered there, so check them against the package.</p>`;
 }
 /* Log food → Scan */
-function LogScan({ day, fid }) {
-  const [cam, setCam] = useState(false); const [code, setCode] = useState(''); const [q, setQ] = useState('');
+/* only: 'search' shows just the online name search (Log food → Food); q0 starts it with these words; g0 = grams typed */
+function LogScan({ day, fid, only, q0, g0 }) {
+  const [cam, setCam] = useState(false); const [code, setCode] = useState(''); const [q, setQ] = useState(q0 || '');
   const [busy, setBusy] = useState(''); const [err, setErr] = useState(''); const [prod, setProd] = useState(() => fid && ML().foods[fid] ? productOfFood(ML().foods[fid]) : null); const [res, setRes] = useState(null); const [miss, setMiss] = useState('');
   const fail = e => setErr(e && e.message === 'offline' ? 'You’re offline. Try again with a signal, or add the food from its label.' : 'The food database didn’t answer. Try again in a minute, or add the food from its label.');
   const find = async raw => {
@@ -122,22 +123,24 @@ function LogScan({ day, fid }) {
     try { const p = await lookupBarcode(c); if (p && p.ok) setProd(p); else setMiss(c); }
     catch (e) { fail(e); } finally { setBusy(''); }
   };
-  const search = async () => {
-    const t = q.trim(); if (!t) return; setErr(''); setMiss(''); setProd(null); setBusy('search');
+  const search = async t0 => {
+    const t = (typeof t0 === 'string' ? t0 : q).trim(); if (!t) return; setErr(''); setMiss(''); setProd(null); setBusy('search');
     try { setRes(await searchFoodsOnline(t)); } catch (e) { fail(e); } finally { setBusy(''); }
   };
   const allow = () => { setLookup(true); if (miss) find(miss); };
+  useEffect(() => { if (only === 'search' && q0 && lookupOn()) search(q0); }, []);
+  const allowSearch = () => { setLookup(true); if (only === 'search' && q.trim()) setTimeout(() => search(q), 0); };
   const addLabel = c => openSheet({ type: 'foodEdit', name: '', bc: c, then: id => openSheet({ type: 'mealLog', day, tab: 'scan', fid: id }) });
-  if (prod) return html`<${ScanProduct} day=${day} p=${prod} onBack=${() => setProd(null)}/>`;
+  if (prod) return html`<${ScanProduct} day=${day} p=${prod} g0=${g0} onBack=${() => setProd(null)}/>`;
   return html`<div class="stack">
     ${ML().lookup === undefined ? html`<div class="card" id="lookup-ask"><div style="font-weight:700">Look foods up online?</div>
-      <p class="small muted" style="margin-top:4px">Scanning matches foods you’ve saved without the internet. To find new products, Ironwood can ask Open Food Facts, a free public food database. Only the barcode number or the words you search are sent.</p>
-      <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="lookup-allow" onClick=${() => setLookup(true)}>Allow lookups</button><button class="btn" style="flex:1" id="lookup-no" onClick=${() => setLookup(false)}>Not now</button></div></div>` : null}
-    ${cam ? html`<${BarcodeCam} onCode=${find} onClose=${() => setCam(false)}/>` : html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}
-    <div><label class="lbl" for="bc-num">Or type the number under the barcode</label><div class="row" style="gap:8px">
+      <p class="small muted" style="margin-top:4px">${only === 'search' ? 'Ironwood can search Open Food Facts, a free public food database, for store-bought foods. Only the words you search are sent.' : html`Scanning matches foods you’ve saved without the internet. To find new products, Ironwood can ask Open Food Facts, a free public food database. Only the barcode number or the words you search are sent.`}</p>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="lookup-allow" onClick=${allowSearch}>Allow lookups</button><button class="btn" style="flex:1" id="lookup-no" onClick=${() => setLookup(false)}>Not now</button></div></div>` : null}
+    ${only === 'search' ? null : cam ? html`<${BarcodeCam} onCode=${find} onClose=${() => setCam(false)}/>` : html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}
+    ${only === 'search' ? null : html`<div><label class="lbl" for="bc-num">Or type the number under the barcode</label><div class="row" style="gap:8px">
       <input class="field" id="bc-num" inputmode="numeric" autocomplete="off" placeholder="e.g. 041196910551" value=${code} onInput=${e => setCode(e.target.value.replace(/\D/g, ''))} onKeyDown=${e => { if (e.key === 'Enter') find(code); }}/>
-      <button class="btn" style="white-space:nowrap" id="bc-go" disabled=${!code || busy} onClick=${() => find(code)}>${busy === 'code' ? 'Looking…' : 'Look up'}</button></div></div>
-    ${lookupOn() ? html`<div><label class="lbl" for="off-q">Search by name online</label><div class="row" style="gap:8px">
+      <button class="btn" style="white-space:nowrap" id="bc-go" disabled=${!code || busy} onClick=${() => find(code)}>${busy === 'code' ? 'Looking…' : 'Look up'}</button></div></div>`}
+    ${lookupOn() ? html`<div><label class="lbl" for="off-q">${only === 'search' ? 'Search online' : 'Search by name online'}</label><div class="row" style="gap:8px">
       <input class="field" id="off-q" type="search" placeholder="e.g. Fairlife chocolate shake" value=${q} onInput=${e => setQ(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') search(); }}/>
       <button class="btn" style="white-space:nowrap" id="off-go" disabled=${!q.trim() || busy} onClick=${search}>${busy === 'search' ? 'Searching…' : 'Search'}</button></div></div>` : null}
     ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
@@ -145,13 +148,13 @@ function LogScan({ day, fid }) {
       <p class="small muted" style="margin-top:4px">${lookupOn() ? 'Barcode ' + miss + ' has no nutrition there. Add it from its label once and every later scan finds it.' : 'Barcode ' + miss + '. Look it up online, or add it from its label once and every later scan finds it.'}</p>
       <div class="row wrap" style="margin-top:10px;gap:8px">${!lookupOn() ? html`<button class="btn primary" style="flex:1" id="bc-allow" onClick=${allow}>Look it up online</button>` : null}<button class="btn" style="flex:1" id="bc-label" onClick=${() => addLabel(miss)}>Add from the label</button></div></div>` : null}
     ${res ? html`<div class="food-list" id="off-results">${res.length ? res.map(p => html`<button key=${p.code} class="opt" onClick=${() => setProd(p)}><div style="flex:1;min-width:0"><div>${p.name}</div><div class="d">${p.brand ? p.brand + ' · ' : ''}${Math.round(p.per.kcal)} kcal per 100 g</div></div></button>`)
-      : html`<p class="note" style="margin-top:6px">Nothing found for “${q.trim()}”. Try fewer words, or scan the barcode.</p>`}</div>` : null}
+      : html`<p class="note" style="margin-top:6px">Nothing found for “${q.trim()}”. Try fewer words${only === 'search' ? ', or add it from its label' : ', or scan the barcode'}.</p>`}</div>` : null}
     ${ML().lookup !== undefined ? html`<button class="btn text" id="lookup-toggle" style="align-self:flex-start" onClick=${() => setLookup(!lookupOn())}>${lookupOn() ? 'Turn off online lookups' : 'Turn on online lookups'}</button>` : null}
     <${LookupNote}/></div>`;
 }
 /* One product: choose the amount, see the numbers, log it */
-function ScanProduct({ day, p, onBack }) {
-  const [unit, setUnit] = useState(p.sq ? 'sv' : 'g'); const [sv, setSv] = useState(1); const [g, setG] = useState(String(p.sq || 100));
+function ScanProduct({ day, p, onBack, g0 }) {
+  const [unit, setUnit] = useState(p.sq && !(g0 > 0) ? 'sv' : 'g'); const [sv, setSv] = useState(1); const [g, setG] = useState(String(g0 > 0 ? Math.round(g0) : p.sq || 100));
   const grams = unit === 'sv' ? sv * p.sq : (+g || 0);
   const m = roundNut(Object.fromEntries(NUT.map(([k]) => [k, (p.per[k] || 0) * grams / 100])));
   const save = () => {

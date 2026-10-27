@@ -885,19 +885,25 @@ function LogRecipe({ day }) {
       ${!list.length ? html`<p class="note" style="margin-top:10px">No recipe matches.</p>` : null}</div></div>`;
 }
 function LogFood({ day, txt0, fk0 }) {
-  const [txt, setTxt] = useState(txt0 || ''); const [fk, setFk] = useState(fk0 || ''); const [pick, setPick] = useState(false); const [pq, setPq] = useState('');
+  const [txt, setTxt] = useState(txt0 || ''); const [fk, setFk] = useState(fk0 || ''); const [pick, setPick] = useState(false); const [pq, setPq] = useState(''); const [online, setOnline] = useState(null);
   const g0 = parseIng(txt); const g = g0 && fk ? { ...g0, fk } : g0;
   const fd = g && foodFor(g); const gr = fd && !fd.skip ? gramsOf(g, fd) : null;
   const m = gr != null ? roundNut(Object.fromEntries(NUT.map(([k]) => [k, fd[k] * gr / 100]))) : null;
   const save = () => { const nm = shopName(g.n); addLog(day, { k: 'food', name: nm.replace(/^./, c => c.toUpperCase()), txt: g.q != null ? qtyText(g.q, g.u) : '', fk: fd.id, m }); closeSheet(); showToast({ kind: 'info', text: nm + ' logged' }); };
+  const term = g ? shopName(g.n) : txt.trim();
+  if (online) return html`<div id="lf-online"><div class="row" style="margin-bottom:8px"><span style="flex:1;font-weight:700">Look up online</span><button class="btn text" onClick=${() => setOnline(null)}>Back</button></div>
+    <${LogScan} day=${day} only="search" q0=${online.q} g0=${online.g}/></div>`;
+  const goOnline = q => setOnline({ q, g: g && g.q != null && WT[g.u] ? g.q * WT[g.u] : 0 });
   if (pick) return html`<div><div class="row"><input class="field" type="search" id="lf-q" placeholder="Search foods" value=${pq} onInput=${e => setPq(e.target.value)}/><button class="btn text" onClick=${() => setPick(false)}>Back</button></div>
-    <${FoodList} current=${fk} q=${pq} onPick=${id => { setFk(id); setPick(false); }} onNew=${name => openSheet({ type: 'foodEdit', name: name || (g && shopName(g.n)), then: id => openSheet({ type: 'mealLog', day, tab: 'food', txt, fk: id }) })}/></div>`;
+    <${FoodList} current=${fk} q=${pq} onPick=${id => { setFk(id); setPick(false); }} onNew=${name => openSheet({ type: 'foodEdit', name: name || (g && shopName(g.n)), then: id => openSheet({ type: 'mealLog', day, tab: 'food', txt, fk: id }) })}/>
+    <button class="btn ghost wide" style="margin-top:10px" id="lf-pick-online" onClick=${() => goOnline(pq.trim() || term)}>Look up “${pq.trim() || term || 'a food'}” online</button></div>`;
   return html`<div class="stack">
     <div><label class="lbl" for="lf-txt">What did you eat?</label><input class="field" id="lf-txt" placeholder="e.g. 1 cup Greek yogurt" value=${txt} onInput=${e => setTxt(e.target.value)}/>
       <p class="small muted" style="margin-top:6px">Amount first: 2 eggs, 150 g chicken, 1 banana. For your own foods, “1 serving protein bar” works.</p></div>
     ${g ? html`<button class=${'me-food' + (m ? '' : ' miss')} id="lf-food" onClick=${() => { setPq(''); setPick(true); }}>${!fd ? 'No match · choose a food' : fd.skip ? 'Not counted · change' : m ? 'Counts as ' + fd.label + ' · change' : fd.label + ' · add an amount like 150 g or 1 cup'}</button>` : null}
     ${m ? html`<${MacroTiles} m=${m}/>` : null}
-    <button class="btn primary wide" id="lf-save" disabled=${!m} onClick=${save}>Log it</button></div>`;
+    <button class="btn primary wide" id="lf-save" disabled=${!m} onClick=${save}>Log it</button>
+    <button class=${'btn wide' + (g && !m ? ' primary' : ' ghost')} id="lf-online-go" onClick=${() => goOnline(term)}>${term ? 'Look up “' + term + '” online' : 'Look up a food online'}</button></div>`;
 }
 function LogNumbers({ day }) {
   const [d, setD] = useState({ name: '' }); const set = (k, v) => setD({ ...d, [k]: v });

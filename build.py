@@ -114,6 +114,10 @@ os.makedirs(OUT, exist_ok=True)
 import shutil
 for f in os.listdir('pages'):
     shutil.copy(os.path.join('pages', f), os.path.join(OUT, f))
+# Barcode reader (ZXing in WebAssembly, from the barcode-detector package): loaded only when you scan, then cached
+os.makedirs(os.path.join(OUT, 'vendor'), exist_ok=True)
+for f in ('barcode-ponyfill.js', 'zxing_reader.wasm'):
+    shutil.copy(os.path.join('vendor', f), os.path.join(OUT, 'vendor', f))
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf8').write(html)
 
 manifest = {

@@ -492,6 +492,7 @@ function normMeals(x) {
     extras: (Array.isArray(x.extras) ? x.extras : []).filter(e => e && e.t).map(e => ({ id: String(e.id || uid('mx')), t: String(e.t), c: !!e.c })),
     foods: Object.fromEntries(Object.entries(x.foods && typeof x.foods === 'object' ? x.foods : {}).filter(([, f]) => f && f.name && f.sv && +f.sv.gr > 0)),
     log: Object.fromEntries(Object.entries(x.log && typeof x.log === 'object' ? x.log : {}).map(([d, l]) => [d, (Array.isArray(l) ? l : []).filter(e => e && e.id && e.m && typeof e.m === 'object')]).filter(([d, l]) => /^\d{4}-\d\d-\d\d$/.test(d) && l.length)),
+    ...(typeof x.lookup === 'boolean' ? { lookup: x.lookup } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -753,7 +754,7 @@ function ShopPane() {
 }
 
 /* ---- your own foods ---- */
-const SV_UNITS = ['g', 'oz', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
+const SV_UNITS = ['g', 'oz', 'serving', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
 function FoodList({ current, q, onPick, onNew }) {
   const term = q.trim().toLowerCase(); const hit = f => !term || f.label.toLowerCase().includes(term) || f.re.test(term);
   const mine = myFoods().filter(hit); const lib = FOODS.filter(hit).sort((a, b) => a.label.localeCompare(b.label));
@@ -773,7 +774,7 @@ function FoodPickSheet({ current, q, onPick }) {
     <input class="field" type="search" id="food-q" placeholder="Search foods" value=${t} onInput=${e => setT(e.target.value)} style="margin:8px 0 4px"/>
     <${FoodList} current=${current} q=${t} onPick=${id => { closeSheet(); onPick(id); }} onNew=${name => openSheet({ type: 'foodEdit', name, then: id => onPick(id) })}/><//>`;
 }
-function FoodEditSheet({ id, name, then }) {
+function FoodEditSheet({ id, name, then, bc }) {
   const f0 = id ? ML().foods[id] : null;
   const [d, setD] = useState(() => f0 ? { name: f0.name, q: fracStr(+f0.sv.q || 1), u: f0.sv.u || 'g', gr: String(f0.sv.gr || ''), ...Object.fromEntries(NUT.map(([k]) => [k, f0.lab && f0.lab[k] != null ? String(f0.lab[k]) : ''])) }
     : { name: name ? String(name).trim().replace(/^./, c => c.toUpperCase()) : '', q: '1', u: 'g', gr: '', ...Object.fromEntries(NUT.map(([k]) => [k, ''])) });
@@ -786,12 +787,12 @@ function FoodEditSheet({ id, name, then }) {
     if (!(gr > 0)) return setErr('Enter how many grams one serving is. It’s next to the serving size on the label.');
     if (d.kcal === '' || !(+d.kcal >= 0)) return setErr('Enter the calories per serving.');
     const fid = id || uid('my-');
-    mealCommit(m => { m.foods[fid] = { id: fid, name: nm, sv: { q, u: d.u, gr: Math.round(gr * 10) / 10 }, lab: Object.fromEntries(NUT.filter(([k]) => d[k] !== '' && isFinite(+d[k])).map(([k]) => [k, +d[k]])), updatedAt: Date.now() }; });
+    mealCommit(m => { m.foods[fid] = { ...(f0 || {}), ...(bc ? { bc } : {}), id: fid, name: nm, sv: { q, u: d.u, gr: Math.round(gr * 10) / 10 }, lab: Object.fromEntries(NUT.filter(([k]) => d[k] !== '' && isFinite(+d[k])).map(([k]) => [k, +d[k]])), updatedAt: Date.now() }; });
     closeSheet(); showToast({ kind: 'info', text: nm + ' saved' }); if (then) then(fid);
   };
   const del = () => { mealCommit(m => { delete m.foods[id]; }); closeSheet(); showToast({ kind: 'info', text: f0.name + ' deleted' }); };
   return html`<${Sheet} label=${id ? 'Edit food' : 'New food'}><h2>${id ? 'Edit food' : 'New food'}</h2>
-    <p class="note">Copy the numbers from the nutrition label, per serving.</p>
+    <p class="note">Copy the numbers from the nutrition label, per serving.${bc || (f0 && f0.bc) ? ' Barcode ' + (bc || f0.bc) + ' finds this food when you scan it.' : ''}</p>
     <div class="stack" style="margin-top:12px">
       <div><label class="lbl" for="fd-name">Name</label><input class="field" id="fd-name" value=${d.name} placeholder="e.g. Protein bar" onInput=${e => set('name', e.target.value)}/>
         <p class="small muted" style="margin-top:6px">Recipe ingredients and log entries with this name count as this food.</p></div>
@@ -850,22 +851,22 @@ function LogPane() {
         ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
       : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>
-    <button class="btn primary wide" id="log-add" style="margin-top:12px" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
       <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
         <div class="s num">${n ? fracStr(n) + ' of ' + it.n + ' this week' : it.n + ' planned this week'} · ${macroLine(macros(r))}</div></div><span class="go">${I.plus}</span></button>`; })}</div>` : null}
     <div class="section-h"><h2>${day === today ? 'Eaten today' : 'Eaten'}</h2>${list.length ? html`<span class="aside num">${list.length} item${list.length === 1 ? '' : 's'}</span>` : null}</div>
     ${list.length ? html`<div class="card shop-card">${list.map(e => html`<button key=${e.id} class="opt log-row" onClick=${() => openSheet({ type: 'logEntry', day, id: e.id })}><div style="flex:1;min-width:0"><div>${e.name}</div>
         <div class="d num">${e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : ''}${fmtNut('kcal', e.m.kcal)} kcal · ${Math.round(e.m.p)} g protein</div></div></button>`)}</div>`
-      : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack.'}</div>`}
+      : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack, or Scan a barcode.'}</div>`}
     <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
   </div>`;
 }
-function MealLogSheet({ day, tab: tab0, txt, fk }) {
+function MealLogSheet({ day, tab: tab0, txt, fk, fid }) {
   const [tab, setTab] = useState(tab0 || 'recipe');
   return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>
-    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
-    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
+    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['scan', 'Scan'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'scan' ? html`<${LogScan} day=${day} fid=${fid}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
 }
 function LogRecipe({ day }) {
   const [sel, setSel] = useState(null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');

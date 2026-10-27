@@ -1212,6 +1212,20 @@ swap(".sess-acts{gap:8px}", """main .topsw button,main .topsw.four button{font-s
 .ch-tpl .d{line-height:1.4}
 .sess-acts{gap:8px}""")
 
+# 22. Barcode scan and online food lookup (foodscan.js, Oct 27; Newt chose opt-in online lookups): Log food → Scan reads
+#     a barcode with the camera (ZXing WebAssembly on iPhone, vendored in vendor/ and loaded on first use) or a typed
+#     number, matches your own foods first (works offline), and with lookups allowed asks Open Food Facts for the
+#     barcode or a name search. Only the barcode or search words are sent; a logged product is saved to your foods.
+#     Also: every page is at least one screen tall, so the tab bar sits at the very bottom on short pages (on the
+#     iPhone home-screen app it rose about 10 pt on the Meals log, the only page shorter than the screen).
+SCANJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'foodscan.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", SCANJS + "\n/* ---------- APP ---------- */")
+swap(".sess-acts{gap:8px}", """.bc-cam video{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;background:#000}
+.bc-cam{position:relative}
+.bc-aim{position:absolute;left:12%;right:12%;top:0;height:0;margin-top:24.4%;padding-top:26.25%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none}
+body{min-height:calc(100lvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) + 1px)}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

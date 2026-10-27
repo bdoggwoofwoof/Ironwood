@@ -1138,7 +1138,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about two minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Train shows what each one has next, and you can add its exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and saves to your calendar. Add a program’s exercises to today’s workout or do it on its own.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
@@ -1161,6 +1161,36 @@ swap("for (const n of it.sets.slice(j + 1)) if (!isDone(n)) { n.gw = s.w; n.gr =
      "for (const n of it.sets.slice(j + 1)) if (!isDone(n)) n.gw = s.w;")
 #     The −/+ strips under a set are gone: no −1 / +1 while typing reps, no −5 / +5 while typing weight.
 swap("${foc ? html`<${StepStrip} it=${it} s=${s} field=${foc} kind=${kind}/>` : null}", "")
+
+# 20. Your week (schedule.js, Oct 27): a weekly schedule for everything you follow (main program, programs alongside,
+#     running plan), dots on the week strip (two on a doubled-up day), Also on your plan says when each is next, and a
+#     calendar file (.ics) for Apple, Google, Outlook or Proton Calendar.
+SCHEDJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schedule.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", SCHEDJS + "\n/* ---------- APP ---------- */")
+swap("""<b>${'MTWTFSS'[i]}</b><i>${hit ? I.check : m ? html`<span class="mk">${DAY_MARKS[m][0]}</span>` : null}</i></button>`;""",
+     """<b>${'MTWTFSS'[i]}</b><i>${hit ? I.check : m ? html`<span class="mk">${DAY_MARKS[m][0]}</span>` : null}</i><${DayDots} dow=${(i + 1) % 7} k=${k}/></button>`;""")
+swap("(hit ? ', workout logged' : m ? ', ' + DAY_MARKS[m] : '')", "(hit ? ', workout logged' : m ? ', ' + DAY_MARKS[m] : '') + dotsLabel((i + 1) % 7)")
+swap('    <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>',
+     '    <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>\n    <${PlanWeekCard}/>')
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'calendar': return html`<${CalendarSheet}/>`;")
+swap("  globe: ic(", '  cal: ic(() => html`<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),\n  globe: ic(')
+swap(".sess-acts{gap:8px}", """.wd{position:relative}
+.wd-dots{position:absolute;left:0;right:0;bottom:3px;display:flex;justify-content:center;gap:3px;pointer-events:none}
+.wd-dot{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c);background:transparent}
+.wd-dot.done{background:var(--c)}
+.plan-week{margin-top:12px}
+.pw-grid{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pw-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:center}
+.pw-row .pw-name{grid-column:1/-1;margin-top:4px}
+.pw-head span{font-size:12px;font-weight:700;color:var(--ink-3);text-align:center}.pw-head span.today{color:var(--accent)}
+.pw-name{display:flex;align-items:center;gap:8px;min-width:0}.pw-name i{width:10px;height:10px;border-radius:50%;flex:none}
+.pw-name span{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0}.pw-name b{font-size:14.5px;line-height:1.25}
+.pw-name small{font-size:11.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-cell{width:100%;height:34px;border-radius:9px;background:var(--raised);font-size:12px;font-weight:800;color:#fff;display:grid;place-items:center}
+.pw-cell.on{background:var(--c)}.pw-cell.today{box-shadow:inset 0 0 0 2px var(--ink-3)}.pw-cell.on.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.pw-cell svg{width:16px;height:16px}
+.cal-row .toggle{display:flex;align-items:center;gap:8px}.cal-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

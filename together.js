@@ -30,24 +30,29 @@ const shortName = r => r.name.replace(/ Care$/, '');
 /* Train: what else is on your plate */
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
-  const run = R && runCtxNow() ? (() => { const w = runWeekOf(R, new Date()); if (w < 1 || w > planLen(R)) return null;
-    const today = ymd(new Date()); const ws = planWeek(R, w);
-    const due = ws.filter(x => ymd(sessDate(R, w, x.dow)) === today); const x = due.find(y => !runLogged(R, w, y.key).length) || due[0];
-    return x ? { w, x, done: !!runLogged(R, w, x.key).length } : null; })() : null;
-  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning or another plan alongside</button>`;
+  /* The running plan always shows once it's set up: today's run, or the next one */
+  const run = R && runCtxNow() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
+    for (let i = 0; i < 21; i++) { const day = addDays(today, i); const w = runWeekOf(R, day); if (w < 1 || w > n) continue;
+      const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
+      if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
+    return runWeekOf(R, today) > n ? { finished: true } : null; })() : null;
+  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning, running or another plan alongside</button>`;
+  const openRun = () => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); };
+  const when = i => html`<span class=${'chip' + (i === 0 ? ' on' : '')}>${whenText(i)}</span>`;
   return html`<div id="also-today"><div class="section-h"><h2>Also on your plan</h2><button class="btn text" id="edit-addons" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
     <div class="stack">
-    ${run ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : null}</div>
-      <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
-      <div class="row" style="margin-top:8px"><button class=${'btn' + (run.done ? '' : ' primary')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : 'Start run'}</button>
-        <button class="btn text" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); }}>Plan</button></div></div>` : null}
-    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan');
-      return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : null}</div>
+    ${run && run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan</span></div><div class="also-t">All weeks done</div><div class="also-s">Start the next block from Train → Run.</div><div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onClick=${openRun}>Open the running plan</button></div></div>` : null}
+    ${run && !run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : when(run.i)}</div>
+      <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
+      <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
+        <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
+      return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : when(nxt)}</div>
         <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
         <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
         <div class="row wrap" style="margin-top:8px;gap:8px">
-          ${nx ? html`<button class=${'btn' + (done ? '' : ' primary')} style="flex:2" id=${'also-add-' + id} onClick=${() => startTogether(nx.routine, nx.day, r, n.day)}>Add to ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>` : null}
-          <button class=${'btn' + (nx || done ? '' : ' primary')} style="flex:1" id=${'also-start-' + id} onClick=${() => startWorkout(r, n.day)}>On its own</button></div></div>`; })}
+          ${nx ? html`<button class=${'btn' + (done || nxt !== 0 ? '' : ' primary')} style="flex:2" id=${'also-add-' + id} onClick=${() => startTogether(nx.routine, nx.day, r, n.day)}>Add to ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>` : null}
+          <button class=${'btn' + (nx || done || nxt !== 0 ? '' : ' primary')} style="flex:1" id=${'also-start-' + id} onClick=${() => startWorkout(r, n.day)}>On its own</button></div></div>`; })}
     </div></div>`;
 }
 /* During a workout: add an add-on's next day */
@@ -64,7 +69,7 @@ function AddonsSheet() {
   const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
-    <div class="opt" style="cursor:default"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On: today’s run shows in Train' : 'Set it up in Train → Run'}</div></div>${R && runCtxNow() ? I.check : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runCtxNow() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
     ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }

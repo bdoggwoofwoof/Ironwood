@@ -235,6 +235,35 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .fc-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.fc-row:last-child{border-bottom:0}
 .fc-num{font-family:var(--display);font-size:calc(20 * var(--u));font-weight:700;letter-spacing:.01em}
 .fc-star{font-size:calc(22 * var(--u));width:36px;height:36px;color:var(--ink-3)}.fc-star.on{color:var(--pr)}
+.wd{position:relative}
+.wd-dots{position:absolute;left:0;right:0;bottom:3px;display:flex;justify-content:center;gap:3px;pointer-events:none}
+.wd-dot{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c);background:transparent}
+.wd-dot.done{background:var(--c)}
+.plan-week{margin-top:12px}
+.pw-grid{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pw-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:center}
+.pw-row .pw-name{grid-column:1/-1;margin-top:4px}
+.pw-head span{font-size:calc(12 * var(--u));font-weight:700;color:var(--ink-3);text-align:center}.pw-head span.today{color:var(--accent)}
+.pw-name{display:flex;align-items:center;gap:8px;min-width:0}.pw-name i{width:10px;height:10px;border-radius:50%;flex:none}
+.pw-name span{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0}.pw-name b{font-size:calc(14.5 * var(--u));line-height:1.25}
+.pw-name small{font-size:calc(11.5 * var(--u));color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-cell{width:100%;height:34px;border-radius:9px;background:var(--raised);font-size:calc(12 * var(--u));font-weight:800;color:#fff;display:grid;place-items:center}
+.pw-cell.on{background:var(--c)}.pw-cell.today{box-shadow:inset 0 0 0 2px var(--ink-3)}.pw-cell.on.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.pw-cell svg{width:16px;height:16px}
+.cal-row .toggle{display:flex;align-items:center;gap:8px}.cal-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+main .topsw button,main .topsw.four button{font-size:calc(24 * var(--u))}
+.page-title{font-family:var(--display);font-size:calc(24 * var(--u));font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink);padding:2px 0 6px;border-bottom:3px solid var(--accent);margin:0;line-height:inherit}
+.ch-finder{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 14px}
+.ch-finder .ch-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent-ink);display:grid;place-items:center;flex:none}.ch-finder .ch-ic svg{width:20px;height:20px}
+.ch-finder .go{color:var(--accent);font-weight:700}
+.ch-tpl .d{line-height:1.4}
+.bc-cam video{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;background:#000}
+.bc-cam{position:relative}
+.bc-aim{position:absolute;left:12%;right:12%;top:0;height:0;margin-top:24.4%;padding-top:26.25%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none}
+body{min-height:calc(100lvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) + 1px)}
+.last-note{display:flex;align-items:center;gap:8px;min-width:0}
+.last-note .prev{flex:0 1 5.6em;min-width:0}
+.last-note .note-txt{flex:1}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -1226,7 +1255,7 @@ function prReasons(cur, pool, kind, unit, P) {
     return out;
   }
   if (P.weight) { const best = maxOf(x => x.w); if (w > best + 0.05) out.push({ type: 'weight', label: 'Heaviest weight', value: show(w) + ' × ' + r, prev: show(best), score: w }); }
-  if (P.reps) { const atW = pool.filter(x => x.w >= w - 0.05); if (atW.length) { const best = Math.max(...atW.map(x => x.r)); if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + ' reps', score: r + w / 1e4 }); } }
+  if (P.reps) { const atW = pool.filter(x => x.w >= w - 0.05); if (atW.length) { const best = Math.max(...atW.map(x => x.r)); if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + (best === 1 ? ' rep' : ' reps'), score: r + w / 1e4 }); } }
   if (P.setvol) { const best = maxOf(x => x.w * x.r); if (w * r > best + 0.5) out.push({ type: 'setvol', label: 'Best single set', value: fmtBig(conv(w * r, U(), unit)) + ' ' + unit + ' moved', prev: fmtBig(conv(best, U(), unit)) + ' ' + unit, score: w * r }); }
   return out;
 }
@@ -1253,6 +1282,7 @@ function detectPRs(session) {
 /* ============ Training prescriptions ============ */
 const repTop = reps => { const m = String(reps || '').match(/(\d+)\s*$/); return m ? +m[1] : 0; };
 function lastEntryOcc(exId, group, occ) {
+  const pc = prefillCtx(); if (pc) { const h = lastEntryOccIn(exId, group, occ, s => sameWorkout(s, pc)); if (h) return { ...h, scoped: true }; }
   const list = sessionList();
   for (let i = list.length - 1; i >= 0; i--) {
     const x = list[i]; const its = x.items.filter(it => it.ex === exId && (it.group || '') === group);
@@ -1526,6 +1556,7 @@ const ICONS = {
   camera: ic(() => html`<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>`),
   meals: ic(() => html`<path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0z"/><path d="M8 8c0-1.4 1-1.8 1-3.2M12 8c0-1.4 1-1.8 1-3.2M16 8c0-1.4 1-1.8 1-3.2"/>`),
   share: ic(() => html`<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>`),
+  cal: ic(() => html`<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
   globe: ic(() => html`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>`),
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
@@ -1780,6 +1811,7 @@ function touch(delay = 2500) { if (!S.active) return; S.active.updatedAt = Date.
 function startWorkout(routine, day) {
   if (S.active) { openSheet({ type: 'confirm', title: 'Workout in progress', body: 'Finish or discard the current workout before starting another.', ok: 'Go to workout', onOk: () => { closeSheet(); UI.setTab('train'); } }); return; }
   if (S.toast && S.toast.kind === 'info') S.toast = null;
+  PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };
   S.active = { id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
@@ -1911,8 +1943,8 @@ function WeekStrip() {
   const ws = startOfWeek(new Date()); const counts = dayCounts(); const today = ymd(new Date()); const marks = S.meta.dayMarks || {};
   return html`<div class="week">${[0, 1, 2, 3, 4, 5, 6].map(i => { const k = ymd(addDays(ws, i)); const hit = counts[k] > 0; const m = !hit && marks[k];
     const cls = 'wd' + (hit ? ' hit' : '') + (k === today ? ' is-today' : '') + (m ? (EXCUSED[m] ? ' mk-ex' : ' mk-rest') : '');
-    return html`<button key=${k} class=${cls} aria-label=${DOW_FULL[(i + 1) % 7] + (hit ? ', workout logged' : m ? ', ' + DAY_MARKS[m] : '')} onClick=${() => openSheet({ type: 'day', k })}>
-      <b>${'MTWTFSS'[i]}</b><i>${hit ? I.check : m ? html`<span class="mk">${DAY_MARKS[m][0]}</span>` : null}</i></button>`; })}</div>`;
+    return html`<button key=${k} class=${cls} aria-label=${DOW_FULL[(i + 1) % 7] + (hit ? ', workout logged' : m ? ', ' + DAY_MARKS[m] : '') + dotsLabel((i + 1) % 7)} onClick=${() => openSheet({ type: 'day', k })}>
+      <b>${'MTWTFSS'[i]}</b><i>${hit ? I.check : m ? html`<span class="mk">${DAY_MARKS[m][0]}</span>` : null}</i><${DayDots} dow=${(i + 1) % 7} k=${k}/></button>`; })}</div>`;
 }
 /* ---------- TRAIN ---------- */
 /* ---------- Program you follow, Train / History ---------- */
@@ -1958,6 +1990,8 @@ function TrainHome() {
     <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
+    <${PlanWeekCard}/>
+    <${ChallengeFinder} where="train"/>
     ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
       <div style="font-weight:700">Moving from another phone?</div>
       <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
@@ -2027,7 +2061,7 @@ const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about two minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Train shows what each one has next, and you can add its exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and saves to your calendar. Add a program’s exercises to today’s workout or do it on its own.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
@@ -2353,7 +2387,7 @@ function SetRow({ it, s, j, kind }) {
         onFocus=${e => { selAll(e); setFoc('w'); }} onBlur=${() => setFoc(f => f === 'w' ? null : f)} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
-      ${noteCell}
+      <div class="last-note">${!ne && prevSetText(it, j, kind) ? html`<span class="prev num" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>
     </div></div>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
@@ -2377,12 +2411,12 @@ function LiftSlot({ it, nextSS }) {
   return html`<section class=${'slot' + (it.ss ? ' ss' : '') + (nextSS ? ' ss-next' : '')} aria-label=${exName(it.ex)}>
     ${it.ss ? html`<div class="ss-tag">${I.link} Superset with above</div>` : null}
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
-      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last · ${shortDate(it.prevT)}: ${lastLine(it)}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
+      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
     <${ExNote} it=${it}/>
     <div class="sets">
-      <div class="set-row th"><span>Set</span><button class="unit-tog" aria-label=${'Weight in ' + u + '. Switch to ' + (u === 'kg' ? 'lb' : 'kg')} onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><span>Reps</span><span style="text-align:left">Note</span></div>
+      <div class="set-row th"><span>Set</span><button class="unit-tog" aria-label=${'Weight in ' + u + '. Switch to ' + (u === 'kg' ? 'lb' : 'kg')} onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><span>Reps</span><span style="text-align:left">${it.prev ? 'Last · note' : 'Note'}</span></div>
       ${it.sets.map((x, j) => html`<${SetRow} key=${x.id || j} it=${it} s=${x} j=${j} kind=${kind}/>`)}
     </div>
     <div class="slot-foot">
@@ -2504,6 +2538,7 @@ function RoutineList() {
   const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
     <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your program.'}<//>
     <${CareFinder}/>
+    <${ChallengeFinder} where="routines"/>
     <div class="row" style="margin-top:12px">${seg}</div>`;
   if (mode === 'list') return html`<div>${top}
     <div class="section-h"><h2>Yours</h2></div>
@@ -2550,6 +2585,7 @@ function RoutineView({ id }) {
       ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
       <button class="btn text danger" onClick=${del}>${lib ? 'Remove' : 'Delete'}</button>
     </div>
+    <${PrefillRow} r=${r}/>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
       <ul class="r-items">${d.items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
@@ -2868,6 +2904,7 @@ function LiftStats({ ex, group }) {
     </div>
     ${all.length ? html`<div class="section-h"><h2>Records</h2></div>
       <div class="card prl">${prs.filter(p => p[1]).map(([label, e, val]) => html`<div key=${label}><div><div style="font-weight:600">${label}</div><div class="small muted">${shortDate(e.t)}</div></div><b class="num">${val(e)}</b></div>`)}</div>
+      <${RepRecords} ex=${ex} group=${group}/>
       <div class="section-h"><h2>History</h2></div>
       <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Best set</th><th>Sets</th><th>${METRICS[metric]}</th></tr></thead>
         <tbody>${all.slice().reverse().map(e => html`<tr key=${e.sid}><td>${shortDate(e.t)}</td><td>${bestSetLabel(e.sets, kind)}</td><td>${e.sets.length}</td><td>${fmt(metricVal(e.st, metric))}</td></tr>`)}</tbody></table></div>` : null}
@@ -3001,7 +3038,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 2ccdc79</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version ba8c851</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3790,6 +3827,8 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
+    case 'challenges': return html`<${ChallengeSheet}/>`;
+    case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
@@ -4295,6 +4334,7 @@ function normMeals(x) {
     extras: (Array.isArray(x.extras) ? x.extras : []).filter(e => e && e.t).map(e => ({ id: String(e.id || uid('mx')), t: String(e.t), c: !!e.c })),
     foods: Object.fromEntries(Object.entries(x.foods && typeof x.foods === 'object' ? x.foods : {}).filter(([, f]) => f && f.name && f.sv && +f.sv.gr > 0)),
     log: Object.fromEntries(Object.entries(x.log && typeof x.log === 'object' ? x.log : {}).map(([d, l]) => [d, (Array.isArray(l) ? l : []).filter(e => e && e.id && e.m && typeof e.m === 'object')]).filter(([d, l]) => /^\d{4}-\d\d-\d\d$/.test(d) && l.length)),
+    ...(typeof x.lookup === 'boolean' ? { lookup: x.lookup } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -4556,7 +4596,7 @@ function ShopPane() {
 }
 
 /* ---- your own foods ---- */
-const SV_UNITS = ['g', 'oz', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
+const SV_UNITS = ['g', 'oz', 'serving', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
 function FoodList({ current, q, onPick, onNew }) {
   const term = q.trim().toLowerCase(); const hit = f => !term || f.label.toLowerCase().includes(term) || f.re.test(term);
   const mine = myFoods().filter(hit); const lib = FOODS.filter(hit).sort((a, b) => a.label.localeCompare(b.label));
@@ -4576,7 +4616,7 @@ function FoodPickSheet({ current, q, onPick }) {
     <input class="field" type="search" id="food-q" placeholder="Search foods" value=${t} onInput=${e => setT(e.target.value)} style="margin:8px 0 4px"/>
     <${FoodList} current=${current} q=${t} onPick=${id => { closeSheet(); onPick(id); }} onNew=${name => openSheet({ type: 'foodEdit', name, then: id => onPick(id) })}/><//>`;
 }
-function FoodEditSheet({ id, name, then }) {
+function FoodEditSheet({ id, name, then, bc }) {
   const f0 = id ? ML().foods[id] : null;
   const [d, setD] = useState(() => f0 ? { name: f0.name, q: fracStr(+f0.sv.q || 1), u: f0.sv.u || 'g', gr: String(f0.sv.gr || ''), ...Object.fromEntries(NUT.map(([k]) => [k, f0.lab && f0.lab[k] != null ? String(f0.lab[k]) : ''])) }
     : { name: name ? String(name).trim().replace(/^./, c => c.toUpperCase()) : '', q: '1', u: 'g', gr: '', ...Object.fromEntries(NUT.map(([k]) => [k, ''])) });
@@ -4589,12 +4629,12 @@ function FoodEditSheet({ id, name, then }) {
     if (!(gr > 0)) return setErr('Enter how many grams one serving is. It’s next to the serving size on the label.');
     if (d.kcal === '' || !(+d.kcal >= 0)) return setErr('Enter the calories per serving.');
     const fid = id || uid('my-');
-    mealCommit(m => { m.foods[fid] = { id: fid, name: nm, sv: { q, u: d.u, gr: Math.round(gr * 10) / 10 }, lab: Object.fromEntries(NUT.filter(([k]) => d[k] !== '' && isFinite(+d[k])).map(([k]) => [k, +d[k]])), updatedAt: Date.now() }; });
+    mealCommit(m => { m.foods[fid] = { ...(f0 || {}), ...(bc ? { bc } : {}), id: fid, name: nm, sv: { q, u: d.u, gr: Math.round(gr * 10) / 10 }, lab: Object.fromEntries(NUT.filter(([k]) => d[k] !== '' && isFinite(+d[k])).map(([k]) => [k, +d[k]])), updatedAt: Date.now() }; });
     closeSheet(); showToast({ kind: 'info', text: nm + ' saved' }); if (then) then(fid);
   };
   const del = () => { mealCommit(m => { delete m.foods[id]; }); closeSheet(); showToast({ kind: 'info', text: f0.name + ' deleted' }); };
   return html`<${Sheet} label=${id ? 'Edit food' : 'New food'}><h2>${id ? 'Edit food' : 'New food'}</h2>
-    <p class="note">Copy the numbers from the nutrition label, per serving.</p>
+    <p class="note">Copy the numbers from the nutrition label, per serving.${bc || (f0 && f0.bc) ? ' Barcode ' + (bc || f0.bc) + ' finds this food when you scan it.' : ''}</p>
     <div class="stack" style="margin-top:12px">
       <div><label class="lbl" for="fd-name">Name</label><input class="field" id="fd-name" value=${d.name} placeholder="e.g. Protein bar" onInput=${e => set('name', e.target.value)}/>
         <p class="small muted" style="margin-top:6px">Recipe ingredients and log entries with this name count as this food.</p></div>
@@ -4653,22 +4693,22 @@ function LogPane() {
         ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
       : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>
-    <button class="btn primary wide" id="log-add" style="margin-top:12px" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button>
+    <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
       <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
         <div class="s num">${n ? fracStr(n) + ' of ' + it.n + ' this week' : it.n + ' planned this week'} · ${macroLine(macros(r))}</div></div><span class="go">${I.plus}</span></button>`; })}</div>` : null}
     <div class="section-h"><h2>${day === today ? 'Eaten today' : 'Eaten'}</h2>${list.length ? html`<span class="aside num">${list.length} item${list.length === 1 ? '' : 's'}</span>` : null}</div>
     ${list.length ? html`<div class="card shop-card">${list.map(e => html`<button key=${e.id} class="opt log-row" onClick=${() => openSheet({ type: 'logEntry', day, id: e.id })}><div style="flex:1;min-width:0"><div>${e.name}</div>
         <div class="d num">${e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : ''}${fmtNut('kcal', e.m.kcal)} kcal · ${Math.round(e.m.p)} g protein</div></div></button>`)}</div>`
-      : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack.'}</div>`}
+      : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack, or Scan a barcode.'}</div>`}
     <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
   </div>`;
 }
-function MealLogSheet({ day, tab: tab0, txt, fk }) {
+function MealLogSheet({ day, tab: tab0, txt, fk, fid }) {
   const [tab, setTab] = useState(tab0 || 'recipe');
   return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>
-    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
-    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
+    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['scan', 'Scan'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'scan' ? html`<${LogScan} day=${day} fid=${fid}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
 }
 function LogRecipe({ day }) {
   const [sel, setSel] = useState(null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
@@ -6112,7 +6152,9 @@ function jumpFor(ex, u) {
 const repBottom = reps => { const m = String(reps || '').match(/^(\d+)/); return m ? +m[1] : 0; };
 /* The last n entries for an exercise at this slot position (newest first), weights in unit u */
 function recentOcc(exId, group, occ, n, u) {
-  const out = []; const list = sessionList();
+  const out = []; let list = sessionList();
+  const c = typeof prefillCtx === 'function' ? prefillCtx() : null;
+  if (c) { const f = list.filter(s => sameWorkout(s, c)); if (f.some(s => s.items.some(it => it.ex === exId && (it.group || '') === (group || '')))) list = f; }
   for (let i = list.length - 1; i >= 0 && out.length < n; i--) {
     const its = list[i].items.filter(it => it.ex === exId && (it.group || '') === (group || ''));
     if (!its.length) continue; const it = its[Math.min(occ || 0, its.length - 1)];
@@ -6152,6 +6194,7 @@ function refillLift(it, occ) {
   const rw = v => u === U() ? r05(v) : roundToInc(conv(v, U(), u), unitInc(u));
   it.prev = prev ? prev.sets.map(x => ({ w: rw(+x.w || 0), r: x.r })) : null;
   it.prevNote = prev ? prev.note : ''; it.prevT = prev ? prev.t : 0;
+  it.prevWhere = prev && prev.scoped ? 'in this workout' : prev && typeof prefillCtx === 'function' && prefillCtx() ? 'in any workout' : '';
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
   it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
@@ -6195,6 +6238,8 @@ function ProgressionSettings({ set }) {
   const ej = Object.entries(S.meta.exJump || {});
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span><span class="d">${sub}</span></span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${st[k] !== false} onChange=${e => set(k, e.target.checked)}/></label>`;
   return html`<div class="stack" style="gap:12px" id="prog-settings">
+    <div><span class="lbl">Last time’s numbers come from</span><div style="margin-top:6px"><${PrefillSeg}/></div>
+      <p class="small muted" style="margin-top:4px">Prefilled weights and reps, and weight jumps, use the last time you did the exercise in any workout, or only in the same workout (plan day). A plan can choose its own on its page. PRs always count every workout.</p></div>
     <div><span class="lbl">Smallest jump your gym allows (${u})</span><div class="seg" role="group" aria-label="Smallest jump" style="margin-top:6px">${FINE_OPTS[u].map(f => html`<button key=${f} id=${'fine-' + String(f).replace('.', '_')} class=${fine === f ? 'on' : ''} aria-pressed=${fine === f} onClick=${() => set('fine', f)}>${fmt(f)}</button>`)}</div>
       <p class="small muted" style="margin-top:4px">${'One ' + fmt(fine / 2) + ' ' + u + ' plate each side' + (fine < (u === 'lb' ? 5 : 2.5) ? ' (fractional plates). The plate readout uses them.' : '.')}</p></div>
     ${tog('stepDown', 'Smaller jump after a miss', 'If a set falls below the bottom of the range after a jump, suggest half the jump next time (10 → 5 → 2.5), down to your smallest jump.')}
@@ -6574,24 +6619,29 @@ const shortName = r => r.name.replace(/ Care$/, '');
 /* Train: what else is on your plate */
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
-  const run = R && runCtxNow() ? (() => { const w = runWeekOf(R, new Date()); if (w < 1 || w > planLen(R)) return null;
-    const today = ymd(new Date()); const ws = planWeek(R, w);
-    const due = ws.filter(x => ymd(sessDate(R, w, x.dow)) === today); const x = due.find(y => !runLogged(R, w, y.key).length) || due[0];
-    return x ? { w, x, done: !!runLogged(R, w, x.key).length } : null; })() : null;
-  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning or another plan alongside</button>`;
+  /* The running plan always shows once it's set up: today's run, or the next one */
+  const run = R && runCtxNow() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
+    for (let i = 0; i < 21; i++) { const day = addDays(today, i); const w = runWeekOf(R, day); if (w < 1 || w > n) continue;
+      const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
+      if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
+    return runWeekOf(R, today) > n ? { finished: true } : null; })() : null;
+  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning, running or another plan alongside</button>`;
+  const openRun = () => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); };
+  const when = i => html`<span class=${'chip' + (i === 0 ? ' on' : '')}>${whenText(i)}</span>`;
   return html`<div id="also-today"><div class="section-h"><h2>Also on your plan</h2><button class="btn text" id="edit-addons" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
     <div class="stack">
-    ${run ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : null}</div>
-      <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
-      <div class="row" style="margin-top:8px"><button class=${'btn' + (run.done ? '' : ' primary')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : 'Start run'}</button>
-        <button class="btn text" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); }}>Plan</button></div></div>` : null}
-    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan');
-      return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : null}</div>
+    ${run && run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan</span></div><div class="also-t">All weeks done</div><div class="also-s">Start the next block from Train → Run.</div><div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onClick=${openRun}>Open the running plan</button></div></div>` : null}
+    ${run && !run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : when(run.i)}</div>
+      <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
+      <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
+        <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
+      return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : when(nxt)}</div>
         <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
         <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
         <div class="row wrap" style="margin-top:8px;gap:8px">
-          ${nx ? html`<button class=${'btn' + (done ? '' : ' primary')} style="flex:2" id=${'also-add-' + id} onClick=${() => startTogether(nx.routine, nx.day, r, n.day)}>Add to ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>` : null}
-          <button class=${'btn' + (nx || done ? '' : ' primary')} style="flex:1" id=${'also-start-' + id} onClick=${() => startWorkout(r, n.day)}>On its own</button></div></div>`; })}
+          ${nx ? html`<button class=${'btn' + (done || nxt !== 0 ? '' : ' primary')} style="flex:2" id=${'also-add-' + id} onClick=${() => startTogether(nx.routine, nx.day, r, n.day)}>Add to ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>` : null}
+          <button class=${'btn' + (nx || done || nxt !== 0 ? '' : ' primary')} style="flex:1" id=${'also-start-' + id} onClick=${() => startWorkout(r, n.day)}>On its own</button></div></div>`; })}
     </div></div>`;
 }
 /* During a workout: add an add-on's next day */
@@ -6608,7 +6658,7 @@ function AddonsSheet() {
   const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
-    <div class="opt" style="cursor:default"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On: today’s run shows in Train' : 'Set it up in Train → Run'}</div></div>${R && runCtxNow() ? I.check : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runCtxNow() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
     ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }
@@ -7097,6 +7147,413 @@ function FightWorkoutBtn({ a }) {
   return html`<button class="btn wide" id="wo-fight" style="margin:4px 0 10px" onClick=${() => { if (T && !T.done && !T.ended) UI.setView({ type: 'fight' }); else { FR.T = null; fightGo({ ...fightSt(), where: 'shadow', focus: 'mix', only: null, ...f }); } }}>${I.timer} ${T && !T.done && !T.ended ? 'Open the coach' : 'Start the coach: ' + fStyleName(f.style) + ' ' + f.rounds + ' × ' + clock(f.round)}</button>`;
 }
 
+/* ============ Your week: programs together on a weekly schedule ============ */
+/* Each program you follow gets weekdays: the main program, every program alongside it, and the running plan (whose days
+   come from the plan itself). Train shows the week as a small grid, the week strip gets one dot per program on each day
+   (two dots on a doubled-up day, filled once done), and the whole schedule can be saved as a calendar file (.ics) for
+   Apple, Google, Microsoft Outlook or Proton Calendar. Saved in settings.sched: { routine id: [weekday 0–6] } and
+   settings.cal: { routine id or 'run': { at: 'HH:MM', min } }. Nothing leaves the phone unless you share the file. */
+const PLAN_COLORS = ['var(--accent)', '#e8833a', '#2fa36b', '#9b6bd6', '#d6577a', '#3a9fd6', '#c9a227'];
+const DEF_DAYS = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: [0, 1, 2, 3, 4, 5, 6] };
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+function progTag(r) { return r.info && r.info.care ? 'Care' : r.info && r.info.fight ? 'Fight' : r.info ? 'Cond' : 'Lift'; }
+function progDaysPerWeek(r) { const m = String(r.meta || '').match(/(\d)(?:\s*[–-]\s*\d)?\s*(?:days|times) a week/); return m ? +m[1] : Math.min(7, r.days.length > 1 ? r.days.length : 3); }
+function schedFor(id, r) {
+  const s = (S.meta.settings.sched || {})[id]; if (Array.isArray(s)) return s.slice().sort();
+  const n = progDaysPerWeek(r || getRoutine(id) || { days: [] }); return (DEF_DAYS[n] || DEF_DAYS[3]).slice();
+}
+function toggleSched(id, dow) {
+  const cur = new Set(schedFor(id)); if (cur.has(dow)) cur.delete(dow); else cur.add(dow);
+  commit(st => { st.meta.settings.sched = { ...(st.meta.settings.sched || {}), [id]: [...cur].sort() }; }, 'meta');
+}
+/* The running plan's days this week (or the next week of the plan) */
+function runPlanInfo() {
+  const R = typeof runSt === 'function' ? runSt() : null; if (!R || !runCtxNow()) return null;
+  const n = planLen(R); let w = runWeekOf(R, new Date()); if (w > n) return { R, done: true, w, ws: [] };
+  const wk = Math.max(1, w); const ws = planWeek(R, wk);
+  return { R, w, wk, n, ws, days: [...new Set(ws.map(x => x.dow))].sort() };
+}
+/* Everything you follow, in order: main program, programs alongside, running plan */
+function planList() {
+  const out = []; const main = programRoutine();
+  if (main) out.push({ key: main.id, r: main, name: main.name, tag: 'Lift', role: 'Main program', days: schedFor(main.id, main) });
+  for (const id of addonIds()) { const r = getRoutine(id); out.push({ key: id, r, name: r.name, tag: progTag(r), role: 'Alongside', days: schedFor(id, r) }); }
+  const run = runPlanInfo();
+  if (run && !run.done) out.push({ key: 'run', run, name: 'Running plan', tag: 'Run', role: 'Week ' + run.wk + ' of ' + run.n + (run.w < 1 ? ', starts ' + shortDate(parseYmd(run.R.start)) : ''), days: run.days });
+  out.forEach((p, i) => { p.color = PLAN_COLORS[i % PLAN_COLORS.length]; });
+  return out;
+}
+/* Did this program get trained on date k? */
+function progDoneOn(p, k) {
+  return sessionList().some(s => ymd(s.startedAt) === k && (p.key === 'run' ? !!s.run || (s.kind === 'activity' && s.activity === 'run') : s.routineId === p.key || (s.addons || []).some(a => a.id === p.key)));
+}
+/* Dots under a day in the week strip: one per program planned that weekday, filled when done */
+function DayDots({ dow, k }) {
+  const ps = planList().filter(p => p.days.includes(dow)); if (!ps.length) return null;
+  return html`<span class="wd-dots" aria-hidden="true">${ps.slice(0, 4).map(p => html`<span key=${p.key} class=${'wd-dot' + (progDoneOn(p, k) ? ' done' : '')} style=${{ '--c': p.color }}></span>`)}</span>`;
+}
+const dotsLabel = dow => { const ps = planList().filter(p => p.days.includes(dow)); return ps.length ? ', planned: ' + ps.map(p => p.tag).join(' and ') : ''; };
+/* Train: the week at a glance, editable */
+function PlanWeekCard() {
+  const ps = planList(); if (!ps.length) return null;
+  const today = new Date().getDay(); const ws = startOfWeek(new Date());
+  const doubled = WEEK_ORDER.filter(d => ps.filter(p => p.days.includes(d)).length > 1);
+  return html`<div class="card plan-week" id="plan-week">
+    <div class="row" style="align-items:baseline"><span style="font-weight:700;flex:1">Your week</span><button class="btn text" id="plan-add" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Program</button><button class="btn text" id="plan-cal" onClick=${() => openSheet({ type: 'calendar' })}>${I.cal || I.timer} Calendar</button></div>
+    <div class="pw-grid" role="table" aria-label="Weekly schedule">
+      <div class="pw-row pw-head" role="row">${WEEK_ORDER.map(d => html`<span key=${d} role="columnheader" class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
+      ${ps.map(p => html`<div key=${p.key} class="pw-row" role="row" id=${'pw-' + p.key}>
+        <span class="pw-name" role="rowheader"><i style=${{ background: p.color }}></i><span><b>${p.name}</b><small>${p.role} · ${p.days.length}×</small></span></span>
+        ${WEEK_ORDER.map(d => { const on = p.days.includes(d); const k = ymd(addDays(ws, (d + 6) % 7)); const done = on && progDoneOn(p, k);
+          return html`<button key=${d} role="cell" class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
+            aria-label=${p.name + ', ' + DOW_FULL[d] + (on ? ', planned' : ', not planned') + (done ? ', done' : '')} aria-pressed=${on}
+            onClick=${() => p.key === 'run' ? openSheet({ type: 'runDay', dow: d }) : toggleSched(p.key, d)}>${on ? (done ? I.check : p.tag[0]) : ''}</button>`; })}</div>`)}
+    </div>
+    <p class="small muted" style="margin-top:8px">${doubled.length ? html`<b>Doubled up:</b> ${doubled.map(d => DOW[d] + ' (' + ps.filter(p => p.days.includes(d)).map(p => p.tag).join(' + ') + ')').join(', ')}. ` : ''}Tap a day to plan it or clear it.${ps.some(p => p.key === 'run') ? ' Run days come from the running plan; tapping one opens it.' : ''}</p></div>`;
+}
+/* Next planned weekday on or after today (0 = today) */
+function nextPlanned(days) { const t = new Date().getDay(); for (let i = 0; i < 7; i++) if (days.includes((t + i) % 7)) return i; return -1; }
+const whenText = i => i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : i > 1 ? DOW_FULL[(new Date().getDay() + i) % 7] : 'Not scheduled';
+
+/* ---- Calendar file (.ics) ---- */
+const CAL_DEF = { Lift: ['17:30', 60], Care: ['07:00', 20], Cond: ['17:30', 30], Fight: ['18:00', 45], Run: ['07:00', 45] };
+function calFor(p) { const c = (S.meta.settings.cal || {})[p.key]; const d = CAL_DEF[p.tag] || ['17:30', 45]; return { at: c && c.at || d[0], min: c && +c.min || d[1] }; }
+const icsEsc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
+const icsFold = l => { const out = []; let s = l; while (s.length > 60) { out.push(s.slice(0, 60)); s = ' ' + s.slice(60); } out.push(s); return out.join('\r\n'); };
+const icsStamp = d => d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+function icsTime(day, at, addMin) { const [h, m] = at.split(':').map(Number); const d = new Date(day); d.setHours(h, m + (addMin || 0), 0, 0); return icsStamp(d) + 'T' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '00'; }
+/* Events for the next `weeks` weeks: each program on its days, with the day it will be on (rotation predicted from now) */
+function planEvents(weeks, keys) {
+  const out = []; const start = startOfDay(new Date()); const ps = planList().filter(p => !keys || keys.includes(p.key));
+  for (const p of ps) {
+    const c = calFor(p); let rot = p.r ? nextFor(p.r) : null; let idx = rot && p.r.days.length ? p.r.days.findIndex(d => d.id === rot.day.id) : 0;
+    for (let i = 0; i < weeks * 7; i++) {
+      const day = addDays(start, i); const dow = day.getDay(); let title = '', desc = '';
+      if (p.key === 'run') {
+        const R = p.run.R; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) continue;
+        const x = planWeek(R, w).find(y => y.dow === dow); if (!x) continue;
+        title = x.name + ' · ' + x.s.t + ' (week ' + w + ')'; desc = x.s.items.map(it => it.k + ': ' + it.d + (it.r ? ' (' + it.r + ')' : '')).join('\n');
+      } else {
+        if (!p.days.includes(dow)) continue;
+        const d = p.r.days[idx % p.r.days.length]; idx++;
+        title = p.name + (p.r.days.length > 1 ? ': ' + d.name : ''); desc = d.items.map(it => exName(it.ex) + ' · ' + it.sets + ' × ' + (it.reps || (it.tg && it.tg.dur ? it.tg.dur + ' s' : ''))).join('\n');
+      }
+      out.push({ uid: 'ironwood-' + p.key + '-' + icsStamp(day) + '@ironwood', day, at: c.at, min: c.min, title, desc });
+    }
+  }
+  return out.sort((a, b) => a.day - b.day || a.at.localeCompare(b.at));
+}
+function buildIcs(evts, alarm) {
+  const now = new Date(); const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Ironwood//Training plan//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Ironwood training'];
+  for (const e of evts) {
+    L.push('BEGIN:VEVENT', 'UID:' + e.uid, 'DTSTAMP:' + stamp, 'DTSTART:' + icsTime(e.day, e.at), 'DTEND:' + icsTime(e.day, e.at, e.min), 'SUMMARY:' + icsEsc('Ironwood · ' + e.title), 'DESCRIPTION:' + icsEsc(e.desc + '\n\nPlanned in Ironwood. Estimates, not medical or coaching advice.'), 'CATEGORIES:Training');
+    if (alarm) L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(e.title), 'TRIGGER:-PT30M', 'END:VALARM');
+    L.push('END:VEVENT');
+  }
+  L.push('END:VCALENDAR');
+  return L.map(icsFold).join('\r\n') + '\r\n';
+}
+async function saveIcs(evts, alarm) {
+  const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null;
+  if (!dl) { showToast({ kind: 'info', text: 'Saving files isn’t available in this view.' }); return false; }
+  try { await dl.save({ filename: 'ironwood-plan.ics', data: new Blob([buildIcs(evts, alarm)], { type: 'text/calendar' }) }); return true; }
+  catch (e) { if (!e || e.code !== 'declined') showToast({ kind: 'info', text: 'Couldn’t save the calendar file here.' }); return false; }
+}
+function CalendarSheet() {
+  const ps = planList(); const [weeks, setWeeks] = useState(4); const [alarm, setAlarm] = useState(true); const [off, setOff] = useState({}); const [done, setDone] = useState(false);
+  const keys = ps.filter(p => !off[p.key]).map(p => p.key); const evts = planEvents(weeks, keys);
+  const setCal = (p, f, v) => commit(st => { const c = st.meta.settings.cal = { ...(st.meta.settings.cal || {}) }; c[p.key] = { ...calFor(p), ...(c[p.key] || {}), [f]: v }; }, 'meta', 600);
+  return html`<${Sheet} label="Add to calendar"><h2>Add to your calendar</h2>
+    <p class="note">Saves a calendar file with each planned workout for the next weeks. Open it in Apple, Google, Microsoft Outlook or Proton Calendar. The calendar doesn’t update by itself: save a new file when your plan changes.</p>
+    <div class="stack" style="gap:10px;margin-top:12px">${ps.map(p => { const c = calFor(p); return html`<div key=${p.key} class="cal-row" id=${'cal-' + p.key}>
+      <label class="toggle"><input type="checkbox" checked=${!off[p.key]} onChange=${e => setOff({ ...off, [p.key]: !e.target.checked })}/><i style=${{ background: p.color }} class="cal-dot"></i><b>${p.name}</b></label>
+      <div class="row" style="gap:8px;margin-top:6px"><input type="time" class="field" aria-label=${p.name + ' start time'} value=${c.at} onChange=${e => e.target.value && setCal(p, 'at', e.target.value)} style="flex:1"/>
+        <select class="field mini-select" aria-label=${p.name + ' length'} value=${String(c.min)} onChange=${e => setCal(p, 'min', +e.target.value)}>${[15, 20, 30, 45, 60, 75, 90].map(m => html`<option value=${String(m)}>${m} min</option>`)}</select></div></div>`; })}</div>
+    <div style="margin-top:12px"><span class="lbl">How far ahead</span><div class="seg" role="group" aria-label="Weeks" style="margin-top:6px">${[2, 4, 8, 12].map(w => html`<button key=${w} id=${'cal-w' + w} class=${weeks === w ? 'on' : ''} aria-pressed=${weeks === w} onClick=${() => setWeeks(w)}>${w} wk</button>`)}</div></div>
+    <label class="toggle-row" for="cal-alarm" style="margin-top:8px"><span><span>Reminder 30 minutes before</span></span><input type="checkbox" role="switch" id="cal-alarm" checked=${alarm} onChange=${e => setAlarm(e.target.checked)}/></label>
+    <button class="btn primary wide" id="cal-save" style="margin-top:12px" disabled=${!evts.length} onClick=${async () => { if (await saveIcs(evts, alarm)) setDone(true); }}>Save ${evts.length} workout${evts.length === 1 ? '' : 's'} as a calendar file</button>
+    ${done ? html`<div class="card" style="margin-top:12px" id="cal-help"><span class="lbl">Next, in your calendar app</span><ul class="run-ul">
+      <li><b>Apple Calendar:</b> tap the file in the share sheet or Files, then Add All.</li>
+      <li><b>Google Calendar:</b> on a computer, Settings → Import & export → Import, and choose the file.</li>
+      <li><b>Microsoft Outlook:</b> Add calendar → Upload from file.</li>
+      <li><b>Proton Calendar:</b> Settings → Import, and choose the file.</li></ul>
+      <p class="small muted" style="margin-top:6px">Tip: import into its own calendar (say, “Training”) so you can replace it in one step next time.</p></div>` : null}<//>`;
+}
+
+/* ============ Challenges you can find, and one header style ============ */
+/* Challenges were only reachable from a small button at the bottom of Train. Now: ready-made templates in a sheet,
+   reachable from Train (a card near the top while you have none) and from Routines. Generic names only. */
+const CH_TEMPLATES = [
+  { id: 'iron75', name: 'Iron 75', days: 75, restart: true, rest: 0, d: 'The strict one: two workouts a day (make one outdoors), a gallon of water, your eating plan with no slip-ups, 10 pages of reading and a progress photo. Miss anything and you start over.',
+    items: [['Workout 1', 'w1'], ['Workout 2 (outdoors)', 'w2'], ['Drink a gallon of water'], ['Stick to your eating plan'], ['Read 10 pages'], ['Progress photo']] },
+  { id: 'iron75lite', name: 'Iron 75 Lite', days: 75, restart: false, rest: 1, d: 'The sustainable version: one workout a day with one rest day a week, water, eating plan and reading. A missed day doesn’t reset it.',
+    items: [['Workout', 'w1'], ['Drink 3 liters of water'], ['Stick to your eating plan'], ['Read 10 pages']] },
+  { id: 'move30', name: '30-Day Streak', days: 30, restart: false, rest: 0, d: 'Do something every day for 30 days: a workout, a run or any logged activity, plus a 10-minute walk.',
+    items: [['Workout or activity', 'w1'], ['10-minute walk']] },
+  { id: 'protein42', name: '6-Week Protein & Sleep', days: 42, restart: false, rest: 0, d: 'Recovery habits for six weeks: hit your protein goal, sleep 7+ hours and train on your plan days.',
+    items: [['Hit your protein goal'], ['Sleep 7+ hours'], ['Training on plan days', 'w1']] },
+];
+function challengeFrom(t) {
+  return { id: uid('c'), name: t.name, days: t.days, start: ymd(new Date()), restart: t.restart, restPerWeek: t.rest || 0, createdAt: Date.now(), log: {},
+    items: t.items.map(([name, auto]) => ({ id: uid('k'), name, auto: auto || null })) };
+}
+function openChallengeDraft(draft) { closeSheet(); UI.setTab('train'); UI.setView({ type: 'chEdit', draft, isNew: true }); }
+function ChallengeSheet() {
+  return html`<${Sheet} label="Start a challenge"><h2>Start a challenge</h2>
+    <p class="note">A daily checklist for a set number of days. Workouts you log tick their items by themselves. You can change everything before you start.</p>
+    <div class="stack" style="gap:8px;margin-top:10px">${CH_TEMPLATES.map(t => html`<button key=${t.id} class="opt ch-tpl" id=${'cht-' + t.id} onClick=${() => openChallengeDraft(challengeFrom(t))}>
+      <div style="flex:1;min-width:0"><div><b>${t.name}</b> <span class="small muted">· ${t.days} days</span></div><div class="d">${t.d}</div></div></button>`)}
+      <button class="opt" id="cht-own" onClick=${() => openChallengeDraft({ ...newChallenge(), name: 'My challenge', items: [{ id: uid('k'), name: 'Workout', auto: 'w1' }] })}><div style="flex:1"><div><b>Make your own</b></div><div class="d">Pick the length and the daily checklist yourself.</div></div></button></div>
+    <p class="small faint" style="margin-top:10px">Strict challenges are hard on recovery. Take rest days if you feel run down, and skip anything that hurts. Not medical advice.</p><//>`;
+}
+/* Train (while you have no challenge) and Routines: a way in */
+function ChallengeFinder({ where }) {
+  if (where === 'train' && Object.keys(S.meta.challenges || {}).length) return null;
+  return html`<button class="card ch-finder" id=${'ch-finder-' + where} onClick=${() => openSheet({ type: 'challenges' })}>
+    <span class="ch-ic">${I.check}</span><span style="flex:1;min-width:0;text-align:left"><b>Challenges</b><span class="small muted" style="display:block">Iron 75, Iron 75 Lite, 30-day streak and more</span></span><span class="go">Start</span></button>`;
+}
+
+/* ============ Barcode scan and online food lookup (Oct 27) ============ */
+/* Log food → Scan. Scanning a barcode first checks your own foods, so anything scanned before works offline. Online
+   lookups are opt-in (ML().lookup): only the barcode number, or the words you search, go to Open Food Facts, a free
+   public food database. A product you log is saved on this phone as one of your foods (with its barcode), so you can
+   fix its numbers and the next scan finds it without the internet. */
+const OFF_API = 'https://world.openfoodfacts.org';
+const OFF_FIELDS = 'code,product_name,brands,serving_size,serving_quantity,nutriments';
+const BC_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+/* UPC-A (12 digits) is EAN-13 with a leading 0 */
+const bcKey = s => { const d = String(s || '').replace(/\D/g, ''); return d.length === 12 ? '0' + d : d; };
+const bcValid = s => { const d = String(s || '').replace(/\D/g, ''); return d.length >= 8 && d.length <= 14; };
+const myFoodByBarcode = code => { const k = bcKey(code); return Object.values(ML().foods).find(f => f && f.bc && bcKey(f.bc) === k) || null; };
+const lookupOn = () => ML().lookup === true;
+const setLookup = on => mealCommit(m => { m.lookup = !!on; });
+
+/* fetch JSON with a time limit; throws 'offline' or 'error' */
+async function offGet(path, ms = 9000) {
+  if (navigator.onLine === false) throw new Error('offline');
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const t = setTimeout(() => ctl && ctl.abort(), ms);
+  try {
+    const r = await fetch(OFF_API + path, { signal: ctl ? ctl.signal : undefined, headers: { Accept: 'application/json' } });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error('error');
+    return await r.json();
+  } catch (e) { throw new Error(e && e.message === 'error' ? 'error' : navigator.onLine === false ? 'offline' : 'error'); }
+  finally { clearTimeout(t); }
+}
+/* An Open Food Facts product → { code, name, brand, per (per 100 g), sq (grams a serving), svTxt }, or null with no calories */
+function offProduct(p) {
+  if (!p) return null; const n = p.nutriments || {};
+  const v = k => { const x = n[k + '_100g']; return x === '' || x == null || !isFinite(+x) ? null : +x; };
+  let kcal = v('energy-kcal'); if (kcal == null && v('energy') != null) kcal = v('energy') / 4.184;
+  const name = String(p.product_name || '').trim(); const brand = String(p.brands || '').split(',')[0].trim();
+  const per = { kcal, p: v('proteins'), c: v('carbohydrates'), f: v('fat'), fib: v('fiber'), sug: v('sugars'), na: v('sodium') != null ? v('sodium') * 1000 : v('salt') != null ? v('salt') * 400 : null };
+  const sq = +p.serving_quantity > 0 && +p.serving_quantity < 2000 ? +p.serving_quantity : null;
+  return { code: String(p.code || ''), name: name || brand || 'Scanned food', brand: name ? brand : '', per, sq, svTxt: String(p.serving_size || '').trim(), ok: kcal != null };
+}
+async function lookupBarcode(code) {
+  const c = String(code).replace(/\D/g, ''); const tries = c.length === 12 ? [c, '0' + c] : c.length === 13 && c[0] === '0' ? [c, c.slice(1)] : [c];
+  for (const t of tries) { const j = await offGet('/api/v2/product/' + t + '.json?fields=' + OFF_FIELDS); if (j && j.status !== 0 && j.product) return offProduct({ code: c, ...j.product, code: c }); }
+  return null;
+}
+async function searchFoodsOnline(q) {
+  const j = await offGet('/cgi/search.pl?search_terms=' + encodeURIComponent(q) + '&search_simple=1&action=process&json=1&page_size=20&fields=' + OFF_FIELDS, 12000);
+  return ((j && j.products) || []).map(offProduct).filter(p => p && p.ok && p.code);
+}
+/* Save a product as one of your foods (label numbers per serving), or update the one with the same barcode */
+function saveScanned(p) {
+  const old = p.code ? myFoodByBarcode(p.code) : null; const fid = old ? old.id : uid('my-');
+  const gr = p.sq || 100; const r1 = x => Math.round(x * 10) / 10;
+  const lab = Object.fromEntries(NUT.filter(([k]) => p.per[k] != null).map(([k]) => [k, k === 'na' ? Math.round(p.per[k] * gr / 100) : r1(p.per[k] * gr / 100)]));
+  const name = (p.brand ? p.brand + ' ' : '') + p.name;
+  mealCommit(m => { m.foods[fid] = { ...(old || {}), id: fid, name: old ? old.name : name, sv: old ? old.sv : p.sq ? { q: 1, u: 'serving', gr } : { q: 100, u: 'g', gr: 100 }, ...(p.svTxt && !old ? { svTxt: p.svTxt } : {}), lab: old ? old.lab : lab, bc: p.code || (old && old.bc), src: old ? old.src : 'off', updatedAt: Date.now() }; });
+  return fid;
+}
+/* A saved food as a product card */
+function productOfFood(f) {
+  const gr = +f.sv.gr; const per = Object.fromEntries(NUT.map(([k]) => [k, f.lab && f.lab[k] != null ? f.lab[k] / gr * 100 : null]));
+  const wt = f.sv.u === 'g' || f.sv.u === 'oz';
+  return { code: f.bc || '', name: f.name, brand: '', per, sq: wt ? null : gr / (+f.sv.q || 1), svTxt: f.svTxt || (wt ? '' : fracStr(+f.sv.q || 1) + ' ' + f.sv.u + ' (' + Math.round(gr) + ' g)'), ok: true, fid: f.id, own: true };
+}
+
+/* The barcode reader: the phone's own when it has one (Chrome, Android), else ZXing in WebAssembly (iPhone), loaded
+   from this site the first time you scan and kept for offline use. */
+let _bdP = null;
+function barcodeReader() {
+  if (_bdP) return _bdP;
+  _bdP = (async () => {
+    if ('BarcodeDetector' in window) {
+      try { const have = await window.BarcodeDetector.getSupportedFormats(); const f = BC_FORMATS.filter(x => have.includes(x)); if (f.length) return new window.BarcodeDetector({ formats: f }); } catch (e) {}
+    }
+    if (!window.BarcodeDetectionAPI) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'vendor/barcode-ponyfill.js'; s.onload = res; s.onerror = () => rej(new Error('load')); document.head.appendChild(s); });
+    const A = window.BarcodeDetectionAPI; if (!A || !A.BarcodeDetector) throw new Error('load');
+    A.prepareZXingModule({ overrides: { locateFile: (path, prefix) => path.endsWith('.wasm') ? 'vendor/' + path : prefix + path } });
+    return new A.BarcodeDetector({ formats: BC_FORMATS });
+  })();
+  _bdP.catch(() => { _bdP = null; });
+  return _bdP;
+}
+function BarcodeCam({ onCode, onClose }) {
+  const vid = useRef(null); const [msg, setMsg] = useState('Starting the camera…');
+  useEffect(() => {
+    let stream = null, stop = false, timer = 0;
+    (async () => {
+      const md = navigator.mediaDevices;
+      if (!md || !md.getUserMedia) { setMsg('This phone can’t open the camera here. Type the number under the barcode instead.'); return; }
+      try { stream = await md.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }); }
+      catch (e) { setMsg(e && e.name === 'NotAllowedError' ? 'Camera access is off for Ironwood. Allow it in Settings, or type the number under the barcode.' : 'The camera didn’t start. Type the number under the barcode instead.'); return; }
+      if (stop) { stream.getTracks().forEach(t => t.stop()); return; }
+      const v = vid.current; v.srcObject = stream; try { await v.play(); } catch (e) {}
+      let det; try { det = await barcodeReader(); } catch (e) { setMsg('The barcode reader didn’t load. Type the number under the barcode instead.'); return; }
+      setMsg('Point at the barcode and hold steady.');
+      const tick = async () => {
+        if (stop) return;
+        try { if (v.readyState >= 2) { const hits = await det.detect(v); const h = hits && hits.find(x => bcValid(x.rawValue)); if (h && !stop) { stop = true; try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} onCode(h.rawValue.replace(/\D/g, '')); return; } } } catch (e) {}
+        timer = setTimeout(tick, 220);
+      };
+      tick();
+    })();
+    return () => { stop = true; clearTimeout(timer); if (stream) stream.getTracks().forEach(t => t.stop()); };
+  }, []);
+  return html`<div class="bc-cam" id="bc-cam"><video ref=${vid} playsinline muted autoplay aria-label="Camera"></video><div class="bc-aim" aria-hidden="true"></div>
+    <p class="small muted" role="status" style="margin-top:8px">${msg}</p><button class="btn wide" style="margin-top:8px" onClick=${onClose}>Close camera</button></div>`;
+}
+
+function LookupNote() {
+  return html`<p class="small faint" style="margin-top:10px">Online lookups send only the barcode number or the words you search to Open Food Facts, a free public food database. Nothing else leaves your phone. Numbers come from the product’s label as entered there, so check them against the package.</p>`;
+}
+/* Log food → Scan */
+function LogScan({ day, fid }) {
+  const [cam, setCam] = useState(false); const [code, setCode] = useState(''); const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(''); const [err, setErr] = useState(''); const [prod, setProd] = useState(() => fid && ML().foods[fid] ? productOfFood(ML().foods[fid]) : null); const [res, setRes] = useState(null); const [miss, setMiss] = useState('');
+  const fail = e => setErr(e && e.message === 'offline' ? 'You’re offline. Try again with a signal, or add the food from its label.' : 'The food database didn’t answer. Try again in a minute, or add the food from its label.');
+  const find = async raw => {
+    const c = String(raw || '').replace(/\D/g, ''); setCam(false); setErr(''); setMiss(''); setRes(null);
+    if (!bcValid(c)) { setErr('A barcode number is 8 to 14 digits.'); return; }
+    setCode(c);
+    const mine = myFoodByBarcode(c); if (mine) { setProd(productOfFood(mine)); return; }
+    if (!lookupOn()) { setMiss(c); return; }
+    setBusy('code');
+    try { const p = await lookupBarcode(c); if (p && p.ok) setProd(p); else setMiss(c); }
+    catch (e) { fail(e); } finally { setBusy(''); }
+  };
+  const search = async () => {
+    const t = q.trim(); if (!t) return; setErr(''); setMiss(''); setProd(null); setBusy('search');
+    try { setRes(await searchFoodsOnline(t)); } catch (e) { fail(e); } finally { setBusy(''); }
+  };
+  const allow = () => { setLookup(true); if (miss) find(miss); };
+  const addLabel = c => openSheet({ type: 'foodEdit', name: '', bc: c, then: id => openSheet({ type: 'mealLog', day, tab: 'scan', fid: id }) });
+  if (prod) return html`<${ScanProduct} day=${day} p=${prod} onBack=${() => setProd(null)}/>`;
+  return html`<div class="stack">
+    ${ML().lookup === undefined ? html`<div class="card" id="lookup-ask"><div style="font-weight:700">Look foods up online?</div>
+      <p class="small muted" style="margin-top:4px">Scanning matches foods you’ve saved without the internet. To find new products, Ironwood can ask Open Food Facts, a free public food database. Only the barcode number or the words you search are sent.</p>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="lookup-allow" onClick=${() => setLookup(true)}>Allow lookups</button><button class="btn" style="flex:1" id="lookup-no" onClick=${() => setLookup(false)}>Not now</button></div></div>` : null}
+    ${cam ? html`<${BarcodeCam} onCode=${find} onClose=${() => setCam(false)}/>` : html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}
+    <div><label class="lbl" for="bc-num">Or type the number under the barcode</label><div class="row" style="gap:8px">
+      <input class="field" id="bc-num" inputmode="numeric" autocomplete="off" placeholder="e.g. 041196910551" value=${code} onInput=${e => setCode(e.target.value.replace(/\D/g, ''))} onKeyDown=${e => { if (e.key === 'Enter') find(code); }}/>
+      <button class="btn" style="white-space:nowrap" id="bc-go" disabled=${!code || busy} onClick=${() => find(code)}>${busy === 'code' ? 'Looking…' : 'Look up'}</button></div></div>
+    ${lookupOn() ? html`<div><label class="lbl" for="off-q">Search by name online</label><div class="row" style="gap:8px">
+      <input class="field" id="off-q" type="search" placeholder="e.g. Fairlife chocolate shake" value=${q} onInput=${e => setQ(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') search(); }}/>
+      <button class="btn" style="white-space:nowrap" id="off-go" disabled=${!q.trim() || busy} onClick=${search}>${busy === 'search' ? 'Searching…' : 'Search'}</button></div></div>` : null}
+    ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
+    ${miss ? html`<div class="card" id="bc-miss"><div style="font-weight:700">${lookupOn() ? 'Not in the food database' : 'Not one of your foods yet'}</div>
+      <p class="small muted" style="margin-top:4px">${lookupOn() ? 'Barcode ' + miss + ' has no nutrition there. Add it from its label once and every later scan finds it.' : 'Barcode ' + miss + '. Look it up online, or add it from its label once and every later scan finds it.'}</p>
+      <div class="row wrap" style="margin-top:10px;gap:8px">${!lookupOn() ? html`<button class="btn primary" style="flex:1" id="bc-allow" onClick=${allow}>Look it up online</button>` : null}<button class="btn" style="flex:1" id="bc-label" onClick=${() => addLabel(miss)}>Add from the label</button></div></div>` : null}
+    ${res ? html`<div class="food-list" id="off-results">${res.length ? res.map(p => html`<button key=${p.code} class="opt" onClick=${() => setProd(p)}><div style="flex:1;min-width:0"><div>${p.name}</div><div class="d">${p.brand ? p.brand + ' · ' : ''}${Math.round(p.per.kcal)} kcal per 100 g</div></div></button>`)
+      : html`<p class="note" style="margin-top:6px">Nothing found for “${q.trim()}”. Try fewer words, or scan the barcode.</p>`}</div>` : null}
+    ${ML().lookup !== undefined ? html`<button class="btn text" id="lookup-toggle" style="align-self:flex-start" onClick=${() => setLookup(!lookupOn())}>${lookupOn() ? 'Turn off online lookups' : 'Turn on online lookups'}</button>` : null}
+    <${LookupNote}/></div>`;
+}
+/* One product: choose the amount, see the numbers, log it */
+function ScanProduct({ day, p, onBack }) {
+  const [unit, setUnit] = useState(p.sq ? 'sv' : 'g'); const [sv, setSv] = useState(1); const [g, setG] = useState(String(p.sq || 100));
+  const grams = unit === 'sv' ? sv * p.sq : (+g || 0);
+  const m = roundNut(Object.fromEntries(NUT.map(([k]) => [k, (p.per[k] || 0) * grams / 100])));
+  const save = () => {
+    const fid = p.own ? p.fid : saveScanned(p);
+    addLog(day, { k: 'food', name: p.name, txt: unit === 'sv' ? fracStr(sv) + ' serving' + (sv === 1 ? '' : 's') : Math.round(grams) + ' g', fk: fid, m });
+    closeSheet(); showToast({ kind: 'info', text: p.name + ' logged' });
+  };
+  const missing = NUT.filter(([k]) => p.per[k] == null).map(([, l]) => l.toLowerCase());
+  return html`<div class="stack" id="scan-product">
+    <div class="row"><div style="flex:1;min-width:0"><div style="font-weight:700">${p.name}</div><div class="small muted">${[p.brand, p.svTxt ? 'Serving ' + p.svTxt : p.sq ? 'Serving ' + p.sq + ' g' : '', p.own ? 'Saved on this phone' : 'From Open Food Facts'].filter(Boolean).join(' · ')}</div></div><button class="btn text" onClick=${onBack}>Back</button></div>
+    ${p.sq ? html`<div class="seg wide" role="group" aria-label="Amount in">${[['sv', 'Servings'], ['g', 'Grams']].map(([k, l]) => html`<button key=${k} class=${unit === k ? 'on' : ''} aria-pressed=${unit === k} onClick=${() => setUnit(k)}>${l}</button>`)}</div>` : null}
+    ${unit === 'sv' ? html`<div class="row"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>`
+      : html`<div class="row" style="gap:8px"><label class="lbl" for="sp-g" style="flex:1;margin:0">Grams eaten</label><input class="field" id="sp-g" style="width:100px;text-align:center" inputmode="decimal" value=${g} onInput=${e => setG(e.target.value.replace(/[^\d.]/g, ''))}/></div>`}
+    <${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
+    ${missing.length ? html`<p class="small muted">No ${missing.join(', ')} listed for this product, so ${missing.length > 1 ? 'they count' : 'it counts'} as 0.</p>` : null}
+    <button class="btn primary wide" id="scan-log" disabled=${!(grams > 0)} onClick=${save}>Log it</button>
+    ${!p.own ? html`<p class="small faint">Logging saves it to your foods with its barcode, so the next scan works offline. You can fix its numbers in Meals → Recipes → My foods.</p>` : html`<button class="btn text" style="align-self:flex-start" onClick=${() => openSheet({ type: 'foodEdit', id: p.fid })}>Fix the numbers</button>`}</div>`;
+}
+
+/* ============ Last time's numbers, rep records (Oct 27) ============ */
+/* Where a workout's prefilled weights and reps (and the weight-jump suggestions) come from:
+   'all'     – the last time you did the exercise in any workout (the default)
+   'workout' – the last time you did it in this same workout (plan day); if never, any workout.
+   settings.prefill is the default; settings.prefillBy[routineId] overrides it for one plan. Records and PRs always
+   count every workout. */
+let PREFILL_CTX = null;
+const PREFILL_OPTS = [['all', 'Any workout'], ['workout', 'This workout only']];
+const prefillScopeFor = rid => { const st = S.meta.settings; const o = rid && st.prefillBy && st.prefillBy[rid]; return o || st.prefill || 'all'; };
+function prefillCtx() {
+  const a = S.active; const c = a ? { rid: a.routineId, did: a.dayId } : PREFILL_CTX;
+  return c && c.rid && c.did && prefillScopeFor(c.rid) === 'workout' ? c : null;
+}
+const sameWorkout = (s, c) => s.routineId === c.rid && s.dayId === c.did;
+function lastEntryOccIn(exId, group, occ, keep) {
+  const list = sessionList();
+  for (let i = list.length - 1; i >= 0; i--) {
+    const x = list[i]; if (!keep(x)) continue; const its = x.items.filter(it => it.ex === exId && (it.group || '') === group);
+    if (its.length) { const it = its[Math.min(occ || 0, its.length - 1)]; return { t: x.startedAt, sid: x.id, group, sets: toMain(it.sets, it.u), raw: it.sets, u: it.u || U(), note: it.note || '' }; }
+  }
+  return null;
+}
+function setPrefill(v, rid) {
+  commit(st => {
+    const s = st.meta.settings;
+    if (!rid) { s.prefill = v; return; }
+    s.prefillBy = { ...(s.prefillBy || {}) }; if (v === (s.prefill || 'all')) delete s.prefillBy[rid]; else s.prefillBy[rid] = v;
+  }, 'meta', 400);
+}
+function PrefillSeg({ rid }) {
+  const cur = prefillScopeFor(rid);
+  return html`<div class="seg" role="group" aria-label="Last time's numbers come from" id=${rid ? 'prefill-plan' : 'prefill-all'}>${PREFILL_OPTS.map(([k, l]) => html`<button key=${k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} id=${(rid ? 'pfp-' : 'pf-') + k} onClick=${() => setPrefill(k, rid)}>${l}</button>`)}</div>`;
+}
+/* Plan page: per-plan choice */
+function PrefillRow({ r }) {
+  if (r.info && (r.info.care || r.info.fight)) return null;
+  const over = (S.meta.settings.prefillBy || {})[r.id];
+  return html`<div class="card" style="margin-top:12px" id="prefill-row"><div style="font-weight:600">Last time’s numbers come from</div>
+    <p class="small muted" style="margin:2px 0 8px">${r.days.length > 1 ? 'Any workout, or only the last time you did this day of the plan.' : 'Any workout, or only the last time you did this routine.'} ${over ? 'Set for this plan.' : 'Same as your default in Profile.'}</p>
+    <${PrefillSeg} rid=${r.id}/></div>`;
+}
+
+/* Exercise stats: the most reps at each weight. A row shows only when nothing heavier was ever done for as many reps,
+   so the list starts at your heaviest weight and works down. Weights logged in the other unit are converted. */
+function repRecords(ex, group) {
+  const best = new Map();
+  for (const e of entries(ex, group)) for (const x of e.sets) {
+    const w = r05(+x.w || 0), r = +x.r || 0; if (!(w > 0) || !(r > 0)) continue;
+    const b = best.get(w); if (!b || r > b.r || (r === b.r && e.t < b.t)) best.set(w, { w, r, t: e.t });
+  }
+  const out = []; let most = 0;
+  for (const b of [...best.values()].sort((a, c) => c.w - a.w)) if (b.r > most) { out.push(b); most = b.r; }
+  return out;
+}
+function RepRecords({ ex, group }) {
+  const k = exKind(ex); if (k === 'assisted' || k === 'bodyweight' || isMeasured(k)) return null;
+  const rows = repRecords(ex, group); if (!rows.length) return null;
+  return html`<div class="section-h"><h2>Best reps at each weight</h2></div>
+    <div class="card prl" id="rep-records">${rows.map((b, i) => html`<div key=${b.w}><div><div style="font-weight:600">${fmt(b.w)} ${U()}${i === 0 ? html` <span class="chip on" style="margin-left:4px">Heaviest</span>` : null}</div><div class="small muted">${shortDate(b.t)}</div></div><b class="num">${b.r} rep${b.r === 1 ? '' : 's'}</b></div>`)}
+      <p class="small muted" style="margin-top:6px">A weight shows only when nothing heavier was done for as many reps. Sets logged in ${U() === 'kg' ? 'lb' : 'kg'} are converted to ${U()}.</p></div>`;
+}
+/* One set's numbers from last time, shown beside the set */
+function prevSetText(it, j, kind) {
+  const p = it.prev && it.prev[j]; if (!p || !(+p.r > 0)) return '';
+  return kind === 'bodyweight' && !(+p.w) ? p.r + ' reps' : fmt(+p.w || 0) + ' × ' + p.r;
+}
+
 /* ---------- APP ---------- */
 const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];
 function App() {
@@ -7110,7 +7567,7 @@ function App() {
   UI.setTab = k => { setTab(k); setView(null); lsSet('tab', k); scrollTo(0, 0); };
   useEffect(() => { const k = e => { if (e.key === 'Escape') setSheet(null); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
   const vt = view && view.type;
-  let title = { train: S.active ? 'Workout' : '', routines: '', stats: 'Stats', profile: 'Profile' }[tab];
+  let title = { train: S.active ? 'Workout' : '', routines: '', stats: view ? 'Stats' : '', profile: '' }[tab];
   if (tab === 'routines' && vt === 'routine') title = 'Routines';
   if (tab === 'meals' && vt === 'meal') title = 'Recipe';
   if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';
@@ -7134,7 +7591,7 @@ function App() {
     ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}
     ${showMini ? html`<${IntervalMini}/>` : null}
     ${showFight ? html`<${FightMini}/>` : null}
-    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${body}<${HelpFoot}/></main>
+    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Stats' : 'Profile'}</h1></div>` : null}${body}<${HelpFoot}/></main>
     <${Toast}/>
     <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}

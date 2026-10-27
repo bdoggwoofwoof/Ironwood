@@ -30,7 +30,9 @@ function jumpFor(ex, u) {
 const repBottom = reps => { const m = String(reps || '').match(/^(\d+)/); return m ? +m[1] : 0; };
 /* The last n entries for an exercise at this slot position (newest first), weights in unit u */
 function recentOcc(exId, group, occ, n, u) {
-  const out = []; const list = sessionList();
+  const out = []; let list = sessionList();
+  const c = typeof prefillCtx === 'function' ? prefillCtx() : null;
+  if (c) { const f = list.filter(s => sameWorkout(s, c)); if (f.some(s => s.items.some(it => it.ex === exId && (it.group || '') === (group || '')))) list = f; }
   for (let i = list.length - 1; i >= 0 && out.length < n; i--) {
     const its = list[i].items.filter(it => it.ex === exId && (it.group || '') === (group || ''));
     if (!its.length) continue; const it = its[Math.min(occ || 0, its.length - 1)];
@@ -70,6 +72,7 @@ function refillLift(it, occ) {
   const rw = v => u === U() ? r05(v) : roundToInc(conv(v, U(), u), unitInc(u));
   it.prev = prev ? prev.sets.map(x => ({ w: rw(+x.w || 0), r: x.r })) : null;
   it.prevNote = prev ? prev.note : ''; it.prevT = prev ? prev.t : 0;
+  it.prevWhere = prev && prev.scoped ? 'in this workout' : prev && typeof prefillCtx === 'function' && prefillCtx() ? 'in any workout' : '';
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
   it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
@@ -113,6 +116,8 @@ function ProgressionSettings({ set }) {
   const ej = Object.entries(S.meta.exJump || {});
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span><span class="d">${sub}</span></span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${st[k] !== false} onChange=${e => set(k, e.target.checked)}/></label>`;
   return html`<div class="stack" style="gap:12px" id="prog-settings">
+    <div><span class="lbl">Last time’s numbers come from</span><div style="margin-top:6px"><${PrefillSeg}/></div>
+      <p class="small muted" style="margin-top:4px">Prefilled weights and reps, and weight jumps, use the last time you did the exercise in any workout, or only in the same workout (plan day). A plan can choose its own on its page. PRs always count every workout.</p></div>
     <div><span class="lbl">Smallest jump your gym allows (${u})</span><div class="seg" role="group" aria-label="Smallest jump" style="margin-top:6px">${FINE_OPTS[u].map(f => html`<button key=${f} id=${'fine-' + String(f).replace('.', '_')} class=${fine === f ? 'on' : ''} aria-pressed=${fine === f} onClick=${() => set('fine', f)}>${fmt(f)}</button>`)}</div>
       <p class="small muted" style="margin-top:4px">${'One ' + fmt(fine / 2) + ' ' + u + ' plate each side' + (fine < (u === 'lb' ? 5 : 2.5) ? ' (fractional plates). The plate readout uses them.' : '.')}</p></div>
     ${tog('stepDown', 'Smaller jump after a miss', 'If a set falls below the bottom of the range after a jump, suggest half the jump next time (10 → 5 → 2.5), down to your smallest jump.')}

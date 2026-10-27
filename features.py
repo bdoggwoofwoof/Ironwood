@@ -1226,6 +1226,25 @@ swap(".sess-acts{gap:8px}", """.bc-cam video{display:block;width:100%;aspect-rat
 body{min-height:calc(100lvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) + 1px)}
 .sess-acts{gap:8px}""")
 
+# 23. Last time's numbers and rep records (prefill.js, Oct 27, Newt's requests): prefilled weights and reps come from the
+#     last time in any workout (default) or only in the same workout / plan day (Profile → Progression, or per plan on
+#     its page). Each set shows its numbers from last time beside it, since reps aimed at the range can make every set
+#     read the same. Exercise stats list the best reps at each weight (heaviest first; lb and kg converted).
+PREJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prefill.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", PREJS + "\n/* ---------- APP ---------- */")
+swap("  S.active = { id: uid('s'), routineId: routine ? routine.id : null,", "  PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };\n  S.active = { id: uid('s'), routineId: routine ? routine.id : null,")
+swap("function lastEntryOcc(exId, group, occ) {\n  const list = sessionList();", "function lastEntryOcc(exId, group, occ) {\n  const pc = prefillCtx(); if (pc) { const h = lastEntryOccIn(exId, group, occ, s => sameWorkout(s, pc)); if (h) return { ...h, scoped: true }; }\n  const list = sessionList();")
+swap("Last · ${shortDate(it.prevT)}: ${lastLine(it)}", "Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}")
+swap('    <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">', '    <${PrefillRow} r=${r}/>\n    <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">')
+swap('      <div class="section-h"><h2>History</h2></div>', '      <${RepRecords} ex=${ex} group=${group}/>\n      <div class="section-h"><h2>History</h2></div>')
+swap("      ${noteCell}\n    </div></div>${s.pr", "      <div class=\"last-note\">${!ne && prevSetText(it, j, kind) ? html`<span class=\"prev num\" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>\n    </div></div>${s.pr")
+swap('<span style="text-align:left">Note</span></div>', '<span style="text-align:left">${it.prev ? \'Last · note\' : \'Note\'}</span></div>')
+swap("if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + ' reps'", "if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + (best === 1 ? ' rep' : ' reps')")
+swap(".sess-acts{gap:8px}", """.last-note{display:flex;align-items:center;gap:8px;min-width:0}
+.last-note .prev{flex:0 1 5.6em;min-width:0}
+.last-note .note-txt{flex:1}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

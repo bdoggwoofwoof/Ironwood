@@ -1078,6 +1078,59 @@ swap(".sess-acts{gap:8px}", """.also-card{background:var(--surface);border-radiu
 .wo-addons{margin-bottom:6px}
 .sess-acts{gap:8px}""")
 
+# 19. Fight training (fight.js, Oct 25): Train → Fight with a coach that calls combos out loud for boxing, kickboxing,
+#     Muay Thai and MMA (or solo BJJ movements) over timed rounds, a combo library with favorites, drills and session
+#     ideas, and six fight programs in Routines. Coach sessions save to History as activities with rounds, or fill a
+#     program workout's rounds. Settings in meta.fight. Nothing leaves the phone.
+FIGHTJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fight.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", FIGHTJS + "\n/* ---------- APP ---------- */")
+swap("${r.info ? (r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}",
+     "${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}")
+swap("const TRAIN = { mode: ['history', 'run'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };",
+     "const TRAIN = { mode: ['history', 'run', 'fight'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };")
+swap("options=${[['train', 'Train'], ['run', 'Run'], ['history', 'History']]} onChange=${pick}/>", "options=${[['train', 'Train'], ['run', 'Run'], ['fight', 'Fight'], ['history', 'History']]} onChange=${pick}/>")
+swap("TRAIN.mode === 'run' ? html`<${RunScreen}/>` : html`<${TrainHome}/>`}</div>`;", "TRAIN.mode === 'run' ? html`<${RunScreen}/>` : TRAIN.mode === 'fight' ? html`<${FightScreen}/>` : html`<${TrainHome}/>`}</div>`;")
+swap("  const trainBody = vt === 'timer' ? html`<${TimerScreen}/>` :", "  const trainBody = vt === 'timer' ? html`<${TimerScreen}/>` : vt === 'fight' ? html`<${FightRun}/>` :")
+swap("  if (tab === 'train' && vt === 'timer') title = 'Timer';", "  if (tab === 'train' && vt === 'timer') title = 'Timer';\n  if (tab === 'train' && vt === 'fight') title = 'Fight coach';")
+swap("  if (day && day.timer) S.active.timer = clone(day.timer);", "  if (day && day.timer) S.active.timer = clone(day.timer);\n  if (day && day.fight) S.active.fight = clone(day.fight);")
+swap("  if (day.timer && !a.timer) a.timer = clone(day.timer);", "  if (day.timer && !a.timer) a.timer = clone(day.timer);\n  if (day.fight && !a.fight) a.fight = clone(day.fight);")
+swap("    <${WorkoutExtras} a=${a}/>", "    <${WorkoutExtras} a=${a}/>\n    <${FightWorkoutBtn} a=${a}/>")
+# While the coach runs, a bar at the top of other screens shows the round and time (like the interval timer)
+swap("  const showMini = !!S.itimer && !(tab === 'train' && vt === 'timer');", "  const showMini = !!S.itimer && !(tab === 'train' && vt === 'timer');\n  const showFight = !showMini && fRunning() && !(tab === 'train' && vt === 'fight');")
+swap("    ${showMini ? html`<${IntervalMini}/>` : null}", "    ${showMini ? html`<${IntervalMini}/>` : null}\n    ${showFight ? html`<${FightMini}/>` : null}")
+swap("<main class=${showMini ? 'with-mini' : ''}", "<main class=${showMini || showFight ? 'with-mini' : ''}")
+# Round exercises (shadowboxing, bag, rope, drills) log time only: no added-weight column
+swap("<div class=${'meas-row k-' + kind + (done ? ' done' : '')}>", "<div class=${'meas-row k-' + kind + (done ? ' done' : '') + (getEx(it.ex).nol ? ' nol' : '')}>")
+swap("<div class=${'meas-row th k-' + kind}>", "<div class=${'meas-row th k-' + kind + (getEx(it.ex).nol ? ' nol' : '')}>")
+# Activities: boxing, kickboxing / Muay Thai and MMA next to BJJ; an edited coach session keeps its name and rounds
+swap("['bjj', 'BJJ / martial arts', 0],", "['boxing', 'Boxing', 0], ['kickbox', 'Kickboxing / Muay Thai', 0], ['mma', 'MMA', 0], ['bjj', 'BJJ / grappling', 0],")
+swap("    const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : info[1], startedAt: start, endedAt: start + Math.max(m, 1) * 60000,",
+     "    const x = { id: s0 ? s0.id : uid('s'), kind: 'activity', activity: act, name: act === 'other' ? (name.trim() || 'Other activity') : s0 && s0.fight && s0.activity === act ? s0.name : info[1], ...(s0 && s0.fight ? { fight: s0.fight } : {}), startedAt: start, endedAt: start + Math.max(m, 1) * 60000,")
+# Restoring into a used app brings the fight settings if there are none here yet
+swap("    const tIds = new Set((st.meta.timers || []).map(x => x.id));", "    if (m.fight && !st.meta.fight) st.meta.fight = m.fight;\n    const tIds = new Set((st.meta.timers || []).map(x => x.id));")
+# Four Train switches still fit on one line
+swap("function TopSwitch({ value, options, onChange }) {\n  return html`<div class=\"topsw\" role=\"tablist\">", "function TopSwitch({ value, options, onChange }) {\n  return html`<div class=${'topsw' + (options.length > 3 ? ' four' : '')} role=\"tablist\">")
+swap(".sess-acts{gap:8px}", """.topsw.four{gap:14px;overflow-x:auto;scrollbar-width:none}.topsw.four::-webkit-scrollbar{display:none}
+.topsw.four button{font-size:calc(24 * var(--u));white-space:nowrap;flex:none}
+.meas-row.k-timed.nol{grid-template-columns:30px minmax(0,1fr) 46px}.meas-row.nol>:nth-child(3){display:none}
+.fc-now b{font-size:17px}.fc-toggles{padding-top:4px;padding-bottom:4px}.fc-toggles .toggle-row{padding:8px 0;border-bottom:1px solid var(--line)}.fc-toggles .toggle-row:last-child{border-bottom:0}
+.fc-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fc-preset{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--surface);border-radius:var(--r);padding:12px;min-height:64px;gap:2px}
+.fc-preset b{font-size:16px}.fc-preset span{font-size:13px;color:var(--ink-2)}
+.fc-call{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:6px;transition:transform .15s}
+.fc-call b{font-family:var(--display);font-size:38px;font-weight:700;line-height:1.05;text-transform:uppercase;letter-spacing:.01em}
+.fc-call span{font-size:16px;color:var(--ink-2);line-height:1.3}
+.fc-call.fresh{transform:scale(1.06)}.fc-call.burn b{color:var(--stop)}
+.fc-key summary,.fd-card summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;min-height:28px}
+.fc-key summary::-webkit-details-marker,.fd-card summary::-webkit-details-marker{display:none}
+.fd-card summary::after,.fc-key summary::after{content:'+';font-weight:700;color:var(--ink-3)}.fd-card[open] summary::after,.fc-key[open] summary::after{content:'–'}
+.fc-move{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.fc-move>b{min-width:64px;font-family:var(--display);font-size:18px}
+.fc-list{padding-top:2px;padding-bottom:2px}
+.fc-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.fc-row:last-child{border-bottom:0}
+.fc-num{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.01em}
+.fc-star{font-size:22px;width:36px;height:36px;color:var(--ink-3)}.fc-star.on{color:var(--pr)}
+.sess-acts{gap:8px}""")
+
 # 17. Tour (Oct 21): covers programs together, weights that adjust, running plan options, joint care, History actions,
 #     measurements and the meal log. Replaces the whole step list.
 _t0 = src.index("const TOUR = [\n"); _t1 = src.index("\n];\n", _t0) + 4
@@ -1089,6 +1142,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
   ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
   ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
   ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],

@@ -41,7 +41,7 @@ function AlsoToday({ nx, quiet }) {
       <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
       <div class="row" style="margin-top:8px"><button class=${'btn' + (run.done ? '' : ' primary')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : 'Start run'}</button>
         <button class="btn text" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); }}>Plan</button></div></div>` : null}
-    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info ? 'Conditioning' : (r.meta || 'Plan');
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan');
       return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : null}</div>
         <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
         <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
@@ -60,7 +60,7 @@ function WorkoutAddons({ a }) {
 function AddonsSheet() {
   const pid = programId(); const on = new Set(addonIds()); const R = typeof runSt === 'function' ? runSt() : null;
   const all = [...myRoutines(), ...libRoutines()].filter(r => r.id !== pid && r.days.length);
-  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Conditioning', all.filter(r => r.info && !r.info.care)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]];
+  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]];
   const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>

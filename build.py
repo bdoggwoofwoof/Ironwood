@@ -88,7 +88,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => {
   /* Check for a new build on every launch and whenever the app comes back to the front. When one takes over, reload
      once so it shows right away (but never in the middle of a workout; then it applies on the next launch). */
   const had = !!navigator.serviceWorker.controller; let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || reloaded) return; if (typeof S !== 'undefined' && S.active) return; reloaded = true; location.reload(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || reloaded) return; if (typeof S !== 'undefined' && S.active) return; if (typeof FR !== 'undefined' && FR.T && !FR.T.done && !FR.T.ended) return; reloaded = true; location.reload(); });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
     reg.update().catch(() => {});
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });

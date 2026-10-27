@@ -81,7 +81,7 @@ async def main():
         check('plan week count follows the length', [pl[str(n)]['after'] for n in (4, 8, 12)] == [5, 9, 13])
         check('targets scale with length', pl['4']['fast1'] > pl['8']['fast1'] > pl['12']['fast1'], [round(pl[str(n)]['fast1'], 1) for n in (4, 8, 12)])
         # ---- conditioning programs ----
-        progs = await ev("BUILTIN_ROUTINES.filter(r => r.info && !r.info.care).map(r => [r.name, r.days.length, r.days.filter(d => d.timer).length, r.info.strengths.length > 0 && !!r.info.result && r.info.watch.length > 0])")
+        progs = await ev("BUILTIN_ROUTINES.filter(r => r.info && !r.info.care && !r.info.fight).map(r => [r.name, r.days.length, r.days.filter(d => d.timer).length, r.info.strengths.length > 0 && !!r.info.result && r.info.watch.length > 0])")
         check('six conditioning programs with strengths, results and watch-outs', len(progs) == 6 and all(p[3] for p in progs) and sum(p[2] for p in progs) >= 6, progs)
         allText = await ev("JSON.stringify(BUILTIN_ROUTINES.filter(r => r.info)) + JSON.stringify(COND_FIT) + document.documentElement.innerHTML.replace(/p-tabata/g, '')")
         check('no brand or program names', not any(w.lower() in allText.lower() for w in ['Hyrox', 'CrossFit', 'Murph', 'Tabata']))

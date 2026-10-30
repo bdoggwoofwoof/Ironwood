@@ -60,10 +60,10 @@ async def main():
         # Tour visits every page
         await pg.locator('#help-btn').click(); await pg.locator('#help-tour').click(); await pg.wait_for_timeout(300)
         seen = []
-        for _ in range(17):
+        for _ in range(22):
             await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train'] * 9 + ['Routines'] * 3 + ['Stats', 'Meals', 'Profile', 'Train', 'Train'], seen)
+        check('tour walks through each page', seen == ['Train'] * 11 + ['Routines'] * 3 + ['Stats'] * 2 + ['Meals'] * 2 + ['Profile'] * 2 + ['Train'] * 2, seen)
         check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
@@ -113,10 +113,20 @@ async def main():
         await q.goto(URL); await q.wait_for_timeout(2200)
         check('tour opens on first launch', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         holes = []
-        for _ in range(12):
+        early = []
+        for _ in range(14):
             await q.locator('#tour-next').click(); await q.wait_for_timeout(450); holes.append(await q.locator('.tour-hole').count())
+            st = await q.evaluate("(() => { const t = TOUR[S.tour.step]; return [t[3], !t[2] || [...document.querySelectorAll(t[2])].some(e => e.getBoundingClientRect().width > 0)]; })()")
+            if not st[1]: early.append(st[0])
+        check('early steps find what they point at', not early, early)
         check('each step highlights what it talks about', all(holes), holes)
         check('tour reaches Stats with sample data', (await q.locator('.tab.on').inner_text()).strip() == 'Stats' and await q.locator('#demo-banner').count() == 1 and await q.locator('.lift-row').count() >= 5, await q.locator('.lift-row').count())
+        miss = []
+        for _ in range(6):
+            await q.locator('#tour-next').click(); await q.wait_for_timeout(500)
+            st = await q.evaluate("(() => { const t = TOUR[S.tour.step]; return [t[3], !t[2] || [...document.querySelectorAll(t[2])].some(e => e.getBoundingClientRect().width > 0)]; })()")
+            if not st[1]: miss.append(st[0])
+        check('later steps find what they point at (goals, meal prep, food log, backup)', not miss, miss)
         await q.locator('#tour-skip').click(); await q.wait_for_timeout(400)
         check('skipping clears the sample data', await q.locator('#demo-banner').count() == 0 and await q.locator('.lift-row').count() == 0 and await q.evaluate("sessionList().length") == 0)
         check('nothing fake saved', await q.evaluate("Object.keys(JSON.parse(localStorage.getItem('liftbook.v1') || '{\"sessions\":{}}').sessions || {}).length") == 0)
@@ -126,7 +136,7 @@ async def main():
         await q.locator('#profile-tour').click(); await q.wait_for_timeout(300)
         check('tour can be redone from Profile', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         await q.screenshot(path='shot-tour.png')
-        for _ in range(17): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
+        for _ in range(22): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
         check('finishing the tour clears sample data too', await q.evaluate("sessionList().length") == 0 and await q.locator('.tour').count() == 0)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())

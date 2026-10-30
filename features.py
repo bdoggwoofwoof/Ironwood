@@ -1135,21 +1135,26 @@ swap(".sess-acts{gap:8px}", """.topsw.four{gap:14px;overflow-x:auto;scrollbar-wi
 #     measurements and the meal log. Replaces the whole step list.
 _t0 = src.index("const TOUR = [\n"); _t1 = src.index("\n];\n", _t0) + 4
 src = src[:_t0] + """const TOUR = [
-  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about two minutes, and you can skip it any time.'],
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and saves to your calendar. Add a program’s exercises to today’s workout or do it on its own.'],
-  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Each exercise shows what you did last time. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
   ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
-  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
+  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtKind: 'routines', rtView: 'list' } }],
   ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
-  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. Overall also tracks running, bodyweight and body measurements. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
-  ['meals', null, '.topsw', 'Meals', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Log what you eat against daily goals.'],
-  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, and rest timers.'],
+  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
+  ['meals', null, '#rot-card, .topsw', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone. Foods you scan are saved for next time.', { meals: 'log' }],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
+  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
   ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
@@ -1263,6 +1268,11 @@ swap(".sess-acts{gap:8px}", """.goal-card{display:block;width:100%;text-align:le
 .goal-bar span{display:block;height:100%;background:var(--accent);border-radius:4px}
 textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inherit;font-size:calc(16 * var(--u))}
 .sess-acts{gap:8px}""")
+
+# 25. Tour (Oct 29): new stops for during a workout, challenges, lift goals and month in review, meal prep rotation, the
+#     food log with barcode scan and lookup, and backups. A step can switch the Meals page (extra.meals).
+swap("      const ls = (extra && extra.ls) || {};", "      const ls = (extra && extra.ls) || {};\n      if (extra && extra.meals && typeof MEALS !== 'undefined' && MEALS.mode !== extra.meals) { MEALS.mode = extra.meals; lsSet('mealsMode', extra.meals); if (!needTab && !needMode) S.rerender(); }")
+swap('<button class="btn" onClick=${exportFile}>Save backup file</button>', '<button class="btn" id="backup-file" onClick=${exportFile}>Save backup file</button>')
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

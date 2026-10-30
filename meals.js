@@ -489,6 +489,8 @@ function normMeals(x) {
     recipes,
     plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: clampInt(i.n, 1, 21, 3) })) },
     checks: x.checks && typeof x.checks === 'object' ? x.checks : {},
+    preps: Object.fromEntries(Object.entries(x.preps && typeof x.preps === 'object' ? x.preps : {}).filter(([, p]) => p && p.name && Array.isArray(p.items))),
+    ...(x.rot && Array.isArray(x.rot.ids) && x.rot.ids.length >= 2 && /^\d{4}-\d\d-\d\d$/.test(x.rot.start) ? { rot: { ids: x.rot.ids.map(String), start: x.rot.start, applied: x.rot.applied || null } } : {}),
     extras: (Array.isArray(x.extras) ? x.extras : []).filter(e => e && e.t).map(e => ({ id: String(e.id || uid('mx')), t: String(e.t), c: !!e.c })),
     foods: Object.fromEntries(Object.entries(x.foods && typeof x.foods === 'object' ? x.foods : {}).filter(([, f]) => f && f.name && f.sv && +f.sv.gr > 0)),
     log: Object.fromEntries(Object.entries(x.log && typeof x.log === 'object' ? x.log : {}).map(([d, l]) => [d, (Array.isArray(l) ? l : []).filter(e => e && e.id && e.m && typeof e.m === 'object')]).filter(([d, l]) => /^\d{4}-\d\d-\d\d$/.test(d) && l.length)),
@@ -560,6 +562,7 @@ function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
     <button aria-label=${'More ' + label} disabled=${value >= max} onClick=${() => onChange(Math.min(max, value + step))}>+</button></div>`;
 }
 function MealsScreen({ view }) {
+  useEffect(() => { rotCheck(); }, []);
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
@@ -606,8 +609,15 @@ function PrepPane() {
         ${withM.length ? html`<div style="font-weight:700">${partial ? 'At least, a day' : 'A day, on average'}${P.people > 1 ? ', per person' : ''}</div><${MacroTiles} m=${perDay}/>
           <div class="small muted">Estimated from the ingredients, spread over 7 days. Counts only the meals in your prep.</div>` : null}
         ${mins ? html`<div class="small muted">About ${mins >= 60 ? Math.floor(mins / 60) + ' hr ' + (mins % 60 ? (mins % 60) + ' min' : '') : mins + ' min'} of cooking if you make them one after another. Less with the oven and stove going together.</div>` : null}</div>` : null}
-      <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>`
+      <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>
+      <button class="btn ghost wide" style="margin-top:8px" id="prep-save" onClick=${() => openSheet({ type: 'prepSave' })}>Save this prep for later</button>`
     : html`<div class="card stack"><p class="note">Nothing planned yet. Start from a ready-made prep below, or pick recipes one at a time.</p><button class="btn wide" onClick=${() => setMealsMode('recipes')}>Browse recipes</button></div>`}
+    <${RotationCard}/>
+    ${Object.keys(m.preps).length ? html`<div class="section-h"><h2>Your preps</h2></div>
+      <div class="stack">${Object.values(m.preps).map(pr => html`<div key=${pr.id} class="r-card prep-card" id=${'myprep-' + pr.id}>
+        <div class="row"><h3 style="flex:1">${pr.name}</h3><button class="tip-x" aria-label=${'Delete ' + pr.name} onClick=${() => deleteMyPrep(pr)}>${I.x}</button></div>
+        <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
+        <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
     <div class="section-h"><h2>Ready-made preps</h2></div>
     <div class="stack">${MEAL_PREPS.map(pr => html`<div key=${pr.id} class="r-card prep-card">
       <h3>${pr.name}</h3><div class="days">${pr.d}</div>
@@ -615,6 +625,58 @@ function PrepPane() {
       <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>
     ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
   </div>`;
+}
+/* ---- Saved preps and the weekly rotation (Oct 29) ----
+   meals.preps: { id: { id, name, items: [[recipe id, times a week]] } } (preps you save). meals.rot: { ids: [prep ids, 2–4],
+   start: Monday 'YYYY-MM-DD', applied: Monday last loaded }. Each new week the next prep in the list replaces your prep
+   and the shopping list starts fresh. */
+const allPreps = () => Object.values(ML().preps).concat(MEAL_PREPS);
+const prepById = id => ML().preps[id] || MEAL_PREPS.find(p => p.id === id) || null;
+const thisMonday = () => ymd(startOfWeek(new Date()));
+function rotIndex(rot, day) { const wk = Math.round((+startOfWeek(day || new Date()) - +parseYmd(rot.start)) / (7 * DAY)); const n = rot.ids.length; return wk < 0 ? -1 : ((wk % n) + n) % n; }
+function rotCheck() {
+  const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied === mon) return false;
+  const i = rotIndex(rot); if (i < 0) return false; const pr = prepById(rot.ids[i]); if (!pr) return false;
+  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
+  showToast({ kind: 'info', text: 'This week’s prep: ' + pr.name + '. Your shopping list is ready.' }); return true;
+}
+function deleteMyPrep(pr) {
+  const inRot = ML().rot && ML().rot.ids.includes(pr.id);
+  openSheet({ type: 'confirm', title: 'Delete ' + pr.name + '?', body: inRot ? 'It also leaves your rotation.' : 'Your recipes stay.', ok: 'Delete prep', danger: true, onOk: () => { mealCommit(mm => { delete mm.preps[pr.id]; if (mm.rot) { mm.rot.ids = mm.rot.ids.filter(x => x !== pr.id); if (mm.rot.ids.length < 2) delete mm.rot; } }); closeSheet(); } });
+}
+function PrepSaveSheet() {
+  const P = ML().plan; const [name, setName] = useState('My prep ' + (Object.keys(ML().preps).length + 1));
+  const save = () => { const id = uid('pp'); mealCommit(mm => { mm.preps[id] = { id, name: name.trim() || 'My prep', d: '', items: mm.plan.items.map(i => [i.r, i.n]) }; }); closeSheet(); showToast({ kind: 'info', text: (name.trim() || 'My prep') + ' saved. Use it again or put it in a rotation.' }); };
+  return html`<${Sheet} label="Save this prep"><h2>Save this prep</h2><p class="note">${P.items.length} recipe${P.items.length === 1 ? '' : 's'}, with how many times a week each.</p>
+    <div class="stack" style="margin-top:12px"><div><label class="lbl" for="ps-name">Name</label><input class="field" id="ps-name" value=${name} onInput=${e => setName(e.target.value)}/></div>
+      <button class="btn primary wide" id="ps-save" onClick=${save}>Save prep</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+function RotationCard() {
+  const rot = ML().rot;
+  if (!rot) return html`<div class="card" style="margin-top:14px" id="rot-card"><div style="font-weight:700">Rotate preps week by week</div>
+    <p class="small muted" style="margin:2px 0 10px">Pick 2 to 4 preps. Each Monday the next one becomes your prep, shopping list included, so dinners don’t repeat every week.</p>
+    <button class="btn wide" id="rot-setup" onClick=${() => openSheet({ type: 'rotation' })}>Set up a rotation</button></div>`;
+  const i = rotIndex(rot); const n = rot.ids.length; const name = k => (prepById(rot.ids[k]) || {}).name || 'A deleted prep';
+  return html`<div class="card" style="margin-top:14px" id="rot-card"><div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Rotation · ${n} preps</div>
+      <div style="font-weight:700">${i < 0 ? 'Starts ' + shortDate(+parseYmd(rot.start)) + ' with ' + name(0) : 'This week: ' + name(i)}</div>
+      <div class="small muted">${i < 0 ? '' : 'Week ' + (i + 1) + ' of ' + n + ' · '}Next week: ${name(i < 0 ? 1 % n : (i + 1) % n)}</div></div></div>
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn" style="flex:1" id="rot-edit" onClick=${() => openSheet({ type: 'rotation' })}>Edit</button>
+      <button class="btn text" id="rot-stop" onClick=${() => mealCommit(mm => { delete mm.rot; })}>Stop rotating</button></div></div>`;
+}
+function RotationSheet() {
+  const rot = ML().rot; const [ids, setIds] = useState(rot ? rot.ids.filter(prepById) : []); const [when, setWhen] = useState(rot ? 'keep' : 'now');
+  const tap = id => setIds(ids.includes(id) ? ids.filter(x => x !== id) : ids.length >= 4 ? ids : ids.concat(id));
+  const save = () => {
+    const start = when === 'keep' && rot ? rot.start : when === 'next' ? ymd(addDays(startOfWeek(new Date()), 7)) : thisMonday();
+    mealCommit(mm => { mm.rot = { ids, start, applied: when === 'keep' && rot ? rot.applied : null }; });
+    closeSheet(); if (when !== 'keep') rotCheck(); else S.rerender();
+  };
+  return html`<${Sheet} label="Prep rotation"><h2>Prep rotation</h2><p class="note">Tap 2 to 4 preps in the order you want them. Each Monday the next one loads.</p>
+    <div class="stack" style="margin-top:10px">${allPreps().map(pr => { const k = ids.indexOf(pr.id);
+      return html`<button key=${pr.id} class=${'opt' + (k >= 0 ? ' on' : '')} id=${'rot-' + pr.id} aria-pressed=${k >= 0} onClick=${() => tap(pr.id)}><div style="flex:1;min-width:0"><div>${pr.name}</div><div class="d">${pr.items.length} recipes${ML().preps[pr.id] ? ' · yours' : ''}</div></div>${k >= 0 ? html`<span class="chip on">Week ${k + 1}</span>` : null}</button>`; })}</div>
+    <div class="seg wide" role="group" aria-label="Start" style="margin-top:12px">${(rot ? [['keep', 'Keep its place'], ['now', 'Restart this week'], ['next', 'Restart next week']] : [['now', 'Start this week'], ['next', 'Start next week']]).map(([k, l]) => html`<button key=${k} class=${when === k ? 'on' : ''} aria-pressed=${when === k} onClick=${() => setWhen(k)}>${l}</button>`)}</div>
+    ${when === 'now' && ML().plan.items.length ? html`<p class="small muted" style="margin-top:6px">Your current prep is replaced by week 1. Save it first if you want to keep it.</p>` : null}
+    <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rot-save" disabled=${ids.length < 2} onClick=${save}>${ids.length < 2 ? 'Pick at least 2' : 'Save rotation'}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 function RecipesPane() {
   const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat);

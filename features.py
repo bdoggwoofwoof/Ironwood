@@ -1245,6 +1245,25 @@ swap(".sess-acts{gap:8px}", """.last-note{display:flex;align-items:center;gap:8p
 .last-note .note-txt{flex:1}
 .sess-acts{gap:8px}""")
 
+# 24. Lift goals, month in review, prep rotation (growth.js + meals.js, Oct 29; from Newt's reels notes): a goal per
+#     lift (est. 1RM or heaviest by a date) shown on Train with progress, the weekly gain needed and whether the recent
+#     pace gets there; a month-in-review recap (Train card the first week of a month, Stats → Month in review) with a
+#     note and a share picture; saved preps and a 2–4 prep weekly rotation that loads each Monday.
+GROWJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'growth.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", GROWJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;\n    case 'prepSave': return html`<${PrepSaveSheet}/>`;\n    case 'rotation': return html`<${RotationSheet}/>`;")
+swap("    <${PlanWeekCard}/>\n    <${ChallengeFinder} where=\"train\"/>", "    <${MonthCard}/>\n    <${PlanWeekCard}/>\n    <${GoalsCard}/>\n    <${ChallengeFinder} where=\"train\"/>")
+swap("  if (view && view.type === 'exercise') return html`<${ExerciseStats} ex=${view.ex} group=${view.group}/>`;", "  if (view && view.type === 'exercise') return html`<${ExerciseStats} ex=${view.ex} group=${view.group}/>`;\n  if (view && view.type === 'month') return html`<${MonthView} ym=${view.ym}/>`;")
+swap("    ${tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex' ?", "    ${tab === 'overall' || tab === 'ex' ? html`<${StatsExtras}/>` : null}\n    ${tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex' ?")
+swap('<h2 class="wo-title" style="margin:2px 0 8px">${exName(ex)}</h2>\n    ${groups.length > 1 || group ?', '<h2 class="wo-title" style="margin:2px 0 8px">${exName(ex)}</h2>\n    ${kind === \'bodyweight\' || kind === \'assisted\' ? null : html`<button class="btn text" id="ex-goal" style="margin:-4px 0 8px;padding-left:0" onClick=${() => { const g = goalList().find(x => x.ex === ex); openSheet(g ? { type: \'liftGoal\', id: g.id } : { type: \'liftGoal\', ex }); }}>${goalList().some(x => x.ex === ex) ? \'Edit your goal for this lift\' : \'Set a goal for this lift\'}</button>`}\n    ${groups.length > 1 || group ?')
+swap("for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump'])", "for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes'])")
+swap("for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f;", "for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; if (!a.rot && b.rot) a.rot = b.rot;")
+swap(".sess-acts{gap:8px}", """.goal-card{display:block;width:100%;text-align:left;color:inherit}
+.goal-bar{height:8px;border-radius:4px;background:var(--raised);margin:10px 0 8px;overflow:hidden}
+.goal-bar span{display:block;height:100%;background:var(--accent);border-radius:4px}
+textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inherit;font-size:calc(16 * var(--u))}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

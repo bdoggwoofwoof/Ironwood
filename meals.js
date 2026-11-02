@@ -498,6 +498,8 @@ function normMeals(x) {
     ...(x.me && typeof x.me === 'object' && +x.me.h > 0 && +x.me.w > 0 ? { me: x.me } : {}),
     ...(x.menu && Array.isArray(x.menu.days) && x.menu.t ? { menu: x.menu } : {}),
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
+    saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
+    ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -910,7 +912,7 @@ function LogPane() {
   const go = n => { const d = ymd(addDays(parseYmd(day), n)); MEALS.day = d >= today ? null : d; S.rerender(); };
   const list = (m.log[day] || []).slice().sort((a, b) => a.at - b.at); const tot = sumNut(list); const G = m.goals;
   const gk = NUT.filter(([k]) => G[k]); const rest = NUT.filter(([k]) => !G[k]);
-  const prep = m.plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && macros(x.r)); const wk = weekServings(day);
+  const prep = m.menu && m.menu.days ? [] : m.plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && macros(x.r)); const wk = weekServings(day);
   const quick = r => { const e = logRecipe(day, r, 1); if (e) showToast({ kind: 'info', text: '1 serving of ' + r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); };
   return html`<div>
     <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
@@ -932,14 +934,16 @@ function LogPane() {
     <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
   </div>`;
 }
-function MealLogSheet({ day, tab: tab0, txt, fk, fid }) {
-  const [tab, setTab] = useState(tab0 || 'recipe');
-  return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>
-    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['scan', 'Scan'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
-    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'scan' ? html`<${LogScan} day=${day} fid=${fid}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
+function MealLogSheet({ day, tab: tab0, txt, fk, fid, only, q0 }) {
+  const [st, setSt] = useState({ tab: tab0 || 'find', txt, fk, fid, only, q0 });
+  const go = (tab, p) => setSt({ tab, ...(p || {}) });
+  const back = st.tab !== 'find' ? html`<button class="btn text" id="lf-back" style="padding-left:0" onClick=${() => go('find')}>${I.back} Search</button>` : null;
+  return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>${back}
+    <div style="margin-top:10px">${st.tab === 'food' ? html`<${LogFood} key=${(st.txt || '') + (st.fk || '')} day=${day} txt0=${st.txt} fk0=${st.fk}/>` : st.tab === 'scan' ? html`<${LogScan} day=${day} fid=${st.fid} only=${st.only} q0=${st.q0}/>`
+      : st.tab === 'num' ? html`<${LogNumbers} day=${day} name0=${st.name0}/>` : st.tab === 'recipe' ? html`<${LogRecipe} day=${day} r0=${st.r0}/>` : html`<${FindView} day=${day} go=${go}/>`}</div><//>`;
 }
-function LogRecipe({ day }) {
-  const [sel, setSel] = useState(null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
+function LogRecipe({ day, r0 }) {
+  const [sel, setSel] = useState(r0 || null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
   const inPrep = new Set(ML().plan.items.map(i => i.r)); const term = q.trim().toLowerCase();
   const r = sel && getRecipe(sel); const m = r && macros(r);
   if (r && m) return html`<div class="stack">
@@ -975,8 +979,8 @@ function LogFood({ day, txt0, fk0 }) {
     <button class="btn primary wide" id="lf-save" disabled=${!m} onClick=${save}>Log it</button>
     <button class=${'btn wide' + (g && !m ? ' primary' : ' ghost')} id="lf-online-go" onClick=${() => goOnline(term)}>${term ? 'Look up “' + term + '” online' : 'Look up a food online'}</button></div>`;
 }
-function LogNumbers({ day }) {
-  const [d, setD] = useState({ name: '' }); const set = (k, v) => setD({ ...d, [k]: v });
+function LogNumbers({ day, name0 }) {
+  const [d, setD] = useState({ name: name0 || '' }); const set = (k, v) => setD({ ...d, [k]: v });
   const ok = NUT.some(([k]) => +d[k] > 0);
   const save = () => { addLog(day, { k: 'num', name: d.name.trim() || 'Quick add', m: roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))) }); closeSheet(); showToast({ kind: 'info', text: 'Logged' }); };
   return html`<div class="stack"><div><label class="lbl" for="ln-name">Name</label><input class="field" id="ln-name" placeholder="e.g. Lunch out" value=${d.name} onInput=${e => set('name', e.target.value)}/></div>
@@ -989,7 +993,9 @@ function LogEntrySheet({ day, id }) {
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
-    <div class="stack" style="margin-top:14px"><button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
+    <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in ' + savedFor(e).cat : 'Save to a category'}</span><${CatPick} e=${e}/></div>
+    <div class="stack" style="margin-top:14px">${day !== ymd(new Date()) ? html`<button class="btn wide" id="le-again" onClick=${() => logAgain(ymd(new Date()), e)}>Log again today</button>` : html`<button class="btn wide" id="le-again" onClick=${() => logAgain(day, e)}>Log another</button>`}
+      <button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
 }
 function GoalsSheet() {
   const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));

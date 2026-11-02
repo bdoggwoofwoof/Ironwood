@@ -110,11 +110,10 @@ async def main():
         # daily log
         await pg.evaluate("UI.setView(null); setMealsMode('log')"); await pg.wait_for_timeout(200)
         await pg.locator('.prep-log', has_text='Turkey & Bean Chili').click(); await pg.wait_for_timeout(200)
-        await pg.locator('#log-add').click(); await pg.locator('.sheet .seg button', has_text='Food').click()
-        await pg.locator('#lf-txt').fill('2 eggs'); await pg.wait_for_timeout(100)
+        await pg.locator('#log-add').click(); await pg.locator('#lf-find').fill('2 eggs'); await pg.locator('#lf-log-typed').click(); await pg.wait_for_timeout(100)
         check('food line shows what it counts as', 'Eggs, large' in await pg.locator('#lf-food').inner_text())
         await pg.locator('#lf-save').click(); await pg.wait_for_timeout(200)
-        await pg.locator('#log-add').click(); await pg.locator('.sheet .seg button', has_text='Numbers').click()
+        await pg.locator('#log-add').click(); await pg.locator('#lf-num-go').click()
         await pg.locator('#ln-name').fill('Coffee'); await pg.locator('#ln-kcal').fill('120'); await pg.locator('#ln-p').fill('6'); await pg.locator('#ln-save').click(); await pg.wait_for_timeout(200)
         r = await pg.evaluate("(() => { const l = ML().log[ymd(new Date())]; const t = sumNut(l); return [l.length, Math.round(t.kcal), Math.round(t.p)]; })()")
         chili = await pg.evaluate("macros(getRecipe('m-turkey-chili'))")

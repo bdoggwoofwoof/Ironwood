@@ -1152,7 +1152,7 @@ src = src[:_t0] + """const TOUR = [
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
   ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight and goal and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],\n  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
-  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone. Foods you scan are saved for next time.', { meals: 'log' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
@@ -1335,6 +1335,24 @@ swap("const pool = prior.flatMap(e => e.sets.filter(x => +x.r > 0).map(x => ({ w
 swap("    <button class=\"opt\" onClick=${() => { toggleUnit(it); closeSheet(); }}>", "    ${isMeasured(exKind(it.ex)) ? null : html`<button class=\"opt\" id=\"opt-machines\" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class=\"d\">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}\n    <button class=\"opt\" onClick=${() => { toggleUnit(it); closeSheet(); }}>")
 swap("for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide'])", "for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide', 'machines'])")
 swap(".sess-acts{gap:8px}", """.mach-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.mach-row .chip svg{width:14px;height:14px}
+.sess-acts{gap:8px}""")
+
+# 29. Food log, simpler (logfind.js, Nov 2, Newt's request): Log food opens on one search box for everything (recipes,
+#     your foods, built-in foods, "2 eggs"), with Scan and Enter numbers beside it; before you type, Recent (tap to log
+#     the same amount again) and Saved foods by category (Breakfast, Lunch, Dinner, Snacks, Drinks or your own). A logged
+#     entry can be saved or logged again. With a meal plan, the log shows today's plan instead of a second prep list.
+LFJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logfind.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", LFJS + "\n/* ---------- APP ---------- */")
+swap("for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q;", "for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats;")
+swap(".sess-acts{gap:8px}", """.find-list{display:flex;flex-direction:column;gap:6px}
+.find-row{display:flex;align-items:stretch;gap:6px}
+.find-main{flex:1;min-width:0;text-align:left;background:var(--surface);border-radius:12px;padding:10px 12px;color:inherit}
+.find-main .t{font-weight:600}.find-main .s{font-size:14px;color:var(--ink-2)}
+.find-star{width:44px;border-radius:12px;background:var(--surface);color:var(--ink-3);font-size:20px;display:grid;place-items:center}
+.find-star.on{color:var(--pr,#f2c94c)}
+.cat-pick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px}
+.cat-new{flex:1 1 140px;min-width:120px;padding:6px 10px}
+.find-top{border:1.5px solid var(--accent)}
 .sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the

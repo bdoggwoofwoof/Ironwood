@@ -742,7 +742,7 @@ function RunSetup() {
 }
 function RunScreen() {
   const R = runSt(); const c = runCtxNow();
-  if (!R || !c) return html`<${RunSetup}/>`;
+  if (!R || !c) return html`<${RunStart}/>`;
   const tab = ['plan', 'paces', 'programs', 'times'].includes(lsGet('runTab')) ? lsGet('runTab') : 'plan';
   const pick = k => { lsSet('runTab', k); S.rerender(); };
   return html`<div id="run-screen">
@@ -763,6 +763,7 @@ function RunPlan({ R, c }) {
   return html`<div>
     <div class="row" style="margin-top:14px;align-items:baseline"><h2 class="run-h">${head}</h2><span class="spacer"></span><span class="small muted">Block ${R.block || 1} · ${R.runs} runs a week</span></div>
     <${RunLoadWarn} n=${R.runs} from=${runJump(R)} id="plan-load" compact=${true}/>
+    <${RunFitBar}/>
     ${cur > N ? html`<div class="card stack" style="margin-top:10px" id="run-next-block"><div style="font-weight:700">Start the next block</div><p class="note">Your retest times are in. A new ${N}-week block starts next Monday with paces from your latest times.</p>
       <button class="btn primary" onClick=${() => { runCommit(r => { r.block = (r.block || 1) + 1; r.start = nextMonday(); r.swaps = {}; }); RUN_SEL.w = 1; showToast({ kind: 'info', text: 'Block ' + ((R.block || 1) + 1) + ' starts ' + shortDate(parseYmd(nextMonday())) }); }}>Start block ${(R.block || 1) + 1}</button></div>` : null}
     <div class=${'weekbar' + (N > 8 ? ' many' : '')} role="tablist" aria-label="Week" style=${{ gridTemplateColumns: 'repeat(' + N + ',minmax(0,1fr))' }}>${Array.from({ length: N }, (_, i) => i + 1).map(n => html`<button key=${n} role="tab" aria-selected=${n === w} id=${'rw-' + n} class=${(n === w ? 'on ' : '') + (tw(R, n) === 4 || tw(R, n) === 8 ? 'test ' : '') + (n === cur ? 'now' : '')} onClick=${() => setW(n)}><b>${n}</b><span>${weekLabel(R, n)}</span></button>`)}</div>
@@ -840,7 +841,7 @@ function RunPrograms() {
 }
 function RunTimes() {
   const R = runSt(); const [edit, setEdit] = useState(false);
-  const save = x => { runCommit(r => { Object.assign(r, { t100: x.t100, t1: x.t1, t3: x.t3 }); r.hist.push({ d: ymd(new Date()), t100: x.t100, t1: x.t1, t3: x.t3, why: 'manual' }); }); setEdit(false); showToast({ kind: 'info', text: 'Times saved. Paces updated.' }); };
+  const save = x => { runCommit(r => { Object.assign(r, { t100: x.t100, t1: x.t1, t3: x.t3, est: false }); r.hist.push({ d: ymd(new Date()), t100: x.t100, t1: x.t1, t3: x.t3, why: 'manual' }); }); setEdit(false); showToast({ kind: 'info', text: 'Times saved. Paces updated.' }); };
   const WHY = { start: 'Starting times', manual: 'Entered', wk4: 'Week 4 mile check', wk8: 'Week 8 retest' };
   return html`<div>
     <div class="section-h" style="margin-top:14px"><h2>Your times</h2>${edit ? null : html`<button class="btn text" id="run-edit-times" onClick=${() => setEdit(true)}>${I.edit} Update</button>`}</div>

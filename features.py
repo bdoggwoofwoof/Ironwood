@@ -1143,7 +1143,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
-  ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
   ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
   ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtKind: 'routines', rtView: 'list' } }],
@@ -1369,6 +1369,15 @@ swap("    <${RunAdapt} R=${R} w=${w} cur=${cur}/>", "    <${RunAdapt} R=${R} w=$
 swap(".sess-acts{gap:8px}", """.check-card{border:1.5px solid var(--accent)}
 .check-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.check-acts .btn{flex:1 1 30%}
 .sess-acts{gap:8px}""")
+
+# 31. Running plan setup that fits your lifting (runfit.js, Nov 2, Newt's request): times are optional (pick a level and
+#     start from estimates); the plan reads the main program's days and asks how runs fit (mixed / days off / lifting
+#     days / running first); programs added alongside ask which days too.
+RFJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runfit.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", RFJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'runFit': return html`<${RunFitSheet}/>`;\n    case 'addonFit': return html`<${AddonFitSheet} ...${sheet}/>`;")
+swap("setAddon(r.id, on); showToast({ kind: 'info', text: on ? r.name + ' added alongside your program. It shows in Train.' : r.name + ' removed from Train' });", "setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' });")
+swap("const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); };", "const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); if (typeof applyFit === 'function' && runActive() && runSt().fit) applyFit(runSt().fit, true); };")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

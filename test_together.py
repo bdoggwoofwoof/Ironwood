@@ -19,6 +19,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.click('#care-back'); await pg.wait_for_timeout(200)
         await pg.click('#alongside'); await pg.wait_for_timeout(200)
         check('program page adds it alongside', await ev("addonIds()") == ['bi-care-back'] and 'Alongside' in await pg.locator('#alongside').inner_text())
+        check('...and asks which days', await pg.locator('.sheet', has_text='Which days').count() == 1); await ev("closeSheet()"); await pg.wait_for_timeout(150)
         # add from the sheet on Train
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(200)
         await pg.click('#edit-addons'); await pg.click('#addon-bi-cond-aerobic'); await ev("closeSheet()"); await pg.wait_for_timeout(200)

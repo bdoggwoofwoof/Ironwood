@@ -88,7 +88,9 @@ async def main():
         check('kinds: planks timed, runs distance, carries carry, push-ups still reps', await ev("[exKind('b-plank'), exKind('b-run-400m'), exKind(findIn(BUILTIN_EX)(\"Farmer's Carry\").id), exKind(findIn(BUILTIN_EX)('Push-Ups').id), guessKind('Treadmill Run'), guessKind('Barbell Row'), guessKind('Side Plank Hold')]") == ['timed', 'distance', 'carry', 'bodyweight', 'distance', 'barbell', 'timed'])
         # ---- Run screen: set up, plan, start Run A, log, finish ----
         await pg.locator('.topsw button', has_text='Run').click(); await pg.wait_for_timeout(300)
-        check('Run starts with the times form', await pg.locator('#run-setup').count() == 1 and await pg.locator('#run-save').is_disabled())
+        check('Run asks whether you know your times', await pg.locator('#rs-know').count() == 1 and await pg.locator('#rs-guess').count() == 1)
+        await pg.click('#rs-know'); await pg.wait_for_timeout(150)
+        check('times form', await pg.locator('#run-save').is_disabled())
         await pg.fill('#rt-t100', '16'); await pg.fill('#rt-t1', '9:00'); await pg.fill('#rt-t3', '28:20'); await pg.click('#runs-3')
         await ev("lsSet('x', 1)"); await pg.fill('#run-start', await ev("ymd(addDays(new Date(), -1))")); await pg.click('#run-save'); await pg.wait_for_timeout(400)
         check('plan shows lifting days and runs', await pg.locator('.rg-lift').count() >= 4 and await pg.locator('.rg-run').count() == 3)

@@ -16,6 +16,7 @@ function schedFor(id, r) {
 function toggleSched(id, dow) {
   const cur = new Set(schedFor(id)); if (cur.has(dow)) cur.delete(dow); else cur.add(dow);
   commit(st => { st.meta.settings.sched = { ...(st.meta.settings.sched || {}), [id]: [...cur].sort() }; }, 'meta');
+  if (typeof applyFit === 'function' && id === programId() && runActive() && runSt().fit) applyFit(runSt().fit, true);
 }
 /* The running plan's days this week (or the next week of the plan) */
 function runPlanInfo() {

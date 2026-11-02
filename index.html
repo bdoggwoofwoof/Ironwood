@@ -281,6 +281,7 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .side-tog{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:24px;min-height:32px;padding:0 4px;margin:-2px 0}
 .side-tog .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:block}
 .side-tog .dot.sm{width:5px;height:5px}
+.mach-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.mach-row .chip svg{width:14px;height:14px}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -1280,13 +1281,13 @@ function detectPRs(session) {
   const P = prOpts(); const prs = [];
   for (const it of session.items) {
     const kind = exKind(it.ex); if (isMeasured(kind)) { prs.push(...measuredPRs(session, it)); continue; }
-    const u = it.u || U(); const cur = toMain(it.sets, it.u).filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r }));
+    const u = it.u || U(); const cur = toMain(it.sets, it.u).filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r, m: x.m || '' }));
     const scopes = [undefined]; if (P.ranges && it.group) scopes.push(it.group); const got = new Set();
     for (const g of scopes) {
       const prior = entries(it.ex, g).filter(e => e.sid !== session.id && e.t < session.startedAt); if (!prior.length) continue;
-      const pool = prior.flatMap(e => e.sets.filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r })));
+      const pool = prior.flatMap(e => e.sets.filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r, m: x.m || '' })));
       const best = {};
-      for (const x of cur) for (const p of prReasons(x, pool, kind, u, P)) if (!best[p.type] || p.score > best[p.type].score) best[p.type] = p;
+      for (const x of cur) for (const p of prReasons(x, x.m ? pool.filter(y => y.m === x.m) : pool, kind, u, P)) if (!best[p.type] || p.score > best[p.type].score) best[p.type] = p;
       if (P.sessvol && kind !== 'bodyweight' && kind !== 'assisted') {
         const vol = cur.reduce((a, x) => a + x.w * x.r, 0); const pv = Math.max(...prior.map(e => e.sets.reduce((a, x) => a + (+x.w || 0) * (+x.r || 0), 0)));
         if (pv > 0 && vol > pv + 0.5) best.sessvol = { type: 'sessvol', label: 'Session volume', value: fmtBig(conv(vol, U(), u)) + ' ' + u, prev: fmtBig(conv(pv, U(), u)) + ' ' + u, score: vol };
@@ -1318,7 +1319,7 @@ function makeSlot(item, occ) {
   const n = item.sets || 3;
   const it = { id: uid('i'), slot: item.id || null, ex: item.ex, group: item.group || '', ss: !!item.ss, u: slotUnit(item.ex), note: '', target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),
     sets: Array.from({ length: n }, () => ({ id: uid('t'), w: '', r: '', n: '' })) };
-  refill(it, occ || 0); return it;
+  refill(it, occ || 0); initMachine(it); return it;
 }
 /* ============ Calendar, streaks, projections ============ */
 const ymd = d => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
@@ -1836,10 +1837,10 @@ function startWorkout(routine, day) {
 }
 /* A set counts as done once it has reps. Swiping right logs the faded numbers as they are. */
 function prPool(it, s, group) {
-  const pool = []; for (const e of entries(it.ex, group)) for (const x of e.sets) if (+x.r > 0) pool.push({ w: +x.w || 0, r: +x.r });
+  const pool = []; for (const e of entries(it.ex, group)) for (const x of e.sets) if (+x.r > 0 && (!s.m || (x.m || '') === s.m)) pool.push({ w: +x.w || 0, r: +x.r });
   if (!pool.length) return [];
   for (const o of S.active.items) if (o.ex === it.ex && (group === undefined || (o.group || '') === group))
-    for (const x of o.sets) if (x !== s && isDone(x) && x.c && (!s.c || x.c < s.c)) pool.push({ w: r1(conv(num(x.w), o.u || U(), U())), r: num(x.r) });
+    for (const x of o.sets) if (x !== s && isDone(x) && x.c && (!s.c || x.c < s.c) && (!s.m || (x.m || '') === s.m)) pool.push({ w: r1(conv(num(x.w), o.u || U(), U())), r: num(x.r) });
   return pool;
 }
 const rangeTag = g => g in RANGE_REPS && g !== '1RM' && g !== 'Max' ? RANGE_NAME[g] + ' reps' : (RANGE_NAME[g] || g);
@@ -1853,9 +1854,9 @@ function completeSet(it, s, swiped) {
   if (!String(s.r).trim()) s.r = s.gr || '';
   if (!isDone(s)) { s.r = ''; S.rerender(); focusId('r-' + s.id); return false; }
   if (!String(s.w).trim() && s.gw) s.w = s.gw;
-  s.c = Date.now();
+  s.c = Date.now(); if (!s.m && it.mach) s.m = it.mach;
   const j = it.sets.indexOf(s);
-  for (const n of it.sets.slice(j + 1)) if (!isDone(n)) n.gw = s.w;
+  for (const n of it.sets.slice(j + 1)) if (!isDone(n) && (n.m || '') === (s.m || '')) n.gw = s.w;
   const prs = setPR(it, s); s.pr = prs.length > 0; s.prInfo = prs.map(prText);
   if (s.pr) { showToast({ kind: 'pr', text: 'PR · ' + exName(it.ex) + ' · ' + prs.map(p => p.label).join(', ') }); if (prOpts().sound) { beep(1320, 90, 0.22); setTimeout(() => beep(1760, 150, 0.22), 110); } }
   if (swiped) lsSet('swiped', '1');
@@ -2082,7 +2083,7 @@ const TOUR = [
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
   ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
-  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots). Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
@@ -2440,6 +2441,7 @@ function LiftSlot({ it, nextSS }) {
       <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
+    <${MachineRow} it=${it}/>
     <${ExNote} it=${it}/>
     <div class="sets">
       <div class="set-row th"><span>Set</span><span class="w-th"><button class="unit-tog" aria-label=${'Weight in ' + u + '. Switch to ' + (u === 'kg' ? 'lb' : 'kg')} onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><${SideTog} ex=${it.ex}/></span><span>Reps</span><span class="th-ln">${it.prev ? html`<span class="th-last">Last</span>` : null}<span>Note</span></span></div>
@@ -3067,7 +3069,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version b7fc5d6</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 25fd989</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3423,7 +3425,7 @@ function restoreInto(st, d) {
   } else {
     for (const [k, e] of Object.entries(m.exercises || {})) if (!st.meta.exercises[k]) st.meta.exercises[k] = e;  /* never overwrite an exercise renamed here */
     for (const [k, r] of Object.entries(m.routines || {})) if (!st.meta.routines[k]) st.meta.routines[k] = r;
-    for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
+    for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide', 'machines']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
     const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
     if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;
@@ -3681,6 +3683,7 @@ function SlotSheet({ it }) {
     <button class="opt" onClick=${() => openSheet({ type: 'group', current: it.group, dayName: a.name, extra: alsoBox, onPick: g => { it.group = g; applyRange(it.target, g); refill(it); persist({ group: g, ...(g in RANGE_REPS ? { reps: RANGE_REPS[g] } : {}) }); closeSheet(); touch(); } })}>${I.layers}<div><div>Rep range: ${it.group ? (RANGE_NAME[it.group] || it.group) : 'none'}</div><div class="d">Each range keeps its own history</div></div></button>
     <button class="opt" onClick=${() => openSheet({ type: 'exRest', ex: it.ex })}>${I.timer}<div><div>Rest timer: ${exR != null ? (exR ? clock(exR) : 'off') : 'default'}</div><div class="d">A rest time just for this exercise</div></div></button>
     ${['bodyweight'].includes(exKind(it.ex)) || isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-jump" onClick=${() => openSheet({ type: 'exJump', ex: it.ex, u0: u })}>${I.up}<div><div>Weight jump: +${fmt(jumpFor(it.ex, u))} ${u}${(S.meta.exJump || {})[it.ex] ? '' : ' (default)'}</div><div class="d">How much to add when every set hits the top of the range</div></div></button>`}
+    ${isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-machines" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class="d">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}
     <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>${I.swap}<div><div>Weigh in ${u === 'kg' ? 'lb' : 'kg'}</div><div class="d">Now ${u}. Remembered for this exercise.</div></div></button>
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
     ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
@@ -3856,6 +3859,7 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
+    case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;
     case 'mealTargets': return html`<${TargetsSheet}/>`;
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
@@ -6321,6 +6325,7 @@ function refillLift(it, occ) {
     const pr = +p.r || 0;
     x.gr = String(!top ? pr : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
+  if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
 /* "Last · Mon, Oct 19: 140 × 5, 5, 4 · 135 × 8" */
 function lastLine(it) {
@@ -7688,6 +7693,7 @@ function RepRecords({ ex, group }) {
 }
 /* One set's numbers from last time, shown beside the set */
 function prevSetText(it, j, kind) {
+  const s = it.sets && it.sets[j]; if (s && s.pv !== undefined) return s.pv;
   const p = it.prev && it.prev[j]; if (!p || !(+p.r > 0)) return '';
   return kind === 'bodyweight' && !(+p.w) ? p.r + ' reps' : fmt(+p.w || 0) + ' × ' + p.r;
 }
@@ -8059,6 +8065,62 @@ function SideTog({ ex }) {
   const on = exSideOn(ex);
   return html`<button class="side-tog" id=${'side-' + ex} aria-pressed=${on} aria-label=${on ? 'Weight is for each side. Switch to total' : 'Weight is the total. Switch to each side'} title=${on ? 'Each side' : 'Total'} onClick=${() => toggleSide(ex)}>${on ? html`<span class="dot sm"></span><span class="dot sm"></span>` : html`<span class="dot"></span>`}</button>`;
 }
+/* ============ Machines (Nov 2) ============ */
+/* The same exercise on different machines (cable crunch at 130 on one stack, 90 on another). meta.machines[ex] = [names].
+   Each set remembers its machine (set.m). Pick a machine on the exercise and the sets left in it switch to it, with
+   last time's numbers from that machine; sets already done keep theirs, so you can switch mid-lift. Weight carry-over,
+   Last numbers and PRs only compare sets on the same machine. */
+const machinesOf = ex => ((S.meta.machines || {})[ex] || []).filter(Boolean);
+/* The last sets done on this machine (newest workout first), weights in unit u */
+function machinePrev(ex, name, u) {
+  const list = sessionList();
+  for (let i = list.length - 1; i >= 0; i--) {
+    const s = list[i]; if (S.active && s.id === S.active.id) continue;
+    const sets = []; for (const it of s.items || []) if (it.ex === ex) for (const x of it.sets) if ((x.m || '') === name && +x.r > 0) sets.push({ w: r1(conv(+x.w || 0, it.u || U(), u)), r: +x.r });
+    if (sets.length) return { t: s.startedAt, sets };
+  }
+  return null;
+}
+function lastMachine(ex) {
+  const list = sessionList(); const have = machinesOf(ex);
+  for (let i = list.length - 1; i >= 0; i--) for (const it of list[i].items || []) if (it.ex === ex) { const x = it.sets.slice().reverse().find(y => y.m && have.includes(y.m)); if (x) return x.m; }
+  return have[0] || '';
+}
+function applyMachine(it, name, quiet) {
+  it.mach = name || ''; const u = it.u || U(); const pv = name ? machinePrev(it.ex, name, u) : null; const kind = exKind(it.ex);
+  if (name) { it.prevWhere = 'on ' + name; if (pv) { it.prev = pv.sets; it.prevT = pv.t; } }
+  const open = it.sets.filter(x => !isDone(x));
+  open.forEach((x, k) => {
+    x.m = name || undefined;
+    const p = pv ? (pv.sets[k] || pv.sets[pv.sets.length - 1]) : null;
+    x.pv = p ? (kind === 'bodyweight' && !p.w ? p.r + ' reps' : fmt(p.w) + ' × ' + p.r) : '';
+    if (p) { x.gw = p.w ? String(p.w) : ''; x.gr = String(p.r); } else if (name) { x.gw = ''; }
+  });
+  if (!quiet) { touch(); showToast({ kind: 'info', text: name ? (pv ? 'On ' + name + '. Weights from last time on it.' : 'On ' + name + '. First time on this machine.') : 'No machine' }); }
+}
+function initMachine(it) { if (!machinesOf(it.ex).length) return; const m = lastMachine(it.ex); if (m) applyMachine(it, m, true); }
+function MachineRow({ it }) {
+  const ms = machinesOf(it.ex); if (!ms.length) return null;
+  return html`<div class="mach-row" id=${'mach-' + it.id} role="group" aria-label="Machine">${ms.map(m => html`<button key=${m} class=${'chip' + (it.mach === m ? ' on' : '')} aria-pressed=${it.mach === m} onClick=${() => applyMachine(it, it.mach === m ? '' : m)}>${m}</button>`)}
+    <button class="chip" aria-label="Edit machines" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}</button></div>`;
+}
+function MachinesSheet({ ex, itId }) {
+  const [list, setList] = useState(machinesOf(ex)); const [name, setName] = useState('');
+  const save = l => { setList(l); commit(st => { st.meta.machines = { ...(st.meta.machines || {}) }; if (l.length) st.meta.machines[ex] = l; else delete st.meta.machines[ex]; }, 'meta', 300); };
+  const add = () => { const n = name.trim().slice(0, 30); if (!n || list.includes(n)) return; const l = list.concat(n); save(l); setName('');
+    const it = S.active && S.active.items.find(x => x.id === itId); if (it && !it.mach) applyMachine(it, n, true); touch(); };
+  const ren = (i, v) => { const old = list[i]; const n = v.trim().slice(0, 30); if (!n || n === old || list.includes(n)) return; const l = list.slice(); l[i] = n; save(l);
+    const ids = Object.values(S.sessions).filter(s => (s.items || []).some(it => it.ex === ex && it.sets.some(x => x.m === old))).map(s => s.id);
+    if (ids.length) commit(st => { for (const id of ids) for (const it of st.sessions[id].items || []) if (it.ex === ex) for (const x of it.sets) if (x.m === old) x.m = n; }, ids.map(id => 's_' + id), 300);
+    if (S.active) for (const it of S.active.items) if (it.ex === ex) { if (it.mach === old) it.mach = n; for (const x of it.sets) if (x.m === old) x.m = n; } touch(); };
+  const del = i => { const l = list.filter((_, k) => k !== i); save(l); if (S.active) for (const it of S.active.items) if (it.ex === ex && it.mach === list[i]) applyMachine(it, '', true); touch(); };
+  return html`<${Sheet} label="Machines"><h2>Machines for ${exName(ex)}</h2>
+    <p class="note">Name each machine you use for this exercise, like “Left cable stack” or “Gym B”. Weights, last time’s numbers and PRs stay separate for each one. Switch machines from the exercise during a workout.</p>
+    <div class="stack" style="margin-top:12px">${list.map((m, i) => html`<div key=${m} class="row" style="gap:8px"><input class="field" style="flex:1" aria-label=${'Machine ' + (i + 1) + ' name'} value=${m} onChange=${e => ren(i, e.target.value)}/><button class="icon-btn" aria-label=${'Remove ' + m} onClick=${() => del(i)}>${I.trash}</button></div>`)}
+      <div class="row" style="gap:8px"><input class="field" style="flex:1" id="mach-name" placeholder="New machine name" value=${name} onInput=${e => setName(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') add(); }}/><button class="btn primary" id="mach-add" disabled=${!name.trim()} onClick=${add}>Add</button></div>
+      <button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
+}
+
 /* ---------- APP ---------- */
 const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];
 function App() {

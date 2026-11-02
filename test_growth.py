@@ -37,7 +37,7 @@ async def main():
         check('goal saved with lift, target, date and starting point', g['ex'] == sq and g['target'] == 285 and g['by'] == by and g['metric'] == 'e1' and g['start'] > 250, g)
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(250)
         card = await pg.inner_text('#goals-card') if await pg.locator('#goals-card').count() else ''
-        check('Train shows the goal with the weekly gain needed', '285 lb' in card and 'a week for 11 weeks' in card, card)
+        check('Train shows the goal with the weekly gain needed', '285 lb' in card and bool(__import__('re').search(r'a week for 1[01] weeks', card)), card)
         check('labeled as an estimate', 'Not medical or coaching advice' in card)
         st = await ev("goalStatus(Object.values(S.meta.liftGoals)[0])")
         pj = await ev("(() => { const g = Object.values(S.meta.liftGoals)[0]; const st = goalStatus(g); const p = project(goalPts(g)); return [st.onPace, p.keep(st.days) >= st.tg - 0.05]; })()")

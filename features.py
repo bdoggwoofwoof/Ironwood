@@ -1243,11 +1243,15 @@ swap("Last · ${shortDate(it.prevT)}: ${lastLine(it)}", "Last${it.prevWhere ? ' 
 swap('    <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">', '    <${PrefillRow} r=${r}/>\n    <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">')
 swap('      <div class="section-h"><h2>History</h2></div>', '      <${RepRecords} ex=${ex} group=${group}/>\n      <div class="section-h"><h2>History</h2></div>')
 swap("      ${noteCell}\n    </div></div>${s.pr", "      <div class=\"last-note\">${!ne && prevSetText(it, j, kind) ? html`<span class=\"prev num\" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>\n    </div></div>${s.pr")
-swap('<span style="text-align:left">Note</span></div>', '<span style="text-align:left">${it.prev ? \'Last · note\' : \'Note\'}</span></div>')
+swap('<span style="text-align:left">Note</span></div>', '<span class="th-ln">${it.prev ? html`<span class="th-last">Last</span>` : null}<span>Note</span></span></div>')
 swap("if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + ' reps'", "if (r > best) out.push({ type: 'reps', label: 'Rep PR', value: r + ' reps at ' + show(w), prev: best + (best === 1 ? ' rep' : ' reps')")
 swap(".sess-acts{gap:8px}", """.last-note{display:flex;align-items:center;gap:8px;min-width:0}
-.last-note .prev{flex:0 1 5.6em;min-width:0}
+.last-note .prev{flex:0 0 4.6em;min-width:0;font-size:13px}
 .last-note .note-txt{flex:1}
+main .set-row{grid-template-columns:28px 64px 50px minmax(0,1fr)}
+.th-ln{display:flex;gap:8px;text-align:left;min-width:0}
+.th-ln .th-last{flex:0 0 4.6em;min-width:0}
+.set-row .note-txt{font-weight:400;font-size:13px;line-height:1.3;color:var(--ink-2);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;word-break:normal;padding:4px 2px;min-height:36px}
 .sess-acts{gap:8px}""")
 
 # 24. Lift goals, month in review, prep rotation (growth.js + meals.js, Oct 29; from Newt's reels notes): a goal per

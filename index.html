@@ -291,6 +291,8 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .cat-pick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px}
 .cat-new{flex:1 1 140px;min-width:120px;padding:6px 10px}
 .find-top{border:1.5px solid var(--accent)}
+.check-card{border:1.5px solid var(--accent)}
+.check-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.check-acts .btn{flex:1 1 30%}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -1986,10 +1988,10 @@ const programRoutine = () => { const p = programId(); return p && p !== 'self' ?
 function nextUp() {
   const r = programRoutine(); if (!r || !r.days.length) return null;
   const list = sessionList();
-  for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
+  for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id || s.startedAt < progStartOf(r.id)) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
   return { routine: r, day: r.days[0], last: null };
 }
-const setProgram = id => { commit(st => { st.meta.settings.program = id; }, 'meta'); };
+const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); };
 /* Dismissable explanations. Hidden ones come back from Help → Show tips again. */
 const tipOff = id => !!((S.meta.settings.tipsOff || {})[id]);
 function Tip({ id, children, style }) {
@@ -2017,6 +2019,7 @@ function TrainHome() {
     <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
+    <${PlanCheckIn}/>
     <${MonthCard}/>
     <${PlanWeekCard}/>
     <${GoalsCard}/>
@@ -2090,7 +2093,7 @@ const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
@@ -2617,6 +2620,8 @@ function RoutineView({ id }) {
     <div class="row wrap" style="margin:14px 0 4px">
       ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); showToast({ kind: 'info', text: on ? r.name + ' added alongside your program. It shows in Train.' : r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
+      ${programId() === r.id || addonIds().includes(r.id) ? html`<button class="btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>Restart from day 1</button>` : null}
+      ${programId() === r.id ? html`<button class="btn text" id="plan-stop" onClick=${() => stopPlan(r.id)}>Stop following</button>` : null}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
       ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
@@ -3078,7 +3083,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 2758e47</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version e0f108f</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3868,6 +3873,7 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
+    case 'runRestart': return html`<${RunRestartSheet}/>`;
     case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;
     case 'mealTargets': return html`<${TargetsSheet}/>`;
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
@@ -5868,6 +5874,7 @@ function RunScreen() {
   const tab = ['plan', 'paces', 'programs', 'times'].includes(lsGet('runTab')) ? lsGet('runTab') : 'plan';
   const pick = k => { lsSet('runTab', k); S.rerender(); };
   return html`<div id="run-screen">
+    ${R.off ? html`<${RunControls}/>` : null}
     <div class="seg wide run-seg" role="tablist" style="margin-top:12px">${[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Programs'], ['times', 'Times']].map(([k, l]) => html`<button key=${k} role="tab" id=${'run-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${tab === 'paces' ? html`<${RunPaces} c=${c}/>` : tab === 'programs' ? html`<${RunPrograms}/>` : tab === 'times' ? html`<${RunTimes}/>` : html`<${RunPlan} R=${R} c=${c}/>`}
     <p class="small faint" style="margin-top:18px">${RUN_NOTE}</p></div>`;
@@ -5890,6 +5897,7 @@ function RunPlan({ R, c }) {
     <div class="small muted" style="margin:8px 0 2px">Week ${w} · ${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}</div>
     <${RunWeekGrid} R=${R} w=${w} ws=${ws}/>
     <${RunAdapt} R=${R} w=${w} cur=${cur}/>
+    ${R.off ? null : html`<${RunControls}/>`}
     ${clashes.length ? html`<div class="run-warn" role="alert" id="legs-warn">${clashes.map(({ x, c: k }) => html`<p key=${x.key}><b>${x.name} (${DOW[x.dow]})</b> is a ${x.s.hard === 'sprint' ? 'sprint' : 'hard interval'} session ${k === 'after' ? 'the day after Legs' : 'on a Legs day'}. Move it to another day, or swap it for cross-training.</p>`)}</div>` : null}
     ${T8 === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the weeks before it, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and the rest of the plan uses the new paces.</p>` : null}
     ${T8 === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs <= 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
@@ -6160,7 +6168,7 @@ function RunGoalSheet() {
 /* A run quick-logged from Log another activity can count as that day's plan session */
 const actMeters = s => !(+s.dist > 0) ? 0 : +s.dist * ({ mi: MILE, km: 1000, m: 1, yd: 0.9144 }[s.distU || 'mi'] || MILE);
 function planSessionFor(day) {
-  const R = runSt(); if (!R || !runCtxNow()) return null; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) return null;
+  const R = runActive(); if (!R) return null; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) return null;
   const open = planWeek(R, w).filter(x => !x.s.test && !runLogged(R, w, x.key).length && sessDate(R, w, x.dow) <= startOfDay(day));
   const same = open.find(x => ymd(sessDate(R, w, x.dow)) === ymd(day));
   const x = same || open[open.length - 1]; return x ? { R, w, x } : null;
@@ -6723,11 +6731,12 @@ function CareFinder() {
    so each add-on moves on to its next day. */
 const addonIds = () => (S.meta.settings.addons || []).filter(id => id !== programId() && getRoutine(id));
 function setAddon(id, on) {
-  commit(st => { const a = new Set(st.meta.settings.addons || []); if (on) a.add(id); else a.delete(id); st.meta.settings.addons = [...a]; }, 'meta');
+  commit(st => { const a = new Set(st.meta.settings.addons || []); if (on) { a.add(id); if (typeof markSince === 'function') markSince(st, id); } else a.delete(id); st.meta.settings.addons = [...a]; }, 'meta');
 }
 function nextFor(r) {
   const list = sessionList();
   for (let i = list.length - 1; i >= 0; i--) { const s = list[i];
+    if (s.startedAt < progStartOf(r.id)) continue;
     const hit = s.routineId === r.id ? s.dayId : ((s.addons || []).find(a => a.id === r.id) || {}).dayId;
     if (!hit) continue; const idx = r.days.findIndex(d => d.id === hit); return { day: r.days[(idx + 1) % r.days.length], last: s }; }
   return { day: r.days[0], last: null };
@@ -6750,7 +6759,7 @@ const shortName = r => r.name.replace(/ Care$/, '');
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
   /* The running plan always shows once it's set up: today's run, or the next one */
-  const run = R && runCtxNow() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
+  const run = R && runActive() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
     for (let i = 0; i < 21; i++) { const day = addDays(today, i); const w = runWeekOf(R, day); if (w < 1 || w > n) continue;
       const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
       if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
@@ -6788,7 +6797,7 @@ function AddonsSheet() {
   const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
-    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runCtxNow() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
     ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }
@@ -7298,7 +7307,7 @@ function toggleSched(id, dow) {
 }
 /* The running plan's days this week (or the next week of the plan) */
 function runPlanInfo() {
-  const R = typeof runSt === 'function' ? runSt() : null; if (!R || !runCtxNow()) return null;
+  const R = typeof runActive === 'function' ? runActive() : null; if (!R) return null;
   const n = planLen(R); let w = runWeekOf(R, new Date()); if (w > n) return { R, done: true, w, ws: [] };
   const wk = Math.max(1, w); const ws = planWeek(R, wk);
   return { R, w, wk, n, ws, days: [...new Set(ws.map(x => x.dow))].sort() };
@@ -8200,6 +8209,99 @@ function FindView({ day, go }) {
         <button class="btn ghost" style="flex:1" id="lf-find-num" onClick=${() => go('num', { name0: q.trim() })}>Enter its numbers</button></div>
       ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div></div></button>`)}</div>` : null}`}
   </div>`;
+}
+
+/* ============ Turn plans off, restart them, and a check-in when a week slips (Nov 2) ============ */
+/* Every plan you follow (main program, programs alongside, the running plan) can be turned off or restarted.
+   settings.progStart[id]: restart time (earlier workouts no longer count for "next day"). settings.progSince[id]: when
+   you started following it. Running plan: run.off, run.done[session id] (done but not logged), and a restart starts a
+   new block. When a week has 2 or more planned sessions missed (or a plan was never started), Train asks: did you do
+   them, restart, postpone, edit, or turn it off. Answers are kept in settings.checkins[plan:week]. */
+function runActive() { const R = typeof runSt === 'function' ? runSt() : null; return R && !R.off && runCtxNow() ? R : null; }
+const progStartOf = id => (S.meta.settings.progStart || {})[id] || 0;
+function markSince(st, id) { st.meta.settings.progSince = { ...(st.meta.settings.progSince || {}), [id]: Date.now() }; }
+function restartProgram(id) {
+  const r = getRoutine(id); const before = progStartOf(id);
+  commit(st => { st.meta.settings.progStart = { ...(st.meta.settings.progStart || {}), [id]: Date.now() }; markSince(st, id); }, 'meta');
+  showToast({ kind: 'info', ms: 7000, text: (r ? r.name : 'Plan') + ' restarts at ' + (r && r.days[0] ? r.days[0].name : 'day 1'), action: 'Undo', fn: () => commit(st => { st.meta.settings.progStart = { ...(st.meta.settings.progStart || {}), [id]: before }; }, 'meta') });
+}
+function stopPlan(id) {
+  if (id === 'run') { runCommit(r => { r.off = true; }); showToast({ kind: 'info', ms: 7000, text: 'Running plan turned off. Turn it back on from Train → Run.', action: 'Undo', fn: () => runCommit(r => { r.off = false; }) }); return; }
+  const r = getRoutine(id); const main = programId() === id;
+  if (main) { commit(st => { st.meta.settings.program = 'self'; }, 'meta'); showToast({ kind: 'info', ms: 7000, text: 'Stopped following ' + (r ? r.name : 'the plan') + '. You’re on Self-log.', action: 'Undo', fn: () => commit(st => { st.meta.settings.program = id; }, 'meta') }); }
+  else { setAddon(id, false); showToast({ kind: 'info', ms: 7000, text: (r ? r.name : 'Plan') + ' removed from Train', action: 'Undo', fn: () => setAddon(id, true) }); }
+}
+function restartRun(start) {
+  runCommit(r => { r.block = (r.block || 1) + 1; r.start = start; r.swaps = {}; r.easy = {}; r.done = {}; r.off = false; });
+  if (typeof RUN_SEL !== 'undefined') RUN_SEL.w = 1;
+  showToast({ kind: 'info', text: 'Running plan restarts at week 1 on ' + shortDate(parseYmd(start)) });
+}
+function editPlan(id) {
+  closeSheet();
+  if (id === 'run') { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); lsSet('runTab', 'plan'); UI.setTab('train'); S.rerender(); scrollTo(0, 0); return; }
+  UI.setTab('routines'); UI.setView({ type: 'routine', id });
+}
+
+/* ---- missed sessions ---- */
+function runMissedLeft(R, w) { const done = R.done || {}; return runMissed(R, w).filter(x => !done[sessId(R, w, x.key)]); }
+function runStarted(R) { const b = (R.block || 1) + '-'; return sessionList().some(s => s.run && String(s.run.id || '').startsWith(b)) || Object.keys(R.done || {}).some(k => k.startsWith(b)); }
+/* What slipped for one plan: { key, id, name, missed, planned, never, wk, keys } or null */
+function slipFor(p) {
+  const today = startOfDay(new Date()); const ans = S.meta.settings.checkins || {};
+  if (p.key === 'run') {
+    const R = runActive(); if (!R) return null; const cur = runWeekOf(R, today); const N = planLen(R);
+    for (const w of [cur - 1, cur]) {
+      if (w < 1 || w > N) continue; const miss = runMissedLeft(R, w); if (miss.length < 2) continue;
+      const key = 'run:' + (R.block || 1) + ':' + w; if (ans[key]) continue;
+      return { key, id: 'run', name: 'Running plan', missed: miss.length, planned: planWeek(R, w).length, never: !runStarted(R), wk: w === cur ? 'this week' : 'last week', miss, w };
+    }
+    return null;
+  }
+  const since = Math.max(progStartOf(p.key), (S.meta.settings.progSince || {})[p.key] || 0);
+  const first = sessionList().find(s => s.routineId === p.key || (s.addons || []).some(a => a.id === p.key));
+  const from = since || (first ? first.startedAt : 0); if (!from) return null;
+  const ws = startOfWeek(today);
+  for (const [a, label] of [[addDays(ws, -7), 'last week'], [ws, 'this week']]) {
+    let planned = 0, done = 0;
+    for (let i = 0; i < 7; i++) { const d = addDays(a, i); if (d >= today || +d < +startOfDay(new Date(from))) continue; if (p.days.includes(d.getDay())) planned++; if (progDoneOn(p, ymd(d))) done++; }
+    const missed = planned - done; if (missed < 2) continue;
+    const key = p.key + ':' + ymd(a); if (ans[key]) continue;
+    const never = !sessionList().some(s => s.startedAt >= from && (s.routineId === p.key || (s.addons || []).some(x => x.id === p.key)));
+    return { key, id: p.key, name: p.name, missed, planned, never, wk: label };
+  }
+  return null;
+}
+const answerCheck = (key, a) => commit(st => { st.meta.settings.checkins = { ...(st.meta.settings.checkins || {}), [key]: a }; }, 'meta');
+function PlanCheckIn() {
+  if (S.active) return null; const slips = planList().map(slipFor).filter(Boolean); if (!slips.length) return null;
+  const x = slips[0];
+  const unit = x.id === 'run' ? 'run' : 'workout'; const n = x.missed;
+  return html`<div class="card check-card" id="plan-check"><div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Check in · ${x.name}</div>
+      <div style="font-weight:700">${x.never ? 'You haven’t started this plan yet' : n + ' ' + unit + (n === 1 ? '' : 's') + ' missed ' + x.wk}</div>
+      <div class="small muted">${x.never ? n + ' ' + unit + (n === 1 ? ' was' : 's were') + ' planned so far. Want to start fresh, push it back, or turn it off?' : 'Did you do them without logging, or does the plan need a change?'}</div></div>
+      <button class="tip-x" aria-label="Not now" onClick=${() => answerCheck(x.key, 'later')}>${I.x}</button></div>
+    <div class="check-acts">
+      ${x.never ? null : html`<button class="btn" id="ck-did" onClick=${() => { if (x.id === 'run') runCommit(r => { r.done = r.done || {}; for (const m of x.miss) r.done[sessId(r, x.w, m.key)] = true; }); answerCheck(x.key, 'did'); showToast({ kind: 'info', text: 'Marked as done' }); }}>I did ${n === 1 ? 'it' : 'them'}</button>`}
+      <button class="btn" id="ck-restart" onClick=${() => { answerCheck(x.key, 'restart'); if (x.id === 'run') openSheet({ type: 'runRestart' }); else restartProgram(x.id); }}>Restart</button>
+      <button class="btn" id="ck-postpone" onClick=${() => { answerCheck(x.key, 'postpone'); if (x.id === 'run') pushPlanBack(); else showToast({ kind: 'info', text: 'OK. Pick up where you left off: next up is still waiting.' }); }}>${x.id === 'run' ? 'Postpone a week' : 'Postpone'}</button>
+      <button class="btn" id="ck-edit" onClick=${() => { answerCheck(x.key, 'edit'); editPlan(x.id); }}>Edit</button>
+      <button class="btn text danger" id="ck-off" onClick=${() => { answerCheck(x.key, 'off'); stopPlan(x.id); }}>Turn off</button></div></div>`;
+}
+function RunRestartSheet() {
+  const today = ymd(new Date()); const mon = nextMonday();
+  return html`<${Sheet} label="Restart the running plan"><h2>Restart the running plan</h2>
+    <p class="note">Week 1 starts again with your current times. Runs you already logged stay in your history.</p>
+    <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rr-today" onClick=${() => { closeSheet(); restartRun(today); }}>Start today</button>
+      <button class="btn wide" id="rr-monday" onClick=${() => { closeSheet(); restartRun(mon); }}>Start Monday, ${shortDate(parseYmd(mon))}</button>
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+/* Run tab: the plan's own on/off and restart */
+function RunControls() {
+  const R = runSt(); if (!R) return null;
+  if (R.off) return html`<div class="card" id="run-off" style="margin-top:12px"><div style="font-weight:700">Your running plan is off</div>
+    <p class="small muted" style="margin:2px 0 10px">It doesn’t show in Train, Your week or your calendar file. Your times and history are kept.</p>
+    <div class="row" style="gap:8px"><button class="btn primary" style="flex:1" id="run-on" onClick=${() => runCommit(r => { r.off = false; })}>Turn it back on</button><button class="btn" style="flex:1" id="run-restart2" onClick=${() => openSheet({ type: 'runRestart' })}>Restart</button></div></div>`;
+  return html`<div class="row wrap" style="gap:8px;margin-top:12px" id="run-ctl"><button class="btn text" id="run-restart" onClick=${() => openSheet({ type: 'runRestart' })}>Restart from week 1</button><button class="btn text danger" id="run-stop" onClick=${() => stopPlan('run')}>Turn off the plan</button></div>`;
 }
 
 /* ---------- APP ---------- */

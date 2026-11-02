@@ -233,9 +233,9 @@ function guessAisle(n, u) {
   if (/protein powder/.test(t)) return 'pantry';
   if (u === 'can' || u === 'jar' || /\bcanned\b|\bbeans?\b|chickpea|salsa|marinara|tomato (paste|sauce)|crushed tomato|diced tomato|coconut milk|broth|stock\b|pickle|olives/.test(t)) return 'canned';
   if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|bay lea|za.?atar|allspice|cayenne|gochujang|\bmiso\b|tamari|\bsage\b|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
-  if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b/.test(t)) return 'dairy';
+  if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b|cheese|cheddar|mozzarella/.test(t)) return 'dairy';
   if (/chicken|turkey|salmon|shrimp|tofu|tempeh|\bfish\b|\bcod\b|tilapia|steak|\bbeef\b|\bpork\b|sausage|bacon/.test(t)) return 'protein';
-  if (/\brice\b|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
+  if (/\brice\b|cereal|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
   if (/onion|garlic|pepper|broccoli|spinach|lettuce|romaine|tomato|cucumber|carrot|celery|zucchini|potato|\blimes?\b|lemon|cilantro|parsley|basil|berr|banana|apple|grape|avocado|ginger|scallion|kale|cabbage|dill|chive|brussels|collard|tomatillo|jalape|turmeric|coleslaw|\bpeas?\b|mushroom|squash|green bean|\bcorn\b|hummus|orange|cauliflower|asparagus|herb|mint|fruit/.test(t)) return 'produce';
   return 'other';
 }
@@ -302,6 +302,11 @@ const NUT = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' 
 const MACRO_KEYS = NUT.slice(0, 4), EXTRA_KEYS = NUT.slice(4);
 const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: new RegExp(k), kcal, p, c, f, fib, sug, na, g: g || {} });
 const FOODS = [
+  /* Nov 2: foods for the recipes from Newt's reels */
+  F('cereal', 'Breakfast cereal', '\\bcereal', 380, 7, 84, 3, 6, 20, 450, { cup: 40 }),
+  F('ground-beef', 'Ground beef, 93% lean', 'ground beef', 152, 21, 0, 7, 0, 0, 66, {}),
+  F('cheese', 'Cheese, shredded', 'cheese|cheddar|mozzarella', 400, 25, 2, 33, 0, 0.5, 620, { cup: 113, slice: 21 }),
+  F('ketchup', 'Ketchup', 'ketchup', 100, 1, 26, 0.1, 0.3, 22, 900, { cup: 240 }),
   /* Oct 26: foods for the whole-food prep and bowl weeks (USDA-style averages per 100 g); listed first so they win over broader matches */
   F('celery', 'Celery', 'celery', 14, 0.7, 3, 0.2, 1.6, 1.3, 80, { stalk: 40, cup: 101, each: 40 }),
   F('brussels', 'Brussels sprouts', 'brussels', 43, 3.4, 9, 0.3, 3.8, 2.2, 25, { cup: 88 }),
@@ -500,9 +505,42 @@ function normMeals(x) {
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
+    ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), dislikes: String(x.prefs.dislikes || '') } } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
+/* Nov 2: recipes from Newt's saved reels; src credits the creator and links the reel (shown at the bottom of the recipe) */
+MEAL_LIB.push(
+  { id: 'm-reel-chicken-rice', name: 'Big-Batch Chicken & Rice', cat: 'main', serves: 4, size: '1 big bowl', mins: 40, keeps: 4, freezes: true, week: 4,
+    d: 'Simple, high-calorie bowls for building muscle: plenty of chicken and rice, very little fuss.',
+    ing: ['2 lb boneless skinless chicken thighs', '3 cups white rice (dry)', '2 cups frozen peas', '2 tbsp olive oil', '1 tsp salt', '1 tsp garlic powder', '1 tsp smoked paprika', '2 tbsp soy sauce'],
+    steps: ['Cook the rice with 4½ cups of water and half the salt, covered, about 18 minutes. Stir in the peas for the last 3 minutes.', 'Toss the chicken with the oil, the rest of the salt, the garlic powder and paprika.', 'Cook in a large pan over medium-high heat 6–7 minutes a side, until it reaches 165°F (74°C). Rest 5 minutes and slice.', 'Split the rice and chicken between four containers and drizzle with the soy sauce.'],
+    note: 'Bulking: these are big on purpose. For a cut, make 6 smaller bowls from the same batch.',
+    src: { by: '@itsoliverdraisey', url: 'https://www.instagram.com/reel/C5gfkBZCJby/', what: 'High-calorie, simple meals over fancy recipes' } },
+  { id: 'm-reel-cereal-shake', name: 'Cereal & Shake Breakfast', cat: 'breakfast', serves: 1, size: '1 bowl + 1 shake', mins: 3, keeps: 1, freezes: false, week: 1,
+    d: 'A fast, big breakfast when eating enough is the hard part: about 900 calories in three minutes.',
+    ing: ['2 cups cereal', '1½ cups whole milk', '1 banana', '1 scoop protein powder', '1 cup whole milk, for the shake'],
+    steps: ['Pour the cereal and 1½ cups milk into a big bowl and slice the banana on top.', 'Shake the protein powder with 1 cup milk.'],
+    note: 'Pick a cereal with some fiber. For a lighter version use 2% milk and one cup of cereal.',
+    src: { by: '@itsoliverdraisey', url: 'https://www.instagram.com/reel/C5gfkBZCJby/', what: 'Big bowl of cereal plus a protein shake' } },
+  { id: 'm-reel-half-plate', name: 'Half-Plate Protein Plates', cat: 'main', serves: 4, size: '1 plate', mins: 35, keeps: 4, freezes: false, week: 4,
+    d: 'The simple plate rule: half protein, a quarter carbs, a quarter vegetables. No weighing needed.',
+    ing: ['1½ lb boneless skinless chicken breast', '1 cup brown rice (dry)', '1 lb broccoli', '1 tbsp olive oil', '1 tsp salt', '½ tsp black pepper', '1 tsp garlic powder', '1 lemon'],
+    steps: ['Cook the rice with 2 cups of water, covered, about 40 minutes (or use a rice cooker).', 'Heat the oven to 425°F (220°C). Toss the chicken and broccoli with the oil, salt, pepper and garlic powder on a sheet pan.', 'Roast 18–22 minutes, until the chicken reaches 165°F (74°C).', 'Fill half of each container with sliced chicken, a quarter with rice and a quarter with broccoli. Squeeze lemon over.'],
+    note: 'Two plates like this a day plus one or two snacks covers most of a beginner’s protein (estimate).',
+    src: { by: '@higherupwellness', url: 'https://www.instagram.com/reel/DHZSLyfhqT7/', what: 'Half protein, a quarter carbs, a quarter vegetables' } },
+  { id: 'm-reel-ice-cream', name: 'Protein Ice Cream Pint', cat: 'snack', serves: 1, size: '1 pint', mins: 5, keeps: 30, freezes: true, week: 1,
+    d: 'A frozen protein shake spun into soft-serve. Chocolate here; change the flavor with what you have.',
+    ing: ['1½ cups 2% milk', '1 scoop protein powder', '1 tbsp cocoa powder', '1 tsp honey'],
+    steps: ['Blend or shake everything until smooth and pour into an ice-cream maker pint.', 'Freeze flat for 24 hours.', 'Spin on the light ice cream setting. If it’s crumbly, add a splash of milk and re-spin.'],
+    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk.',
+    src: { by: '@fitnessproductfinder', url: 'https://www.instagram.com/reel/DWPSUyHPS8k/', what: 'Protein ice cream pint ideas' } },
+  { id: 'm-reel-burger-bowls', name: 'Lighter Burger Bowls', cat: 'main', serves: 4, size: '1 bowl', mins: 20, keeps: 3, freezes: false, week: 3,
+    d: 'A cheeseburger, swapped lighter: lean beef over crunchy lettuce with a quick burger sauce.',
+    ing: ['1 lb ground beef (93% lean)', '1 onion, diced', '½ tsp salt', '6 cups chopped romaine', '2 tomatoes, diced', '½ cup shredded cheese', '½ cup pickles, chopped', '⅓ cup plain Greek yogurt', '2 tbsp ketchup', '1 tbsp mustard'],
+    steps: ['Brown the beef and onion with the salt, 8–10 minutes, breaking it up.', 'Stir the yogurt, ketchup and mustard together for the sauce.', 'Pack the lettuce and tomatoes separately from the warm beef. To eat, top the lettuce with beef, cheese, pickles and sauce.'],
+    note: 'The swaps: lean beef, no bun, yogurt-based sauce. Add a toasted bun on a high-carb day.',
+    src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
 const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normMeals(S.meta.meals); return S.meta.meals; };
 function getRecipe(id) {
@@ -627,7 +665,7 @@ function PrepPane() {
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
     <div class="section-h"><h2>Ready-made preps</h2></div>
     <div class="stack">${MEAL_PREPS.map(pr => html`<div key=${pr.id} class="r-card prep-card">
-      <h3>${pr.name}</h3><div class="days">${pr.d}</div>
+      <h3>${pr.name}</h3><div class="days">${pr.d}</div>${prepIssues(pr).length ? html`<div class="issue-line">Has ${prepIssues(pr).join(', ')}</div>` : null}
       <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
       <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>
     ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
@@ -694,14 +732,14 @@ function RecipesPane() {
   const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
-    return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>
+    return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
       <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
-  const newRecipe = () => UI.setView({ type: 'mealEdit', isNew: true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
+  const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
     <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['mix', 'Mix & match'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
-    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${newRecipe}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
     ${!term && (cat === 'all' || cat === 'mix') ? html`<div class="section-h"><h2>Mix & match</h2></div>
       <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/>` : null}
     ${cat === 'mix' ? null : html`<div>
@@ -733,6 +771,7 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
+    <${IssueLine} r=${r}/>
     <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
@@ -749,6 +788,7 @@ function RecipeView({ id }) {
       ${r.mix ? null : html`<button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>`}
       <button class="btn" style="flex:1" onClick=${copy}>${I.copy} ${r.mix ? 'Copy to my recipes to change it' : 'Copy'}</button></div>
     ${!r.builtin || r.edited ? html`<button class="btn text wide" style="color:var(--stop);margin-top:6px" onClick=${del}>${r.builtin ? 'Reset to original' : 'Delete recipe'}</button>` : null}
+    <${SourceLine} r=${r}/>
   </div>`;
 }
 function RecipeEditor({ view }) {
@@ -768,11 +808,13 @@ function RecipeEditor({ view }) {
     if (!parsed.length) { setErr('Add at least one ingredient.'); return; }
     const isBuiltin = !!MEAL_BUILTIN[d.id];
     const rec = { id: d.id, name, cat: d.cat || 'main', serves: clampInt(d.serves, 1, 99, 4), size: String(d.size || '').trim(), macros: Object.fromEntries(NUT.map(([k]) => [k, d.macros[k]]).filter(([, v]) => v !== '' && v != null && isFinite(+v)).map(([k, v]) => [k, +v])), mins: +d.mins > 0 ? Math.round(+d.mins) : null,
-      keeps: clampInt(d.keeps, 1, 14, 4), freezes: !!d.freezes, week: d.week || 3, ing: parsed, steps: stepTxt.split('\n').map(s => s.trim()).filter(Boolean), note: String(d.note || '').trim(), base: isBuiltin || undefined, updatedAt: Date.now() };
+      keeps: clampInt(d.keeps, 1, 14, 4), freezes: !!d.freezes, week: d.week || 3, ing: parsed, steps: stepTxt.split('\n').map(s => s.trim()).filter(Boolean), note: String(d.note || '').trim(), ...(d.src && /^https?:\/\//.test(String(d.src.url || '').trim()) ? { src: { url: String(d.src.url).trim(), by: d.src.by || '' } } : {}), base: isBuiltin || undefined, updatedAt: Date.now() };
     mealCommit(m => { m.recipes[d.id] = rec; });
     UI.setView({ type: 'meal', id: d.id });
   };
+  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
   return html`<div class="stack" style="margin-top:6px">
+    ${view.paste ? html`<${PasteBox} onFill=${fillFrom}/>` : null}
     <div><label class="lbl" for="me-name">Name</label><input class="field" id="me-name" value=${d.name} placeholder="e.g. Lemon pepper chicken" onInput=${e => { set('name', e.target.value); setErr(''); }}/></div>
     <div><label class="lbl">Type</label><div class="seg wide per" role="group" aria-label="Recipe type">${MEAL_CATS.map(([k, l]) => html`<button key=${k} class=${d.cat === k ? 'on' : ''} aria-pressed=${d.cat === k} onClick=${() => set('cat', k)}>${l.replace('Lunch & dinner', 'Meal').replace('Building blocks', 'Base')}</button>`)}</div></div>
     <div class="me-grid">
@@ -794,6 +836,8 @@ function RecipeEditor({ view }) {
         <p class="small muted" style="margin-top:6px">Leave blank to use the estimate shown, worked out from the ingredients.${e.missing.length ? ' Not counted: ' + e.missing.join(', ') + '. Type the numbers in if those matter.' : ''}</p></div>`; })()}
     <div><label class="lbl" for="me-steps">Steps, one per line</label><textarea class="field me-ta" id="me-steps" value=${stepTxt} placeholder="Heat the oven to 425°F…" onInput=${e => setStepTxt(e.target.value)}></textarea></div>
     <div><label class="lbl" for="me-note">Notes</label><input class="field" id="me-note" value=${d.note || ''} placeholder="optional" onInput=${e => set('note', e.target.value)}/></div>
+    <div><label class="lbl" for="me-src">Source link</label><input class="field" id="me-src" inputmode="url" value=${(d.src || {}).url || ''} placeholder="Instagram, TikTok, YouTube or a website (optional)" onInput=${e => set('src', { ...(d.src || {}), url: e.target.value.trim(), by: '' })}/>
+      <p class="small muted" style="margin-top:4px">Shown at the bottom of the recipe so you can find the original.</p></div>
     ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
     <button class="btn primary wide" id="me-save" onClick=${save}>Save recipe</button>
     <button class="btn wide" onClick=${() => UI.setView(view.isNew ? null : { type: 'meal', id: d.id })}>Cancel</button>

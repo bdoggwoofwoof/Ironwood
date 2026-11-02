@@ -19,7 +19,7 @@ function openChallengeDraft(draft) { closeSheet(); UI.setTab('train'); UI.setVie
 function ChallengeSheet() {
   return html`<${Sheet} label="Start a challenge"><h2>Start a challenge</h2>
     <p class="note">A daily checklist for a set number of days. Workouts you log tick their items by themselves. You can change everything before you start.</p>
-    <div class="stack" style="gap:8px;margin-top:10px">${CH_TEMPLATES.map(t => html`<button key=${t.id} class="opt ch-tpl" id=${'cht-' + t.id} onClick=${() => openChallengeDraft(challengeFrom(t))}>
+    <div class="stack" style="gap:8px;margin-top:10px">${CH_TEMPLATES.map(t => html`<button key=${t.id} class="opt ch-tpl" id=${'cht-' + t.id} onClick=${() => t.id === 'iron75' || t.id === 'iron75lite' ? openSheet({ type: 'ironSetup', ver: t.id }) : openChallengeDraft(challengeFrom(t))}>
       <div style="flex:1;min-width:0"><div><b>${t.name}</b> <span class="small muted">· ${t.days} days</span></div><div class="d">${t.d}</div></div></button>`)}
       <button class="opt" id="cht-own" onClick=${() => openChallengeDraft({ ...newChallenge(), name: 'My challenge', items: [{ id: uid('k'), name: 'Workout', auto: 'w1' }] })}><div style="flex:1"><div><b>Make your own</b></div><div class="d">Pick the length and the daily checklist yourself.</div></div></button></div>
     <p class="small faint" style="margin-top:10px">Strict challenges are hard on recovery. Take rest days if you feel run down, and skip anything that hurts. Not medical advice.</p><//>`;

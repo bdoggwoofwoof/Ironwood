@@ -1137,11 +1137,11 @@ _t0 = src.index("const TOUR = [\n"); _t1 = src.index("\n];\n", _t0) + 4
 src = src[:_t0] + """const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
-  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
   ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
-  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
+  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
@@ -1151,7 +1151,7 @@ src = src[:_t0] + """const TOUR = [
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
-  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight and goal and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],\n  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal and what you can’t or won’t eat, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],\n  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
@@ -1378,6 +1378,46 @@ swap("/* ---------- APP ---------- */", RFJS + "\n/* ---------- APP ---------- *
 swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'runFit': return html`<${RunFitSheet}/>`;\n    case 'addonFit': return html`<${AddonFitSheet} ...${sheet}/>`;")
 swap("setAddon(r.id, on); showToast({ kind: 'info', text: on ? r.name + ' added alongside your program. It shows in Train.' : r.name + ' removed from Train' });", "setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' });")
 swap("const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); };", "const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); if (typeof applyFit === 'function' && runActive() && runSt().fit) applyFit(runSt().fit, true); };")
+
+# 32. Food preferences, recipe sources, recipes from a post, and recipes from Newt's reels (foodprefs.js + meals.js,
+#     Nov 2): allergies and diet style block recipes from plans and flag them; dislikes stay out of plans; each recipe
+#     can link its source (shown at the bottom); "From a post" fills a recipe from a pasted caption.
+FPJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'foodprefs.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", FPJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'mealPrefs': return html`<${PrefsSheet}/>`;")
+swap("if (!a.me && b.me) a.me = b.me;", "if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs;")
+swap(".sess-acts{gap:8px}", """.issue-line{font-size:13px;color:var(--ink-2);margin-top:4px}.issue-line.bad{color:var(--stop);font-weight:600}
+.src-line{display:flex;flex-direction:column;gap:2px;margin-top:18px;padding-top:10px;border-top:1px solid var(--line)}.src-line a{color:var(--accent);font-weight:600}
+.sess-acts{gap:8px}""")
+
+# 33. Iron 75 / Lite from a questionnaire (iron75.js, Nov 2): priorities and habits build the checklist; protein and
+#     calories tick from the food log; a sick or hurt day can be a light day instead of breaking the run.
+IRJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'iron75.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", IRJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'ironSetup': return html`<${IronSetupSheet} ...${sheet}/>`;")
+swap("function chChecked(ch, it, k, wc) { const e = (ch.log || {})[k]; return !!(e && e.c && e.c[it.id]) || (it.auto === 'w1' && wc >= 1) || (it.auto === 'w2' && wc >= 2); }", "function chChecked(ch, it, k, wc) { const e = (ch.log || {})[k]; return !!(e && e.c && e.c[it.id]) || chAutoOn(ch, it, k, wc); }")
+swap("const auto = (it.auto === 'w1' && wc >= 1) || (it.auto === 'w2' && wc >= 2); const on = manual || auto;", "const auto = chAutoOn(ch, it, k, wc); const on = manual || auto;")
+swap("it.auto ? html`<span class=\"d\">auto: ${it.auto === 'w1' ? '1st' : '2nd'} workout</span>` : null", "it.auto ? html`<span class=\"d\">${chAutoLabel(it)}</span>` : null")
+swap("if (!Object.keys(e.c).length && !e.rest) delete c.log[k]; }, 'meta', 900); }", "if (!Object.keys(e.c).length && !e.rest && !e.light) delete c.log[k]; }, 'meta', 900); }")
+swap("    ${ch.restPerWeek > 0 ? (e.rest ?", "    <${LightDay} ch=${ch} k=${k}/>\n    ${ch.restPerWeek > 0 ? (e.rest ?")
+
+# 34. Goal plans (goals.js, Nov 2): an interview (goal, sport, keep my program or a new one, days, minutes, gear,
+#     cardio, joints, winter bulk → spring cut) builds your own copy of one of six built-in plans or adjusts around
+#     your program; it flows into the meal plan setup; season switches are asked first.
+GLJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'goals.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", GLJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'goalSetup': return html`<${GoalSetupSheet}/>`;")
+swap("    case 'mealTargets': return html`<${TargetsSheet}/>`;", "    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset}/>`;")
+swap("    <${PlanCheckIn}/>\n", "    <${PhaseCheck}/>\n    <${PlanCheckIn}/>\n")
+swap("""    <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new program</div>""", """    <button class="opt" id="pick-goal" onClick=${() => openSheet({ type: 'goalSetup' })}><div style="flex:1"><div>Build my plan</div><div class="d">A few questions about your goal, time and gear, and Ironwood fits a plan to you.</div></div></button>
+    <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new program</div>""")
+swap("""        ${pickBtn('Create or select a program')}</div>""", """        <button class="btn primary wide" id="gs-start" style="margin-bottom:8px" onClick=${() => openSheet({ type: 'goalSetup' })}>Build my plan (a few questions)</button>
+        ${pickBtn('Create or select a program', 'btn wide')}</div>""")
+swap(".sess-acts{gap:8px}", """.gs-steps{display:flex;gap:6px;margin-top:6px}
+.gs-steps span{flex:1;text-align:center;font-size:12px;padding:4px 0;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--muted,inherit)}
+.gs-steps span.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
+.gs-steps span.done{opacity:.8}
+.sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

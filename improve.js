@@ -89,6 +89,7 @@ function refillLift(it, occ) {
     const pr = +p.r || 0;
     x.gr = String(!top ? pr : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
+  if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
 /* "Last · Mon, Oct 19: 140 × 5, 5, 4 · 135 × 8" */
 function lastLine(it) {

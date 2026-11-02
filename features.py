@@ -1140,7 +1140,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
   ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
-  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots). Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
@@ -1315,6 +1315,26 @@ swap(".sess-acts{gap:8px}", """.w-th{display:flex;align-items:center;justify-con
 .side-tog{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:24px;min-height:32px;padding:0 4px;margin:-2px 0}
 .side-tog .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:block}
 .side-tog .dot.sm{width:5px;height:5px}
+.sess-acts{gap:8px}""")
+
+# 28. Machines (machines.js, Nov 2, Newt's request): name the machines you use for an exercise (⋯ → Machines); chips on
+#     the exercise switch machine mid-lift. Each set keeps its machine; weights, Last numbers, weight carry-over and PRs
+#     compare only sets on the same machine.
+MACHJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machines.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", MACHJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;")
+swap("${it.prog.msg}</div>` : null}\n    <${ExNote} it=${it}/>", "${it.prog.msg}</div>` : null}\n    <${MachineRow} it=${it}/>\n    <${ExNote} it=${it}/>")
+swap("refill(it, occ || 0); return it;", "refill(it, occ || 0); initMachine(it); return it;")
+swap("  s.c = Date.now();", "  s.c = Date.now(); if (!s.m && it.mach) s.m = it.mach;")
+swap("for (const n of it.sets.slice(j + 1)) if (!isDone(n)) n.gw = s.w;", "for (const n of it.sets.slice(j + 1)) if (!isDone(n) && (n.m || '') === (s.m || '')) n.gw = s.w;")
+swap("for (const x of e.sets) if (+x.r > 0) pool.push({ w: +x.w || 0, r: +x.r });\n  if (!pool.length) return [];", "for (const x of e.sets) if (+x.r > 0 && (!s.m || (x.m || '') === s.m)) pool.push({ w: +x.w || 0, r: +x.r });\n  if (!pool.length) return [];")
+swap("for (const x of o.sets) if (x !== s && isDone(x) && x.c && (!s.c || x.c < s.c)) pool.push(", "for (const x of o.sets) if (x !== s && isDone(x) && x.c && (!s.c || x.c < s.c) && (!s.m || (x.m || '') === s.m)) pool.push(")
+swap("const cur = toMain(it.sets, it.u).filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r }));", "const cur = toMain(it.sets, it.u).filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r, m: x.m || '' }));")
+swap("const pool = prior.flatMap(e => e.sets.filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r })));\n      const best = {};\n      for (const x of cur) for (const p of prReasons(x, pool, kind, u, P))",
+     "const pool = prior.flatMap(e => e.sets.filter(x => +x.r > 0).map(x => ({ w: +x.w || 0, r: +x.r, m: x.m || '' })));\n      const best = {};\n      for (const x of cur) for (const p of prReasons(x, x.m ? pool.filter(y => y.m === x.m) : pool, kind, u, P))")
+swap("    <button class=\"opt\" onClick=${() => { toggleUnit(it); closeSheet(); }}>", "    ${isMeasured(exKind(it.ex)) ? null : html`<button class=\"opt\" id=\"opt-machines\" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class=\"d\">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}\n    <button class=\"opt\" onClick=${() => { toggleUnit(it); closeSheet(); }}>")
+swap("for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide'])", "for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide', 'machines'])")
+swap(".sess-acts{gap:8px}", """.mach-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.mach-row .chip svg{width:14px;height:14px}
 .sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the

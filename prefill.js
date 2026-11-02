@@ -61,6 +61,7 @@ function RepRecords({ ex, group }) {
 }
 /* One set's numbers from last time, shown beside the set */
 function prevSetText(it, j, kind) {
+  const s = it.sets && it.sets[j]; if (s && s.pv !== undefined) return s.pv;
   const p = it.prev && it.prev[j]; if (!p || !(+p.r > 0)) return '';
   return kind === 'bodyweight' && !(+p.w) ? p.r + ' reps' : fmt(+p.w || 0) + ' × ' + p.r;
 }

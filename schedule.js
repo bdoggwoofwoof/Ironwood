@@ -19,7 +19,7 @@ function toggleSched(id, dow) {
 }
 /* The running plan's days this week (or the next week of the plan) */
 function runPlanInfo() {
-  const R = typeof runSt === 'function' ? runSt() : null; if (!R || !runCtxNow()) return null;
+  const R = typeof runActive === 'function' ? runActive() : null; if (!R) return null;
   const n = planLen(R); let w = runWeekOf(R, new Date()); if (w > n) return { R, done: true, w, ws: [] };
   const wk = Math.max(1, w); const ws = planWeek(R, wk);
   return { R, w, wk, n, ws, days: [...new Set(ws.map(x => x.dow))].sort() };

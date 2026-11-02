@@ -5,11 +5,12 @@
    so each add-on moves on to its next day. */
 const addonIds = () => (S.meta.settings.addons || []).filter(id => id !== programId() && getRoutine(id));
 function setAddon(id, on) {
-  commit(st => { const a = new Set(st.meta.settings.addons || []); if (on) a.add(id); else a.delete(id); st.meta.settings.addons = [...a]; }, 'meta');
+  commit(st => { const a = new Set(st.meta.settings.addons || []); if (on) { a.add(id); if (typeof markSince === 'function') markSince(st, id); } else a.delete(id); st.meta.settings.addons = [...a]; }, 'meta');
 }
 function nextFor(r) {
   const list = sessionList();
   for (let i = list.length - 1; i >= 0; i--) { const s = list[i];
+    if (s.startedAt < progStartOf(r.id)) continue;
     const hit = s.routineId === r.id ? s.dayId : ((s.addons || []).find(a => a.id === r.id) || {}).dayId;
     if (!hit) continue; const idx = r.days.findIndex(d => d.id === hit); return { day: r.days[(idx + 1) % r.days.length], last: s }; }
   return { day: r.days[0], last: null };
@@ -31,7 +32,7 @@ const shortName = r => r.name.replace(/ Care$/, '');
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
   /* The running plan always shows once it's set up: today's run, or the next one */
-  const run = R && runCtxNow() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
+  const run = R && runActive() ? (() => { const n = planLen(R); const today = startOfDay(new Date());
     for (let i = 0; i < 21; i++) { const day = addDays(today, i); const w = runWeekOf(R, day); if (w < 1 || w > n) continue;
       const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
       if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
@@ -69,7 +70,7 @@ function AddonsSheet() {
   const row = r => html`<button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => setAddon(r.id, !on.has(r.id))}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>`;
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
-    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runCtxNow() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runCtxNow() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
     ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }

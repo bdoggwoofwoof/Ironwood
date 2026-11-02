@@ -1138,7 +1138,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
+  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
@@ -1353,6 +1353,21 @@ swap(".sess-acts{gap:8px}", """.find-list{display:flex;flex-direction:column;gap
 .cat-pick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px}
 .cat-new{flex:1 1 140px;min-width:120px;padding:6px 10px}
 .find-top{border:1.5px solid var(--accent)}
+.sess-acts{gap:8px}""")
+
+# 30. Turn plans off or restart them, and a check-in when a week slips (planctl.js, Nov 2, Newt's request): every plan
+#     you follow can be stopped or restarted (plan page, Run tab); when 2+ planned sessions are missed in a week, or a
+#     plan was never started, Train asks: I did them / Restart / Postpone / Edit / Turn off.
+PCJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'planctl.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", PCJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'runRestart': return html`<${RunRestartSheet}/>`;")
+swap("    <${MonthCard}/>\n    <${PlanWeekCard}/>", "    <${PlanCheckIn}/>\n    <${MonthCard}/>\n    <${PlanWeekCard}/>")
+swap("if (s.routineId !== r.id) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }", "if (s.routineId !== r.id || s.startedAt < progStartOf(r.id)) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }")
+swap("const setProgram = id => { commit(st => { st.meta.settings.program = id; }, 'meta'); };", "const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); };")
+swap('      <button class="btn" onClick=${edit}>${I.edit} Edit</button>', '      ${programId() === r.id || addonIds().includes(r.id) ? html`<button class="btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>Restart from day 1</button>` : null}\n      ${programId() === r.id ? html`<button class="btn text" id="plan-stop" onClick=${() => stopPlan(r.id)}>Stop following</button>` : null}\n      <button class="btn" onClick=${edit}>${I.edit} Edit</button>')
+swap("    <${RunAdapt} R=${R} w=${w} cur=${cur}/>", "    <${RunAdapt} R=${R} w=${w} cur=${cur}/>\n    ${R.off ? null : html`<${RunControls}/>`}")
+swap(".sess-acts{gap:8px}", """.check-card{border:1.5px solid var(--accent)}
+.check-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.check-acts .btn{flex:1 1 30%}
 .sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the

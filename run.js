@@ -746,6 +746,7 @@ function RunScreen() {
   const tab = ['plan', 'paces', 'programs', 'times'].includes(lsGet('runTab')) ? lsGet('runTab') : 'plan';
   const pick = k => { lsSet('runTab', k); S.rerender(); };
   return html`<div id="run-screen">
+    ${R.off ? html`<${RunControls}/>` : null}
     <div class="seg wide run-seg" role="tablist" style="margin-top:12px">${[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Programs'], ['times', 'Times']].map(([k, l]) => html`<button key=${k} role="tab" id=${'run-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${tab === 'paces' ? html`<${RunPaces} c=${c}/>` : tab === 'programs' ? html`<${RunPrograms}/>` : tab === 'times' ? html`<${RunTimes}/>` : html`<${RunPlan} R=${R} c=${c}/>`}
     <p class="small faint" style="margin-top:18px">${RUN_NOTE}</p></div>`;
@@ -1037,7 +1038,7 @@ function RunGoalSheet() {
 /* A run quick-logged from Log another activity can count as that day's plan session */
 const actMeters = s => !(+s.dist > 0) ? 0 : +s.dist * ({ mi: MILE, km: 1000, m: 1, yd: 0.9144 }[s.distU || 'mi'] || MILE);
 function planSessionFor(day) {
-  const R = runSt(); if (!R || !runCtxNow()) return null; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) return null;
+  const R = runActive(); if (!R) return null; const w = runWeekOf(R, day); if (w < 1 || w > planLen(R)) return null;
   const open = planWeek(R, w).filter(x => !x.s.test && !runLogged(R, w, x.key).length && sessDate(R, w, x.dow) <= startOfDay(day));
   const same = open.find(x => ymd(sessDate(R, w, x.dow)) === ymd(day));
   const x = same || open[open.length - 1]; return x ? { R, w, x } : null;

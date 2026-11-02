@@ -168,7 +168,7 @@ function mealGoalFor(a) {
 }
 function nextDate(month, day, after) { const a = after || new Date(); let d = new Date(a.getFullYear(), month - 1, day); if (d <= a) d = new Date(a.getFullYear() + 1, month - 1, day); return ymd(d); }
 function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
-function GoalSetupSheet() {
+function GoalSetupSheet({ welcome } = {}) {
   const saved = S.meta.settings.goal || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
   const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
     gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
@@ -181,7 +181,8 @@ function GoalSetupSheet() {
   const keep = a.keep && hasProg; const plan = keep ? null : buildGoalPlan(a); const kp = keep ? keepPlanFor(a) : null;
   const finish = toMeals => { applyGoal(a, plan); if (toMeals) { const mg = mealGoalFor(a); setTimeout(() => openSheet({ type: 'mealTargets', preset: mg }), 80); } else closeSheet(); };
   const steps = ['Goal', 'Time', 'Gear', 'Your plan'];
-  return html`<${Sheet} label="Build my plan"><h2>Build my plan</h2>
+  return html`<${Sheet} label="Build my plan"><h2>${welcome ? 'Let’s set you up' : 'Build my plan'}</h2>
+    ${welcome && step === 0 ? html`<p class="note" id="gs-welcome">A few quick questions and Ironwood builds a training plan and, if you like, your meals. Skip anything: you can do this later from Train.</p>` : null}
     <div class="gs-steps" aria-label=${'Step ' + (step + 1) + ' of 4'}>${steps.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
     <div class="stack" style="gap:14px;margin-top:10px" id=${'gs-step' + step}>
     ${step === 0 ? html`
@@ -206,7 +207,7 @@ function GoalSetupSheet() {
       <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
       <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
       <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
-    <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}
+    <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" id="gs-cancel" onClick=${closeSheet}>${welcome ? 'Skip for now' : 'Cancel'}</button>`}
       ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
 }
 /* ---- season phases: ask before switching ---- */
@@ -241,4 +242,10 @@ for (const T of GP_TPL) {
     return planDay(T.id, i + 1, d[0], d[1], d[2].map(([n, s, r, cue]) => [n, s, r, cue]));
   });
   BUILTIN_ROUTINES.push({ id: T.id, name: T.name, note: T.fit + ' ' + T.why + ' Build my plan (Train) fits it to your time, gear and joints.', source: 'builtin', shelf: 'programs', meta: 'Goal plan · ' + T.days + ' days a week', days, goalPlan: true });
+}
+/* First launch: when the tour ends (or is skipped) on a fresh install, offer the interview once. */
+function offerSetup() {
+  if (lsGet('setupOffered') === '1') return; lsSet('setupOffered', '1');
+  if (S.meta.settings.program || S.meta.settings.goal || Object.keys(S.sessions).length) return;
+  setTimeout(() => { if (!S.active) openSheet({ type: 'goalSetup', welcome: true }); }, 350);
 }

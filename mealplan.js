@@ -33,26 +33,56 @@ function planPool() {
   const all = allRecipes().filter(r => ok(r) && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
   return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
 }
+/* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
+   meals 2 = two bigger meals, 3 = three meals, 4 = three meals and a snack (the default), 5 = three meals and two snacks.
+   prep: cook once for the week (fewest recipes), a few times (the default), or fresh most days (more variety).
+   cheap leans on budget staples; quick keeps to recipes of 30 minutes or less when enough fit. */
+const HABITS0 = { meals: 4, prep: 'few', cheap: false, quick: false };
+const mealHabits = () => ({ ...HABITS0, ...(ML().habits || {}) });
+const PRICEY = /salmon|steak|sirloin|shrimp|scallop|bison|lamb|almond|cashew|pecan|walnut|pistachio|pine nut|berr|avocado|parmesan|feta|goat cheese|prosciutto|quinoa|protein powder|whey|\bcod\b|halibut|mahi|cheese crisps/;
+const CHEAP = /\brice\b|\boats?\b|beans?\b|lentil|\beggs?\b|potato|chicken thigh|ground (turkey|beef|chicken)|pasta|frozen|cabbage|carrot|banana|onion|canned|peanut butter|tortilla|\bmilk\b|cottage cheese|chicken breast/;
+function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = String(g && g.n || g || '').toLowerCase(); if (PRICEY.test(n)) s += 2; else if (CHEAP.test(n)) s -= 0.5; } return s; }
+function shapePool(list, n, H, rnd) {
+  let L = list;
+  if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
+  if (H.cheap) { const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
+  return pickN(L, Math.min(n, L.length), rnd);
+}
 function buildMenu(t, seed) {
-  const P = planPool(); const rnd = seeded(seed); if (!P.b.length || P.m.length < 2) return null;
-  const bs = pickN(P.b, 2, rnd), ms = pickN(P.m, Math.min(3, P.m.length), rnd);
-  const snacks = P.s.slice().sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const P = planPool(); const rnd = seeded(seed); const H = mealHabits(); const two = +H.meals === 2;
+  if ((!two && !P.b.length) || P.m.length < 2) return null;
+  const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
+  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(P.m, nM, H, rnd);
+  const snacks = (H.cheap ? P.s.filter(r => costScore(r) <= 0) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2;
   const days = [];
   for (let i = 0; i < 7; i++) {
-    const day = [{ slot: 'b', r: bs[i % bs.length].id, sv: 1 }, { slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }];
+    const day = two ? [{ slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }]
+      : [{ slot: 'b', r: bs[i % bs.length].id, sv: 1 }, { slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }];
     const tot = () => day.reduce((a, x) => { const m = macros(getRecipe(x.r)); a.kcal += m.kcal * x.sv; a.p += m.p * x.sv; return a; }, { kcal: 0, p: 0 });
-    /* a snack when there's room: the most protein for its calories when protein is short */
-    let T = tot(); if (snacks.length && T.kcal < t.kcal - 120) { const s = T.p < t.p - 15 ? snacks[0] : snacks[(i + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
-    /* then portions in half steps toward the calorie target (½ to 2 of a serving) */
-    for (let k = 0; k < 12; k++) {
+    /* snacks when there's room: the most protein for its calories when protein is short */
+    let T = tot();
+    for (let k = 0; k < maxSnacks && snacks.length; k++) { T = tot(); if (T.kcal >= t.kcal - 120) break;
+      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
+    /* then portions in half steps toward the calorie target */
+    for (let k = 0; k < 14; k++) {
       T = tot(); const gap = t.kcal - T.kcal; if (Math.abs(gap) < 90) break;
       const main = day.filter(x => x.slot === 'l' || x.slot === 'd' || x.slot === 'b');
-      if (gap > 0) { const x = main.filter(y => y.sv < 2).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
-      else { const s = day.find(y => y.slot === 's'); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
+      if (gap > 0) { const x = main.filter(y => y.sv < maxSv).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
+      else { const s = day.filter(y => y.slot === 's').pop(); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
     }
     days.push(day);
   }
-  return { seed, t, days, at: Date.now() };
+  return { seed, t, days, at: Date.now(), h: H };
+}
+function HabitsFields({ v, set }) {
+  const seg = (k, opts, id) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([x, l]) => html`<button key=${x} id=${'hb-' + id + '-' + x} class=${v[k] === x ? 'on' : ''} aria-pressed=${v[k] === x} onClick=${() => set({ ...v, [k]: x })}>${l}</button>`)}</div>`;
+  return html`<div class="stack" style="gap:12px" id="habits-fields">
+    <div><span class="lbl">Meals a day</span>${seg('meals', [[2, '2'], [3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], 'meals')}</div>
+    <div><span class="lbl">How you cook</span>${seg('prep', [['once', 'Once a week'], ['few', 'A few times'], ['fresh', 'Most days']], 'prep')}
+      <p class="small muted" style="margin-top:4px">${v.prep === 'once' ? 'Fewest recipes: one big cook covers the week.' : v.prep === 'fresh' ? 'More variety, smaller batches.' : 'Two or three cooks a week.'}</p></div>
+    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
 const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */
@@ -122,7 +152,7 @@ function TargetsSheet({ preset } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
@@ -130,7 +160,7 @@ function TargetsSheet({ preset } = {}) {
   const t = targetsFor(me); const bmi = bmiOf(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
-    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
+    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
     closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: 7000, text: ML().menu ? 'Your targets and a week of meals are ready.' : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
@@ -148,6 +178,7 @@ function TargetsSheet({ preset } = {}) {
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
       <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
       <div><div class="section-h" style="margin:4px 0 2px"><h2>Food</h2></div><${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/></div>
+      <div><div class="section-h" style="margin:4px 0 2px"><h2>How you eat</h2></div><${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/></div>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>

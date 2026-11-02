@@ -506,6 +506,7 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), dislikes: String(x.prefs.dislikes || '') } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick } } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }

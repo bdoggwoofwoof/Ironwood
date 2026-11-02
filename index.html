@@ -293,6 +293,12 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .find-top{border:1.5px solid var(--accent)}
 .check-card{border:1.5px solid var(--accent)}
 .check-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.check-acts .btn{flex:1 1 30%}
+.issue-line{font-size:calc(13 * var(--u));color:var(--ink-2);margin-top:4px}.issue-line.bad{color:var(--stop);font-weight:600}
+.src-line{display:flex;flex-direction:column;gap:2px;margin-top:18px;padding-top:10px;border-top:1px solid var(--line)}.src-line a{color:var(--accent);font-weight:600}
+.gs-steps{display:flex;gap:6px;margin-top:6px}
+.gs-steps span{flex:1;text-align:center;font-size:calc(12 * var(--u));padding:4px 0;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--muted,inherit)}
+.gs-steps span.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
+.gs-steps span.done{opacity:.8}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -1403,7 +1409,7 @@ function newChallenge() {
     items: [{ id: uid('k'), name: 'Workout 1', auto: 'w1' }, { id: uid('k'), name: 'Workout 2', auto: 'w2' }, { id: uid('k'), name: 'Water', auto: null }, { id: uid('k'), name: 'Macros', auto: null }] };
 }
 const chItemsOn = (ch, k) => ch.items.filter(it => !it.since || it.since <= k);
-function chChecked(ch, it, k, wc) { const e = (ch.log || {})[k]; return !!(e && e.c && e.c[it.id]) || (it.auto === 'w1' && wc >= 1) || (it.auto === 'w2' && wc >= 2); }
+function chChecked(ch, it, k, wc) { const e = (ch.log || {})[k]; return !!(e && e.c && e.c[it.id]) || chAutoOn(ch, it, k, wc); }
 /* Walks every day from the start. Done = every item checked. A missed day restarts the run when restart is on.
    Rest days (up to the weekly allowance) count as done. Sick, injured and break days pause it when that setting is on. */
 function challengeState(ch, todayK = ymd(new Date())) {
@@ -2019,6 +2025,7 @@ function TrainHome() {
     <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
+    <${PhaseCheck}/>
     <${PlanCheckIn}/>
     <${MonthCard}/>
     <${PlanWeekCard}/>
@@ -2053,7 +2060,8 @@ function TrainHome() {
     : html`
       <div class="section-h"><h2>Get started</h2></div>
       <div class="next-card" id="get-started"><h2>Pick how you train</h2><p class="note">Follow a program and Ironwood lines up the next day for you, or self-log whatever you do.</p>
-        ${pickBtn('Create or select a program')}</div>
+        <button class="btn primary wide" id="gs-start" style="margin-bottom:8px" onClick=${() => openSheet({ type: 'goalSetup' })}>Build my plan (a few questions)</button>
+        ${pickBtn('Create or select a program', 'btn wide')}</div>
       <div class="stack" style="margin-top:10px">${actBtn}</div>`}
     <div class="row" style="margin-top:12px">
       <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
@@ -2070,6 +2078,7 @@ function ProgramSheet() {
   return html`<${Sheet} label="Choose a program"><h2>Choose a program</h2>
     <p class="note" style="margin-bottom:6px">Train shows the next day of the program you pick. You can change it any time.</p>
     <button class=${'opt' + (cur === 'self' ? ' on' : '')} id="pick-self" onClick=${() => choose('self')}><div style="flex:1"><div>Self-log</div><div class="d">No program. Start an empty workout and add exercises as you go.</div></div>${cur === 'self' ? I.check : null}</button>
+    <button class="opt" id="pick-goal" onClick=${() => openSheet({ type: 'goalSetup' })}><div style="flex:1"><div>Build my plan</div><div class="d">A few questions about your goal, time and gear, and Ironwood fits a plan to you.</div></div></button>
     <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new program</div><div class="d">Build your own days and exercises.</div></div></button>
     <div class="eyebrow" style="margin:16px 0 2px">Plans</div>${plans.map(row)}
     ${singles.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Single workouts</div>${singles.map(row)}` : null}<//>`;
@@ -2092,11 +2101,11 @@ function HelpSheet() {
 const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
-  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
   ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
-  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
+  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
@@ -2106,8 +2115,8 @@ const TOUR = [
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
-  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight and goal and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
-  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal and what you can’t or won’t eat, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
@@ -3083,7 +3092,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 9382972</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 3fe4b23</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3246,15 +3255,16 @@ function chLine(ch, st) {
   if (st.finishedOn) return (ch.restart ? 'Finished ' : 'Ended ') + shortDate(+parseYmd(st.finishedOn)) + ' · ' + st.count + ' of ' + ch.days + ' days done';
   return 'Day ' + st.dayNum + ' of ' + ch.days + (ch.restart ? (st.attempt > 1 ? ' · attempt ' + st.attempt : '') : ' · ' + st.count + ' done' + (st.missed ? ', ' + st.missed + ' missed' : ''));
 }
-function chToggle(id, k, itemId) { commit(m => { const c = m.meta.challenges[id]; if (!c) return; c.log = c.log || {}; const e = c.log[k] = c.log[k] || {}; e.c = e.c || {}; if (e.c[itemId]) delete e.c[itemId]; else e.c[itemId] = 1; if (!Object.keys(e.c).length && !e.rest) delete c.log[k]; }, 'meta', 900); }
+function chToggle(id, k, itemId) { commit(m => { const c = m.meta.challenges[id]; if (!c) return; c.log = c.log || {}; const e = c.log[k] = c.log[k] || {}; e.c = e.c || {}; if (e.c[itemId]) delete e.c[itemId]; else e.c[itemId] = 1; if (!Object.keys(e.c).length && !e.rest && !e.light) delete c.log[k]; }, 'meta', 900); }
 function chRest(id, k, on) { commit(m => { const c = m.meta.challenges[id]; if (!c) return; c.log = c.log || {}; const e = c.log[k] = c.log[k] || {}; if (on) e.rest = 1; else { delete e.rest; if (!e.c || !Object.keys(e.c).length) delete c.log[k]; } }, 'meta', 900); }
 function ChallengeChecklist({ ch, k }) {
   const e = (ch.log || {})[k] || {}; const wc = dayCounts()[k] || 0; const items = chItemsOn(ch, k);
   const mark = (S.meta.dayMarks || {})[k]; const used = restUsedInWeek(ch, k);
   return html`<div class="ch-list">
-    ${items.map(it => { const manual = !!(e.c && e.c[it.id]); const auto = (it.auto === 'w1' && wc >= 1) || (it.auto === 'w2' && wc >= 2); const on = manual || auto;
+    ${items.map(it => { const manual = !!(e.c && e.c[it.id]); const auto = chAutoOn(ch, it, k, wc); const on = manual || auto;
       return html`<button key=${it.id} class=${'ch-item' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => { if (auto && !manual) return; chToggle(ch.id, k, it.id); }}>
-        <i>${on ? I.check : null}</i><span class="nm">${it.name}</span>${auto ? html`<span class="d">from your log</span>` : it.auto ? html`<span class="d">auto: ${it.auto === 'w1' ? '1st' : '2nd'} workout</span>` : null}</button>`; })}
+        <i>${on ? I.check : null}</i><span class="nm">${it.name}</span>${auto ? html`<span class="d">from your log</span>` : it.auto ? html`<span class="d">${chAutoLabel(it)}</span>` : null}</button>`; })}
+    <${LightDay} ch=${ch} k=${k}/>
     ${ch.restPerWeek > 0 ? (e.rest ? html`<button class="btn text" onClick=${() => chRest(ch.id, k, false)}>Rest day taken · Undo</button>`
       : used < ch.restPerWeek ? html`<button class="btn text" onClick=${() => chRest(ch.id, k, true)}>Use a rest day (${ch.restPerWeek - used} left this week)</button>`
       : html`<p class="small faint">No rest days left this week.</p>`) : null}
@@ -3443,7 +3453,7 @@ function restoreInto(st, d) {
     const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
     if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;
-      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
+      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
       for (const [d, l] of Object.entries(b.log)) { const have = new Set((a.log[d] || []).map(e => e.id)); const add = l.filter(e => !have.has(e.id)); if (add.length) a.log[d] = (a.log[d] || []).concat(add); } }
     if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;
     if (m.fight && !st.meta.fight) st.meta.fight = m.fight;
@@ -3873,11 +3883,14 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
+    case 'goalSetup': return html`<${GoalSetupSheet}/>`;
+    case 'ironSetup': return html`<${IronSetupSheet} ...${sheet}/>`;
+    case 'mealPrefs': return html`<${PrefsSheet}/>`;
     case 'runFit': return html`<${RunFitSheet}/>`;
     case 'addonFit': return html`<${AddonFitSheet} ...${sheet}/>`;
     case 'runRestart': return html`<${RunRestartSheet}/>`;
     case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;
-    case 'mealTargets': return html`<${TargetsSheet}/>`;
+    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset}/>`;
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
     case 'rotation': return html`<${RotationSheet}/>`;
@@ -4129,9 +4142,9 @@ function guessAisle(n, u) {
   if (/protein powder/.test(t)) return 'pantry';
   if (u === 'can' || u === 'jar' || /\bcanned\b|\bbeans?\b|chickpea|salsa|marinara|tomato (paste|sauce)|crushed tomato|diced tomato|coconut milk|broth|stock\b|pickle|olives/.test(t)) return 'canned';
   if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|bay lea|za.?atar|allspice|cayenne|gochujang|\bmiso\b|tamari|\bsage\b|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
-  if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b/.test(t)) return 'dairy';
+  if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b|cheese|cheddar|mozzarella/.test(t)) return 'dairy';
   if (/chicken|turkey|salmon|shrimp|tofu|tempeh|\bfish\b|\bcod\b|tilapia|steak|\bbeef\b|\bpork\b|sausage|bacon/.test(t)) return 'protein';
-  if (/\brice\b|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
+  if (/\brice\b|cereal|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
   if (/onion|garlic|pepper|broccoli|spinach|lettuce|romaine|tomato|cucumber|carrot|celery|zucchini|potato|\blimes?\b|lemon|cilantro|parsley|basil|berr|banana|apple|grape|avocado|ginger|scallion|kale|cabbage|dill|chive|brussels|collard|tomatillo|jalape|turmeric|coleslaw|\bpeas?\b|mushroom|squash|green bean|\bcorn\b|hummus|orange|cauliflower|asparagus|herb|mint|fruit/.test(t)) return 'produce';
   return 'other';
 }
@@ -4198,6 +4211,11 @@ const NUT = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' 
 const MACRO_KEYS = NUT.slice(0, 4), EXTRA_KEYS = NUT.slice(4);
 const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: new RegExp(k), kcal, p, c, f, fib, sug, na, g: g || {} });
 const FOODS = [
+  /* Nov 2: foods for the recipes from Newt's reels */
+  F('cereal', 'Breakfast cereal', '\\bcereal', 380, 7, 84, 3, 6, 20, 450, { cup: 40 }),
+  F('ground-beef', 'Ground beef, 93% lean', 'ground beef', 152, 21, 0, 7, 0, 0, 66, {}),
+  F('cheese', 'Cheese, shredded', 'cheese|cheddar|mozzarella', 400, 25, 2, 33, 0, 0.5, 620, { cup: 113, slice: 21 }),
+  F('ketchup', 'Ketchup', 'ketchup', 100, 1, 26, 0.1, 0.3, 22, 900, { cup: 240 }),
   /* Oct 26: foods for the whole-food prep and bowl weeks (USDA-style averages per 100 g); listed first so they win over broader matches */
   F('celery', 'Celery', 'celery', 14, 0.7, 3, 0.2, 1.6, 1.3, 80, { stalk: 40, cup: 101, each: 40 }),
   F('brussels', 'Brussels sprouts', 'brussels', 43, 3.4, 9, 0.3, 3.8, 2.2, 25, { cup: 88 }),
@@ -4396,9 +4414,42 @@ function normMeals(x) {
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
+    ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), dislikes: String(x.prefs.dislikes || '') } } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
+/* Nov 2: recipes from Newt's saved reels; src credits the creator and links the reel (shown at the bottom of the recipe) */
+MEAL_LIB.push(
+  { id: 'm-reel-chicken-rice', name: 'Big-Batch Chicken & Rice', cat: 'main', serves: 4, size: '1 big bowl', mins: 40, keeps: 4, freezes: true, week: 4,
+    d: 'Simple, high-calorie bowls for building muscle: plenty of chicken and rice, very little fuss.',
+    ing: ['2 lb boneless skinless chicken thighs', '3 cups white rice (dry)', '2 cups frozen peas', '2 tbsp olive oil', '1 tsp salt', '1 tsp garlic powder', '1 tsp smoked paprika', '2 tbsp soy sauce'],
+    steps: ['Cook the rice with 4½ cups of water and half the salt, covered, about 18 minutes. Stir in the peas for the last 3 minutes.', 'Toss the chicken with the oil, the rest of the salt, the garlic powder and paprika.', 'Cook in a large pan over medium-high heat 6–7 minutes a side, until it reaches 165°F (74°C). Rest 5 minutes and slice.', 'Split the rice and chicken between four containers and drizzle with the soy sauce.'],
+    note: 'Bulking: these are big on purpose. For a cut, make 6 smaller bowls from the same batch.',
+    src: { by: '@itsoliverdraisey', url: 'https://www.instagram.com/reel/C5gfkBZCJby/', what: 'High-calorie, simple meals over fancy recipes' } },
+  { id: 'm-reel-cereal-shake', name: 'Cereal & Shake Breakfast', cat: 'breakfast', serves: 1, size: '1 bowl + 1 shake', mins: 3, keeps: 1, freezes: false, week: 1,
+    d: 'A fast, big breakfast when eating enough is the hard part: about 900 calories in three minutes.',
+    ing: ['2 cups cereal', '1½ cups whole milk', '1 banana', '1 scoop protein powder', '1 cup whole milk, for the shake'],
+    steps: ['Pour the cereal and 1½ cups milk into a big bowl and slice the banana on top.', 'Shake the protein powder with 1 cup milk.'],
+    note: 'Pick a cereal with some fiber. For a lighter version use 2% milk and one cup of cereal.',
+    src: { by: '@itsoliverdraisey', url: 'https://www.instagram.com/reel/C5gfkBZCJby/', what: 'Big bowl of cereal plus a protein shake' } },
+  { id: 'm-reel-half-plate', name: 'Half-Plate Protein Plates', cat: 'main', serves: 4, size: '1 plate', mins: 35, keeps: 4, freezes: false, week: 4,
+    d: 'The simple plate rule: half protein, a quarter carbs, a quarter vegetables. No weighing needed.',
+    ing: ['1½ lb boneless skinless chicken breast', '1 cup brown rice (dry)', '1 lb broccoli', '1 tbsp olive oil', '1 tsp salt', '½ tsp black pepper', '1 tsp garlic powder', '1 lemon'],
+    steps: ['Cook the rice with 2 cups of water, covered, about 40 minutes (or use a rice cooker).', 'Heat the oven to 425°F (220°C). Toss the chicken and broccoli with the oil, salt, pepper and garlic powder on a sheet pan.', 'Roast 18–22 minutes, until the chicken reaches 165°F (74°C).', 'Fill half of each container with sliced chicken, a quarter with rice and a quarter with broccoli. Squeeze lemon over.'],
+    note: 'Two plates like this a day plus one or two snacks covers most of a beginner’s protein (estimate).',
+    src: { by: '@higherupwellness', url: 'https://www.instagram.com/reel/DHZSLyfhqT7/', what: 'Half protein, a quarter carbs, a quarter vegetables' } },
+  { id: 'm-reel-ice-cream', name: 'Protein Ice Cream Pint', cat: 'snack', serves: 1, size: '1 pint', mins: 5, keeps: 30, freezes: true, week: 1,
+    d: 'A frozen protein shake spun into soft-serve. Chocolate here; change the flavor with what you have.',
+    ing: ['1½ cups 2% milk', '1 scoop protein powder', '1 tbsp cocoa powder', '1 tsp honey'],
+    steps: ['Blend or shake everything until smooth and pour into an ice-cream maker pint.', 'Freeze flat for 24 hours.', 'Spin on the light ice cream setting. If it’s crumbly, add a splash of milk and re-spin.'],
+    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk.',
+    src: { by: '@fitnessproductfinder', url: 'https://www.instagram.com/reel/DWPSUyHPS8k/', what: 'Protein ice cream pint ideas' } },
+  { id: 'm-reel-burger-bowls', name: 'Lighter Burger Bowls', cat: 'main', serves: 4, size: '1 bowl', mins: 20, keeps: 3, freezes: false, week: 3,
+    d: 'A cheeseburger, swapped lighter: lean beef over crunchy lettuce with a quick burger sauce.',
+    ing: ['1 lb ground beef (93% lean)', '1 onion, diced', '½ tsp salt', '6 cups chopped romaine', '2 tomatoes, diced', '½ cup shredded cheese', '½ cup pickles, chopped', '⅓ cup plain Greek yogurt', '2 tbsp ketchup', '1 tbsp mustard'],
+    steps: ['Brown the beef and onion with the salt, 8–10 minutes, breaking it up.', 'Stir the yogurt, ketchup and mustard together for the sauce.', 'Pack the lettuce and tomatoes separately from the warm beef. To eat, top the lettuce with beef, cheese, pickles and sauce.'],
+    note: 'The swaps: lean beef, no bun, yogurt-based sauce. Add a toasted bun on a high-carb day.',
+    src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
 const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normMeals(S.meta.meals); return S.meta.meals; };
 function getRecipe(id) {
@@ -4523,7 +4574,7 @@ function PrepPane() {
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
     <div class="section-h"><h2>Ready-made preps</h2></div>
     <div class="stack">${MEAL_PREPS.map(pr => html`<div key=${pr.id} class="r-card prep-card">
-      <h3>${pr.name}</h3><div class="days">${pr.d}</div>
+      <h3>${pr.name}</h3><div class="days">${pr.d}</div>${prepIssues(pr).length ? html`<div class="issue-line">Has ${prepIssues(pr).join(', ')}</div>` : null}
       <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
       <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>
     ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
@@ -4590,14 +4641,14 @@ function RecipesPane() {
   const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
-    return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>
+    return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
       <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
-  const newRecipe = () => UI.setView({ type: 'mealEdit', isNew: true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
+  const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
     <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['mix', 'Mix & match'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
-    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${newRecipe}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
     ${!term && (cat === 'all' || cat === 'mix') ? html`<div class="section-h"><h2>Mix & match</h2></div>
       <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/>` : null}
     ${cat === 'mix' ? null : html`<div>
@@ -4629,6 +4680,7 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
+    <${IssueLine} r=${r}/>
     <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
@@ -4645,6 +4697,7 @@ function RecipeView({ id }) {
       ${r.mix ? null : html`<button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>`}
       <button class="btn" style="flex:1" onClick=${copy}>${I.copy} ${r.mix ? 'Copy to my recipes to change it' : 'Copy'}</button></div>
     ${!r.builtin || r.edited ? html`<button class="btn text wide" style="color:var(--stop);margin-top:6px" onClick=${del}>${r.builtin ? 'Reset to original' : 'Delete recipe'}</button>` : null}
+    <${SourceLine} r=${r}/>
   </div>`;
 }
 function RecipeEditor({ view }) {
@@ -4664,11 +4717,13 @@ function RecipeEditor({ view }) {
     if (!parsed.length) { setErr('Add at least one ingredient.'); return; }
     const isBuiltin = !!MEAL_BUILTIN[d.id];
     const rec = { id: d.id, name, cat: d.cat || 'main', serves: clampInt(d.serves, 1, 99, 4), size: String(d.size || '').trim(), macros: Object.fromEntries(NUT.map(([k]) => [k, d.macros[k]]).filter(([, v]) => v !== '' && v != null && isFinite(+v)).map(([k, v]) => [k, +v])), mins: +d.mins > 0 ? Math.round(+d.mins) : null,
-      keeps: clampInt(d.keeps, 1, 14, 4), freezes: !!d.freezes, week: d.week || 3, ing: parsed, steps: stepTxt.split('\n').map(s => s.trim()).filter(Boolean), note: String(d.note || '').trim(), base: isBuiltin || undefined, updatedAt: Date.now() };
+      keeps: clampInt(d.keeps, 1, 14, 4), freezes: !!d.freezes, week: d.week || 3, ing: parsed, steps: stepTxt.split('\n').map(s => s.trim()).filter(Boolean), note: String(d.note || '').trim(), ...(d.src && /^https?:\/\//.test(String(d.src.url || '').trim()) ? { src: { url: String(d.src.url).trim(), by: d.src.by || '' } } : {}), base: isBuiltin || undefined, updatedAt: Date.now() };
     mealCommit(m => { m.recipes[d.id] = rec; });
     UI.setView({ type: 'meal', id: d.id });
   };
+  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
   return html`<div class="stack" style="margin-top:6px">
+    ${view.paste ? html`<${PasteBox} onFill=${fillFrom}/>` : null}
     <div><label class="lbl" for="me-name">Name</label><input class="field" id="me-name" value=${d.name} placeholder="e.g. Lemon pepper chicken" onInput=${e => { set('name', e.target.value); setErr(''); }}/></div>
     <div><label class="lbl">Type</label><div class="seg wide per" role="group" aria-label="Recipe type">${MEAL_CATS.map(([k, l]) => html`<button key=${k} class=${d.cat === k ? 'on' : ''} aria-pressed=${d.cat === k} onClick=${() => set('cat', k)}>${l.replace('Lunch & dinner', 'Meal').replace('Building blocks', 'Base')}</button>`)}</div></div>
     <div class="me-grid">
@@ -4690,6 +4745,8 @@ function RecipeEditor({ view }) {
         <p class="small muted" style="margin-top:6px">Leave blank to use the estimate shown, worked out from the ingredients.${e.missing.length ? ' Not counted: ' + e.missing.join(', ') + '. Type the numbers in if those matter.' : ''}</p></div>`; })()}
     <div><label class="lbl" for="me-steps">Steps, one per line</label><textarea class="field me-ta" id="me-steps" value=${stepTxt} placeholder="Heat the oven to 425°F…" onInput=${e => setStepTxt(e.target.value)}></textarea></div>
     <div><label class="lbl" for="me-note">Notes</label><input class="field" id="me-note" value=${d.note || ''} placeholder="optional" onInput=${e => set('note', e.target.value)}/></div>
+    <div><label class="lbl" for="me-src">Source link</label><input class="field" id="me-src" inputmode="url" value=${(d.src || {}).url || ''} placeholder="Instagram, TikTok, YouTube or a website (optional)" onInput=${e => set('src', { ...(d.src || {}), url: e.target.value.trim(), by: '' })}/>
+      <p class="small muted" style="margin-top:4px">Shown at the bottom of the recipe so you can find the original.</p></div>
     ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}
     <button class="btn primary wide" id="me-save" onClick=${save}>Save recipe</button>
     <button class="btn wide" onClick=${() => UI.setView(view.isNew ? null : { type: 'meal', id: d.id })}>Cancel</button>
@@ -7445,7 +7502,7 @@ function openChallengeDraft(draft) { closeSheet(); UI.setTab('train'); UI.setVie
 function ChallengeSheet() {
   return html`<${Sheet} label="Start a challenge"><h2>Start a challenge</h2>
     <p class="note">A daily checklist for a set number of days. Workouts you log tick their items by themselves. You can change everything before you start.</p>
-    <div class="stack" style="gap:8px;margin-top:10px">${CH_TEMPLATES.map(t => html`<button key=${t.id} class="opt ch-tpl" id=${'cht-' + t.id} onClick=${() => openChallengeDraft(challengeFrom(t))}>
+    <div class="stack" style="gap:8px;margin-top:10px">${CH_TEMPLATES.map(t => html`<button key=${t.id} class="opt ch-tpl" id=${'cht-' + t.id} onClick=${() => t.id === 'iron75' || t.id === 'iron75lite' ? openSheet({ type: 'ironSetup', ver: t.id }) : openChallengeDraft(challengeFrom(t))}>
       <div style="flex:1;min-width:0"><div><b>${t.name}</b> <span class="small muted">· ${t.days} days</span></div><div class="d">${t.d}</div></div></button>`)}
       <button class="opt" id="cht-own" onClick=${() => openChallengeDraft({ ...newChallenge(), name: 'My challenge', items: [{ id: uid('k'), name: 'Workout', auto: 'w1' }] })}><div style="flex:1"><div><b>Make your own</b></div><div class="d">Pick the length and the daily checklist yourself.</div></div></button></div>
     <p class="small faint" style="margin-top:10px">Strict challenges are hard on recovery. Take rest days if you feel run down, and skip anything that hurts. Not medical advice.</p><//>`;
@@ -7926,7 +7983,7 @@ function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; 
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
-  const all = allRecipes().filter(ok);
+  const all = allRecipes().filter(r => ok(r) && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
   return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
 }
 function buildMenu(t, seed) {
@@ -8012,13 +8069,13 @@ function UnitsSeg({ small }) {
 }
 
 /* ---- setup sheet ---- */
-function TargetsSheet() {
+function TargetsSheet({ preset } = {}) {
   const me0 = ML().me || {}; const lastBw = (S.meta.bw || []).slice().sort((a, b) => a.d < b.d ? -1 : 1).pop();
   const us0 = me0.us != null ? me0.us : !isMetric();
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: me0.goal || 'keep', pace: me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
@@ -8026,11 +8083,12 @@ function TargetsSheet() {
   const t = targetsFor(me); const bmi = bmiOf(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
-    mealCommit(m => { m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
-    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', text: 'Your targets and a week of meals are ready.' });
+    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: 7000, text: ML().menu ? 'Your targets and a week of meals are ready.' : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
+    ${preset ? html`<p class="small muted" id="tg-from-goal">Your goal is filled in from your plan answers. Change it if you like.</p>` : typeof GoalSetupSheet === 'function' ? html`<button class="btn text" id="tg-goal" onClick=${() => openSheet({ type: 'goalSetup' })}>Want a training plan too? Answer a few questions</button>` : null}
     <div class="stack" style="margin-top:12px">
       <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
       <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => set('inch', e.target.value.replace(/\D/g, ''))}/></div></div>`
@@ -8042,6 +8100,7 @@ function TargetsSheet() {
       <div><span class="lbl">Your goal</span>${seg('goal', [['lose', 'Lose fat'], ['keep', 'Maintain'], ['gain', 'Build muscle']])}</div>
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
       <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
+      <div><div class="section-h" style="margin:4px 0 2px"><h2>Food</h2></div><${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/></div>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
@@ -8067,6 +8126,7 @@ function MenuCard() {
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
+    <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diet !== 'none' || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
     <div class="menu-list">${PLAN_SLOTS.map(([s, label]) => { const x = day.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r);
       return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
@@ -8445,6 +8505,392 @@ function AddonFitSheet({ id }) {
   const r = getRoutine(id);
   return html`<${Sheet} label="How it fits"><h2>${r ? r.name : 'Program'} alongside</h2><p class="note">It shows in Train next to your main program. Which days should it go on?</p>
     <div style="margin-top:10px"><${AddonFit} id=${id} onDone=${closeSheet}/></div><button class="btn wide" style="margin-top:12px" onClick=${closeSheet}>Decide later</button><//>`;
+}
+
+/* ============ Food preferences, recipe sources, and recipes from a post (Nov 2) ============ */
+/* meals.prefs: { allergies: [allergen ids], diet: 'none' | id, dislikes: 'mushrooms, olives' }. Allergies and the diet
+   style block a recipe completely from meal plans and suggestions and flag it everywhere; dislikes keep it out of plans
+   and suggestions but it can still be found and logged. Recipes can credit a source (src: { by, url }), shown at the
+   bottom of the recipe, and a recipe can be filled in from a pasted post (caption from Instagram, TikTok, a blog). */
+const ALLERGENS = [
+  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|yogurt|butter\b|cream\b|kefir|whey|protein powder/],
+  ['egg', 'Eggs', /\beggs?\b|egg white|mayo/], ['peanut', 'Peanuts', /peanut/], ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|\bnuts?\b/],
+  ['soy', 'Soy', /\bsoy\b|soy sauce|tofu|tempeh|edamame|\bmiso\b|tamari/], ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|farro|couscous|barley|panko|crumbs|cracker|\bbuns?\b|soy sauce|cereal|granola/],
+  ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|\bfish\b|anchov|sardine/], ['shellfish', 'Shellfish', /shrimp|crab|lobster|scallop|clam|mussel/],
+  ['sesame', 'Sesame', /sesame|tahini/]];
+const DIETS = [
+  ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|liver|broth|anchov/],
+  ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|liver|chicken broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2]],
+  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/]];
+const prefsOf = () => { const p = ML().prefs || {}; return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diet: p.diet || 'none', dislikes: String(p.dislikes || '') }; };
+const dislikeTerms = () => prefsOf().dislikes.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
+const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
+/* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
+function recipeIssues(r) {
+  const P = prefsOf(); const names = ingNames(r); const has = re => names.some(n => re.test(n));
+  const block = ALLERGENS.filter(([k, , re]) => P.allergies.includes(k) && has(re)).map(a => a[1]);
+  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
+  const dislike = dislikeTerms().filter(t => names.some(n => n.includes(t)) || String(r.name).toLowerCase().includes(t));
+  return { block, dislike };
+}
+const avoidRecipe = r => { const x = recipeIssues(r); return x.block.length > 0 || x.dislike.length > 0; };
+const prepIssues = pr => { const out = new Set(); for (const [id] of pr.items || []) { const r = getRecipe(id); if (!r) continue; const x = recipeIssues(r); x.block.concat(x.dislike).forEach(t => out.add(t)); } return [...out]; };
+function IssueLine({ r }) {
+  const x = recipeIssues(r); if (!x.block.length && !x.dislike.length) return null;
+  return html`<div class=${'issue-line' + (x.block.length ? ' bad' : '')} role="note">${x.block.length ? 'Contains ' + x.block.join(', ') : ''}${x.block.length && x.dislike.length ? ' · ' : ''}${x.dislike.length ? 'Has ' + x.dislike.join(', ') + ' (you’d rather not)' : ''}</div>`;
+}
+/* The questionnaire: used on its own and inside the meal plan setup */
+function PrefsFields({ v, set }) {
+  const tog = k => set({ ...v, allergies: v.allergies.includes(k) ? v.allergies.filter(x => x !== k) : v.allergies.concat(k) });
+  return html`<div class="stack" style="gap:12px" id="prefs-fields">
+    <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
+      <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
+    <div><span class="lbl">How you eat</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
+    <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
+      <p class="small muted">Left out of plans and suggestions. You can still search for them.</p></div></div>`;
+}
+function PrefsSheet() {
+  const [v, setV] = useState(prefsOf());
+  const save = () => { mealCommit(m => { m.prefs = { allergies: v.allergies, diet: v.diet, dislikes: v.dislikes.trim() }; if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
+  return html`<${Sheet} label="Food preferences"><h2>Food preferences</h2><p class="note">So Ironwood never suggests something you can’t or won’t eat.</p>
+    <div style="margin-top:12px"><${PrefsFields} v=${v} set=${setV}/></div>
+    <div class="stack" style="margin-top:14px"><button class="btn primary wide" id="pf-save" onClick=${save}>Save</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+/* ---- sources ---- */
+function srcLabel(s) { if (!s) return ''; if (s.by) return s.by; try { const h = new URL(s.url).hostname.replace(/^www\./, ''); return h; } catch (e) { return 'Link'; } }
+function SourceLine({ r }) {
+  const s = r.src; if (!s || !/^https?:\/\//.test(s.url || '')) return null;
+  return html`<div class="src-line" id="recipe-src"><span class="small muted">Source${s.what ? ': ' + s.what : ''}</span><a class="small" href=${s.url} target="_blank" rel="noopener noreferrer">${srcLabel(s)} ↗</a>
+    ${r.builtin ? html`<span class="small faint">Recipe written for Ironwood from the idea in this post; the creator’s claims aren’t checked.</span>` : null}</div>`;
+}
+/* ---- recipe from a post ---- */
+/* Pull a name, ingredients, steps and the link out of pasted caption text. Lines that start with an amount (or sit
+   under an "Ingredients" heading) are ingredients; numbered lines or lines under "Steps / Directions / Method" are steps. */
+function parsePost(text) {
+  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/^[\s•\-*–·✔✅👉🔸🔹▪️]+/u, '').trim()).filter(Boolean);
+  const url = (String(text).match(/https?:\/\/\S+/) || [])[0] || '';
+  const ing = [], steps = []; let name = '', mode = '';
+  for (const l0 of lines) {
+    const l = l0.replace(/https?:\/\/\S+/g, '').trim(); if (!l) continue;
+    if (/^#\w/.test(l) || /^(follow|like|save|share|comment|link in bio)/i.test(l)) continue;
+    if (/^(ingredients?|you(’|')ll need|what you need)\b[:\s]*$/i.test(l)) { mode = 'ing'; continue; }
+    if (/^(steps?|directions?|method|instructions?|how to( make)?)\b[:\s]*$/i.test(l)) { mode = 'step'; continue; }
+    const numbered = l.match(/^(\d+)[.)]\s+(.+)/);
+    const amount = /^(\d+([.,/]\d+)?|[½⅓⅔¼¾⅛]|a |one |two |three |half )/i.test(l) && l.length < 80;
+    if (numbered && (mode === 'step' || numbered[2].length > 40)) { steps.push(numbered[2]); continue; }
+    if (mode === 'ing' || (amount && mode !== 'step')) { ing.push(l.replace(/^(\d+)[.)]\s+/, '$1 ')); continue; }
+    if (mode === 'step' || l.length > 60) { steps.push(l); continue; }
+    if (!name && l.length <= 60) name = l.replace(/[!:.\s]+$/, '').replace(/[\u{1F300}-\u{1FAFF}]/gu, '').trim();
+  }
+  return { name, ing, steps, url };
+}
+function PasteBox({ onFill }) {
+  const [t, setT] = useState('');
+  return html`<div class="card" id="paste-box"><div style="font-weight:700">Fill in from a post</div>
+    <p class="small muted" style="margin:2px 0 8px">Copy the caption (and the link) from Instagram, TikTok, YouTube or a blog and paste it here. Check what it fills in.</p>
+    <textarea class="field me-ta" id="paste-text" placeholder=${'Paste the caption and link here'} value=${t} onInput=${e => setT(e.target.value)}></textarea>
+    <button class="btn wide" style="margin-top:8px" id="paste-fill" disabled=${!t.trim()} onClick=${() => onFill(parsePost(t))}>Fill in the recipe</button></div>`;
+}
+
+/* ============ Iron 75 and Iron 75 Lite, set up from a short questionnaire (Nov 2) ============ */
+/* Picking Iron 75 or Lite asks your priorities (fat loss, muscle, running, discipline) and which daily habits to include
+   (reading, water, outdoor time, no alcohol, a photo, sleep, steps), then builds the checklist. It adapts:
+   workouts tick themselves from anything you log (your plans count), protein and calories tick from your food log,
+   and a sick or hurt day can be made a light day (a gentle 20 minutes) instead of breaking the run. Iron 75 still
+   starts over after a missed day; Lite doesn't and allows a rest day a week. Generic name only. */
+const IRON_PRIOS = [['fat', 'Lose fat'], ['muscle', 'Build muscle'], ['run', 'Running fitness'], ['habits', 'Discipline & habits']];
+const IRON_HABITS = [['read', 'Read 10 pages', true], ['water', 'Drink water', true], ['outdoor', 'Time outdoors', true], ['alcohol', 'No alcohol', true], ['photo', 'Progress photo', true], ['sleep', 'Sleep 7+ hours', false], ['steps', '8,000+ steps', false], ['phone', 'No phone the first 30 minutes', false]];
+function ironItems(v) {
+  const strict = v.ver === 'iron75'; const out = [];
+  out.push(['Workout' + (strict ? ' 1' : ''), 'w1']);
+  if (strict) out.push(['Workout 2' + (v.habits.includes('outdoor') ? ' (outdoors)' : ''), 'w2']);
+  if (v.prios.includes('run')) out.push(['One workout is a run or cardio']);
+  if (v.prios.includes('muscle')) out.push(['Hit your protein goal', 'protein']);
+  if (v.prios.includes('fat')) out.push(['Stay at or under your calories', 'kcal']);
+  if (!v.prios.includes('fat') && !v.prios.includes('muscle')) out.push(['Stick to your eating plan']);
+  for (const [k, l] of IRON_HABITS) if (v.habits.includes(k) && !(k === 'outdoor' && strict)) out.push([k === 'water' ? 'Drink ' + v.water : k === 'read' ? 'Read ' + v.pages + ' pages' : l]);
+  return out;
+}
+function IronSetupSheet({ ver: ver0 }) {
+  const [v, setV] = useState({ ver: ver0 || 'iron75', prios: ['habits'], habits: IRON_HABITS.filter(h => h[2]).map(h => h[0]).filter(k => (ver0 || 'iron75') === 'iron75' || !['outdoor', 'photo', 'alcohol'].includes(k)), water: (ver0 || 'iron75') === 'iron75' ? 'a gallon of water' : '3 liters of water', pages: 10 });
+  const tog = (k, x) => setV({ ...v, [k]: v[k].includes(x) ? v[k].filter(y => y !== x) : v[k].concat(x) });
+  const items = ironItems(v); const strict = v.ver === 'iron75';
+  const start = () => openChallengeDraft({ ...challengeFrom({ name: strict ? 'Iron 75' : 'Iron 75 Lite', days: 75, restart: strict, rest: strict ? 0 : 1, items }), light: true, prios: v.prios });
+  return html`<${Sheet} label="Set up Iron 75"><h2>Set up ${strict ? 'Iron 75' : 'Iron 75 Lite'}</h2>
+    <div class="stack" style="gap:12px;margin-top:8px">
+      <div class="seg wide" role="group" aria-label="Version">${[['iron75', 'Iron 75 (strict)'], ['iron75lite', 'Lite']].map(([k, l]) => html`<button key=${k} id=${'iv-' + k} class=${v.ver === k ? 'on' : ''} aria-pressed=${v.ver === k} onClick=${() => setV({ ...v, ver: k, water: k === 'iron75' ? 'a gallon of water' : '3 liters of water' })}>${l}</button>`)}</div>
+      <p class="small muted">${strict ? 'Two workouts a day, no rest days; miss a day and it starts over. A sick or hurt day can be a light day.' : 'One workout a day with a rest day each week. A missed day is counted but doesn’t reset it.'}</p>
+      <div><span class="lbl">What matters most to you?</span><div class="cat-pick">${IRON_PRIOS.map(([k, l]) => html`<button key=${k} id=${'ip-' + k} class=${'chip' + (v.prios.includes(k) ? ' on' : '')} aria-pressed=${v.prios.includes(k)} onClick=${() => tog('prios', k)}>${l}</button>`)}</div>
+        <p class="small muted">Muscle adds a protein goal and fat loss a calorie limit, both ticked from your food log.</p></div>
+      <div><span class="lbl">Daily habits</span><div class="cat-pick">${IRON_HABITS.map(([k, l]) => html`<button key=${k} id=${'ih-' + k} class=${'chip' + (v.habits.includes(k) ? ' on' : '')} aria-pressed=${v.habits.includes(k)} onClick=${() => tog('habits', k)}>${l}</button>`)}</div></div>
+      ${v.habits.includes('water') ? html`<div><span class="lbl">Water</span><div class="cat-pick">${['a gallon of water', '3 liters of water', '2 liters of water'].map(w => html`<button key=${w} class=${'chip' + (v.water === w ? ' on' : '')} onClick=${() => setV({ ...v, water: w })}>${w.replace(' of water', '')}</button>`)}</div></div>` : null}
+      <div class="card"><div style="font-weight:700">Your daily checklist</div><ul class="small" id="iron-preview" style="margin:6px 0 0 18px">${items.map(([n]) => html`<li key=${n}>${n}</li>`)}</ul></div>
+      <button class="btn primary wide" id="iron-go" onClick=${start}>Review and start</button>
+      <p class="small faint">Strict challenges are hard on recovery. Take a light day if you feel run down, and skip anything that hurts. Not medical advice.</p></div><//>`;
+}
+/* ---- adaptive checks ---- */
+const chFoodDay = k => (typeof ML === 'function' && ML().log ? sumNut(ML().log[k] || []) : null);
+function chProteinHit(k) { const G = typeof ML === 'function' ? ML().goals : {}; const t = chFoodDay(k); return !!(t && G && G.p && t.p >= G.p * 0.95); }
+function chKcalOk(k) { const G = typeof ML === 'function' ? ML().goals : {}; const t = chFoodDay(k); return !!(t && G && G.kcal && t.kcal > G.kcal * 0.5 && t.kcal <= G.kcal * 1.05); }
+function chAutoOn(ch, it, k, wc) {
+  const e = (ch.log || {})[k] || {};
+  if ((it.auto === 'w1' || it.auto === 'w2') && e.light && e.c && e.c.light) return true;
+  return (it.auto === 'w1' && wc >= 1) || (it.auto === 'w2' && wc >= 2) || (it.auto === 'protein' && chProteinHit(k)) || (it.auto === 'kcal' && chKcalOk(k));
+}
+const chAutoLabel = it => it.auto === 'w1' ? 'auto: 1st workout' : it.auto === 'w2' ? 'auto: 2nd workout' : it.auto === 'protein' ? 'auto: from your food log and protein goal' : it.auto === 'kcal' ? 'auto: from your food log and calorie goal' : '';
+function chLight(id, k, on) { commit(m => { const c = m.meta.challenges[id]; if (!c) return; c.log = c.log || {}; const e = c.log[k] = c.log[k] || {}; if (on) e.light = 1; else { delete e.light; if (e.c) delete e.c.light; if (!e.c || !Object.keys(e.c).length) { if (!e.rest) delete c.log[k]; } } }, 'meta', 600); }
+function LightDay({ ch, k }) {
+  if (!ch.light || !ch.items.some(it => it.auto === 'w1' || it.auto === 'w2')) return null;
+  const e = (ch.log || {})[k] || {};
+  if (!e.light) return html`<button class="btn text" id="light-day" onClick=${() => chLight(ch.id, k, true)}>Sick or hurt? Make today a light day</button>`;
+  const on = !!(e.c && e.c.light);
+  return html`<div class="light-day" id="light-on"><button class=${'ch-item' + (on ? ' on' : '')} aria-pressed=${on} id="light-item" onClick=${() => chToggle(ch.id, k, 'light')}><i>${on ? I.check : null}</i><span class="nm">Gentle 20 minutes: walk or stretch</span><span class="d">light day, covers today’s workouts</span></button>
+    <button class="btn text" onClick=${() => chLight(ch.id, k, false)}>Not a light day after all</button></div>`;
+}
+
+/* ============ Goal plans: a short interview builds a plan around your goal, time, gear and joints (Nov 2) ============ */
+/* Six built-in plans (Recomp 3-day, Recomp upper/lower 4-day, Lean bulk 4-day, Cut 3-day, Strength 3-day, Hybrid athlete
+   3+2). The interview (Train → Build my plan, the Get started card, or the meal plan setup) asks your goal (recomp,
+   size, strength, fat loss, speed, or a sport), whether to keep your current program, days and minutes, lifting gear,
+   cardio gear, joints to go easy on, and an optional winter bulk → spring cut. It then either:
+     - keeps your program and adjusts around it (adds conditioning that fits your sport and gear on free days), or
+     - makes your own copy of the best-fitting plan ('gp-mine'): swaps for your gear and joints, trims to your minutes,
+       sets per phase (bulk +1 accessory set, cut -1), and conditioning days built from the gear you have.
+   Season phases (settings.goal.season) ask before switching: calories and the plan change only when you say so.
+   Everything is an estimate for planning, not coaching or medical advice. */
+const GP_TPL = [
+  { id: 'gp-recomp3', name: 'Recomp 3-Day', days: 3, goal: ['recomp'], fit: 'Lose fat and build muscle at the same time on three full-body days.',
+    why: 'Three full-body days hit each muscle often enough to grow while eating near maintenance.', t: [
+      ['Full Body A', ['Full Body'], [['Back Squat', 3, '6–8', '', 'm'], ['Bench Press', 3, '6–8', '', 'm'], ['Seated Cable Row', 3, '10', '', 'a'], ['Romanian Deadlift', 3, '8–10', '', 'a'], ['Lateral Raises', 3, '12–15', '', 'a'], ['Plank', 3, '30 s', '', 'a']]],
+      ['Full Body B', ['Full Body'], [['Deadlift', 3, '5', '', 'm'], ['Overhead Barbell Press', 3, '6–8', '', 'm'], ['Lat Pulldown', 3, '10', '', 'a'], ['Bulgarian Split Squat', 3, '10', 'Each leg.', 'a'], ['Incline Dumbbell Press', 3, '10', '', 'a'], ['Hanging Leg Raises', 3, '10', '', 'a']]],
+      ['Full Body C', ['Full Body'], [['Front Squat', 3, '8', '', 'm'], ['Incline Barbell Bench Press', 3, '8', '', 'm'], ['Barbell Row', 3, '8', '', 'a'], ['Lying Leg Curl', 3, '12', '', 'a'], ['Face Pulls', 3, '15', '', 'a'], ['Hammer Curls', 3, '12', '', 'a']]]] },
+  { id: 'gp-recomp4', name: 'Recomp Upper/Lower 4-Day', days: 4, goal: ['recomp'], fit: 'Recomp on four days: two upper, two lower.',
+    why: 'Upper/lower gives each muscle two hard sessions a week with shorter workouts.', t: [
+      ['Upper A', ['Upper'], [['Bench Press', 3, '6–8', '', 'm'], ['Barbell Row', 3, '8', '', 'm'], ['Seated Dumbbell Overhead Press', 3, '10', '', 'a'], ['Lat Pulldown', 3, '10', '', 'a'], ['Lateral Raises', 3, '15', '', 'a'], ['Tricep Pushdowns', 2, '12', '', 'a'], ['Dumbbell Curl', 2, '12', '', 'a']]],
+      ['Lower A', ['Legs'], [['Back Squat', 3, '6–8', '', 'm'], ['Romanian Deadlift', 3, '8', '', 'm'], ['Leg Press', 3, '12', '', 'a'], ['Lying Leg Curl', 3, '12', '', 'a'], ['Calf Raises', 3, '15', '', 'a'], ['Dead Bug', 3, '10', 'Each side.', 'a']]],
+      ['Upper B', ['Upper'], [['Overhead Barbell Press', 3, '6–8', '', 'm'], ['Pull-Up', 3, '6–10', '', 'm'], ['Incline Dumbbell Press', 3, '10', '', 'a'], ['Seated Cable Row', 3, '12', '', 'a'], ['Face Pulls', 3, '15', '', 'a'], ['Hammer Curls', 2, '12', '', 'a'], ['Skull Crushers', 2, '12', '', 'a']]],
+      ['Lower B', ['Legs'], [['Deadlift', 3, '5', '', 'm'], ['Bulgarian Split Squat', 3, '10', 'Each leg.', 'm'], ['Leg Extension', 3, '12', '', 'a'], ['Dumbbell Hip Thrust', 3, '12', '', 'a'], ['Calf Raises', 3, '15', '', 'a'], ['Hanging Leg Raises', 3, '10', '', 'a']]]] },
+  { id: 'gp-bulk4', name: 'Lean Bulk 4-Day', days: 4, goal: ['mass'], fit: 'Get bigger with a small calorie surplus and more training volume.',
+    why: 'More sets in the 8–12 range and a small surplus (about ½ lb a week) build size with little fat.', t: [
+      ['Upper (chest and back)', ['Upper'], [['Bench Press', 4, '8', '', 'm'], ['Barbell Row', 4, '8', '', 'm'], ['Incline Dumbbell Press', 3, '10', '', 'a'], ['Lat Pulldown', 3, '10', '', 'a'], ['Cable Fly', 3, '12', '', 'a'], ['Dumbbell Curl', 3, '12', '', 'a'], ['Tricep Pushdowns', 3, '12', '', 'a']]],
+      ['Lower (squat)', ['Legs'], [['Back Squat', 4, '8', '', 'm'], ['Romanian Deadlift', 3, '10', '', 'm'], ['Leg Press', 3, '12', '', 'a'], ['Lying Leg Curl', 3, '12', '', 'a'], ['Calf Raises', 4, '12', '', 'a'], ['Hanging Leg Raises', 3, '12', '', 'a']]],
+      ['Upper (shoulders and arms)', ['Upper'], [['Overhead Barbell Press', 4, '8', '', 'm'], ['Pull-Up', 4, '8', '', 'm'], ['Dumbbell Bench Press', 3, '10', '', 'a'], ['Seated Cable Row', 3, '12', '', 'a'], ['Lateral Raises', 4, '15', '', 'a'], ['Hammer Curls', 3, '12', '', 'a'], ['Skull Crushers', 3, '12', '', 'a']]],
+      ['Lower (hinge)', ['Legs'], [['Deadlift', 3, '6', '', 'm'], ['Front Squat', 3, '8', '', 'm'], ['Bulgarian Split Squat', 3, '10', 'Each leg.', 'a'], ['Leg Extension', 3, '15', '', 'a'], ['Dumbbell Hip Thrust', 3, '12', '', 'a'], ['Calf Raises', 3, '15', '', 'a']]]] },
+  { id: 'gp-cut3', name: 'Cut 3-Day', days: 3, goal: ['lose'], fit: 'Lose fat and keep your muscle and strength on three days.',
+    why: 'Heavy main lifts tell your body to keep muscle; fewer accessory sets suit eating less. Short walks finish each day.', t: [
+      ['Full Body A', ['Full Body'], [['Back Squat', 3, '5', 'Keep the weight heavy; drop a set if tired.', 'm'], ['Bench Press', 3, '5', '', 'm'], ['Seated Cable Row', 3, '10', '', 'a'], ['Lateral Raises', 2, '15', '', 'a'], ['Incline Walk', 1, '', '10–15 minutes, easy.', 'a']]],
+      ['Full Body B', ['Full Body'], [['Deadlift', 3, '5', '', 'm'], ['Overhead Barbell Press', 3, '6', '', 'm'], ['Lat Pulldown', 3, '10', '', 'a'], ['Dumbbell Hip Thrust', 2, '12', '', 'a'], ['Incline Walk', 1, '', '10–15 minutes, easy.', 'a']]],
+      ['Full Body C', ['Full Body'], [['Front Squat', 3, '6', '', 'm'], ['Incline Barbell Bench Press', 3, '6', '', 'm'], ['Barbell Row', 3, '8', '', 'a'], ['Face Pulls', 2, '15', '', 'a'], ['Incline Walk', 1, '', '10–15 minutes, easy.', 'a']]]] },
+  { id: 'gp-strength3', name: 'Strength 3-Day', days: 3, goal: ['strength'], fit: 'Move more weight on the big lifts.',
+    why: 'Low reps on squat, bench, deadlift and press, with a few helper lifts, add weight to the bar fastest.', t: [
+      ['Squat and bench', ['Full Body'], [['Back Squat', 5, '5', 'Add a little weight each week while every rep is clean.', 'm'], ['Bench Press', 5, '5', '', 'm'], ['Barbell Row', 3, '8', '', 'a'], ['Plank', 3, '30 s', '', 'a']]],
+      ['Deadlift and press', ['Full Body'], [['Deadlift', 3, '3', '', 'm'], ['Overhead Barbell Press', 5, '5', '', 'm'], ['Pull-Up', 3, '6–8', '', 'a'], ['Bulgarian Split Squat', 3, '8', 'Each leg.', 'a'], ['Farmer\'s Carry', 3, '', '30–40 m, heavy.', 'a']]],
+      ['Squat and volume', ['Full Body'], [['Back Squat', 3, '3', 'Heavier than day 1.', 'm'], ['Incline Barbell Bench Press', 4, '6', '', 'm'], ['Romanian Deadlift', 3, '8', '', 'a'], ['Face Pulls', 3, '15', '', 'a'], ['Hanging Leg Raises', 3, '10', '', 'a']]]] },
+  { id: 'gp-hybrid', name: 'Hybrid Athlete 3+2', days: 5, goal: ['speed', 'sport'], fit: 'Strong and fit: three lifting days and two conditioning days.',
+    why: 'Lifting keeps you strong; one interval day and one steady day build speed and an engine, using the gear you have.', t: [
+      ['Strength A', ['Full Body'], [['Back Squat', 3, '5', '', 'm'], ['Bench Press', 3, '5', '', 'm'], ['Pull-Up', 3, '6–10', '', 'a'], ['Kettlebell Swing', 3, '15', '', 'a'], ['Plank', 3, '30 s', '', 'a']]],
+      ['Strength B', ['Full Body'], [['Deadlift', 3, '4', '', 'm'], ['Overhead Barbell Press', 3, '6', '', 'm'], ['Dumbbell Row', 3, '10', 'Each side.', 'a'], ['Dumbbell Step-Up', 3, '10', 'Each leg.', 'a'], ['Side Plank', 3, '30 s', 'Each side.', 'a']]],
+      ['Strength C (power)', ['Full Body'], [['Broad Jump', 4, '3', 'Full rest between jumps.', 'm'], ['Front Squat', 3, '6', '', 'm'], ['Incline Dumbbell Press', 3, '10', '', 'a'], ['Seated Cable Row', 3, '10', '', 'a'], ['Farmer\'s Carry', 3, '', '30–40 m.', 'a']]],
+      ['COND-HARD'], ['COND-EASY']] },
+];
+const GP_GOALS = [['recomp', 'Lose fat and build muscle'], ['mass', 'Get bigger'], ['strength', 'Lift more weight'], ['lose', 'Lose fat'], ['speed', 'Get faster and fitter'], ['sport', 'Get better at a sport']];
+const GP_SPORTS = [['box', 'Boxing / MMA'], ['swim', 'Swimming'], ['row', 'Rowing'], ['run', 'Running'], ['bike', 'Cycling'], ['other', 'Another sport']];
+const GP_GEAR = [['gym', 'Full gym'], ['db', 'Dumbbells'], ['bw', 'Bodyweight only']];
+const GP_CARDIO = [['row', 'Rower'], ['pool', 'Pool'], ['bike', 'Bike'], ['airbike', 'Assault bike'], ['road', 'Treadmill or road'], ['track', 'Track'], ['hills', 'Hills'], ['sled', 'Sled'], ['rope', 'Jump rope'], ['bag', 'Heavy bag']];
+const GP_JOINTS = [['knees', 'Knees'], ['back', 'Lower back'], ['shoulders', 'Shoulders'], ['wrists', 'Wrists'], ['hips', 'Hips']];
+const GP_SWAP = {
+  db: { 'Back Squat': 'Goblet Squat', 'Front Squat': 'Goblet Squat', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Deadlift': 'Dumbbell Romanian Deadlift', 'Romanian Deadlift': 'Dumbbell Romanian Deadlift', 'Barbell Row': 'Dumbbell Row', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Lat Pulldown': 'Pull-Up', 'Seated Cable Row': 'Dumbbell Row', 'Leg Press': 'Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Dumbbell Step-Up', 'Face Pulls': 'Dumbbell Rear Delt Fly', 'Tricep Pushdowns': 'Dumbbell Overhead Tricep Extension', 'Cable Fly': 'Push-Ups', 'Skull Crushers': 'Dumbbell Overhead Tricep Extension', 'Kettlebell Swing': 'Dumbbell Romanian Deadlift' },
+  bw: { 'Back Squat': 'Air Squat', 'Front Squat': 'Bodyweight Bulgarian Split Squat', 'Goblet Squat': 'Air Squat', 'Bench Press': 'Push-Ups', 'Dumbbell Bench Press': 'Push-Ups', 'Incline Barbell Bench Press': 'Push-Ups', 'Incline Dumbbell Press': 'Push-Ups', 'Deadlift': 'Single-Leg Glute Bridge', 'Romanian Deadlift': 'Single-Leg Glute Bridge', 'Dumbbell Romanian Deadlift': 'Single-Leg Glute Bridge', 'Barbell Row': 'Pull-Up', 'Dumbbell Row': 'Pull-Up', 'Seated Cable Row': 'Pull-Up', 'Lat Pulldown': 'Pull-Up', 'Overhead Barbell Press': 'Push-Ups', 'Seated Dumbbell Overhead Press': 'Push-Ups', 'Leg Press': 'Bodyweight Bulgarian Split Squat', 'Bulgarian Split Squat': 'Bodyweight Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Wall Sit', 'Dumbbell Hip Thrust': 'Glute Bridge', 'Lateral Raises': 'Scapular Push-Up', 'Face Pulls': 'Prone Y-T-W Raise', 'Dumbbell Rear Delt Fly': 'Prone Y-T-W Raise', 'Cable Fly': 'Push-Ups', 'Tricep Pushdowns': 'Dips', 'Skull Crushers': 'Dips', 'Dumbbell Overhead Tricep Extension': 'Dips', 'Dumbbell Curl': 'Pull-Up', 'Hammer Curls': 'Pull-Up', 'Kettlebell Swing': 'Burpee Broad Jumps', 'Farmer\'s Carry': 'Bear Crawl', 'Dumbbell Step-Up': 'Bodyweight Bulgarian Split Squat', 'Calf Raises': 'Calf Raises', 'Incline Walk': 'Incline Walk' },
+};
+const GP_JOINT = {
+  knees: { 'Back Squat': 'Leg Press', 'Front Squat': 'Dumbbell Hip Thrust', 'Bulgarian Split Squat': 'Dumbbell Step-Up', 'Leg Extension': 'Terminal Knee Extension', 'Broad Jump': 'Kettlebell Swing', 'Air Squat': 'Glute Bridge', 'Bodyweight Bulgarian Split Squat': 'Glute Bridge' },
+  back: { 'Deadlift': 'Dumbbell Hip Thrust', 'Romanian Deadlift': 'Lying Leg Curl', 'Barbell Row': 'Seated Cable Row', 'Back Squat': 'Leg Press', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Kettlebell Swing': 'Glute Bridge' },
+  shoulders: { 'Overhead Barbell Press': 'Incline Dumbbell Press', 'Seated Dumbbell Overhead Press': 'Lateral Raises', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Skull Crushers': 'Tricep Pushdowns', 'Pull-Up': 'Lat Pulldown', 'Dips': 'Tricep Pushdowns' },
+  wrists: { 'Front Squat': 'Goblet Squat', 'Barbell Curl': 'Hammer Curls', 'Dumbbell Curl': 'Hammer Curls', 'Skull Crushers': 'Tricep Pushdowns', 'Push-Ups': 'Machine Chest Press' },
+  hips: { 'Bulgarian Split Squat': 'Leg Press', 'Deadlift': 'Romanian Deadlift', 'Broad Jump': 'Kettlebell Swing' },
+};
+/* Conditioning by mode: [hard day items, easy day items] */
+const GP_COND = {
+  row: [[['Rowing Machine (Erg)', 6, '', '500 m hard, 2 minutes easy between.']], [['Rowing Machine (Erg)', 1, '', '20–30 minutes steady; you can still talk.']]],
+  swim: [[['Swim', 8, '', '50 m hard, 30 seconds rest.']], [['Swim', 1, '', '20–30 minutes easy, any stroke.']]],
+  run: [[['Run 400m', 6, '', 'Hard but even; 90 seconds walking between.'], ['Strides', 4, '', '20 seconds quick and relaxed.']], [['Easy Run', 1, '', '25–35 minutes; you can still talk.']]],
+  track: [[['Run 200m', 8, '', 'Fast, full walk back between.'], ['Accelerations', 4, '', '']], [['Easy Run', 1, '', '25–35 minutes; you can still talk.']]],
+  hills: [[['Hill Sprints', 8, '', '10–15 seconds up, walk down.']], [['Easy Run', 1, '', '25–35 minutes; you can still talk.']]],
+  bike: [[['Bike Sprints', 8, '', '20 seconds hard, 100 seconds easy.']], [['Bike', 1, '', '30–45 minutes steady.']]],
+  airbike: [[['Bike Sprints', 10, '', '15 seconds all-out, 45 seconds easy.']], [['Bike', 1, '', '25–30 minutes steady.']]],
+  box: [[['Heavy Bag Rounds', 6, '', '2 minutes hard, 1 minute rest.'], ['Jump Rope', 3, '', '2 minutes.']], [['Shadowboxing Rounds', 6, '', '3 minute rounds, easy pace, sharp technique.'], ['Easy Run', 1, '', '20 minutes easy.']]],
+  sled: [[['Sled Push', 8, '', '20 m hard, walk back.']], [['Incline Walk', 1, '', '30 minutes.']]],
+  rope: [[['Jump Rope', 10, '', '30 seconds fast, 30 seconds easy.']], [['Incline Walk', 1, '', '30 minutes.']]],
+  walk: [[['Incline Walk', 1, '', '20 minutes with 6 harder 1-minute pushes.']], [['Incline Walk', 1, '', '30–40 minutes easy.']]],
+};
+/* Which conditioning fits: your sport first, then the gear you have, easy on the knees if asked. */
+function condMode(a) {
+  const c = a.cardio || []; const knees = (a.joints || []).includes('knees');
+  const sport = { box: 'box', swim: 'swim', row: 'row', run: 'run', bike: 'bike' }[a.goal === 'sport' ? a.sport : ''];
+  if (sport && (sport === 'box' || sport === 'run' || c.includes(sport === 'swim' ? 'pool' : sport))) return knees && sport === 'run' ? 'bike' : sport;
+  if (a.goal === 'speed' && !knees) { if (c.includes('track')) return 'track'; if (c.includes('hills')) return 'hills'; }
+  for (const [k, m] of [['row', 'row'], ['airbike', 'airbike'], ['bike', 'bike'], ['pool', 'swim'], ['road', knees ? 'walk' : 'run'], ['track', knees ? 'walk' : 'track'], ['sled', 'sled'], ['rope', knees ? 'walk' : 'rope'], ['bag', 'box']]) if (c.includes(k)) return m;
+  return knees ? 'walk' : 'run';
+}
+const CMODE_NAME = { row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
+const phaseByDate = s => { const t = ymd(new Date()); return t >= s.cutTo ? 'keep' : t >= s.cutFrom ? 'cut' : t >= s.bulkFrom ? 'bulk' : 'keep'; };
+const gpPhaseNow = a => (a.season && a.season.on ? (a.season.cur || phaseByDate(a.season)) : null);
+/* Which built-in plan fits the answers */
+function pickPlanFor(a) {
+  const days = +a.days || 3; const ph = gpPhaseNow(a);
+  if (ph === 'cut') return 'gp-cut3';
+  if (ph === 'bulk') return days >= 4 ? 'gp-bulk4' : 'gp-recomp3';
+  if (a.goal === 'strength') return 'gp-strength3';
+  if (a.goal === 'lose') return 'gp-cut3';
+  if (a.goal === 'mass') return days >= 4 ? 'gp-bulk4' : 'gp-recomp3';
+  if (a.goal === 'speed' || a.goal === 'sport') return days >= 4 ? 'gp-hybrid' : 'gp-recomp3';
+  return days >= 4 ? 'gp-recomp4' : 'gp-recomp3';
+}
+const GP_MAX_ITEMS = { 30: 4, 45: 5, 60: 6, 75: 9 };
+/* Adjust one day's raw items for gear, joints, minutes and phase. Returns { items, swaps } */
+function adaptItems(items, a) {
+  const swaps = []; const out = [];
+  for (const [n0, s0, r, cue, role] of items) {
+    let n = n0;
+    for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) { swaps.push([n, to, j]); n = to; } }
+    const g = GP_SWAP[a.gear]; if (g && g[n] && g[n] !== n) { n = g[n]; for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) n = to; } }
+    if (out.some(x => x[0] === n)) continue;
+    let s = s0; const ph = gpPhaseNow(a) || (a.goal === 'mass' ? 'bulk' : a.goal === 'lose' ? 'cut' : null);
+    if (role === 'a' && s > 1) s = ph === 'bulk' ? Math.min(4, s + 1) : ph === 'cut' ? Math.max(2, s - 1) : s;
+    out.push([n, s, r, cue, role]);
+  }
+  const cap = GP_MAX_ITEMS[a.mins] || 6; const kept = out.slice(0, cap);
+  if (+a.mins >= 75) kept.forEach(x => { if (x[4] === 'm') x[1] = Math.min(6, x[1] + 1); });
+  return { items: kept, swaps };
+}
+/* Your own copy of the plan */
+function buildGoalPlan(a) {
+  const T = GP_TPL.find(t => t.id === pickPlanFor(a)); const mode = condMode(a); const allSwaps = [];
+  const daysRaw = T.t.map(d => {
+    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') { const hard = d[0] === 'COND-HARD'; const its = GP_COND[mode][hard ? 0 : 1].map(x => [...x, 'c']);
+      return [(hard ? 'Conditioning: intervals' : 'Conditioning: steady') + ' (' + CMODE_NAME[mode] + ')', ['Conditioning'], its.concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.', 'a']])]; }
+    const { items, swaps } = adaptItems(d[2], a); allSwaps.push(...swaps); return [d[0], d[1], items];
+  });
+  /* Wanted conditioning but the plan has none, and there's a free day: add one */
+  const wantsCond = a.goal === 'speed' || a.goal === 'sport' || a.goal === 'lose' || gpPhaseNow(a) === 'cut';
+  if (wantsCond && T.id !== 'gp-hybrid' && (+a.days || 3) > daysRaw.length) daysRaw.push(['Conditioning (' + CMODE_NAME[mode] + ')', ['Conditioning'], GP_COND[mode][a.goal === 'lose' || gpPhaseNow(a) === 'cut' ? 1 : 0].map(x => [...x, 'c'])]);
+  const days = daysRaw.map(([dn, tags, its], i) => planDay('gp-mine', i + 1, dn, tags, its.map(([n, s, r, cue]) => [n, s, r, cue])));
+  const uniq = []; for (const s of allSwaps) if (!uniq.some(u => u[0] === s[0] && u[1] === s[1])) uniq.push(s);
+  const jn = Object.fromEntries(GP_JOINTS);
+  return { id: 'gp-mine', name: 'My ' + T.name, source: 'mine', createdAt: Date.now(), days, base: T.id, mode,
+    note: T.why + (uniq.length ? ' Joint care: ' + uniq.map(([f, t, j]) => t + ' instead of ' + f + ' (' + jn[j].toLowerCase() + ')').join(', ') + '.' : '') };
+}
+/* Keep your program: what to add around it */
+function keepPlanFor(a) {
+  const pid = programId(); const r = getRoutine(pid); const used = r ? r.days.length : 0; const free = Math.max(0, (+a.days || 3) - used);
+  const mode = condMode(a); const ph = gpPhaseNow(a) || (a.goal === 'mass' ? 'bulk' : a.goal === 'lose' ? 'cut' : null);
+  let addon = null;
+  if (a.goal === 'sport' && a.sport === 'box') addon = 'bi-cond-fight';
+  else if (a.goal === 'speed' || a.goal === 'sport') addon = 'bi-cond-2010';
+  else if (a.goal === 'lose' || ph === 'cut') addon = 'bi-cond-aerobic';
+  const tips = [];
+  if (ph === 'bulk') tips.push('While bulking: add one set to your accessory lifts (not the heavy ones).');
+  if (ph === 'cut') tips.push('While cutting: keep the heavy lifts heavy and drop one set from accessory lifts.');
+  if ((a.joints || []).length) tips.push('For your ' + a.joints.map(j => Object.fromEntries(GP_JOINTS)[j].toLowerCase()).join(' and ') + ': swap any lift that hurts for an easier version (tap Swap on the exercise during a workout).');
+  return { pid, r, free, mode, addon: free > 0 ? addon : null, tips };
+}
+function applyGoal(a, d) {
+  const prevProg = programId();
+  if (a.season && a.season.on && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
+  commit(st => { st.meta.settings.goal = { ...a, at: Date.now() }; }, 'meta');
+  if (a.keep && prevProg && prevProg !== 'self') {
+    const k = keepPlanFor(a);
+    if (k.addon && !(S.meta.settings.addons || []).includes(k.addon)) { setAddon(k.addon, true); if (typeof openSheet === 'function') setTimeout(() => openSheet({ type: 'addonFit', id: k.addon }), 50); }
+    showToast({ kind: 'info', ms: 7000, text: 'Kept ' + (k.r ? k.r.name : 'your program') + (k.addon ? ', with ' + getRoutine(k.addon).name + ' alongside' : '') + '.' });
+    return;
+  }
+  const r = d || buildGoalPlan(a);
+  commit(st => { st.meta.routines[r.id] = r; }, 'meta');
+  setProgram(r.id);
+  showToast({ kind: 'info', ms: 7000, text: 'Following ' + r.name, action: prevProg && prevProg !== r.id ? 'Undo' : null, fn: () => setProgram(prevProg) });
+}
+/* Meal goal that goes with the training goal */
+function mealGoalFor(a) {
+  const ph = gpPhaseNow(a);
+  if (ph === 'bulk' || (!ph && a.goal === 'mass')) return { goal: 'gain', pace: 'gentle' };
+  if (ph === 'cut' || (!ph && a.goal === 'lose')) return { goal: 'lose', pace: 'steady' };
+  return { goal: 'keep', pace: 'gentle' };
+}
+function nextDate(month, day, after) { const a = after || new Date(); let d = new Date(a.getFullYear(), month - 1, day); if (d <= a) d = new Date(a.getFullYear() + 1, month - 1, day); return ymd(d); }
+function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
+function GoalSetupSheet() {
+  const saved = S.meta.settings.goal || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
+  const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
+    gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
+  const [step, setStep] = useState(0);
+  const set = (k, v) => setA({ ...a, [k]: v }); const tog = (k, x) => set(k, a[k].includes(x) ? a[k].filter(y => y !== x) : a[k].concat(x));
+  const setSeason = (k, v) => setA({ ...a, season: { ...a.season, [k]: v } });
+  const chips = (k, opts, multi) => html`<div class="cat-pick">${opts.map(([v, l]) => { const on = multi ? a[k].includes(v) : a[k] === v; return html`<button key=${v} id=${'gs-' + k + '-' + v} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => multi ? tog(k, v) : set(k, v)}>${l}</button>`; })}</div>`;
+  const seg = (k, opts) => html`<div class="seg wide" role="group">${opts.map(([v, l]) => html`<button key=${v} id=${'gs-' + k + '-' + v} class=${a[k] === v ? 'on' : ''} aria-pressed=${a[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
+  const bulky = a.goal === 'recomp' || a.goal === 'mass';
+  const keep = a.keep && hasProg; const plan = keep ? null : buildGoalPlan(a); const kp = keep ? keepPlanFor(a) : null;
+  const finish = toMeals => { applyGoal(a, plan); if (toMeals) { const mg = mealGoalFor(a); setTimeout(() => openSheet({ type: 'mealTargets', preset: mg }), 80); } else closeSheet(); };
+  const steps = ['Goal', 'Time', 'Gear', 'Your plan'];
+  return html`<${Sheet} label="Build my plan"><h2>Build my plan</h2>
+    <div class="gs-steps" aria-label=${'Step ' + (step + 1) + ' of 4'}>${steps.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
+    <div class="stack" style="gap:14px;margin-top:10px" id=${'gs-step' + step}>
+    ${step === 0 ? html`
+      <div><span class="lbl">What do you want most?</span>${chips('goal', GP_GOALS)}</div>
+      ${a.goal === 'sport' ? html`<div><span class="lbl">Which sport?</span>${chips('sport', GP_SPORTS)}</div>` : null}
+      ${bulky ? html`<label class="toggle-row" for="gs-season"><span><span>Bulk this winter, cut in spring</span><span class="d">Eat a little more and train more now (about ½ lb a week), then lose the extra fat (about 1 lb a week). Ironwood asks before switching.</span></span><input type="checkbox" role="switch" id="gs-season" checked=${a.season.on} onChange=${e => setSeason('on', e.target.checked)}/></label>` : null}
+      ${bulky && a.season.on ? html`<div class="row" style="gap:8px">${[['bulkFrom', 'Bulk from'], ['cutFrom', 'Cut from'], ['cutTo', 'Cut until']].map(([k, l]) => html`<div key=${k} style="flex:1;min-width:0"><label class="lbl" for=${'gs-' + k}>${l}</label><input class="field" type="date" id=${'gs-' + k} value=${a.season[k]} onInput=${e => setSeason(k, e.target.value)}/></div>`)}</div>` : null}`
+    : step === 1 ? html`
+      ${hasProg ? html`<div><span class="lbl">You follow ${getRoutine(pid).name}</span><div class="seg wide" role="group"><button id="gs-keep" class=${a.keep ? 'on' : ''} aria-pressed=${a.keep} onClick=${() => set('keep', true)}>Keep it and adjust</button><button id="gs-new" class=${!a.keep ? 'on' : ''} aria-pressed=${!a.keep} onClick=${() => set('keep', false)}>Give me a new plan</button></div></div>` : null}
+      <div><span class="lbl">Days a week you can train</span>${seg('days', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6']])}</div>
+      <div><span class="lbl">Minutes per workout</span>${seg('mins', [[30, '30'], [45, '45'], [60, '60'], [75, '75+']])}</div>`
+    : step === 2 ? html`
+      <div><span class="lbl">What can you lift with?</span>${chips('gear', GP_GEAR)}</div>
+      <div><span class="lbl">Cardio you have (pick any)</span>${chips('cardio', GP_CARDIO, true)}</div>
+      <div><span class="lbl">Joints to go easy on (optional)</span>${chips('joints', GP_JOINTS, true)}<p class="small muted" style="margin-top:4px">Ironwood swaps in easier lifts for these. If something hurts, stop and get it checked.</p></div>`
+    : html`<div class="card" id="gs-result">${keep ? html`
+        <div class="eyebrow">Keep and adjust</div><div style="font-weight:700">${kp.r.name}, plus what fits your goal</div>
+        <ul class="small" style="margin:6px 0 0 18px">${kp.addon ? html`<li>${getRoutine(kp.addon).name} alongside on ${kp.free} free day${kp.free === 1 ? '' : 's'} (${CMODE_NAME[kp.mode]} fits your gear). You pick the days next.</li>` : html`<li>No extra days added${kp.free ? '' : ': your program already uses the days you have'}.</li>`}${kp.tips.map(t => html`<li key=${t}>${t}</li>`)}</ul>`
+      : html`<div class="eyebrow">Your plan</div><div style="font-weight:700" id="gs-name">${plan.name}</div><p class="small muted" style="margin:2px 0 6px">${plan.note}</p>
+        <div class="stack" style="gap:4px" id="gs-days">${plan.days.map(dd => html`<div key=${dd.id} class="small"><b>${dd.name}</b><span class="muted"> · ${dd.items.map(it => exName(it.ex)).join(', ')}</span></div>`)}</div>`}
+      ${a.season.on && bulky ? html`<p class="small" style="margin-top:8px">Season: bulk until ${shortDate(parseYmd(a.season.cutFrom))}, then cut until ${shortDate(parseYmd(a.season.cutTo))}. Ironwood asks before each switch.</p>` : null}
+      <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
+      <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
+      <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
+    <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}
+      ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
+}
+/* ---- season phases: ask before switching ---- */
+function phaseDue() {
+  const g = S.meta.settings.goal; const s = g && g.season; if (!s || !s.on) return null;
+  const today = ymd(new Date()); const want = today >= s.cutTo ? 'keep' : today >= s.cutFrom ? 'cut' : today >= s.bulkFrom ? 'bulk' : null;
+  if (!want || want === (s.cur || phaseByDate(s))) return null; const ans = (s.asked || {})[want];
+  if (ans === 'stay' || (typeof ans === 'number' && ans > Date.now())) return null; return want;
+}
+function switchPhase(to) {
+  commit(st => { const g = st.meta.settings.goal; g.season = { ...g.season, cur: to }; }, 'meta');
+  const g = S.meta.settings.goal; const me = ML().me;
+  if (me && me.h) { const mg = mealGoalFor(g); const m2 = { ...me, ...mg }; const t = targetsFor(m2);
+    if (t) mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); }
+  if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); }
+  else if (to === 'cut' && !g.keep) applyGoal(g);
+  showToast({ kind: 'info', ms: 7000, text: to === 'cut' ? 'Cut started: calories down about 1 lb a week, heavy lifts stay heavy.' : to === 'bulk' ? 'Bulk started: a small surplus, about ½ lb a week.' : 'Back to maintaining. Nice work.' });
+}
+function snoozePhase(to, how) { commit(st => { const s = st.meta.settings.goal.season; s.asked = { ...(s.asked || {}), [to]: how === 'stay' ? 'stay' : Date.now() + 7 * 864e5 }; }, 'meta'); }
+function PhaseCheck() {
+  if (S.active) return null; const to = phaseDue(); if (!to) return null; const s = S.meta.settings.goal.season;
+  const t = { cut: ['Time for your spring cut', 'Your bulk was set to end ' + shortDate(parseYmd(s.cutFrom)) + '. Switch to cutting? Calories drop to lose about 1 lb a week; heavy lifts stay heavy, fewer accessory sets.'],
+    bulk: ['Ready to start your bulk?', 'A small surplus (about ½ lb a week) and one more accessory set.'],
+    keep: ['Your cut is done', 'Switch to maintenance calories and your regular plan?'] }[to];
+  return html`<div class="card check-card" id="phase-check"><div class="eyebrow">Season plan</div><div style="font-weight:700">${t[0]}</div><div class="small muted">${t[1]}</div>
+    <div class="check-acts"><button class="btn primary" id="ph-switch" onClick=${() => switchPhase(to)}>Switch now</button><button class="btn" id="ph-later" onClick=${() => snoozePhase(to, 'later')}>In a week</button><button class="btn text" id="ph-stay" onClick=${() => snoozePhase(to, 'stay')}>Stay as I am</button></div></div>`;
+}
+/* The six plans also live on the Programs shelf as they are (full gym, running for conditioning) */
+for (const T of GP_TPL) {
+  const days = T.t.map((d, i) => {
+    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') { const hard = d[0] === 'COND-HARD'; return planDay(T.id, i + 1, hard ? 'Conditioning: intervals' : 'Conditioning: steady', ['Conditioning'], GP_COND.run[hard ? 0 : 1].concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.']])); }
+    return planDay(T.id, i + 1, d[0], d[1], d[2].map(([n, s, r, cue]) => [n, s, r, cue]));
+  });
+  BUILTIN_ROUTINES.push({ id: T.id, name: T.name, note: T.fit + ' ' + T.why + ' Build my plan (Train) fits it to your time, gear and joints.', source: 'builtin', shelf: 'programs', meta: 'Goal plan · ' + T.days + ' days a week', days, goalPlan: true });
 }
 
 /* ---------- APP ---------- */

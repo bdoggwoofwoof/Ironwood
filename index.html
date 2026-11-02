@@ -282,6 +282,15 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .side-tog .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:block}
 .side-tog .dot.sm{width:5px;height:5px}
 .mach-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.mach-row .chip svg{width:14px;height:14px}
+.find-list{display:flex;flex-direction:column;gap:6px}
+.find-row{display:flex;align-items:stretch;gap:6px}
+.find-main{flex:1;min-width:0;text-align:left;background:var(--surface);border-radius:12px;padding:10px 12px;color:inherit}
+.find-main .t{font-weight:600}.find-main .s{font-size:calc(14 * var(--u));color:var(--ink-2)}
+.find-star{width:44px;border-radius:12px;background:var(--surface);color:var(--ink-3);font-size:calc(20 * var(--u));display:grid;place-items:center}
+.find-star.on{color:var(--pr,#f2c94c)}
+.cat-pick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px}
+.cat-new{flex:1 1 140px;min-width:120px;padding:6px 10px}
+.find-top{border:1.5px solid var(--accent)}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -2096,7 +2105,7 @@ const TOUR = [
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
   ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight and goal and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
   ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
-  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone. Foods you scan are saved for next time.', { meals: 'log' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
@@ -3069,7 +3078,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 25fd989</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 2758e47</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3429,7 +3438,7 @@ function restoreInto(st, d) {
     const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
     if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;
-      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
+      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
       for (const [d, l] of Object.entries(b.log)) { const have = new Set((a.log[d] || []).map(e => e.id)); const add = l.filter(e => !have.has(e.id)); if (add.length) a.log[d] = (a.log[d] || []).concat(add); } }
     if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;
     if (m.fight && !st.meta.fight) st.meta.fight = m.fight;
@@ -4377,6 +4386,8 @@ function normMeals(x) {
     ...(x.me && typeof x.me === 'object' && +x.me.h > 0 && +x.me.w > 0 ? { me: x.me } : {}),
     ...(x.menu && Array.isArray(x.menu.days) && x.menu.t ? { menu: x.menu } : {}),
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
+    saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
+    ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -4789,7 +4800,7 @@ function LogPane() {
   const go = n => { const d = ymd(addDays(parseYmd(day), n)); MEALS.day = d >= today ? null : d; S.rerender(); };
   const list = (m.log[day] || []).slice().sort((a, b) => a.at - b.at); const tot = sumNut(list); const G = m.goals;
   const gk = NUT.filter(([k]) => G[k]); const rest = NUT.filter(([k]) => !G[k]);
-  const prep = m.plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && macros(x.r)); const wk = weekServings(day);
+  const prep = m.menu && m.menu.days ? [] : m.plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && macros(x.r)); const wk = weekServings(day);
   const quick = r => { const e = logRecipe(day, r, 1); if (e) showToast({ kind: 'info', text: '1 serving of ' + r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); };
   return html`<div>
     <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
@@ -4811,14 +4822,16 @@ function LogPane() {
     <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
   </div>`;
 }
-function MealLogSheet({ day, tab: tab0, txt, fk, fid }) {
-  const [tab, setTab] = useState(tab0 || 'recipe');
-  return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>
-    <div class="seg wide" role="group" aria-label="What to log" style="margin:10px 0 12px">${[['recipe', 'Recipe'], ['food', 'Food'], ['scan', 'Scan'], ['num', 'Numbers']].map(([k, l]) => html`<button key=${k} class=${tab === k ? 'on' : ''} aria-pressed=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
-    ${tab === 'food' ? html`<${LogFood} day=${day} txt0=${txt} fk0=${fk}/>` : tab === 'scan' ? html`<${LogScan} day=${day} fid=${fid}/>` : tab === 'num' ? html`<${LogNumbers} day=${day}/>` : html`<${LogRecipe} day=${day}/>`}<//>`;
+function MealLogSheet({ day, tab: tab0, txt, fk, fid, only, q0 }) {
+  const [st, setSt] = useState({ tab: tab0 || 'find', txt, fk, fid, only, q0 });
+  const go = (tab, p) => setSt({ tab, ...(p || {}) });
+  const back = st.tab !== 'find' ? html`<button class="btn text" id="lf-back" style="padding-left:0" onClick=${() => go('find')}>${I.back} Search</button>` : null;
+  return html`<${Sheet} label="Log food"><h2>Log food</h2><p class="note">${logDayName(day)}</p>${back}
+    <div style="margin-top:10px">${st.tab === 'food' ? html`<${LogFood} key=${(st.txt || '') + (st.fk || '')} day=${day} txt0=${st.txt} fk0=${st.fk}/>` : st.tab === 'scan' ? html`<${LogScan} day=${day} fid=${st.fid} only=${st.only} q0=${st.q0}/>`
+      : st.tab === 'num' ? html`<${LogNumbers} day=${day} name0=${st.name0}/>` : st.tab === 'recipe' ? html`<${LogRecipe} day=${day} r0=${st.r0}/>` : html`<${FindView} day=${day} go=${go}/>`}</div><//>`;
 }
-function LogRecipe({ day }) {
-  const [sel, setSel] = useState(null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
+function LogRecipe({ day, r0 }) {
+  const [sel, setSel] = useState(r0 || null); const [sv, setSv] = useState(1); const [q, setQ] = useState('');
   const inPrep = new Set(ML().plan.items.map(i => i.r)); const term = q.trim().toLowerCase();
   const r = sel && getRecipe(sel); const m = r && macros(r);
   if (r && m) return html`<div class="stack">
@@ -4854,8 +4867,8 @@ function LogFood({ day, txt0, fk0 }) {
     <button class="btn primary wide" id="lf-save" disabled=${!m} onClick=${save}>Log it</button>
     <button class=${'btn wide' + (g && !m ? ' primary' : ' ghost')} id="lf-online-go" onClick=${() => goOnline(term)}>${term ? 'Look up “' + term + '” online' : 'Look up a food online'}</button></div>`;
 }
-function LogNumbers({ day }) {
-  const [d, setD] = useState({ name: '' }); const set = (k, v) => setD({ ...d, [k]: v });
+function LogNumbers({ day, name0 }) {
+  const [d, setD] = useState({ name: name0 || '' }); const set = (k, v) => setD({ ...d, [k]: v });
   const ok = NUT.some(([k]) => +d[k] > 0);
   const save = () => { addLog(day, { k: 'num', name: d.name.trim() || 'Quick add', m: roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))) }); closeSheet(); showToast({ kind: 'info', text: 'Logged' }); };
   return html`<div class="stack"><div><label class="lbl" for="ln-name">Name</label><input class="field" id="ln-name" placeholder="e.g. Lunch out" value=${d.name} onInput=${e => set('name', e.target.value)}/></div>
@@ -4868,7 +4881,9 @@ function LogEntrySheet({ day, id }) {
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
-    <div class="stack" style="margin-top:14px"><button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
+    <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in ' + savedFor(e).cat : 'Save to a category'}</span><${CatPick} e=${e}/></div>
+    <div class="stack" style="margin-top:14px">${day !== ymd(new Date()) ? html`<button class="btn wide" id="le-again" onClick=${() => logAgain(ymd(new Date()), e)}>Log again today</button>` : html`<button class="btn wide" id="le-again" onClick=${() => logAgain(day, e)}>Log another</button>`}
+      <button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
 }
 function GoalsSheet() {
   const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));
@@ -8119,6 +8134,72 @@ function MachinesSheet({ ex, itId }) {
     <div class="stack" style="margin-top:12px">${list.map((m, i) => html`<div key=${m} class="row" style="gap:8px"><input class="field" style="flex:1" aria-label=${'Machine ' + (i + 1) + ' name'} value=${m} onChange=${e => ren(i, e.target.value)}/><button class="icon-btn" aria-label=${'Remove ' + m} onClick=${() => del(i)}>${I.trash}</button></div>`)}
       <div class="row" style="gap:8px"><input class="field" style="flex:1" id="mach-name" placeholder="New machine name" value=${name} onInput=${e => setName(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') add(); }}/><button class="btn primary" id="mach-add" disabled=${!name.trim()} onClick=${add}>Add</button></div>
       <button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
+}
+
+/* ============ Food log: one search, recent foods, saved foods by category (Nov 2) ============ */
+/* Log food opens on a single search box. Before you type: your recent foods (tap to log the same amount again) and
+   your saved foods by category. While you type: matching recents and saved foods, recipes, your foods and built-in
+   foods, plus online lookup and quick numbers. meals.saved: { id: { id, cat, e: log entry template } };
+   meals.cats: [category names]. */
+const DEF_CATS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Drinks'];
+const foodCats = () => (Array.isArray(ML().cats) && ML().cats.length ? ML().cats : DEF_CATS);
+const tmplOf = e => { const { id, at, slot, ...t } = e; return t; };
+const tmplKey = e => e.k === 'recipe' ? 'r:' + e.r + ':' + e.sv : e.fk ? 'f:' + e.fk + ':' + (e.txt || '') : 'n:' + String(e.name).toLowerCase() + ':' + Math.round(+e.m.kcal || 0);
+function recentFoods(n = 15) {
+  const all = Object.values(ML().log).flat().filter(e => e && e.m).sort((a, b) => (b.at || 0) - (a.at || 0));
+  const out = [], seen = new Set(); for (const e of all) { const k = tmplKey(e); if (seen.has(k)) continue; seen.add(k); out.push(e); if (out.length >= n) break; }
+  return out;
+}
+const entrySub = e => (e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : '') + fmtNut('kcal', e.m.kcal) + ' kcal · ' + Math.round(e.m.p) + ' g protein';
+function logAgain(day, e) {
+  const n = addLog(day, tmplOf(e)); closeSheet();
+  showToast({ kind: 'info', text: e.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, n.id) });
+}
+const savedKey = e => tmplKey(e);
+const savedFor = e => Object.values(ML().saved || {}).find(s => savedKey(s.e) === savedKey(e)) || null;
+function saveFood(e, cat) { const old = savedFor(e); mealCommit(m => { m.saved = m.saved || {}; const id = old ? old.id : uid('sv'); m.saved[id] = { id, cat, e: tmplOf(e) }; }); showToast({ kind: 'info', text: e.name + ' saved to ' + cat }); }
+const unsaveFood = id => mealCommit(m => { delete m.saved[id]; });
+function addCat(name) { const n = String(name || '').trim().slice(0, 24); if (!n || foodCats().includes(n)) return false; mealCommit(m => { m.cats = foodCats().concat(n); }); return true; }
+/* Category chips for saving one food */
+function CatPick({ e, onDone }) {
+  const [add, setAdd] = useState(''); const cur = savedFor(e);
+  return html`<div class="cat-pick" role="group" aria-label=${'Save ' + e.name + ' to'}>${foodCats().map(c => html`<button key=${c} class=${'chip' + (cur && cur.cat === c ? ' on' : '')} onClick=${() => { saveFood(e, c); onDone && onDone(); }}>${c}</button>`)}
+    <input class="field cat-new" aria-label="New category" placeholder="New category" value=${add} onInput=${x => setAdd(x.target.value)} onKeyDown=${x => { if (x.key === 'Enter' && addCat(add)) { saveFood(e, add.trim()); onDone && onDone(); } }}/>
+    ${cur ? html`<button class="chip" onClick=${() => { unsaveFood(cur.id); onDone && onDone(); }}>Remove from saved</button>` : null}</div>`;
+}
+function FoodRow({ e, day, k, picking, setPicking }) {
+  const sv = savedFor(e);
+  return html`<div class="find-row-wrap"><div class="find-row"><button class="find-main" id=${'again-' + k} onClick=${() => logAgain(day, e)}><div class="t">${e.name}</div><div class="s num">${entrySub(e)}</div></button>
+      <button class=${'find-star' + (sv ? ' on' : '')} aria-label=${sv ? 'Saved in ' + sv.cat + '. Change' : 'Save ' + e.name + ' to a category'} id=${'star-' + k} onClick=${() => setPicking(picking === k ? null : k)}>${sv ? '★' : '☆'}</button></div>
+    ${picking === k ? html`<${CatPick} e=${e} onDone=${() => setPicking(null)}/>` : null}</div>`;
+}
+function FindView({ day, go }) {
+  const [q, setQ] = useState(''); const rec = recentFoods(); const saved = Object.values(ML().saved || {});
+  const [view, setView] = useState(rec.length || !saved.length ? 'recent' : 'saved'); const [picking, setPicking] = useState(null);
+  const term = q.trim().toLowerCase(); const g = term ? parseIng(q) : null;
+  const hit = s => String(s || '').toLowerCase().includes(term);
+  const recipes = term ? allRecipes().filter(r => macros(r) && hit(r.name)).slice(0, 6) : [];
+  const foods = term ? myFoods().concat(FOODS).filter(f => hit(f.label) || f.re.test(term)).slice(0, 8) : [];
+  const matchE = term ? recentFoods(60).filter(e => hit(e.name)).slice(0, 5) : [];
+  const parsedFood = g && g.q != null ? foodFor(g) : null;
+  const foodTxt = f => f.mine ? '1 serving ' + f.label : f.g && f.g.each ? '1 ' + f.label : '100 g ' + f.label;
+  const cats = foodCats().filter(c => saved.some(s => s.cat === c)).concat([...new Set(saved.map(s => s.cat))].filter(c => !foodCats().includes(c)));
+  return html`<div class="stack" id="log-find">
+    <input class="field" type="search" id="lf-find" autocomplete="off" placeholder="Search foods and recipes, or type “2 eggs”" value=${q} onInput=${x => setQ(x.target.value)} ref=${el => { if (el && !el.dataset.f) { el.dataset.f = 1; setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (_) {} }, 60); } }}/>
+    <div class="row" style="gap:8px"><button class="btn" style="flex:1" id="lf-scan-go" onClick=${() => go('scan')}>${I.camera} Scan</button><button class="btn" style="flex:1" id="lf-num-go" onClick=${() => go('num', { name0: q.trim() })}>Enter numbers</button></div>
+    ${!term ? html`
+      <div class="seg wide" role="tablist" aria-label="Your foods">${[['recent', 'Recent'], ['saved', 'Saved']].map(([k, l]) => html`<button key=${k} role="tab" id=${'lf-' + k + '-tab'} aria-selected=${view === k} class=${view === k ? 'on' : ''} onClick=${() => setView(k)}>${l}</button>`)}</div>
+      ${view === 'recent' ? (rec.length ? html`<div class="find-list" id="lf-recent">${rec.map((e, i) => html`<${FoodRow} key=${tmplKey(e)} e=${e} day=${day} k=${'r' + i} picking=${picking} setPicking=${setPicking}/>`)}<p class="small muted">Tap to log the same amount again. ☆ saves it to a category.</p></div>`
+          : html`<p class="note">Foods you log show up here, so you can log them again with one tap.</p>`)
+        : (saved.length ? html`<div id="lf-saved">${cats.map(c => html`<div key=${c}><div class="aisle-h">${c}</div><div class="find-list">${saved.filter(s => s.cat === c).map(s => html`<div key=${s.id} class="find-row"><button class="find-main" id=${'sv-' + s.id} onClick=${() => logAgain(day, s.e)}><div class="t">${s.e.name}</div><div class="s num">${entrySub(s.e)}</div></button><button class="find-star" aria-label=${'Remove ' + s.e.name + ' from saved'} onClick=${() => unsaveFood(s.id)}>${I.x}</button></div>`)}</div></div>`)}</div>`
+          : html`<p class="note">Save foods you eat often from Recent with ☆, sorted into Breakfast, Lunch, Dinner, Snacks, Drinks or your own categories.</p>`)}` : html`
+      ${g && (g.q != null || parsedFood) ? html`<button class="opt find-top" id="lf-log-typed" onClick=${() => go('food', { txt: q.trim() })}><div style="flex:1;min-width:0"><div>Log “${q.trim()}”</div><div class="d">${parsedFood ? 'Counts as ' + parsedFood.label : 'Pick what it counts as next'}</div></div>${I.plus}</button>` : null}
+      ${matchE.length ? html`<div class="aisle-h">Recent and saved</div><div class="find-list">${matchE.map((e, i) => html`<${FoodRow} key=${tmplKey(e)} e=${e} day=${day} k=${'m' + i} picking=${picking} setPicking=${setPicking}/>`)}</div>` : null}
+      ${foods.length ? html`<div class="aisle-h">Foods</div><div class="find-list">${foods.map(f => html`<button key=${f.id} class="opt" onClick=${() => go('food', { txt: foodTxt(f), fk: f.id })}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${f.mine ? 'Your food · ' : ''}${per100(f)}</div></div></button>`)}</div>` : null}
+      <div class="row wrap" style="gap:8px;margin-top:4px"><button class="btn ghost" style="flex:1" id="lf-find-online" onClick=${() => go('scan', { only: 'search', q0: (g && g.q != null ? shopName(g.n) : q.trim()) })}>Look up “${q.trim()}” online</button>
+        <button class="btn ghost" style="flex:1" id="lf-find-num" onClick=${() => go('num', { name0: q.trim() })}>Enter its numbers</button></div>
+      ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div></div></button>`)}</div>` : null}`}
+  </div>`;
 }
 
 /* ---------- APP ---------- */

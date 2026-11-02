@@ -262,8 +262,12 @@ main .topsw button,main .topsw.four button{font-size:calc(24 * var(--u))}
 .bc-aim{position:absolute;left:12%;right:12%;top:0;height:0;margin-top:24.4%;padding-top:26.25%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none}
 body{min-height:calc(100lvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) + 1px)}
 .last-note{display:flex;align-items:center;gap:8px;min-width:0}
-.last-note .prev{flex:0 1 5.6em;min-width:0}
+.last-note .prev{flex:0 0 4.6em;min-width:0;font-size:calc(13 * var(--u))}
 .last-note .note-txt{flex:1}
+main .set-row{grid-template-columns:28px 64px 50px minmax(0,1fr)}
+.th-ln{display:flex;gap:8px;text-align:left;min-width:0}
+.th-ln .th-last{flex:0 0 4.6em;min-width:0}
+.set-row .note-txt{font-weight:400;font-size:calc(13 * var(--u));line-height:1.3;color:var(--ink-2);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;word-break:normal;padding:4px 2px;min-height:36px}
 .goal-card{display:block;width:100%;text-align:left;color:inherit}
 .goal-bar{height:8px;border-radius:4px;background:var(--raised);margin:10px 0 8px;overflow:hidden}
 .goal-bar span{display:block;height:100%;background:var(--accent);border-radius:4px}
@@ -2428,7 +2432,7 @@ function LiftSlot({ it, nextSS }) {
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
     <${ExNote} it=${it}/>
     <div class="sets">
-      <div class="set-row th"><span>Set</span><button class="unit-tog" aria-label=${'Weight in ' + u + '. Switch to ' + (u === 'kg' ? 'lb' : 'kg')} onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><span>Reps</span><span style="text-align:left">${it.prev ? 'Last · note' : 'Note'}</span></div>
+      <div class="set-row th"><span>Set</span><button class="unit-tog" aria-label=${'Weight in ' + u + '. Switch to ' + (u === 'kg' ? 'lb' : 'kg')} onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><span>Reps</span><span class="th-ln">${it.prev ? html`<span class="th-last">Last</span>` : null}<span>Note</span></span></div>
       ${it.sets.map((x, j) => html`<${SetRow} key=${x.id || j} it=${it} s=${x} j=${j} kind=${kind}/>`)}
     </div>
     <div class="slot-foot">
@@ -3053,7 +3057,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 1a2931a</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 4e79d52</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }

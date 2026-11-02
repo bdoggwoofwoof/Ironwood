@@ -2115,7 +2115,7 @@ const TOUR = [
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
-  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal and what you can’t or won’t eat, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
   ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
@@ -2140,7 +2140,7 @@ function demoSessions() {
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
 function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
-function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
+function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
    transitions to restart mid-motion). Moving to another screen fades the page out, swaps it while it is invisible,
@@ -3092,7 +3092,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 3fe4b23</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 28ad450</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3453,7 +3453,7 @@ function restoreInto(st, d) {
     const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
     if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;
-      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
+      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.habits && b.habits) a.habits = b.habits; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
       for (const [d, l] of Object.entries(b.log)) { const have = new Set((a.log[d] || []).map(e => e.id)); const add = l.filter(e => !have.has(e.id)); if (add.length) a.log[d] = (a.log[d] || []).concat(add); } }
     if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;
     if (m.fight && !st.meta.fight) st.meta.fight = m.fight;
@@ -3883,7 +3883,7 @@ function SheetHost({ sheet }) {
     case 'mealLog': return html`<${MealLogSheet} ...${sheet}/>`;
     case 'logEntry': return html`<${LogEntrySheet} ...${sheet}/>`;
     case 'mealGoals': return html`<${GoalsSheet}/>`;
-    case 'goalSetup': return html`<${GoalSetupSheet}/>`;
+    case 'goalSetup': return html`<${GoalSetupSheet} welcome=${sheet.welcome}/>`;
     case 'ironSetup': return html`<${IronSetupSheet} ...${sheet}/>`;
     case 'mealPrefs': return html`<${PrefsSheet}/>`;
     case 'runFit': return html`<${RunFitSheet}/>`;
@@ -4415,6 +4415,7 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), dislikes: String(x.prefs.dislikes || '') } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick } } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -7986,26 +7987,56 @@ function planPool() {
   const all = allRecipes().filter(r => ok(r) && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
   return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
 }
+/* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
+   meals 2 = two bigger meals, 3 = three meals, 4 = three meals and a snack (the default), 5 = three meals and two snacks.
+   prep: cook once for the week (fewest recipes), a few times (the default), or fresh most days (more variety).
+   cheap leans on budget staples; quick keeps to recipes of 30 minutes or less when enough fit. */
+const HABITS0 = { meals: 4, prep: 'few', cheap: false, quick: false };
+const mealHabits = () => ({ ...HABITS0, ...(ML().habits || {}) });
+const PRICEY = /salmon|steak|sirloin|shrimp|scallop|bison|lamb|almond|cashew|pecan|walnut|pistachio|pine nut|berr|avocado|parmesan|feta|goat cheese|prosciutto|quinoa|protein powder|whey|\bcod\b|halibut|mahi|cheese crisps/;
+const CHEAP = /\brice\b|\boats?\b|beans?\b|lentil|\beggs?\b|potato|chicken thigh|ground (turkey|beef|chicken)|pasta|frozen|cabbage|carrot|banana|onion|canned|peanut butter|tortilla|\bmilk\b|cottage cheese|chicken breast/;
+function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = String(g && g.n || g || '').toLowerCase(); if (PRICEY.test(n)) s += 2; else if (CHEAP.test(n)) s -= 0.5; } return s; }
+function shapePool(list, n, H, rnd) {
+  let L = list;
+  if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
+  if (H.cheap) { const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
+  return pickN(L, Math.min(n, L.length), rnd);
+}
 function buildMenu(t, seed) {
-  const P = planPool(); const rnd = seeded(seed); if (!P.b.length || P.m.length < 2) return null;
-  const bs = pickN(P.b, 2, rnd), ms = pickN(P.m, Math.min(3, P.m.length), rnd);
-  const snacks = P.s.slice().sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const P = planPool(); const rnd = seeded(seed); const H = mealHabits(); const two = +H.meals === 2;
+  if ((!two && !P.b.length) || P.m.length < 2) return null;
+  const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
+  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(P.m, nM, H, rnd);
+  const snacks = (H.cheap ? P.s.filter(r => costScore(r) <= 0) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2;
   const days = [];
   for (let i = 0; i < 7; i++) {
-    const day = [{ slot: 'b', r: bs[i % bs.length].id, sv: 1 }, { slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }];
+    const day = two ? [{ slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }]
+      : [{ slot: 'b', r: bs[i % bs.length].id, sv: 1 }, { slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }];
     const tot = () => day.reduce((a, x) => { const m = macros(getRecipe(x.r)); a.kcal += m.kcal * x.sv; a.p += m.p * x.sv; return a; }, { kcal: 0, p: 0 });
-    /* a snack when there's room: the most protein for its calories when protein is short */
-    let T = tot(); if (snacks.length && T.kcal < t.kcal - 120) { const s = T.p < t.p - 15 ? snacks[0] : snacks[(i + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
-    /* then portions in half steps toward the calorie target (½ to 2 of a serving) */
-    for (let k = 0; k < 12; k++) {
+    /* snacks when there's room: the most protein for its calories when protein is short */
+    let T = tot();
+    for (let k = 0; k < maxSnacks && snacks.length; k++) { T = tot(); if (T.kcal >= t.kcal - 120) break;
+      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
+    /* then portions in half steps toward the calorie target */
+    for (let k = 0; k < 14; k++) {
       T = tot(); const gap = t.kcal - T.kcal; if (Math.abs(gap) < 90) break;
       const main = day.filter(x => x.slot === 'l' || x.slot === 'd' || x.slot === 'b');
-      if (gap > 0) { const x = main.filter(y => y.sv < 2).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
-      else { const s = day.find(y => y.slot === 's'); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
+      if (gap > 0) { const x = main.filter(y => y.sv < maxSv).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
+      else { const s = day.filter(y => y.slot === 's').pop(); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
     }
     days.push(day);
   }
-  return { seed, t, days, at: Date.now() };
+  return { seed, t, days, at: Date.now(), h: H };
+}
+function HabitsFields({ v, set }) {
+  const seg = (k, opts, id) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([x, l]) => html`<button key=${x} id=${'hb-' + id + '-' + x} class=${v[k] === x ? 'on' : ''} aria-pressed=${v[k] === x} onClick=${() => set({ ...v, [k]: x })}>${l}</button>`)}</div>`;
+  return html`<div class="stack" style="gap:12px" id="habits-fields">
+    <div><span class="lbl">Meals a day</span>${seg('meals', [[2, '2'], [3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], 'meals')}</div>
+    <div><span class="lbl">How you cook</span>${seg('prep', [['once', 'Once a week'], ['few', 'A few times'], ['fresh', 'Most days']], 'prep')}
+      <p class="small muted" style="margin-top:4px">${v.prep === 'once' ? 'Fewest recipes: one big cook covers the week.' : v.prep === 'fresh' ? 'More variety, smaller batches.' : 'Two or three cooks a week.'}</p></div>
+    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
 const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */
@@ -8075,7 +8106,7 @@ function TargetsSheet({ preset } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
@@ -8083,7 +8114,7 @@ function TargetsSheet({ preset } = {}) {
   const t = targetsFor(me); const bmi = bmiOf(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
-    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
+    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
     closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: 7000, text: ML().menu ? 'Your targets and a week of meals are ready.' : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
@@ -8101,6 +8132,7 @@ function TargetsSheet({ preset } = {}) {
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
       <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
       <div><div class="section-h" style="margin:4px 0 2px"><h2>Food</h2></div><${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/></div>
+      <div><div class="section-h" style="margin:4px 0 2px"><h2>How you eat</h2></div><${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/></div>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
@@ -8818,7 +8850,7 @@ function mealGoalFor(a) {
 }
 function nextDate(month, day, after) { const a = after || new Date(); let d = new Date(a.getFullYear(), month - 1, day); if (d <= a) d = new Date(a.getFullYear() + 1, month - 1, day); return ymd(d); }
 function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
-function GoalSetupSheet() {
+function GoalSetupSheet({ welcome } = {}) {
   const saved = S.meta.settings.goal || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
   const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
     gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
@@ -8831,7 +8863,8 @@ function GoalSetupSheet() {
   const keep = a.keep && hasProg; const plan = keep ? null : buildGoalPlan(a); const kp = keep ? keepPlanFor(a) : null;
   const finish = toMeals => { applyGoal(a, plan); if (toMeals) { const mg = mealGoalFor(a); setTimeout(() => openSheet({ type: 'mealTargets', preset: mg }), 80); } else closeSheet(); };
   const steps = ['Goal', 'Time', 'Gear', 'Your plan'];
-  return html`<${Sheet} label="Build my plan"><h2>Build my plan</h2>
+  return html`<${Sheet} label="Build my plan"><h2>${welcome ? 'Let’s set you up' : 'Build my plan'}</h2>
+    ${welcome && step === 0 ? html`<p class="note" id="gs-welcome">A few quick questions and Ironwood builds a training plan and, if you like, your meals. Skip anything: you can do this later from Train.</p>` : null}
     <div class="gs-steps" aria-label=${'Step ' + (step + 1) + ' of 4'}>${steps.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
     <div class="stack" style="gap:14px;margin-top:10px" id=${'gs-step' + step}>
     ${step === 0 ? html`
@@ -8856,7 +8889,7 @@ function GoalSetupSheet() {
       <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
       <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
       <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
-    <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}
+    <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" id="gs-cancel" onClick=${closeSheet}>${welcome ? 'Skip for now' : 'Cancel'}</button>`}
       ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
 }
 /* ---- season phases: ask before switching ---- */
@@ -8891,6 +8924,12 @@ for (const T of GP_TPL) {
     return planDay(T.id, i + 1, d[0], d[1], d[2].map(([n, s, r, cue]) => [n, s, r, cue]));
   });
   BUILTIN_ROUTINES.push({ id: T.id, name: T.name, note: T.fit + ' ' + T.why + ' Build my plan (Train) fits it to your time, gear and joints.', source: 'builtin', shelf: 'programs', meta: 'Goal plan · ' + T.days + ' days a week', days, goalPlan: true });
+}
+/* First launch: when the tour ends (or is skipped) on a fresh install, offer the interview once. */
+function offerSetup() {
+  if (lsGet('setupOffered') === '1') return; lsSet('setupOffered', '1');
+  if (S.meta.settings.program || S.meta.settings.goal || Object.keys(S.sessions).length) return;
+  setTimeout(() => { if (!S.active) openSheet({ type: 'goalSetup', welcome: true }); }, 350);
 }
 
 /* ---------- APP ---------- */

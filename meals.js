@@ -495,6 +495,9 @@ function normMeals(x) {
     foods: Object.fromEntries(Object.entries(x.foods && typeof x.foods === 'object' ? x.foods : {}).filter(([, f]) => f && f.name && f.sv && +f.sv.gr > 0)),
     log: Object.fromEntries(Object.entries(x.log && typeof x.log === 'object' ? x.log : {}).map(([d, l]) => [d, (Array.isArray(l) ? l : []).filter(e => e && e.id && e.m && typeof e.m === 'object')]).filter(([d, l]) => /^\d{4}-\d\d-\d\d$/.test(d) && l.length)),
     ...(typeof x.lookup === 'boolean' ? { lookup: x.lookup } : {}),
+    ...(x.me && typeof x.me === 'object' && +x.me.h > 0 && +x.me.w > 0 ? { me: x.me } : {}),
+    ...(x.menu && Array.isArray(x.menu.days) && x.menu.t ? { menu: x.menu } : {}),
+    ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -531,6 +534,7 @@ function shoppingList() {
     }
   }
   return [...map.values()].map(e => {
+    const ez = easyShop(e); if (ez) return { ...e, qty: ez.qty, label: ez.label };
     const parts = Object.values(e.fams).map(x => measure(x.total, x.fam, true));
     const qty = parts.map(([v, u, dec]) => qtyText(v, u, dec)).join(' + ');
     const name = parts.length === 1 && !parts[0][1] ? nameFor(e.name, parts[0][0], '') : e.name;
@@ -590,7 +594,8 @@ function PrepPane() {
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace what’s in your prep now, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
   };
   return html`<div>
-    <div class="card mp-who">
+    <${MenuCard}/>
+    <div class="card mp-who" style="margin-top:12px">
       <div class="mp-cell"><div class="lbl">People</div><${MStep} label="people" value=${P.people} min=${1} max=${12} onChange=${v => setP('people', v)}/></div>
       <div class="mp-cell"><div class="lbl">Weeks</div><${MStep} label="weeks" value=${P.weeks} min=${1} max=${4} onChange=${v => setP('weeks', v)}/></div>
     </div>
@@ -726,7 +731,8 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
-    <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = ingLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
+    <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
+    <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
       ${Math.abs(f - 1) > 0.01 ? html`<p class="small muted" style="margin:-4px 0 8px">Written for ${r.serves} servings. Cooking times stay about the same; use more pans so food isn’t crowded.</p>` : null}
       <ol class="step-list card">${r.steps.map((s, i) => html`<li key=${i}>${s}</li>`)}</ol>` : null}
@@ -798,6 +804,7 @@ function ShopPane() {
   const addExtra = () => { const t = txt.trim(); if (!t) return; mealCommit(mm => { mm.extras.push({ id: uid('mx'), t, c: false }); }); setTxt(''); };
   const box = on => html`<span class="box" aria-hidden="true">${on ? I.check : null}</span>`;
   return html`<div>
+    ${P.items.length ? html`<div style="margin-top:8px"><${UnitsSeg}/></div>` : null}
     ${P.items.length ? html`<p class="small muted num" style="margin-top:6px">For ${P.people} ${P.people === 1 ? 'person' : 'people'} · ${P.weeks} ${P.weeks === 1 ? 'week' : 'weeks'} · ${P.items.length} recipe${P.items.length === 1 ? '' : 's'}${all ? ' · ' + got + ' of ' + all + ' in the cart' : ''}</p>`
       : html`<div class="card stack" style="margin-top:8px"><p class="note">Add recipes to your prep and their ingredients show up here, added up and sorted by aisle.</p><button class="btn wide" onClick=${() => setMealsMode('recipes')}>Browse recipes</button></div>`}
     ${all ? html`<div class="row" style="margin-top:10px"><button class="btn primary" style="flex:1" id="share-list" onClick=${shareList}>${I.copy} Share or copy</button>${got ? html`<button class="btn" style="flex:1" onClick=${() => mealCommit(mm => { mm.checks = {}; mm.extras.forEach(e => { e.c = false; }); })}>Untick all</button>` : null}</div>` : null}
@@ -913,6 +920,7 @@ function LogPane() {
         ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
       : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>
+    <${TodayMenu} day=${day}/>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
       <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
@@ -987,6 +995,7 @@ function GoalsSheet() {
   const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));
   const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); };
   return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
+    <button class="btn ghost wide" id="goal-calc" style="margin-top:10px" onClick=${() => openSheet({ type: 'mealTargets' })}>Work them out from my height, weight and goal</button>
     <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>
     <p class="small faint" style="margin-top:10px">Your own targets, for planning. Not medical or diet advice.</p>
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="goal-save" onClick=${save}>Save goals</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;

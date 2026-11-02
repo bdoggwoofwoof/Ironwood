@@ -1,0 +1,88 @@
+"""Meal plan from your targets: calories and macros from height, weight, age, activity and goal (with a floor), a week of
+meals with portions that fills the prep, today's plan on the food log, and Easy / As written / By weight amounts (Nov 2)."""
+import asyncio, subprocess, sys, time
+from playwright.async_api import async_playwright
+PORT = 8784
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+URL = f'http://localhost:{PORT}/'; results = []
+def check(name, ok, detail=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + (' - ' + str(detail) if detail else ''))
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); errs = []
+        await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
+        await ev("S.meta.settings.unit = 'lb'")
+        # Formula: 5'10\" (177.8 cm), 180 lb (81.6 kg), 30, male, moderate → BMR ≈ 1782, TDEE ≈ 2762
+        t = await ev("targetsFor({ h: 177.8, w: 81.65, age: 30, sex: 'm', act: 2, goal: 'keep', pace: 'gentle' })")
+        check('maintain: about 2760 kcal, protein 1.6 g/kg', abs(t['kcal'] - 2760) <= 20 and t['p'] == 130 and 1778 <= t['bmr'] <= 1786, t)
+        t2 = await ev("targetsFor({ h: 177.8, w: 81.65, age: 30, sex: 'm', act: 2, goal: 'lose', pace: 'steady' })")
+        check('lose steady: 500 below maintenance', abs(t2['kcal'] - (t['kcal'] - 500)) <= 10 and t2['p'] == 145, t2)
+        t3 = await ev("targetsFor({ h: 155, w: 50, age: 60, sex: 'f', act: 1, goal: 'lose', pace: 'steady' })")
+        check('never below the floor (1200 for the female formula, or resting energy)', t3['kcal'] >= 1200 and t3['kcal'] >= t3['bmr'] - 5 and 'doesn’t plan below' in t3['note'], t3)
+        t4 = await ev("targetsFor({ h: 180, w: 55, age: 25, sex: 'm', act: 2, goal: 'lose', pace: 'steady' })")
+        check('underweight BMI: no loss plan', t4['goal'] == 'keep' and 'low side' in t4['note'], t4)
+        t5 = await ev("targetsFor({ h: 170, w: 130, age: 40, sex: 'x', act: 2, goal: 'lose', pace: 'gentle' })")
+        check('high BMI: protein from a leaner weight, capped', t5['p'] < 1.8 * 130 and t5['p'] <= 220, t5)
+        # Setup sheet
+        await ev("UI.setTab('meals'); setMealsMode('plan')"); await pg.wait_for_timeout(250)
+        check('Prep offers to make a plan', await pg.locator('#plan-cta').count() == 1)
+        await pg.click('#plan-start'); await pg.wait_for_timeout(200)
+        check('Make my plan waits for numbers', await pg.locator('#tg-save[disabled]').count() == 1)
+        await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '180'); await pg.fill('#tg-age', '30'); await pg.click('#tg-sex-m')
+        await pg.click('#tg-goal-lose'); await pg.click('#tg-bmi'); await pg.wait_for_timeout(150)
+        res = await pg.inner_text('#tg-result')
+        check('shows calories, macros, BMI and the estimate note', 'calories a day' in res and 'Protein' in res and 'BMI 25.8' in res and 'Not medical or diet advice' in res, res)
+        await pg.click('#tg-save'); await pg.wait_for_timeout(400)
+        g = await ev("ML().goals"); me = await ev("ML().me")
+        check('daily goals set from the targets', g.get('kcal', 0) > 2000 and g.get('p') == 145 and g.get('na') == 2300, g)
+        check('your numbers saved', abs(me['h'] - 177.8) < 0.1 and abs(me['w'] - 81.65) < 0.1 and me['goal'] == 'lose', me)
+        check('amounts set to Easy', await ev("ML().units") == 'easy')
+        mn = await ev("(() => { const m = ML().menu; return { n: m.days.length, totals: m.days.map(d => dayTotals(d).kcal), slots: m.days.map(d => d.map(x => x.slot).join('')), k: m.t.kcal }; })()")
+        check('a week of breakfast, lunch and dinner', mn['n'] == 7 and all(s.startswith('bld') for s in mn['slots']), mn['slots'])
+        close = [abs(x - mn['k']) for x in mn['totals']]
+        check('each day lands near the calorie target', max(close) <= 250, [mn['k'], mn['totals']])
+        card = await pg.inner_text('#menu-card')
+        check('plan card: target, days, portions', 'cal' in card and 'breakfast' in card.lower() and 'dinner' in card.lower(), card[:200])
+        await pg.click('#menu-d3'); await pg.wait_for_timeout(100)
+        check('pick a day', await pg.locator('#menu-d3.on').count() == 1)
+        seed = await ev("ML().menu.seed"); await pg.click('#plan-shuffle'); await pg.wait_for_timeout(150)
+        check('different meals', await ev("ML().menu.seed") != seed)
+        await pg.click('#plan-use'); await pg.wait_for_timeout(300)
+        prep = await ev("(() => { const w = {}; for (const d of ML().menu.days) for (const x of d) w[x.r] = (w[x.r] || 0) + x.sv; return { items: ML().plan.items.map(i => [i.r, i.n]), want: Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)]), people: ML().plan.people, weeks: ML().plan.weeks }; })()")
+        check('Use for my prep fills the prep with the week’s servings', sorted(prep['items']) == sorted(prep['want']) and prep['people'] == 1 and prep['weeks'] == 1, prep)
+        # Today's menu on the log
+        await ev("setMealsMode('log')"); await pg.wait_for_timeout(200)
+        check('food log shows today’s plan', await pg.locator('#today-menu').count() == 1)
+        await pg.click('#menu-log-b'); await pg.wait_for_timeout(200)
+        e = await ev("ML().log[ymd(new Date())].slice(-1)[0]")
+        want_r = await ev("ML().menu.days[menuDayIdx()].find(x => x.slot === 'b')")
+        check('Ate it logs that meal at the planned portion', e['r'] == want_r['r'] and e['sv'] == want_r['sv'] and e['slot'] == 'b', [e.get('r'), e.get('sv'), want_r])
+        check('...and marks it logged', await pg.locator('#menu-log-b[disabled]').count() == 1)
+        # Easy measurements
+        al = await ev("""(() => { const L = s => amtLine(parseIng(s), 1, 'easy'); return [L('2 lb boneless skinless chicken breast'), L('2 lb ground turkey (93% lean)'), L('1 tbsp smoked paprika'), L('3 cans chickpeas (15 oz), rinsed'), L('1 lb broccoli'), L('2 tbsp olive oil')]; })()""")
+        check('easy: 2 lb chicken breast → about 4 chicken breasts', al[0]['q'] == '4' and 'chicken breasts' in al[0]['n'] and '2 lb' in al[0]['n'], al[0])
+        check('easy: ground turkey by the 1 lb pack', al[1]['q'] == '2' and 'packs' in al[1]['n'] and 'ground turkey' in al[1]['n'], al[1])
+        check('easy: spices stay exact', al[2]['q'] == '1 tbsp', al[2])
+        check('easy: cans stay cans', al[3]['q'].startswith('3'), al[3])
+        check('easy: broccoli by the head', 'head' in al[4]['n'], al[4])
+        check('easy: oil stays exact', al[5]['q'] == '2 tbsp', al[5])
+        wt = await ev("""(() => { const L = s => amtLine(parseIng(s), 1, 'weight'); return [L('1 cup rice'), L('2 eggs'), L('1 tsp salt')]; })()""")
+        check('by weight: a cup of rice in oz and grams', 'oz' in wt[0]['q'] and 'g)' in wt[0]['q'], wt[0])
+        check('by weight: spoons stay exact', wt[2]['q'] == '1 tsp', wt[2])
+        pt = await ev("(() => { mealCommit(m => { m.units = 'easy'; }); return [portionText(getRecipe('m-rice'), 1), portionText(getRecipe('m-taco-chicken'), 1.5), portionText(getRecipe('m-burrito-bowls'), 1.5)]; })()")
+        check('easy portions: a fist of rice, palms of chicken', 'fist' in pt[0] and 'palm' in pt[1] and '1½' in pt[2], pt)
+        # The switch on a recipe and the shopping list
+        await ev("UI.setView({ type: 'meal', id: 'm-sheet-pan' })"); await pg.wait_for_timeout(250)
+        check('recipe page has the amounts switch', await pg.locator('#units-seg').count() == 1)
+        easy_txt = await pg.inner_text('.ing-list'); await pg.click('#units-written'); await pg.wait_for_timeout(150); writ = await pg.inner_text('.ing-list')
+        check('switching changes the ingredient list', easy_txt != writ, [easy_txt[:120], writ[:120]])
+        await ev("UI.setView(null); mealCommit(m => { m.units = 'easy'; m.plan.items = [{ id: 'z', r: 'm-sheet-pan', n: 4 }]; m.plan.people = 1; m.plan.weeks = 1; }); setMealsMode('list')"); await pg.wait_for_timeout(250)
+        lst = await ev("shoppingList().filter(x => /chicken/i.test(x.name)).map(x => x.qty + ' ' + x.label)")
+        check('shopping list in Easy counts chicken pieces', any('chicken thigh' in x or 'chicken breast' in x for x in lst) and all('lb' not in x.split(' ')[1] for x in lst), lst)
+        check('saved after reload', await ev("(() => { const n = normMeals(JSON.parse(JSON.stringify(ML()))); return !!(n.me && n.menu && n.units === 'easy'); })()"))
+        check('no page errors', not errs, errs[:3]); await b.close()
+try: asyncio.run(main())
+finally: srv.terminate()
+print(f'{sum(results)}/{len(results)} passed'); sys.exit(0 if all(results) else 1)

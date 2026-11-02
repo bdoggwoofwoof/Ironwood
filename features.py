@@ -1140,7 +1140,7 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
   ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
-  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots). Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75, a lighter version, a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-setup .run-ins', 'Running', 'Enter your 100 m, mile and 3 mile times for training paces and a running plan that fits around your lifting days: 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
@@ -1151,7 +1151,7 @@ src = src[:_t0] + """const TOUR = [
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
-  ['meals', null, '#rot-card, .topsw', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight and goal and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],\n  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone. Foods you scan are saved for next time.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
@@ -1277,6 +1277,45 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 #     food log with barcode scan and lookup, and backups. A step can switch the Meals page (extra.meals).
 swap("      const ls = (extra && extra.ls) || {};", "      const ls = (extra && extra.ls) || {};\n      if (extra && extra.meals && typeof MEALS !== 'undefined' && MEALS.mode !== extra.meals) { MEALS.mode = extra.meals; lsSet('mealsMode', extra.meals); if (!needTab && !needMode) S.rerender(); }")
 swap('<button class="btn" onClick=${exportFile}>Save backup file</button>', '<button class="btn" id="backup-file" onClick=${exportFile}>Save backup file</button>')
+
+# 26. Meal plan from your targets (mealplan.js, Nov 2, Newt's request): height, weight, age, activity and goal (optional
+#     BMI) set daily calories and macros (estimates with a floor), then a week of meals with portions that can fill the
+#     prep and shopping list; today's plan on the food log with one-tap logging. Amounts everywhere in Meals can be Easy
+#     (3 chicken breasts, half a can, about a fist), as written, or by weight; spices and sauces stay exact.
+MPJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mealplan.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", MPJS + "\n/* ---------- APP ---------- */")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'mealTargets': return html`<${TargetsSheet}/>`;")
+swap(".sess-acts{gap:8px}", """.menu-days{display:flex;gap:6px;margin:10px 0 8px}.menu-days .chip{flex:1;justify-content:center;padding:6px 0}
+.menu-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.menu-row{display:grid;grid-template-columns:76px minmax(0,1fr);column-gap:10px;text-align:left;padding:8px 0;border-bottom:1px solid var(--line);color:inherit;align-items:baseline}
+.menu-row .eyebrow{grid-row:span 2}.menu-row .t{font-weight:600}.menu-row .s{grid-column:2;font-size:14px;color:var(--ink-2)}
+.menu-log{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:10px 12px}
+.sess-acts{gap:8px}""")
+swap("for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; if (!a.rot && b.rot) a.rot = b.rot;", "for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units;")
+
+# 27. Weight is total or each side (Nov 2, Newt's request): a dot button by the weight heading of each exercise. One big
+#     dot = the total weight; two small dots = the weight on each side (cable flys, dumbbells). Kept per exercise in
+#     meta.exSide and shown on the Last line. A label only: PRs and charts compare the numbers as entered.
+swap("/* ---------- APP ---------- */", """const exSideOn = ex => !!(S.meta.exSide || {})[ex];
+function toggleSide(ex) {
+  const on = !exSideOn(ex); commit(st => { st.meta.exSide = { ...(st.meta.exSide || {}) }; if (on) st.meta.exSide[ex] = true; else delete st.meta.exSide[ex]; }, 'meta', 400);
+  showToast({ kind: 'info', text: on ? exName(ex) + ': weight is each side' : exName(ex) + ': weight is the total' });
+}
+function SideTog({ ex }) {
+  const on = exSideOn(ex);
+  return html`<button class="side-tog" id=${'side-' + ex} aria-pressed=${on} aria-label=${on ? 'Weight is for each side. Switch to total' : 'Weight is the total. Switch to each side'} title=${on ? 'Each side' : 'Total'} onClick=${() => toggleSide(ex)}>${on ? html`<span class="dot sm"></span><span class="dot sm"></span>` : html`<span class="dot"></span>`}</button>`;
+}
+/* ---------- APP ---------- */""")
+swap("onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><span>Reps</span>", "onClick=${() => toggleUnit(it)}>${wLabel} ⇄</button><${SideTog} ex=${it.ex}/></span><span>Reps</span>")
+swap('<div class="set-row th"><span>Set</span><button class="unit-tog"', '<div class="set-row th"><span>Set</span><span class="w-th"><button class="unit-tog"')
+swap("${shortDate(it.prevT)}: ${lastLine(it)}", "${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}")
+swap("  const pl = kind === 'barbell' && curW > 0 ? plates(curW, u) : null;", "  const pl = kind === 'barbell' && curW > 0 && !exSideOn(it.ex) ? plates(curW, u) : null;")
+swap("for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes'])", "for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide'])")
+swap(".sess-acts{gap:8px}", """.w-th{display:flex;align-items:center;justify-content:center;gap:1px;min-width:0}
+.side-tog{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:24px;min-height:32px;padding:0 4px;margin:-2px 0}
+.side-tog .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:block}
+.side-tog .dot.sm{width:5px;height:5px}
+.sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

@@ -1,0 +1,189 @@
+/* ============ Meal plan from your targets, and easy measurements (Nov 2) ============ */
+/* meals.me: { h (cm), w (kg), age, sex: 'm' | 'f' | 'x', act: 1–4, goal: 'lose' | 'keep' | 'gain', pace: 'gentle' | 'steady',
+   bmi: show BMI, us: true for ft/in and lb }. The targets are estimates (Mifflin-St Jeor resting energy × activity, then
+   a modest change for the goal) with a floor, never a crash diet. meals.menu: { seed, t: targets, days: [[{ slot, r, sv }]] }.
+   meals.units: 'easy' | 'written' | 'weight' for every ingredient amount in Meals. */
+const ACT_LEVELS = [[1, 'Light', 'Desk job, 1–3 workouts a week', 1.375], [2, 'Moderate', '3–5 workouts a week', 1.55], [3, 'Active', '6+ workouts, or on your feet all day', 1.725], [4, 'Very active', 'Physical job plus training', 1.9]];
+const GOAL_ADJ = { lose: { gentle: -250, steady: -500 }, keep: { gentle: 0, steady: 0 }, gain: { gentle: 200, steady: 350 } };
+const KCAL_FLOOR = { m: 1500, f: 1200, x: 1350 };
+const bmiOf = me => me && me.h > 0 && me.w > 0 ? me.w / Math.pow(me.h / 100, 2) : null;
+function targetsFor(me) {
+  if (!me || !(me.h > 0) || !(me.w > 0) || !(me.age > 0)) return null;
+  const s = me.sex === 'm' ? 5 : me.sex === 'f' ? -161 : -78;
+  const bmr = 10 * me.w + 6.25 * me.h - 5 * me.age + s; const act = (ACT_LEVELS.find(a => a[0] === me.act) || ACT_LEVELS[1])[3];
+  const tdee = bmr * act; const bmi = bmiOf(me);
+  let goal = me.goal || 'keep'; let note = '';
+  if (goal === 'lose' && bmi != null && bmi < 18.5) { goal = 'keep'; note = 'Your weight is already on the low side for your height, so this plan is for keeping it steady, not losing.'; }
+  let kcal = tdee + (GOAL_ADJ[goal] || GOAL_ADJ.keep)[me.pace || 'gentle'];
+  const floor = Math.max(KCAL_FLOOR[me.sex] || KCAL_FLOOR.x, Math.round(bmr));
+  if (goal === 'lose' && kcal < floor) { kcal = floor; note = note || 'Ironwood doesn’t plan below ' + floor + ' calories a day, so the loss will be slower.'; }
+  kcal = Math.round(kcal / 10) * 10;
+  const basis = bmi != null && bmi > 30 ? 27 * Math.pow(me.h / 100, 2) : me.w;   /* protein from a lean-ish weight when BMI is high */
+  const p = Math.min(220, Math.round(basis * (goal === 'keep' ? 1.6 : 1.8) / 5) * 5);
+  const f = Math.round(kcal * 0.28 / 9 / 5) * 5; const c = Math.max(50, Math.round((kcal - p * 4 - f * 9) / 4 / 5) * 5);
+  return { kcal, p, c, f, fib: Math.round(kcal / 1000 * 14), na: 2300, bmr: Math.round(bmr), tdee: Math.round(tdee), goal, note, bmi };
+}
+
+/* ---- the menu ---- */
+const PLAN_SLOTS = [['b', 'Breakfast'], ['l', 'Lunch'], ['d', 'Dinner'], ['s', 'Snack']];
+function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
+function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
+function planPool() {
+  const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
+  const all = allRecipes().filter(ok);
+  return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
+}
+function buildMenu(t, seed) {
+  const P = planPool(); const rnd = seeded(seed); if (!P.b.length || P.m.length < 2) return null;
+  const bs = pickN(P.b, 2, rnd), ms = pickN(P.m, Math.min(3, P.m.length), rnd);
+  const snacks = P.s.slice().sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const day = [{ slot: 'b', r: bs[i % bs.length].id, sv: 1 }, { slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }];
+    const tot = () => day.reduce((a, x) => { const m = macros(getRecipe(x.r)); a.kcal += m.kcal * x.sv; a.p += m.p * x.sv; return a; }, { kcal: 0, p: 0 });
+    /* a snack when there's room: the most protein for its calories when protein is short */
+    let T = tot(); if (snacks.length && T.kcal < t.kcal - 120) { const s = T.p < t.p - 15 ? snacks[0] : snacks[(i + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
+    /* then portions in half steps toward the calorie target (½ to 2 of a serving) */
+    for (let k = 0; k < 12; k++) {
+      T = tot(); const gap = t.kcal - T.kcal; if (Math.abs(gap) < 90) break;
+      const main = day.filter(x => x.slot === 'l' || x.slot === 'd' || x.slot === 'b');
+      if (gap > 0) { const x = main.filter(y => y.sv < 2).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
+      else { const s = day.find(y => y.slot === 's'); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
+    }
+    days.push(day);
+  }
+  return { seed, t, days, at: Date.now() };
+}
+const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
+const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */
+/* "1½ bowls", "7 meatballs", "1 cup cooked (a fist)" */
+function portionText(r, sv) {
+  const g = r.size ? parseIng(r.size) : null; const um = !g && r.size ? String(r.size).match(/^(\S+)\s+([A-Za-z]+)$/) : null;
+  if (um && numOf(um[1]) > 0) { const u = UNIT_ALIAS[um[2].toLowerCase()]; const q = numOf(um[1]) * sv; return u ? qtyText(q, u) : fracStr(q) + ' ' + (q > 1.01 ? plural(um[2]) : um[2]); }
+  if (!g || g.q == null) return (sv === 1 ? '1 serving' : fracStr(sv) + ' servings') + (r.size ? ' (' + r.size + ' each)' : '');
+  const q = g.q * sv; const easy = (ML().units || 'written') === 'easy';
+  let hint = '';
+  if (easy && g.u === 'cup') hint = q <= 0.6 ? ' (a cupped hand)' : q <= 1.2 ? ' (about a fist)' : ' (about ' + fracStr(Math.round(q * 2) / 2) + ' fists)';
+  if (easy && (g.u === 'oz') && /cooked/.test(g.n)) hint = q <= 5 ? ' (about a palm)' : ' (about ' + fracStr(Math.round(q / 4 * 2) / 2) + ' palms)';
+  return qtyText(q, g.u) + ' ' + nameFor(g.n, q, g.u) + hint;
+}
+
+/* ---- easy and by-weight amounts ---- */
+/* Spices, sauces, oils and anything measured by the spoon stay exact. */
+const isExactIng = g => g.u === 'tsp' || g.u === 'tbsp' || g.u === 'pinch' || g.a === 'pantry' || /sauce|dressing|vinegar|\boil\b|seasoning|spice|extract/i.test(shopName(g.n));
+const EACH = [
+  [/chicken breast/, 225, 'chicken breast'], [/chicken thigh|\bthighs?\b/, 115, 'chicken thigh'],
+  [/ground (turkey|beef|chicken|pork|bison)/, 454, 'pack', ' (1 lb each)', true], [/turkey liver|chicken liver/, 454, 'pack', ' (1 lb each)', true],
+  [/salmon/, 170, 'salmon fillet'], [/\bcod\b|tilapia|white fish|\bfish\b/, 170, 'fish fillet'], [/shrimp/, 454, 'bag', ' (1 lb each)', true],
+  [/tofu/, 400, 'block', '', true], [/steak|sirloin/, 250, 'steak'], [/pork chop/, 200, 'pork chop'], [/pork tenderloin/, 500, 'pork tenderloin'], [/sausage/, 85, 'link', '', true],
+  [/sweet potato/, 200, 'sweet potato'], [/potato/, 210, 'potato'], [/butternut/, 1000, 'butternut squash'],
+  [/onion/, 150, 'onion'], [/bell pepper|\bpeppers?\b/, 150, 'bell pepper'], [/carrot/, 60, 'carrot'], [/zucchini/, 200, 'zucchini'],
+  [/broccoli/, 450, 'head', '', true], [/cauliflower/, 600, 'head', '', true], [/cabbage/, 900, 'head', '', true],
+  [/tomato(es)?\b(?!.*(sauce|paste|crushed|diced|canned))/, 120, 'tomato'], [/cucumber/, 300, 'cucumber'], [/apple/, 180, 'apple'], [/banana/, 120, 'banana'],
+  [/mushroom/, 227, 'pack', ' (8 oz each)', true], [/spinach|kale/, 142, 'bag', ' (5 oz each)', true], [/green bean|brussels/, 340, 'bag', ' (12 oz each)', true],
+  [/pasta|spaghetti|penne|noodle/, 454, 'box', ' (1 lb each)', true]];
+function eachFor(n) { const t = shopName(n).toLowerCase(); for (const e of EACH) if (e[0].test(t)) return e; return null; }
+const roundHalf = v => Math.max(0.5, Math.round(v * 2) / 2);
+function wtText(gr) { const [v, u, dec] = measure(gr, { k: 'wt', mul: 1 }, false); return qtyText(isMetric() ? v : Math.round(v * 4) / 4, u, dec); }
+/* One ingredient line in the chosen style; f = how much the recipe is scaled */
+function amtLine(g, f, mode) {
+  mode = mode || ML().units || 'written';
+  if (mode === 'written' || g.q == null || isExactIng(g)) return ingLine(g, f);
+  const fam = famOf(g.u); const food = foodFor(g);
+  if (mode === 'easy') {
+    if (fam.k !== 'wt') return ingLine(g, f);
+    const gr = g.q * fam.mul * f; const e = eachFor(g.n);
+    if (e) { const v = gr / e[1]; const n = v >= 3 ? Math.round(v) : roundHalf(v); const label = e[4] ? (n > 1.01 ? plural(e[2]) : e[2]) + ' ' + shopName(g.n) + (e[3] && n > 1.01 ? e[3] : e[3] ? e[3].replace(' each', '') : '') : (n > 1.01 ? plural(e[2]) : e[2]);
+      return { q: fracStr(n), n: label + ' · about ' + wtText(gr) }; }
+    if (food && food.g && food.g.cup) { const cups = Math.max(0.25, Math.round(gr / food.g.cup * 4) / 4); return { q: qtyText(cups, 'cup'), n: shopName(g.n) }; }
+    return ingLine(g, f);
+  }
+  /* by weight */
+  if (fam.k === 'wt') return { q: wtText(g.q * fam.mul * f) + (isMetric() ? '' : ''), n: g.n };
+  const gr0 = food && !food.skip ? gramsOf(g, food) : null;
+  if (gr0 > 0) { const gr = gr0 * f; return { q: isMetric() ? wtText(gr) : wtText(gr) + ' (' + Math.round(gr) + ' g)', n: shopName(g.n) }; }
+  return ingLine(g, f);
+}
+/* Shopping list: easy mode turns weights into things you can count off the shelf */
+function easyShop(e) {
+  if ((ML().units || 'written') !== 'easy' || !e.fams.wt || Object.keys(e.fams).length !== 1) return null;
+  const x = eachFor(e.name); if (!x) return null; const gr = e.fams.wt.total; const n = Math.max(1, Math.ceil(gr / x[1] - 0.15));
+  return { qty: String(n), label: x[4] ? (n > 1 ? plural(x[2]) : x[2]) + ' ' + e.name + (x[3] && n > 1 ? x[3] : '') : (n > 1 ? plural(x[2]) : x[2]) + ' (about ' + wtText(gr) + ')' };
+}
+function UnitsSeg({ small }) {
+  const cur = ML().units || 'written';
+  return html`<div class=${'seg' + (small ? '' : ' wide')} role="group" aria-label="Amounts" id="units-seg">${[['easy', 'Easy'], ['written', 'As written'], ['weight', 'By weight']].map(([k, l]) => html`<button key=${k} id=${'units-' + k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} onClick=${() => mealCommit(m => { m.units = k; })}>${l}</button>`)}</div>`;
+}
+
+/* ---- setup sheet ---- */
+function TargetsSheet() {
+  const me0 = ML().me || {}; const lastBw = (S.meta.bw || []).slice().sort((a, b) => a.d < b.d ? -1 : 1).pop();
+  const us0 = me0.us != null ? me0.us : !isMetric();
+  const [d, setD] = useState(() => {
+    const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
+    return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
+      w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: me0.goal || 'keep', pace: me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+  });
+  const set = (k, v) => setD({ ...d, [k]: v });
+  const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
+  const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, bmi: d.bmi, us: d.us };
+  const t = targetsFor(me); const bmi = bmiOf(me);
+  const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
+  const save = () => {
+    mealCommit(m => { m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', text: 'Your targets and a week of meals are ready.' });
+  };
+  return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
+    <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
+    <div class="stack" style="margin-top:12px">
+      <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
+      <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => set('inch', e.target.value.replace(/\D/g, ''))}/></div></div>`
+        : html`<div style="flex:1"><label class="lbl" for="tg-cm">Height (cm)</label><input class="field" id="tg-cm" inputmode="numeric" value=${d.cm} onInput=${e => set('cm', e.target.value.replace(/\D/g, ''))}/></div>`}
+        <div style="flex:1"><label class="lbl" for="tg-w">Weight (${d.us ? 'lb' : 'kg'})</label><input class="field" id="tg-w" inputmode="decimal" value=${d.w} onInput=${e => set('w', e.target.value.replace(/[^\d.]/g, ''))}/></div></div>
+      <div class="row" style="gap:10px"><div style="flex:1"><label class="lbl" for="tg-age">Age</label><input class="field" id="tg-age" inputmode="numeric" value=${d.age} onInput=${e => set('age', e.target.value.replace(/\D/g, ''))}/></div>
+        <div style="flex:2"><span class="lbl">For the formula</span>${seg('sex', [['m', 'Male'], ['f', 'Female'], ['x', 'Skip']])}</div></div>
+      <div><span class="lbl">How active are you?</span><div class="stack" style="gap:6px;margin-top:6px">${ACT_LEVELS.map(([v, l, s]) => html`<button key=${v} id=${'tg-act-' + v} class=${'opt' + (d.act === v ? ' on' : '')} aria-pressed=${d.act === v} onClick=${() => set('act', v)}><div style="flex:1"><div>${l}</div><div class="d">${s}</div></div>${d.act === v ? I.check : null}</button>`)}</div></div>
+      <div><span class="lbl">Your goal</span>${seg('goal', [['lose', 'Lose fat'], ['keep', 'Maintain'], ['gain', 'Build muscle']])}</div>
+      ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
+      <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
+      <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
+      ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
+          <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
+          ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
+          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">Fill in height, weight and age to see your numbers.</p>`}
+      <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+
+/* ---- the plan on Prep, today's menu on Log ---- */
+function MenuCard() {
+  const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
+  if (!mn || !mn.days || !mn.days.length) return html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Make me a meal plan</div>
+    <p class="small muted" style="margin:2px 0 10px">Enter your height, weight and goal. Ironwood sets your calories and protein, picks a week of meals with portions, and fills your prep and shopping list.</p>
+    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button></div>`;
+  const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
+  const reroll = () => mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); });
+  const usePlan = () => {
+    const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
+    const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
+    if (!m.plan.items.length && !m.rot) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
+  };
+  return html`<div class="card" id="menu-card">
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+      <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
+    <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
+    <div class="menu-list">${PLAN_SLOTS.map(([s, label]) => { const x = day.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r);
+      return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
+    <div class="small muted num">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat</div>
+    <div style="margin-top:10px"><${UnitsSeg}/></div>
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
+    <p class="small faint" style="margin-top:8px">Estimates for planning, not medical or diet advice.</p></div>`;
+}
+function TodayMenu({ day }) {
+  const mn = ML().menu; if (!mn || !mn.days) return null;
+  const list = (mn.days[menuDayIdx(parseYmd(day))] || []).filter(x => getRecipe(x.r)); if (!list.length) return null;
+  const logged = new Set((ML().log[day] || []).filter(e => e.k === 'recipe').map(e => e.r + ':' + (e.slot || '')));
+  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${PLAN_SLOTS.map(([s, label]) => { const x = list.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
+    return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
+      <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
+}

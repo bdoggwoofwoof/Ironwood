@@ -1682,13 +1682,13 @@ swap(".sess-acts{gap:8px}", ".hdr-clock{font-family:var(--display);font-size:20p
 # 40. Tighter top and bottom, bigger section switch (Nov 3, Newt's request from a phone screenshot). Less empty space
 #     under the status bar (the page already sits below it, so the spacer no longer adds the status bar a second
 #     time) and below the tab bar on every page; Train/Run/Fight and the other top switches 30px
-#     (26px when there are four); Progress and Profile titles match. Tab bar icons and labels keep their size.
+#     on every page (Meals has four and still fits); Progress and Profile titles match. Tab bar icons and labels keep their size.
 swap(".sess-acts{gap:8px}", """.hdr-space{height:4px}
 main{padding-top:2px}
 .topsw{margin:0 0 4px}
 .hdr-in{min-height:44px;padding-top:4px;padding-bottom:4px}
 main .topsw button{font-size:min(30px, 8vw)}
-main .topsw.four button{font-size:min(26px, 6.6vw)}
+main .topsw.four button{font-size:min(30px, 8vw)}
 main .page-title{font-size:min(30px, 8vw)}
 .tabs{padding:4px 10px max(6px, calc(env(safe-area-inset-bottom,0px) - 14px))}
 .sess-acts{gap:8px}""")

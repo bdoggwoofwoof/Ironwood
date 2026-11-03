@@ -1447,6 +1447,32 @@ swap("if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs
 swap("    case 'goalSetup': return html`<${GoalSetupSheet}/>`;", "    case 'goalSetup': return html`<${GoalSetupSheet} welcome=${sheet.welcome}/>`;")
 swap("function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }", "function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }")
 
+# 36. Edit a food you entered by hand (Nov 3, Newt's request): a logged entry made with Enter numbers opens with an
+#     Edit button; the name and every number can be changed. If the food is also saved in a category, the saved copy
+#     changes with it, so logging it again uses the new numbers. Undo puts the old entry back.
+swap("function LogEntrySheet({ day, id }) {\n  const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;",
+     """function NumEdit({ day, e, done }) {
+  const [d, setD] = useState(() => ({ name: e.name, ...Object.fromEntries(NUT.map(([k]) => [k, e.m[k] ? String(Math.round(e.m[k] * 10) / 10) : ''])) }));
+  const set = (k, v) => setD({ ...d, [k]: v }); const ok = NUT.some(([k]) => +d[k] > 0);
+  const save = () => {
+    const old = clone(e); const sv = savedFor(e); const svE = sv ? clone(sv.e) : null; const svCat = sv ? sv.cat : ''; const m1 = roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))); const name = d.name.trim() || 'Quick add';
+    mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === e.id); if (!x) return; x.name = name; x.m = m1; if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });
+    done(); showToast({ kind: 'info', ms: 7000, text: sv ? 'Updated here and in ' + svCat : 'Updated', action: 'Undo', fn: () => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === e.id); if (x) { x.name = old.name; x.m = old.m; } if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = svE; }) });
+  };
+  return html`<div class="stack" id="le-edit-form" style="margin-top:12px"><div><label class="lbl" for="le-name">Name</label><input class="field" id="le-name" value=${d.name} onInput=${x => set('name', x.target.value)}/></div>
+    <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'le-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'le-' + k} inputmode="decimal" value=${d[k]} onInput=${x => set(k, x.target.value.replace(/[^\\d.]/g, ''))}/></div>`)}</div>
+    ${savedFor(e) ? html`<p class="small muted">This food is saved in ${savedFor(e).cat}; the saved copy changes too.</p>` : null}
+    <div class="row" style="gap:8px"><button class="btn primary" style="flex:2" id="le-save" disabled=${!ok} onClick=${save}>Save changes</button><button class="btn" style="flex:1" onClick=${done}>Cancel</button></div></div>`;
+}
+function LogEntrySheet({ day, id }) {
+  const [editing, setEditing] = useState(false);
+  const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;
+  if (editing) return html`<${Sheet} label=${'Edit ' + e.name}><h2>Edit ${e.name}</h2><p class="note">${logDayName(day)}</p><${NumEdit} day=${day} e=${e} done=${() => setEditing(false)}/><//>`;""")
+swap("""    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in '""", """    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    ${e.k === 'num' ? html`<button class="btn wide" id="le-edit" style="margin-top:12px" onClick=${() => setEditing(true)}>${I.edit} Edit name and numbers</button>` : null}
+    <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in '""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

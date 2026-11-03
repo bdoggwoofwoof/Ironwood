@@ -36,7 +36,7 @@ function GoalsCard() {
     <div class="stack">${list.map(g => { const st = goalStatus(g); const u = U(); const metricName = g.metric === 'top' ? 'heaviest' : 'est. 1RM';
       return html`<button key=${g.id} class="card goal-card" id=${'goal-' + g.id} onClick=${() => openSheet({ type: 'liftGoal', id: g.id })}>
         <div class="row"><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:700">${exName(g.ex)} · ${fmt(st.tg)} ${u}</div>
-          <div class="small muted">${metricName} by ${shortDate(+parseYmd(g.by))}</div></div>
+          <div class="small muted">${metricName} by ${shortDate(+parseYmd(g.by))}${g.by.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + g.by.slice(0, 4) : ''}</div></div>
           ${st.reached ? html`<span class="chip on">${I.check} Reached</span>` : html`<div style="text-align:right"><b class="num">${st.now == null ? '–' : fmt(r05(st.now))}</b><div class="small muted">now</div></div>`}</div>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(st.pct * 100)}><span style=${{ width: Math.round((st.reached ? 1 : st.pct) * 100) + '%' }}></span></div>
         <div class="small muted" style="text-align:left">${goalLine(g, st)}</div></button>`; })}</div>
@@ -53,11 +53,13 @@ function LiftGoalSheet({ id, ex: ex0 }) {
   const [ex, setEx] = useState(g0 ? g0.ex : ex0 || lifts[0] || ''); const [metric, setMetric] = useState(g0 ? g0.metric : 'e1');
   const [tg, setTg] = useState(g0 ? String(goalTarget(g0)) : ''); const [by, setBy] = useState(g0 ? g0.by : ymd(addDays(new Date(), 84)));
   const now = ex ? goalNow({ ex, metric }) : null; const u = U();
-  const ok = ex && +tg > 0 && /^\d{4}-\d\d-\d\d$/.test(by);
+  const cap = u === 'kg' ? 500 : 1100; const today = ymd(new Date());
+  const why = !ex || !tg ? '' : !(+tg > 0) ? 'Enter a target weight.' : +tg > cap ? 'That’s more than the world record. Check the number (' + u + ').' : now != null && !id && +tg <= r05(now) ? 'You’ve already reached ' + fmt(r05(now)) + ' ' + u + '. Pick something higher.' : !/^\d{4}-\d\d-\d\d$/.test(by) ? 'Pick a date.' : by <= today && (!g0 || by !== g0.by) ? 'Pick a date after today.' : '';
+  const ok = ex && +tg > 0 && !why;
   const save = () => {
     const gid = id || uid('g');
     commit(st => { st.meta.liftGoals = { ...(st.meta.liftGoals || {}) }; st.meta.liftGoals[gid] = { ...(g0 || {}), id: gid, ex, metric, target: r05(+tg), u, by, start: g0 && g0.ex === ex && g0.metric === metric ? g0.start : (now || 0), createdAt: g0 && g0.ex === ex ? g0.createdAt : Date.now() }; }, 'meta');
-    closeSheet(); showToast({ kind: 'info', text: id ? 'Goal updated' : 'Goal set. It shows in Train.' });
+    closeSheet(); showToast({ kind: 'info', text: id ? 'Goal updated' : 'Goal set. It shows in Train and Stats.' });
   };
   const del = () => { commit(st => { st.meta.liftGoals = { ...(st.meta.liftGoals || {}) }; delete st.meta.liftGoals[id]; }, 'meta'); closeSheet(); };
   return html`<${Sheet} label=${id ? 'Edit goal' : 'New lift goal'}><h2>${id ? 'Edit goal' : 'New lift goal'}</h2>
@@ -67,6 +69,7 @@ function LiftGoalSheet({ id, ex: ex0 }) {
         <p class="small muted" style="margin-top:4px">${metric === 'e1' ? 'Estimated from any set, so a set of 5 counts too.' : 'The heaviest weight you lift for at least one rep.'}${now != null ? ' Now: ' + fmt(r05(now)) + ' ' + u + '.' : ''}</p></div>
       <div class="row" style="gap:10px"><div style="flex:1"><label class="lbl" for="lg-t">Target (${u})</label><input class="field" id="lg-t" inputmode="decimal" placeholder=${now != null ? String(r05(now * 1.1 / 5) * 5) : ''} value=${tg} onInput=${e => setTg(e.target.value.replace(/[^\d.]/g, ''))}/></div>
         <div style="flex:1"><label class="lbl" for="lg-by">By</label><input class="field" id="lg-by" type="date" value=${by} onInput=${e => setBy(e.target.value)}/></div></div>
+      ${why ? html`<p class="small" id="lg-why" style="color:var(--stop)">${why}</p>` : null}
       <button class="btn primary wide" id="lg-save" disabled=${!ok} onClick=${save}>${id ? 'Save goal' : 'Set goal'}</button>
       ${id ? html`<button class="btn danger wide" id="lg-del" onClick=${del}>Delete goal</button>` : null}
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div>`}<//>`;
@@ -163,5 +166,6 @@ async function shareMonth(ym) {
 function StatsExtras() {
   return html`<div class="row" style="gap:8px;margin-top:14px" id="stats-extras">
     <button class="btn" style="flex:1" id="open-month" onClick=${() => UI.setView({ type: 'month', ym: ymAdd(ymOf(new Date()), -1) })}>Month in review</button>
-    <button class="btn" style="flex:1" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Lift goal</button></div>`;
+    <button class="btn" style="flex:1" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Lift goal</button></div>
+    <div style="margin-top:6px"><${GoalsCard}/></div>`;
 }

@@ -59,6 +59,16 @@ async function photoRestore(d) {
   PH.urls.forEach(u => URL.revokeObjectURL(u)); PH.urls.clear(); PH.list = null;
   return n;
 }
+/* Display settings (theme, text size, colors, language) live on the device; backups carry them and a fresh phone takes them */
+const DISPLAY_KEYS = ['palette', 'palCustom', 'theme', 'size', 'rm', 'hc', 'lang', 'langName', 'customLangs'];
+const displayBackup = () => Object.fromEntries(DISPLAY_KEYS.map(k => [k, lsGet(k)]).filter(([, v]) => v != null));
+function restoreDisplay(x) {
+  for (const k of DISPLAY_KEYS) if (typeof x[k] === 'string') lsSet(k, x[k]);
+  for (const k of ['palette', 'theme', 'size']) if (typeof x[k] === 'string') DISP[k] = x[k];
+  for (const k of ['rm', 'hc']) if (typeof x[k] === 'string') DISP[k] = x[k] === '1';
+  if (typeof x.lang === 'string' && typeof L10N === 'object') { L10N.lang = x.lang; L10N.name = x.langName || ''; }
+  setTimeout(() => { try { if (typeof applyPalette === 'function') applyPalette(); applyDisplay(); } catch (e) {} }, 0);
+}
 /* Restore merge: an empty app takes the whole backup; a used app gains only what it lacks. */
 function restoreInto(st, d) {
   const m = normalizeMeta(d.meta); const keys = ['meta'];
@@ -72,7 +82,18 @@ function restoreInto(st, d) {
     for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
     const tIds = new Set((st.meta.timers || []).map(x => x.id)); st.meta.timers = (st.meta.timers || []).concat((m.timers || []).filter(x => x && !tIds.has(x.id)));
+    /* settings, running plan and meals: fill in what this phone doesn't have yet; this phone's own choices stay */
+    const set = st.meta.settings; for (const [k, v] of Object.entries(m.settings || {})) if (set[k] == null || (k === 'program' && !set.program) || (Array.isArray(set[k]) && !set[k].length && Array.isArray(v))) set[k] = v;
+    if (!st.meta.run && m.run) st.meta.run = m.run;
+    if (m.meals && typeof m.meals === 'object') { const A = st.meta.meals = st.meta.meals || {}; const B = m.meals;
+      for (const f of ['recipes', 'preps', 'foods', 'saved']) if (B[f] && typeof B[f] === 'object') { A[f] = A[f] || {}; for (const [k, v] of Object.entries(B[f])) if (!(k in A[f])) A[f][k] = v; }
+      if (B.log && typeof B.log === 'object') { A.log = A.log || {}; for (const [d, l] of Object.entries(B.log)) { const have = new Set((A.log[d] || []).map(e => e && e.id)); A.log[d] = (A.log[d] || []).concat((Array.isArray(l) ? l : []).filter(e => e && !have.has(e.id))); } }
+      for (const f of ['me', 'menu', 'prefs', 'habits', 'units', 'rot', 'cats']) if (A[f] == null && B[f] != null) A[f] = B[f];
+      if ((!A.goals || !Object.keys(A.goals).length) && B.goals) A.goals = B.goals;
+      if ((!A.plan || !(A.plan.items || []).length) && B.plan) A.plan = B.plan;
+      st.meta.meals = normMeals(A); }
   }
+  if (fresh && d.display && typeof d.display === 'object') restoreDisplay(d.display);
   let added = 0;
   const cs = cleanSessions(d.sessions);
   for (const [k, s] of Object.entries(cs.sessions)) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
@@ -560,7 +581,8 @@ function ActivitySheet({ id, day }) {
       updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
     commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') });
   };
-  const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
+  const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
+    showToast({ kind: 'info', ms: 8000, text: 'Activity deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
     <p class="note">Counts toward your week streak and workouts per week, like a lifting workout.</p>
     <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
@@ -892,7 +914,7 @@ swap("items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filt
      "items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };\n  if (day && day.timer) S.active.timer = clone(day.timer);\n  touch(500);")
 swap("    <div class=\"small muted num\" style=\"margin-top:6px\">${done} of ${total} sets done</div>",
      "    <div class=\"small muted num\" style=\"margin-top:6px\">${done} of ${total} sets done</div>\n    <${WorkoutExtras} a=${a}/>")
-swap("<span>${U()} moved</span></div></div>", "<span>${U()} moved</span></div></div>\n    <${RunSummary} s=${s}/>")
+swap("<span>${U()} moved</span></div>` : null}</div>", "<span>${U()} moved</span></div>` : null}</div>\n    <${RunSummary} s=${s}/>")
 swap("{ id: 'p-tabata', name: 'Tabata',", "{ id: 'p-tabata', name: '20 on / 10 off',")
 swap('"Tabata", ', '"20 on / 10 off", ')
 swap("    ${r.note ? html`<p class=\"note\">${r.note}</p>` : null}\n    <div class=\"row wrap\" style=\"margin:14px 0 4px\">",
@@ -1111,7 +1133,7 @@ swap("    const tIds = new Set((st.meta.timers || []).map(x => x.id));", "    if
 # Four Train switches still fit on one line
 swap("function TopSwitch({ value, options, onChange }) {\n  return html`<div class=\"topsw\" role=\"tablist\">", "function TopSwitch({ value, options, onChange }) {\n  return html`<div class=${'topsw' + (options.length > 3 ? ' four' : '')} role=\"tablist\">")
 swap(".sess-acts{gap:8px}", """.topsw.four{gap:14px;overflow-x:auto;scrollbar-width:none}.topsw.four::-webkit-scrollbar{display:none}
-.topsw.four button{font-size:calc(24 * var(--u));white-space:nowrap;flex:none}
+.topsw.four button{font-size:min(calc(24 * var(--u)), 7vw);white-space:nowrap;flex:none}
 .meas-row.k-timed.nol{grid-template-columns:30px minmax(0,1fr) 46px}.meas-row.nol>:nth-child(3){display:none}
 .fc-now b{font-size:17px}.fc-toggles{padding-top:4px;padding-bottom:4px}.fc-toggles .toggle-row{padding:8px 0;border-bottom:1px solid var(--line)}.fc-toggles .toggle-row:last-child{border-bottom:0}
 .fc-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1209,7 +1231,7 @@ swap("style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-
      "style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class=\"topsw\"><h1 class=\"page-title\">${tab === 'stats' ? 'Stats' : 'Profile'}</h1></div>` : null}${body}")
 swap("    <${PlanWeekCard}/>", "    <${PlanWeekCard}/>\n    <${ChallengeFinder} where=\"train\"/>")
 swap("    <${CareFinder}/>\n", "    <${CareFinder}/>\n    <${ChallengeFinder} where=\"routines\"/>\n")
-swap(".sess-acts{gap:8px}", """main .topsw button,main .topsw.four button{font-size:24px}
+swap(".sess-acts{gap:8px}", """main .topsw button,main .topsw.four button{font-size:min(24px, 7vw)}
 .page-title{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink);padding:2px 0 6px;border-bottom:3px solid var(--accent);margin:0;line-height:inherit}
 .ch-finder{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 14px}
 .ch-finder .ch-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent-ink);display:grid;place-items:center;flex:none}.ch-finder .ch-ic svg{width:20px;height:20px}

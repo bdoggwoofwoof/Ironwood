@@ -236,6 +236,7 @@ label.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin
 .tip{position:absolute;top:4px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:8px;padding:6px 9px;font-size:12.5px;line-height:1.3;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .tip b{font-size:14px}
 .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.trio:has(> div:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .trio>div{background:var(--raised);border-radius:12px;padding:10px}
 .trio b{display:block;font-family:var(--display);font-size:24px;line-height:1.05;font-variant-numeric:tabular-nums}
 .trio span{font-size:12px;color:var(--ink-2);font-weight:600;line-height:1.25;display:block}
@@ -390,9 +391,10 @@ main.with-mini{padding-top:64px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{transform:translateY(24px);opacity:.6}}
 @media (prefers-reduced-motion: reduce){.scrim,.sheet{animation:none}.bar>div{transition:none}}
+.rest-offer{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:14px;margin-top:6px}.rest-offer span{flex:1;min-width:0}
 .sync{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2)}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
-.sync.synced i{background:var(--good)}.sync.offline i,.sync.local i{background:var(--pr)}
+.sync.synced i{background:var(--good)}.sync.offline i,.sync.local i{background:var(--pr)}.sync.over i,.sync.full i{background:var(--stop)}.sync.over,.sync.full{color:var(--ink)}
 .set-tbl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;font-size:15px;font-variant-numeric:tabular-nums;margin-top:6px}
 .ex-block{padding:12px 0;border-bottom:1px solid var(--line)}
 .ex-block h3{font-size:16.5px;font-weight:700}
@@ -438,6 +440,8 @@ main.with-mini{padding-top:64px}
 .cmp-side img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block}
 .cmp-side figcaption{font-size:12.5px;color:var(--ink-2);margin-top:4px;text-align:center}
 .seg.wide.per button{font-size:13px;white-space:nowrap;padding-inline:2px}
+/* large text on a narrow phone: a wide switch wraps to a second row instead of running off the screen */
+.seg.wide{flex-wrap:wrap}.seg.wide button{min-width:min-content}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pr-line{margin:0;padding:2px 6px 4px 42px;font-size:12.5px;font-weight:700;line-height:1.35;color:var(--red-text)}
 .pr-line.tbl{grid-column:1/-1;padding:0 0 4px}
@@ -944,7 +948,7 @@ async function flush() {
         break;
       }
     }
-    if (!stalled) S.sync = S.dirty.size ? 'pending' : 'synced';
+    if (!stalled && S.sync !== 'over' && S.sync !== 'full') S.sync = S.dirty.size ? 'pending' : 'synced';
   } finally {
     flushing = false; lsSave(); S.rerender();
     if (!stalled && S.dirty.size && col) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, 400); }
@@ -1012,8 +1016,13 @@ const ICONS = {
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
 const UI = { setSheet: () => {}, setView: () => {}, setTab: () => {} };
 const ALSO = { v: true };
-const openSheet = s => UI.setSheet(s);
-const closeSheet = () => UI.setSheet(null);
+/* The phone's back gesture closes an open sheet instead of leaving the app: opening a sheet adds one history entry,
+   back pops it and closes the sheet. A sheet closed by its own buttons leaves that entry as a spare; the next back
+   with nothing open uses it up and goes on back, so leaving the app still takes one gesture. */
+const SHEET_H = { open: false, entry: false };
+const openSheet = s => { UI.setSheet(s); SHEET_H.open = !!s; if (s && !SHEET_H.entry) { try { history.pushState({ ironSheet: 1 }, ''); SHEET_H.entry = true; } catch (e) {} } };
+const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; };
+addEventListener('popstate', () => { if (!SHEET_H.entry) return; SHEET_H.entry = false; if (SHEET_H.open) { SHEET_H.open = false; UI.setSheet(null); } else { try { history.back(); } catch (e) {} } });
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1311,10 +1320,11 @@ function startRest(it) {
 /* The first time a rest timer runs in the home-screen app, offer the beep that works with the phone locked (off by default) */
 function offerBgAudio() {
   const st = S.meta.settings; if (st.bgAudio || !(window.claude && window.claude.standalone) || lsGet('bgOffered') === '1') return;
-  if (S.toast && Date.now() < S.toast.until) return;
-  lsSet('bgOffered', '1');
-  showToast({ kind: 'info', text: 'Hear the beep with the phone locked?', action: 'Turn on', ms: 9000, fn: () => { commit(x => { x.meta.settings.bgAudio = true; }, 'meta'); bgPrime(); bgRest(); showToast({ kind: 'info', text: 'On. Change it under Profile → Rest timer.' }); } });
+  /* asked inside the rest bar (not a toast), so it never covers the workout title or an Undo */
+  if (S.rest) { S.rest.offerBg = true; lsSet('bgOffered', '1'); }
 }
+const bgOfferYes = () => { lsSet('bgOffered', '1'); if (S.rest) S.rest.offerBg = false; commit(x => { x.meta.settings.bgAudio = true; }, 'meta'); bgPrime(); bgRest(); showToast({ kind: 'info', text: 'On. Change it under Profile → Rest timer.' }); };
+const bgOfferNo = () => { lsSet('bgOffered', '1'); if (S.rest) S.rest.offerBg = false; S.rerender(); };
 function toggleUnit(it) {
   const from = it.u || U(), to = from === 'kg' ? 'lb' : 'kg';
   const incTo = to === U() ? +S.meta.settings.inc : (to === 'kg' ? 2.5 : 5);
@@ -1537,6 +1547,7 @@ function RestBar() {
     <button aria-label="15 seconds less" onClick=${() => adjust(-15)}>−15</button>
     <button aria-label="15 seconds more" onClick=${() => adjust(15)}>+15</button>
     <button onClick=${() => { S.rest = null; bgStop(); S.rerender(); }}>Skip</button>
+    ${r.offerBg ? html`<div class="rest-offer" id="bg-offer"><span>Hear the beep with the phone locked?</span><button id="bg-yes" onClick=${bgOfferYes}>Turn on</button><button id="bg-no" onClick=${bgOfferNo}>No</button></div>` : null}
     ${r.total !== def ? html`<button class="rest-save" onClick=${() => commit(m => { if (r.kind === 'ex') m.meta.exRest[r.ex] = r.total; else m.meta.settings[key] = r.total; }, 'meta', 800)}>Make ${clock(r.total)} the default for ${saveTxt}</button>` : null}
   </div></div>`;
 }
@@ -1609,7 +1620,7 @@ function RoutineView({ id }) {
 }
 function RoutineEditor({ view }) {
   const d = view.draft; const [, setT] = useState(0); const re = () => setT(x => x + 1);
-  const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; re(); };
+  const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; ssTop(arr); re(); };
   const save = () => { if (!d.name.trim()) d.name = 'My routine'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
     commit(st => { st.meta.routines[d.id] = clone(d); }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
   return html`<div class="stack" style="gap:14px;margin-top:6px">
@@ -1920,7 +1931,7 @@ function ExerciseStats({ ex, group }) {
 }
 
 /* ---------- PROFILE ---------- */
-const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
+const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', over: 'Saved on this phone, but its storage is almost full. Save a backup file, then delete old workouts or photos.', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
 /* Changing the main unit: older entries carry no unit stamp and mean "the main unit at the time", so they are stamped
    with the old unit first (185 lb must not turn into 185 kg). Bar weight and weight jump only move to the new defaults
    when they were still at the old defaults. */
@@ -1938,7 +1949,7 @@ function switchMainUnit(u) {
     st.unit = u;
   }, keys);
 }
-const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
+const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions, display: typeof displayBackup === 'function' ? displayBackup() : undefined }, null, 1);
 const markBackedUp = () => { lsSet('lastBackup', String(Date.now())); S.rerender(); };
 async function saveBackupFile() {
   const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null;
@@ -2582,6 +2593,8 @@ function BWSheet() {
     <p class="note" style="margin-top:8px">One entry per day. Saving the same day again replaces it.</p>
     <button class="btn primary wide" style="margin-top:12px" disabled=${!(num(w) > 0)} onClick=${save}>Save</button><//>`;
 }
+/* The first exercise can't be in a superset with the one above it */
+const ssTop = items => { if (items && items[0] && items[0].ss) items[0].ss = false; };
 function SlotSheet({ it }) {
   const a = S.active; const rs = routineSlot(a, it); const idx = a.items.indexOf(it); const u = it.u || U();
   const alsoBox = rs ? html`<label class="toggle" style="margin:8px 0"><input type="checkbox" id="also-routine" checked=${ALSO.v} onChange=${e => { ALSO.v = e.target.checked; S.rerender(); }}/>Also change it in ${a.routineName}</label>`
@@ -2594,12 +2607,12 @@ function SlotSheet({ it }) {
     <button class="opt" onClick=${() => openSheet({ type: 'exRest', ex: it.ex })}>${I.timer}<div><div>Rest timer: ${exR != null ? (exR ? clock(exR) : 'off') : 'default'}</div><div class="d">A rest time just for this exercise</div></div></button>
     <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>${I.swap}<div><div>Weigh in ${u === 'kg' ? 'lb' : 'kg'}</div><div class="d">Now ${u}. Remembered for this exercise.</div></div></button>
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
-    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
-    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
+    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
+    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
     ${it.sets.length ? html`<button class="opt" onClick=${() => { copySet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.copy}<div>Copy last set</div></button>
     <button class="opt" onClick=${() => { deleteSet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.trash}<div>Delete last set</div></button>` : null}
-    <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; a.items.splice(idx, 1); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
-      showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
+    <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; const ss0 = a.items[idx + 1] && a.items[idx + 1].ss; a.items.splice(idx, 1); ssTop(a.items); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
+      showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); if (idx === 0 && a.items[1]) a.items[1].ss = !!ss0; touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
     ${alsoBox}
   <//>`;
 }
@@ -2607,7 +2620,7 @@ function FinishSheet() {
   const a = S.active; const done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   const open = a.items.reduce((n, it) => n + it.sets.filter(x => !isDone(x)).length, 0);
   return html`<${Sheet} label="Finish workout"><h2>${done ? 'Finish workout?' : 'No sets logged yet'}</h2>
-    <p class="note" style="margin-bottom:14px">${done ? done + ' sets will be saved.' + (open ? ' ' + open + ' set' + (open === 1 ? '' : 's') + ' without reps will be left out.' : '') : 'Type reps for the sets you did, or swipe them right to log them as shown.'}</p>
+    <p class="note" style="margin-bottom:14px">${done ? done + ' set' + (done === 1 ? '' : 's') + ' will be saved.' + (open ? ' ' + open + ' set' + (open === 1 ? '' : 's') + ' you didn’t log will be left out.' : '') : a.run ? 'Nothing logged yet. Tap ✓ on the parts of the run you did.' : 'Type reps for the sets you did, or swipe them right to log them as shown.'}</p>
     <div class="stack">${done ? html`<button class="btn primary wide" onClick=${() => { closeSheet(); finishWorkout(); }}>Save workout</button>` : null}
       <button class="btn wide" onClick=${closeSheet}>Keep going</button></div><//>`;
 }
@@ -2617,7 +2630,7 @@ function SummarySheet({ id }) {
   const sets = s.items.reduce((n, it) => n + it.sets.length, 0);
   const vol = s.items.reduce((n, it) => n + itemVolume(it), 0);
   return html`<${Sheet} label="Workout saved"><div class="eyebrow">Workout saved</div><h2>${s.name}</h2>
-    <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div><div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div></div>
+    <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div>${vol > 0 ? html`<div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div>` : null}</div>
     ${noE1(s.prs).length ? html`<div class="section-h"><h2>New PRs</h2></div><div class="prl">${noE1(s.prs).map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>`
       : html`<p class="note" style="margin-top:14px">No new records this time. Logged weights become next workout's starting point.</p>`}
     <button class="btn primary wide" style="margin-top:18px" onClick=${closeSheet}>Done</button><//>`;
@@ -2628,6 +2641,7 @@ function SessionSheet({ id }) {
   const s = edit || s0;
   const mins = Math.max(1, Math.round(((s.endedAt || s.startedAt) - s.startedAt) / 60000));
   const save = () => { edit.items.forEach(it => { it.note = (it.note || '').trim(); it.sets = it.sets.map(x => { const o = { w: Math.max(0, num(x.w)), r: Math.round(num(x.r)) }; if (x.n && String(x.n).trim()) o.n = String(x.n).trim(); if (x.p) o.p = x.p; return o; }).filter(x => x.r > 0); }); edit.items = edit.items.filter(it => it.sets.length);
+    if (!edit.items.length && !edit.run) { setEdit(null); del(); return; }   /* nothing left: delete it (with Undo) rather than keep an empty workout */
     edit.updatedAt = Date.now(); const e = clone(edit); commit(st => { st.sessions[id] = e; }, 's_' + id); commit(st => { st.sessions[id].prs = detectPRs(st.sessions[id]); }, 's_' + id); setEdit(null); };
   const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
     showToast({ kind: 'info', ms: 8000, text: 'Workout deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };

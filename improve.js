@@ -265,10 +265,12 @@ function idbQueue(raw, at) {
   const next = () => { const job = IDB.pending; if (!job) { IDB.busy = false; return; } IDB.pending = null; IDB.busy = true;
     idbPut(job.raw, job.at).then(() => { IDB.savedAt = job.at; IDB.failed = false;
       if (lsOver) { try { localStorage.setItem(LS + '.at', String(job.at)); } catch (e) { try { localStorage.removeItem(LS); localStorage.setItem(LS + '.at', String(job.at)); } catch (e2) {} } }
-      if (S.sync === 'full' && lsOver) { S.sync = col ? 'pending' : 'local'; S.rerender(); } next(); })
+      if (S.sync === 'full' && lsOver) { storeOver(); } next(); })
     .catch(() => { IDB.failed = true; if (lsOver) storeFull(); next(); }); };
   next();
 }
+/* localStorage is full but the IndexedDB copy is saving: safe for now, so say so plainly once and keep a warning up */
+function storeOver() { if (S.sync === 'over') return; const first = !storeOver.told; storeOver.told = true; S.sync = 'over'; if (first) showToast({ kind: 'info', ms: 9000, text: 'This phone’s storage is almost full. Your changes are still saved, but save a backup file soon.' }); S.rerender(); }
 function storeFull() { if (!lsFull) { lsFull = true; showToast({ kind: 'bad', text: 'Storage is full. Your changes aren’t being saved. Save a backup file now.', ms: 9000 }); } S.sync = 'full'; S.rerender(); }
 function storeSave() {
   if (lsBroken || storeBlocked) return false;
@@ -279,11 +281,12 @@ function storeSave() {
     localStorage.setItem(LS, raw); lsOver = false;
     try { localStorage.setItem(LS + '.at', String(storeAt)); } catch (e) {}
     if (lsFull) { lsFull = false; if (S.sync === 'full') S.sync = col ? 'pending' : 'local'; }
+    if (S.sync === 'over') S.sync = col ? 'pending' : 'local';
     return true;
   } catch (e) {
     lsOver = true; try { localStorage.setItem(LS + '.at', String(storeAt)); } catch (e2) {}
     if (!IDB.ok || IDB.failed) { storeFull(); return false; }
-    return true;
+    storeOver(); return true;
   }
 }
 async function storeLoad() {

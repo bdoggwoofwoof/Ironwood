@@ -118,6 +118,11 @@ function fPick(pool, last) {
 
 /* ---- The coach: a round timer that calls combos ---- */
 const FR = { T: null, iv: null, voices: false };
+/* The rounds survive a reload: saved at each start, pause, skip and phase change, picked up again on open */
+const fSave = () => { try { if (FR.T && !FR.T.done && !FR.T.ended) localStorage.setItem('liftbook.fightT', JSON.stringify({ ...FR.T, savedAt: Date.now() })); else localStorage.removeItem('liftbook.fightT'); } catch (e) {} };
+setTimeout(() => { try { const T = JSON.parse(localStorage.getItem('liftbook.fightT') || 'null');
+  if (T && T.phases && !T.done && !T.ended && Date.now() - T.startedAt < 4 * 3600e3 && !FR.T) { FR.T = T; if (!T.pausedAt) T.pausedAt = T.savedAt || Date.now();   /* picks up from the last save (the start of that round or rest) */ if (!FR.iv) FR.iv = setInterval(fightTick, 150); S.rerender(); showToast({ kind: 'info', text: 'Your rounds are paused where you left off. Open Fight to carry on.' }); }
+  else localStorage.removeItem('liftbook.fightT'); } catch (e) {} }, 800);
 function fSay(text, cfg, rate) {
   if (!cfg.voice) return false;
   try { const ss = window.speechSynthesis; if (!ss || typeof SpeechSynthesisUtterance === 'undefined') return false;
@@ -130,11 +135,13 @@ function fightStart(cfg0) {
   FR.T = { cfg, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, beeped: {}, call: null, callAt: 0, nextAt: 0, calls: 0, roundsDone: 0, done: false, burn: false, pool: cfg.style === 'bjj' ? null : fightPool(cfg) };
   unlockAudio(); fSay(cfg.style === 'bjj' ? 'Get ready. Solo drills.' : 'Get ready', cfg);
   if (!FR.iv) FR.iv = setInterval(fightTick, 150);
-  S.rerender();
+  fSave(); S.rerender();
 }
-function fightStop() { FR.T = null; if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }
-function fightPause() { const T = FR.T; if (!T) return; if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; T.nextAt = Date.now() + 1200; } else { T.pausedAt = Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } S.rerender(); }
-function fightSkip() { const T = FR.T; if (!T) return; const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; S.rerender(); }
+/* End: stop the clock, the voice and the ticking; the summary stays on screen */
+function fightEnd() { const T = FR.T; if (!T) return; T.ended = true; T.pausedAt = T.pausedAt || Date.now(); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} fSave(); S.rerender(); }
+function fightStop() { FR.T = null; fSave(); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }
+function fightPause() { const T = FR.T; if (!T) return; if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; T.nextAt = Date.now() + 1200; } else { T.pausedAt = Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } fSave(); S.rerender(); }
+function fightSkip() { const T = FR.T; if (!T) return; const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; fSave(); S.rerender(); }
 function fightCall(T, now) {
   const cfg = T.cfg;
   if (cfg.style === 'bjj') { const opts = FBJJ.slice(0, cfg.level === 1 ? 9 : cfg.level === 2 ? FBJJ.findIndex(m => m[0] === 'Granby roll') + 1 : FBJJ.length).filter(m => !T.call || m[0] !== T.call.c);
@@ -148,13 +155,13 @@ function fightCall(T, now) {
 function fightTick() {
   const T = FR.T; if (!T || T.pausedAt || T.done) return;
   const p = tLocate(T); const now = Date.now();
-  if (!p) { T.done = true; T.roundsDone = T.cfg.rounds; T.call = null; bell(3); fSay('Time. That’s the session. Nice work.', T.cfg, 1); S.rerender(); return; }
+  if (!p) { T.done = true; T.roundsDone = T.cfg.rounds; T.call = null; bell(3); fSay('Time. That’s the session. Nice work.', T.cfg, 1); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } fSave(); S.rerender(); return; }
   const ph = p.phase; const left = Math.ceil(p.left - 1e-6);
   const sk = 's' + p.idx;
   if (!T.beeped[sk]) { T.beeped[sk] = 1; T.burn = false;
     if (ph.kind === 'work') { bell(ph.round === 1 ? 1 : 2); T.call = null; fSay('Round ' + ph.round, T.cfg, 1.05); T.nextAt = now + 1600; }
     else if (ph.kind === 'rest') { T.roundsDone = ph.round; T.call = null; bell(3); fSay('Time. Rest. ' + (T.cfg.rounds - ph.round) + ' to go.', T.cfg, 1.05); }
-    S.rerender(); }
+    fSave(); S.rerender(); }
   const ck = p.idx + ':' + left; if (left >= 1 && left <= 3 && !T.beeped[ck]) { T.beeped[ck] = 1; beep(660, 110); }
   if (ph.kind === 'rest' && left === 10 && !T.beeped['r10' + p.idx]) { T.beeped['r10' + p.idx] = 1; fSay('Ten seconds', T.cfg, 1.05); }
   if (ph.kind !== 'work') return;
@@ -293,7 +300,7 @@ function FightRun() {
       <div class="row small" style="margin-top:8px"><span>${next ? 'Next: ' + (next.kind === 'work' ? 'Round ' + next.round : next.label) + ' ' + clock(next.secs) : 'Last round'}</span><span class="spacer"></span><span class="num">${clock(Math.ceil(T.total - p.el))} left</span></div>
     </div>
     <div class="tm-ctl"><button class="btn" id="fight-voice" onClick=${() => { c.voice = !c.voice; fightSet({ voice: c.voice }); if (!c.voice) { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } S.rerender(); }} aria-pressed=${!!c.voice}>${c.voice ? 'Voice on' : 'Voice off'}</button><button class="btn primary" id="fight-pause" onClick=${fightPause}>${T.pausedAt ? 'Resume' : 'Pause'}</button><button class="btn" onClick=${fightSkip}>Skip</button></div>
-    <button class="btn text danger wide" id="fight-end" style="margin-top:8px" onClick=${() => { T.ended = true; T.pausedAt = T.pausedAt || Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }}>End rounds</button>
+    <button class="btn text danger wide" id="fight-end" style="margin-top:8px" onClick=${() => { fightEnd(); }}>End rounds</button>
     <p class="small faint" style="margin-top:8px">${c.where === 'bag' && c.style !== 'bjj' ? 'Wrap your hands and wear bag gloves. ' : ''}Calls pause if the phone locks; keep it on screen.</p></div>`;
 }
 /* Combo library */

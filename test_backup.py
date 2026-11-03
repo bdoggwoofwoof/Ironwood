@@ -113,7 +113,7 @@ async def main():
         # Full storage is reported, not hidden
         await pb.evaluate("(() => { const o = localStorage.setItem.bind(localStorage); localStorage.setItem = (k, v) => { if (k === 'liftbook.v1') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return o(k, v); }; })()")
         await pb.evaluate("commit(st => { st.meta.settings.goal = 3; }, 'meta')"); await pb.wait_for_timeout(400)
-        check('full localStorage: saves continue in IndexedDB, no false alarm', await pb.locator('.toast.bad').count() == 0 and await pb.evaluate("S.sync") != 'full' and await pb.evaluate("IDB.savedAt > 0 && !IDB.failed"))
+        check('full localStorage: saves continue in IndexedDB, a heads-up but no false alarm', await pb.locator('.toast.bad').count() == 0 and await pb.evaluate("S.sync") == 'over' and await pb.evaluate("IDB.savedAt > 0 && !IDB.failed"))
         await pb.reload(); await pb.wait_for_timeout(1500)
         check('change made while localStorage was full survives a reload', await pb.evaluate("S.meta.settings.goal") == 3)
         await pb.evaluate("(() => { const o = localStorage.setItem.bind(localStorage); localStorage.setItem = (k, v) => { if (k === 'liftbook.v1') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return o(k, v); }; idbPut = () => Promise.reject(new Error('quota')); })()")

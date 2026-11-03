@@ -217,7 +217,7 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .also-s{font-size:calc(14 * var(--u));color:var(--ink-2);margin-top:2px;line-height:1.35}
 .wo-addons{margin-bottom:6px}
 .topsw.four{gap:14px;overflow-x:auto;scrollbar-width:none}.topsw.four::-webkit-scrollbar{display:none}
-.topsw.four button{font-size:calc(24 * var(--u));white-space:nowrap;flex:none}
+.topsw.four button{font-size:min(calc(24 * var(--u)), 7vw);white-space:nowrap;flex:none}
 .meas-row.k-timed.nol{grid-template-columns:30px minmax(0,1fr) 46px}.meas-row.nol>:nth-child(3){display:none}
 .fc-now b{font-size:calc(17 * var(--u))}.fc-toggles{padding-top:4px;padding-bottom:4px}.fc-toggles .toggle-row{padding:8px 0;border-bottom:1px solid var(--line)}.fc-toggles .toggle-row:last-child{border-bottom:0}
 .fc-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -251,7 +251,7 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .pw-cell.on{background:var(--c)}.pw-cell.today{box-shadow:inset 0 0 0 2px var(--ink-3)}.pw-cell.on.today{box-shadow:inset 0 0 0 2px var(--ink)}
 .pw-cell svg{width:16px;height:16px}
 .cal-row .toggle{display:flex;align-items:center;gap:8px}.cal-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-main .topsw button,main .topsw.four button{font-size:calc(24 * var(--u))}
+main .topsw button,main .topsw.four button{font-size:min(24px, 7vw)}
 .page-title{font-family:var(--display);font-size:calc(24 * var(--u));font-weight:700;text-transform:uppercase;letter-spacing:.01em;color:var(--ink);padding:2px 0 6px;border-bottom:3px solid var(--accent);margin:0;line-height:inherit}
 .ch-finder{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 14px}
 .ch-finder .ch-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent-ink);display:grid;place-items:center;flex:none}.ch-finder .ch-ic svg{width:20px;height:20px}
@@ -580,6 +580,7 @@ input.field.ed-cue{padding:8px 10px;font-size:calc(16 * var(--u));background:var
 .tip{position:absolute;top:4px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:8px;padding:6px 9px;font-size:calc(12.5 * var(--u));line-height:1.3;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .tip b{font-size:calc(14 * var(--u))}
 .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.trio:has(> div:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .trio>div{background:var(--raised);border-radius:12px;padding:10px}
 .trio b{display:block;font-family:var(--display);font-size:calc(24 * var(--u));line-height:1.05;font-variant-numeric:tabular-nums}
 .trio span{font-size:calc(12 * var(--u));color:var(--ink-2);font-weight:600;line-height:1.25;display:block}
@@ -738,9 +739,10 @@ main.with-mini{padding-top:64px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{transform:translateY(24px);opacity:.6}}
 @media (prefers-reduced-motion: reduce){.scrim,.sheet{animation:none}.bar>div{transition:none}}
+.rest-offer{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:calc(14 * var(--u));margin-top:6px}.rest-offer span{flex:1;min-width:0}
 .sync{display:flex;align-items:center;gap:8px;font-size:calc(14 * var(--u));color:var(--ink-2)}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
-.sync.synced i{background:var(--good)}.sync.offline i,.sync.local i{background:var(--pr)}
+.sync.synced i{background:var(--good)}.sync.offline i,.sync.local i{background:var(--pr)}.sync.over i,.sync.full i{background:var(--stop)}.sync.over,.sync.full{color:var(--ink)}
 .set-tbl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;font-size:calc(15 * var(--u));font-variant-numeric:tabular-nums;margin-top:6px}
 .ex-block{padding:12px 0;border-bottom:1px solid var(--line)}
 .ex-block h3{font-size:calc(16.5 * var(--u));font-weight:700}
@@ -786,6 +788,8 @@ main.with-mini{padding-top:64px}
 .cmp-side img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block}
 .cmp-side figcaption{font-size:calc(12.5 * var(--u));color:var(--ink-2);margin-top:4px;text-align:center}
 .seg.wide.per button{font-size:calc(13 * var(--u));white-space:nowrap;padding-inline:2px}
+/* large text on a narrow phone: a wide switch wraps to a second row instead of running off the screen */
+.seg.wide{flex-wrap:wrap}.seg.wide button{min-width:min-content}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pr-line{margin:0;padding:2px 6px 4px 42px;font-size:calc(12.5 * var(--u));font-weight:700;line-height:1.35;color:var(--red-text)}
 .pr-line.tbl{grid-column:1/-1;padding:0 0 4px}
@@ -1528,7 +1532,7 @@ async function flush() {
         break;
       }
     }
-    if (!stalled) S.sync = S.dirty.size ? 'pending' : 'synced';
+    if (!stalled && S.sync !== 'over' && S.sync !== 'full') S.sync = S.dirty.size ? 'pending' : 'synced';
   } finally {
     flushing = false; lsSave(); S.rerender();
     if (!stalled && S.dirty.size && col) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, 400); }
@@ -1599,8 +1603,13 @@ const ICONS = {
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
 const UI = { setSheet: () => {}, setView: () => {}, setTab: () => {} };
 const ALSO = { v: true };
-const openSheet = s => UI.setSheet(s);
-const closeSheet = () => UI.setSheet(null);
+/* The phone's back gesture closes an open sheet instead of leaving the app: opening a sheet adds one history entry,
+   back pops it and closes the sheet. A sheet closed by its own buttons leaves that entry as a spare; the next back
+   with nothing open uses it up and goes on back, so leaving the app still takes one gesture. */
+const SHEET_H = { open: false, entry: false };
+const openSheet = s => { UI.setSheet(s); SHEET_H.open = !!s; if (s && !SHEET_H.entry) { try { history.pushState({ ironSheet: 1 }, ''); SHEET_H.entry = true; } catch (e) {} } };
+const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; };
+addEventListener('popstate', () => { if (!SHEET_H.entry) return; SHEET_H.entry = false; if (SHEET_H.open) { SHEET_H.open = false; UI.setSheet(null); } else { try { history.back(); } catch (e) {} } });
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1902,10 +1911,11 @@ function startRest(it) {
 /* The first time a rest timer runs in the home-screen app, offer the beep that works with the phone locked (off by default) */
 function offerBgAudio() {
   const st = S.meta.settings; if (st.bgAudio || !(window.claude && window.claude.standalone) || lsGet('bgOffered') === '1') return;
-  if (S.toast && Date.now() < S.toast.until) return;
-  lsSet('bgOffered', '1');
-  showToast({ kind: 'info', text: 'Hear the beep with the phone locked?', action: 'Turn on', ms: 9000, fn: () => { commit(x => { x.meta.settings.bgAudio = true; }, 'meta'); bgPrime(); bgRest(); showToast({ kind: 'info', text: 'On. Change it under Profile → Rest timer.' }); } });
+  /* asked inside the rest bar (not a toast), so it never covers the workout title or an Undo */
+  if (S.rest) { S.rest.offerBg = true; lsSet('bgOffered', '1'); }
 }
+const bgOfferYes = () => { lsSet('bgOffered', '1'); if (S.rest) S.rest.offerBg = false; commit(x => { x.meta.settings.bgAudio = true; }, 'meta'); bgPrime(); bgRest(); showToast({ kind: 'info', text: 'On. Change it under Profile → Rest timer.' }); };
+const bgOfferNo = () => { lsSet('bgOffered', '1'); if (S.rest) S.rest.offerBg = false; S.rerender(); };
 function toggleUnit(it) {
   const from = it.u || U(), to = from === 'kg' ? 'lb' : 'kg';
   const incTo = to === U() ? +S.meta.settings.inc : (to === 'kg' ? 2.5 : 5);
@@ -2142,7 +2152,7 @@ function demoSessions() {
 }
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
-function startTour() { closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
+function startTour() { if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
 function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
@@ -2493,6 +2503,7 @@ function RestBar() {
     <button aria-label="15 seconds less" onClick=${() => adjust(-15)}>−15</button>
     <button aria-label="15 seconds more" onClick=${() => adjust(15)}>+15</button>
     <button onClick=${() => { S.rest = null; bgStop(); S.rerender(); }}>Skip</button>
+    ${r.offerBg ? html`<div class="rest-offer" id="bg-offer"><span>Hear the beep with the phone locked?</span><button id="bg-yes" onClick=${bgOfferYes}>Turn on</button><button id="bg-no" onClick=${bgOfferNo}>No</button></div>` : null}
     ${r.total !== def ? html`<button class="rest-save" onClick=${() => commit(m => { if (r.kind === 'ex') m.meta.exRest[r.ex] = r.total; else m.meta.settings[key] = r.total; }, 'meta', 800)}>Make ${clock(r.total)} the default for ${saveTxt}</button>` : null}
   </div></div>`;
 }
@@ -2647,7 +2658,7 @@ function RoutineView({ id }) {
 }
 function RoutineEditor({ view }) {
   const d = view.draft; const [, setT] = useState(0); const re = () => setT(x => x + 1);
-  const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; re(); };
+  const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; ssTop(arr); re(); };
   const save = () => { if (!d.name.trim()) d.name = 'My routine'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
     commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
   return html`<div class="stack" style="gap:14px;margin-top:6px">
@@ -2969,7 +2980,7 @@ function LiftStats({ ex, group }) {
 }
 
 /* ---------- PROFILE ---------- */
-const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
+const SYNC_TEXT = { loading: 'Connecting…', synced: 'Saved to your Claude account', pending: 'Saving to your Claude account…', offline: 'Saved on this phone. Will sync when you’re back online.', local: 'Saved on this device only', over: 'Saved on this phone, but its storage is almost full. Save a backup file, then delete old workouts or photos.', full: 'Storage is full, so new changes aren’t being saved. Save a backup file, then delete old workouts.' };
 /* Changing the main unit: older entries carry no unit stamp and mean "the main unit at the time", so they are stamped
    with the old unit first (185 lb must not turn into 185 kg). Bar weight and weight jump only move to the new defaults
    when they were still at the old defaults. */
@@ -2988,7 +2999,7 @@ function switchMainUnit(u) {
     st.unit = u;
   }, keys);
 }
-const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions }, null, 1);
+const backupJSON = () => JSON.stringify({ app: 'liftbook', version: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), meta: S.meta, sessions: S.sessions, display: typeof displayBackup === 'function' ? displayBackup() : undefined }, null, 1);
 const markBackedUp = () => { lsSet('lastBackup', String(Date.now())); S.rerender(); };
 async function saveBackupFile() {
   const C = window.claude; const dl = C && C.use ? await C.use('downloads') : null;
@@ -3095,7 +3106,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a72c561</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 4176c5c</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3442,6 +3453,16 @@ async function photoRestore(d) {
   PH.urls.forEach(u => URL.revokeObjectURL(u)); PH.urls.clear(); PH.list = null;
   return n;
 }
+/* Display settings (theme, text size, colors, language) live on the device; backups carry them and a fresh phone takes them */
+const DISPLAY_KEYS = ['palette', 'palCustom', 'theme', 'size', 'rm', 'hc', 'lang', 'langName', 'customLangs'];
+const displayBackup = () => Object.fromEntries(DISPLAY_KEYS.map(k => [k, lsGet(k)]).filter(([, v]) => v != null));
+function restoreDisplay(x) {
+  for (const k of DISPLAY_KEYS) if (typeof x[k] === 'string') lsSet(k, x[k]);
+  for (const k of ['palette', 'theme', 'size']) if (typeof x[k] === 'string') DISP[k] = x[k];
+  for (const k of ['rm', 'hc']) if (typeof x[k] === 'string') DISP[k] = x[k] === '1';
+  if (typeof x.lang === 'string' && typeof L10N === 'object') { L10N.lang = x.lang; L10N.name = x.langName || ''; }
+  setTimeout(() => { try { if (typeof applyPalette === 'function') applyPalette(); applyDisplay(); } catch (e) {} }, 0);
+}
 /* Restore merge: an empty app takes the whole backup; a used app gains only what it lacks. */
 function restoreInto(st, d) {
   const m = normalizeMeta(d.meta); const keys = ['meta'];
@@ -3461,7 +3482,18 @@ function restoreInto(st, d) {
     if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;
     if (m.fight && !st.meta.fight) st.meta.fight = m.fight;
     const tIds = new Set((st.meta.timers || []).map(x => x.id)); st.meta.timers = (st.meta.timers || []).concat((m.timers || []).filter(x => x && !tIds.has(x.id)));
+    /* settings, running plan and meals: fill in what this phone doesn't have yet; this phone's own choices stay */
+    const set = st.meta.settings; for (const [k, v] of Object.entries(m.settings || {})) if (set[k] == null || (k === 'program' && !set.program) || (Array.isArray(set[k]) && !set[k].length && Array.isArray(v))) set[k] = v;
+    if (!st.meta.run && m.run) st.meta.run = m.run;
+    if (m.meals && typeof m.meals === 'object') { const A = st.meta.meals = st.meta.meals || {}; const B = m.meals;
+      for (const f of ['recipes', 'preps', 'foods', 'saved']) if (B[f] && typeof B[f] === 'object') { A[f] = A[f] || {}; for (const [k, v] of Object.entries(B[f])) if (!(k in A[f])) A[f][k] = v; }
+      if (B.log && typeof B.log === 'object') { A.log = A.log || {}; for (const [d, l] of Object.entries(B.log)) { const have = new Set((A.log[d] || []).map(e => e && e.id)); A.log[d] = (A.log[d] || []).concat((Array.isArray(l) ? l : []).filter(e => e && !have.has(e.id))); } }
+      for (const f of ['me', 'menu', 'prefs', 'habits', 'units', 'rot', 'cats']) if (A[f] == null && B[f] != null) A[f] = B[f];
+      if ((!A.goals || !Object.keys(A.goals).length) && B.goals) A.goals = B.goals;
+      if ((!A.plan || !(A.plan.items || []).length) && B.plan) A.plan = B.plan;
+      st.meta.meals = normMeals(A); }
   }
+  if (fresh && d.display && typeof d.display === 'object') restoreDisplay(d.display);
   let added = 0;
   const cs = cleanSessions(d.sessions);
   for (const [k, s] of Object.entries(cs.sessions)) if (!st.sessions[k] && !(st.meta.deleted || []).includes(k)) { st.sessions[k] = s; keys.push('s_' + k); added++; }
@@ -3699,6 +3731,8 @@ function BWSheet() {
     <p class="note" style="margin-top:8px">One entry per day. Saving the same day again replaces it.</p>
     <button class="btn primary wide" style="margin-top:12px" disabled=${!(num(w) > 0)} onClick=${save}>Save</button><//>`;
 }
+/* The first exercise can't be in a superset with the one above it */
+const ssTop = items => { if (items && items[0] && items[0].ss) items[0].ss = false; };
 function SlotSheet({ it }) {
   const a = S.active; const rs = routineSlot(a, it); const idx = a.items.indexOf(it); const u = it.u || U();
   const alsoBox = rs ? html`<label class="toggle" style="margin:8px 0"><input type="checkbox" id="also-routine" checked=${ALSO.v} onChange=${e => { ALSO.v = e.target.checked; S.rerender(); }}/>Also change it in ${a.routineName}</label>`
@@ -3713,12 +3747,12 @@ function SlotSheet({ it }) {
     ${isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-machines" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class="d">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}
     <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>${I.swap}<div><div>Weigh in ${u === 'kg' ? 'lb' : 'kg'}</div><div class="d">Now ${u}. Remembered for this exercise.</div></div></button>
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
-    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
-    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
+    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
+    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
     ${it.sets.length ? html`<button class="opt" onClick=${() => { copySet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.copy}<div>Copy last set</div></button>
     <button class="opt" onClick=${() => { deleteSet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.trash}<div>Delete last set</div></button>` : null}
-    <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; a.items.splice(idx, 1); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
-      showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
+    <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; const ss0 = a.items[idx + 1] && a.items[idx + 1].ss; a.items.splice(idx, 1); ssTop(a.items); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
+      showToast({ kind: 'info', ms: 8000, text: exName(gone.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { if (S.active === a && !a.items.includes(gone)) { a.items.splice(Math.min(idx, a.items.length), 0, gone); if (idx === 0 && a.items[1]) a.items[1].ss = !!ss0; touch(); } } }); }}>${I.trash}<div>Remove from this workout</div></button>
     ${alsoBox}
   <//>`;
 }
@@ -3726,7 +3760,7 @@ function FinishSheet() {
   const a = S.active; const done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   const open = a.items.reduce((n, it) => n + it.sets.filter(x => !isDone(x)).length, 0);
   return html`<${Sheet} label="Finish workout"><h2>${done ? 'Finish workout?' : 'No sets logged yet'}</h2>
-    <p class="note" style="margin-bottom:14px">${done ? done + ' sets will be saved.' + (open ? ' ' + open + ' set' + (open === 1 ? '' : 's') + ' without reps will be left out.' : '') : 'Type reps for the sets you did, or swipe them right to log them as shown.'}</p>
+    <p class="note" style="margin-bottom:14px">${done ? done + ' set' + (done === 1 ? '' : 's') + ' will be saved.' + (open ? ' ' + open + ' set' + (open === 1 ? '' : 's') + ' you didn’t log will be left out.' : '') : a.run ? 'Nothing logged yet. Tap ✓ on the parts of the run you did.' : 'Type reps for the sets you did, or swipe them right to log them as shown.'}</p>
     <div class="stack">${done ? html`<button class="btn primary wide" onClick=${() => { closeSheet(); finishWorkout(); }}>Save workout</button>` : null}
       <button class="btn wide" onClick=${closeSheet}>Keep going</button></div><//>`;
 }
@@ -3736,7 +3770,7 @@ function SummarySheet({ id }) {
   const sets = s.items.reduce((n, it) => n + it.sets.length, 0);
   const vol = s.items.reduce((n, it) => n + itemVolume(it), 0);
   return html`<${Sheet} label="Workout saved"><div class="eyebrow">Workout saved</div><h2>${s.name}</h2>
-    <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div><div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div></div>
+    <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div>${vol > 0 ? html`<div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div>` : null}</div>
     <${RunSummary} s=${s}/>
     ${noE1(s.prs).length ? html`<div class="section-h"><h2>New PRs</h2></div><div class="prl">${noE1(s.prs).map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>`
       : html`<p class="note" style="margin-top:14px">No new records this time. Logged weights become next workout's starting point.</p>`}
@@ -3769,7 +3803,8 @@ function ActivitySheet({ id, day }) {
       updatedAt: Date.now(), items: [], prs: [], dur: m, dist: info[2] && num(dist) > 0 ? num(dist) : 0, distU: du, note: note.trim() };
     commit(st => { st.sessions[x.id] = x; }, 's_' + x.id); closeSheet(); showToast({ kind: 'info', text: x.name + (s0 ? ' updated' : ' logged') }); if (!s0) offerPlanLink(x);
   };
-  const del = () => { commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet(); };
+  const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
+    showToast({ kind: 'info', ms: 8000, text: 'Activity deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
     <${Tip} id="activity" style="margin-top:4px">Counts toward your week streak and workouts per week, like a lifting workout.<//>
     <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
@@ -3792,6 +3827,7 @@ function SessionSheet({ id }) {
   const s = edit || s0;
   const mins = Math.max(1, Math.round(((s.endedAt || s.startedAt) - s.startedAt) / 60000));
   const save = () => { edit.items.forEach(it => { it.note = (it.note || '').trim(); it.sets = it.sets.map(x => { const o = { w: Math.max(0, num(x.w)), r: Math.round(num(x.r)) }; if (x.n && String(x.n).trim()) o.n = String(x.n).trim(); if (x.p) o.p = x.p; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; return o; }).filter(x => x.r > 0 || x.t > 0 || x.d > 0); }); edit.items = edit.items.filter(it => it.sets.length);
+    if (!edit.items.length && !edit.run) { setEdit(null); del(); return; }   /* nothing left: delete it (with Undo) rather than keep an empty workout */
     edit.updatedAt = Date.now(); const e = clone(edit); commit(st => { st.sessions[id] = e; }, 's_' + id); commit(st => { st.sessions[id].prs = detectPRs(st.sessions[id]); }, 's_' + id); setEdit(null); };
   const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
     showToast({ kind: 'info', ms: 8000, text: 'Workout deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
@@ -6593,10 +6629,12 @@ function idbQueue(raw, at) {
   const next = () => { const job = IDB.pending; if (!job) { IDB.busy = false; return; } IDB.pending = null; IDB.busy = true;
     idbPut(job.raw, job.at).then(() => { IDB.savedAt = job.at; IDB.failed = false;
       if (lsOver) { try { localStorage.setItem(LS + '.at', String(job.at)); } catch (e) { try { localStorage.removeItem(LS); localStorage.setItem(LS + '.at', String(job.at)); } catch (e2) {} } }
-      if (S.sync === 'full' && lsOver) { S.sync = col ? 'pending' : 'local'; S.rerender(); } next(); })
+      if (S.sync === 'full' && lsOver) { storeOver(); } next(); })
     .catch(() => { IDB.failed = true; if (lsOver) storeFull(); next(); }); };
   next();
 }
+/* localStorage is full but the IndexedDB copy is saving: safe for now, so say so plainly once and keep a warning up */
+function storeOver() { if (S.sync === 'over') return; const first = !storeOver.told; storeOver.told = true; S.sync = 'over'; if (first) showToast({ kind: 'info', ms: 9000, text: 'This phone’s storage is almost full. Your changes are still saved, but save a backup file soon.' }); S.rerender(); }
 function storeFull() { if (!lsFull) { lsFull = true; showToast({ kind: 'bad', text: 'Storage is full. Your changes aren’t being saved. Save a backup file now.', ms: 9000 }); } S.sync = 'full'; S.rerender(); }
 function storeSave() {
   if (lsBroken || storeBlocked) return false;
@@ -6607,11 +6645,12 @@ function storeSave() {
     localStorage.setItem(LS, raw); lsOver = false;
     try { localStorage.setItem(LS + '.at', String(storeAt)); } catch (e) {}
     if (lsFull) { lsFull = false; if (S.sync === 'full') S.sync = col ? 'pending' : 'local'; }
+    if (S.sync === 'over') S.sync = col ? 'pending' : 'local';
     return true;
   } catch (e) {
     lsOver = true; try { localStorage.setItem(LS + '.at', String(storeAt)); } catch (e2) {}
     if (!IDB.ok || IDB.failed) { storeFull(); return false; }
-    return true;
+    storeOver(); return true;
   }
 }
 async function storeLoad() {
@@ -6991,6 +7030,11 @@ function fPick(pool, last) {
 
 /* ---- The coach: a round timer that calls combos ---- */
 const FR = { T: null, iv: null, voices: false };
+/* The rounds survive a reload: saved at each start, pause, skip and phase change, picked up again on open */
+const fSave = () => { try { if (FR.T && !FR.T.done && !FR.T.ended) localStorage.setItem('liftbook.fightT', JSON.stringify({ ...FR.T, savedAt: Date.now() })); else localStorage.removeItem('liftbook.fightT'); } catch (e) {} };
+setTimeout(() => { try { const T = JSON.parse(localStorage.getItem('liftbook.fightT') || 'null');
+  if (T && T.phases && !T.done && !T.ended && Date.now() - T.startedAt < 4 * 3600e3 && !FR.T) { FR.T = T; if (!T.pausedAt) T.pausedAt = T.savedAt || Date.now();   /* picks up from the last save (the start of that round or rest) */ if (!FR.iv) FR.iv = setInterval(fightTick, 150); S.rerender(); showToast({ kind: 'info', text: 'Your rounds are paused where you left off. Open Fight to carry on.' }); }
+  else localStorage.removeItem('liftbook.fightT'); } catch (e) {} }, 800);
 function fSay(text, cfg, rate) {
   if (!cfg.voice) return false;
   try { const ss = window.speechSynthesis; if (!ss || typeof SpeechSynthesisUtterance === 'undefined') return false;
@@ -7003,11 +7047,13 @@ function fightStart(cfg0) {
   FR.T = { cfg, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, beeped: {}, call: null, callAt: 0, nextAt: 0, calls: 0, roundsDone: 0, done: false, burn: false, pool: cfg.style === 'bjj' ? null : fightPool(cfg) };
   unlockAudio(); fSay(cfg.style === 'bjj' ? 'Get ready. Solo drills.' : 'Get ready', cfg);
   if (!FR.iv) FR.iv = setInterval(fightTick, 150);
-  S.rerender();
+  fSave(); S.rerender();
 }
-function fightStop() { FR.T = null; if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }
-function fightPause() { const T = FR.T; if (!T) return; if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; T.nextAt = Date.now() + 1200; } else { T.pausedAt = Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } S.rerender(); }
-function fightSkip() { const T = FR.T; if (!T) return; const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; S.rerender(); }
+/* End: stop the clock, the voice and the ticking; the summary stays on screen */
+function fightEnd() { const T = FR.T; if (!T) return; T.ended = true; T.pausedAt = T.pausedAt || Date.now(); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} fSave(); S.rerender(); }
+function fightStop() { FR.T = null; fSave(); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }
+function fightPause() { const T = FR.T; if (!T) return; if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; T.nextAt = Date.now() + 1200; } else { T.pausedAt = Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } fSave(); S.rerender(); }
+function fightSkip() { const T = FR.T; if (!T) return; const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; fSave(); S.rerender(); }
 function fightCall(T, now) {
   const cfg = T.cfg;
   if (cfg.style === 'bjj') { const opts = FBJJ.slice(0, cfg.level === 1 ? 9 : cfg.level === 2 ? FBJJ.findIndex(m => m[0] === 'Granby roll') + 1 : FBJJ.length).filter(m => !T.call || m[0] !== T.call.c);
@@ -7021,13 +7067,13 @@ function fightCall(T, now) {
 function fightTick() {
   const T = FR.T; if (!T || T.pausedAt || T.done) return;
   const p = tLocate(T); const now = Date.now();
-  if (!p) { T.done = true; T.roundsDone = T.cfg.rounds; T.call = null; bell(3); fSay('Time. That’s the session. Nice work.', T.cfg, 1); S.rerender(); return; }
+  if (!p) { T.done = true; T.roundsDone = T.cfg.rounds; T.call = null; bell(3); fSay('Time. That’s the session. Nice work.', T.cfg, 1); if (FR.iv) { clearInterval(FR.iv); FR.iv = null; } fSave(); S.rerender(); return; }
   const ph = p.phase; const left = Math.ceil(p.left - 1e-6);
   const sk = 's' + p.idx;
   if (!T.beeped[sk]) { T.beeped[sk] = 1; T.burn = false;
     if (ph.kind === 'work') { bell(ph.round === 1 ? 1 : 2); T.call = null; fSay('Round ' + ph.round, T.cfg, 1.05); T.nextAt = now + 1600; }
     else if (ph.kind === 'rest') { T.roundsDone = ph.round; T.call = null; bell(3); fSay('Time. Rest. ' + (T.cfg.rounds - ph.round) + ' to go.', T.cfg, 1.05); }
-    S.rerender(); }
+    fSave(); S.rerender(); }
   const ck = p.idx + ':' + left; if (left >= 1 && left <= 3 && !T.beeped[ck]) { T.beeped[ck] = 1; beep(660, 110); }
   if (ph.kind === 'rest' && left === 10 && !T.beeped['r10' + p.idx]) { T.beeped['r10' + p.idx] = 1; fSay('Ten seconds', T.cfg, 1.05); }
   if (ph.kind !== 'work') return;
@@ -7166,7 +7212,7 @@ function FightRun() {
       <div class="row small" style="margin-top:8px"><span>${next ? 'Next: ' + (next.kind === 'work' ? 'Round ' + next.round : next.label) + ' ' + clock(next.secs) : 'Last round'}</span><span class="spacer"></span><span class="num">${clock(Math.ceil(T.total - p.el))} left</span></div>
     </div>
     <div class="tm-ctl"><button class="btn" id="fight-voice" onClick=${() => { c.voice = !c.voice; fightSet({ voice: c.voice }); if (!c.voice) { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} } S.rerender(); }} aria-pressed=${!!c.voice}>${c.voice ? 'Voice on' : 'Voice off'}</button><button class="btn primary" id="fight-pause" onClick=${fightPause}>${T.pausedAt ? 'Resume' : 'Pause'}</button><button class="btn" onClick=${fightSkip}>Skip</button></div>
-    <button class="btn text danger wide" id="fight-end" style="margin-top:8px" onClick=${() => { T.ended = true; T.pausedAt = T.pausedAt || Date.now(); try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} S.rerender(); }}>End rounds</button>
+    <button class="btn text danger wide" id="fight-end" style="margin-top:8px" onClick=${() => { fightEnd(); }}>End rounds</button>
     <p class="small faint" style="margin-top:8px">${c.where === 'bag' && c.style !== 'bjj' ? 'Wrap your hands and wear bag gloves. ' : ''}Calls pause if the phone locks; keep it on screen.</p></div>`;
 }
 /* Combo library */
@@ -7830,7 +7876,7 @@ function GoalsCard() {
     <div class="stack">${list.map(g => { const st = goalStatus(g); const u = U(); const metricName = g.metric === 'top' ? 'heaviest' : 'est. 1RM';
       return html`<button key=${g.id} class="card goal-card" id=${'goal-' + g.id} onClick=${() => openSheet({ type: 'liftGoal', id: g.id })}>
         <div class="row"><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:700">${exName(g.ex)} · ${fmt(st.tg)} ${u}</div>
-          <div class="small muted">${metricName} by ${shortDate(+parseYmd(g.by))}</div></div>
+          <div class="small muted">${metricName} by ${shortDate(+parseYmd(g.by))}${g.by.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + g.by.slice(0, 4) : ''}</div></div>
           ${st.reached ? html`<span class="chip on">${I.check} Reached</span>` : html`<div style="text-align:right"><b class="num">${st.now == null ? '–' : fmt(r05(st.now))}</b><div class="small muted">now</div></div>`}</div>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(st.pct * 100)}><span style=${{ width: Math.round((st.reached ? 1 : st.pct) * 100) + '%' }}></span></div>
         <div class="small muted" style="text-align:left">${goalLine(g, st)}</div></button>`; })}</div>
@@ -7847,11 +7893,13 @@ function LiftGoalSheet({ id, ex: ex0 }) {
   const [ex, setEx] = useState(g0 ? g0.ex : ex0 || lifts[0] || ''); const [metric, setMetric] = useState(g0 ? g0.metric : 'e1');
   const [tg, setTg] = useState(g0 ? String(goalTarget(g0)) : ''); const [by, setBy] = useState(g0 ? g0.by : ymd(addDays(new Date(), 84)));
   const now = ex ? goalNow({ ex, metric }) : null; const u = U();
-  const ok = ex && +tg > 0 && /^\d{4}-\d\d-\d\d$/.test(by);
+  const cap = u === 'kg' ? 500 : 1100; const today = ymd(new Date());
+  const why = !ex || !tg ? '' : !(+tg > 0) ? 'Enter a target weight.' : +tg > cap ? 'That’s more than the world record. Check the number (' + u + ').' : now != null && !id && +tg <= r05(now) ? 'You’ve already reached ' + fmt(r05(now)) + ' ' + u + '. Pick something higher.' : !/^\d{4}-\d\d-\d\d$/.test(by) ? 'Pick a date.' : by <= today && (!g0 || by !== g0.by) ? 'Pick a date after today.' : '';
+  const ok = ex && +tg > 0 && !why;
   const save = () => {
     const gid = id || uid('g');
     commit(st => { st.meta.liftGoals = { ...(st.meta.liftGoals || {}) }; st.meta.liftGoals[gid] = { ...(g0 || {}), id: gid, ex, metric, target: r05(+tg), u, by, start: g0 && g0.ex === ex && g0.metric === metric ? g0.start : (now || 0), createdAt: g0 && g0.ex === ex ? g0.createdAt : Date.now() }; }, 'meta');
-    closeSheet(); showToast({ kind: 'info', text: id ? 'Goal updated' : 'Goal set. It shows in Train.' });
+    closeSheet(); showToast({ kind: 'info', text: id ? 'Goal updated' : 'Goal set. It shows in Train and Stats.' });
   };
   const del = () => { commit(st => { st.meta.liftGoals = { ...(st.meta.liftGoals || {}) }; delete st.meta.liftGoals[id]; }, 'meta'); closeSheet(); };
   return html`<${Sheet} label=${id ? 'Edit goal' : 'New lift goal'}><h2>${id ? 'Edit goal' : 'New lift goal'}</h2>
@@ -7861,6 +7909,7 @@ function LiftGoalSheet({ id, ex: ex0 }) {
         <p class="small muted" style="margin-top:4px">${metric === 'e1' ? 'Estimated from any set, so a set of 5 counts too.' : 'The heaviest weight you lift for at least one rep.'}${now != null ? ' Now: ' + fmt(r05(now)) + ' ' + u + '.' : ''}</p></div>
       <div class="row" style="gap:10px"><div style="flex:1"><label class="lbl" for="lg-t">Target (${u})</label><input class="field" id="lg-t" inputmode="decimal" placeholder=${now != null ? String(r05(now * 1.1 / 5) * 5) : ''} value=${tg} onInput=${e => setTg(e.target.value.replace(/[^\d.]/g, ''))}/></div>
         <div style="flex:1"><label class="lbl" for="lg-by">By</label><input class="field" id="lg-by" type="date" value=${by} onInput=${e => setBy(e.target.value)}/></div></div>
+      ${why ? html`<p class="small" id="lg-why" style="color:var(--stop)">${why}</p>` : null}
       <button class="btn primary wide" id="lg-save" disabled=${!ok} onClick=${save}>${id ? 'Save goal' : 'Set goal'}</button>
       ${id ? html`<button class="btn danger wide" id="lg-del" onClick=${del}>Delete goal</button>` : null}
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div>`}<//>`;
@@ -7957,7 +8006,8 @@ async function shareMonth(ym) {
 function StatsExtras() {
   return html`<div class="row" style="gap:8px;margin-top:14px" id="stats-extras">
     <button class="btn" style="flex:1" id="open-month" onClick=${() => UI.setView({ type: 'month', ym: ymAdd(ymOf(new Date()), -1) })}>Month in review</button>
-    <button class="btn" style="flex:1" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Lift goal</button></div>`;
+    <button class="btn" style="flex:1" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Lift goal</button></div>
+    <div style="margin-top:6px"><${GoalsCard}/></div>`;
 }
 
 /* ============ Meal plan from your targets, and easy measurements (Nov 2) ============ */

@@ -22,7 +22,7 @@ async def main():
         check('renamed exercise id migrated in history and settings', await pg.evaluate("S.sessions.s0.items[0].ex === 'b-incline-reverse-grip-squeeze-press' && S.meta.exRest['b-incline-reverse-grip-squeeze-press'] === 90 && !('b-russian-tits-to-l-stretch' in S.meta.exRest)"))
         check('renamed exercise resolves to a name', await pg.evaluate("exName('b-incline-reverse-grip-squeeze-press')") == 'Incline Reverse-Grip Squeeze Press', await pg.evaluate("exName('b-incline-reverse-grip-squeeze-press')"))
         # History: 30 at a time
-        await pg.locator('.tab', has_text='Train').click(); await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(500)
+        await pg.locator('.tab', has_text='Train').click(); await pg.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pg.wait_for_timeout(500)
         check('History shows 30 then a Show more button', await pg.locator('.log-item').count() == 30 and await pg.locator('#log-more').count() == 1, await pg.locator('.log-item').count())
         await pg.locator('#log-more').click(); await pg.wait_for_timeout(300)
         check('Show more reveals the rest', await pg.locator('.log-item').count() == 40 and await pg.locator('#log-more').count() == 0)
@@ -64,7 +64,7 @@ async def main():
         check('undo brings the exercise back in place', await pg.evaluate("S.active.items.length") == n0 and await pg.evaluate("S.active.items[0].sets[0].r") == '6')
         await pg.evaluate("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(200)
         # Deleting a saved workout can be undone
-        await pg.locator('.tab', has_text='Train').click(); await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(400)
+        await pg.locator('.tab', has_text='Train').click(); await pg.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pg.wait_for_timeout(400)
         await pg.locator('.log-item').first.click(); await pg.wait_for_timeout(300)
         await pg.locator('.sheet button', has_text='Delete').first.click(); await pg.wait_for_timeout(200)
         if await pg.locator('.sheet button', has_text='Delete').count(): await pg.locator('.sheet button', has_text='Delete').last.click(); await pg.wait_for_timeout(300)

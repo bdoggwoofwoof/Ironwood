@@ -1473,6 +1473,194 @@ swap("""    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} 
     ${e.k === 'num' ? html`<button class="btn wide" id="le-edit" style="margin-top:12px" onClick=${() => setEditing(true)}>${I.edit} Edit name and numbers</button>` : null}
     <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in '""")
 
+# 37. Organization plan (Nov 3, Newt's picks in the Ironwood Organization Plan doc). Structure, order and words only:
+#     no new styles. A1 one word, "plan", for anything you follow (main plan + plans alongside). A2 the Programs
+#     alongside sheet becomes "Your plan": main plan, alongside, running plan and challenges in one list. A3 the Plans
+#     library is grouped by kind (yours, lifting, goal, running and conditioning, fight, joint care, challenges).
+#     B1/B2 Train is Train, Run, Fight; History moves to the Stats tab, renamed Progress, as its first section. B3 the
+#     Routines tab is named Plans. B4 one door for logging an activity (week strip, History). C1 Up next before the month
+#     review, goals and restore prompt. C2 your routines and the library first on Plans. C3 Backup first and Help last on
+#     Profile. C4 Challenges live in the Plans library, and on Train only while one runs. D1 the empty Run screen and the
+#     meal-plan card point to Build my plan too. D3 each tab opens with one line saying what it is for. Doc notes: See
+#     your month and Restore a backup use the gray button; Stats shows three numbers with More numbers for the rest;
+#     colors are Classic, Forest (a new woodsy gym theme, surfaces too) and Color-blind friendly (two kinds), plus Custom.
+TAB_INTRO = lambda t: '<p class="small muted tab-intro" style="margin:2px 0 8px">' + t + '</p>'
+# --- tabs: names (B3, B2) and titles
+swap("const TABS = [['train', 'Train'], ['routines', 'Routines'], ['meals', 'Meals'], ['stats', 'Stats'], ['profile', 'Profile']];",
+     "const TABS = [['train', 'Train'], ['routines', 'Plans'], ['meals', 'Meals'], ['stats', 'Progress'], ['profile', 'Profile']];")
+swap("stats: view ? 'Stats' : ''", "stats: view ? 'Progress' : ''")
+swap("""<h1 class="page-title">${tab === 'stats' ? 'Stats' : 'Profile'}</h1></div>`""", """<h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Profile'}</h1></div>""" + TAB_INTRO("${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}") + "`")
+swap("if (h === 'log' || lsGet('tab') === 'log') { TRAIN.mode = 'history'; return 'train'; }", "if (h === 'log' || lsGet('tab') === 'log') { lsSet('statsTab', 'history'); return 'stats'; }")
+# --- Train: Train, Run, Fight (B1, B2), intro (D3)
+swap("""  return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['run', 'Run'], ['fight', 'Fight'], ['history', 'History']]} onChange=${pick}/>
+    ${TRAIN.mode === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : TRAIN.mode === 'run'""",
+ """  if (TRAIN.mode === 'history') { TRAIN.mode = 'train'; lsSet('trainMode', 'train'); }
+  return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['run', 'Run'], ['fight', 'Fight']]} onChange=${pick}/>
+    """ + TAB_INTRO("${TRAIN.mode === 'run' ? 'Your running plan, paces and conditioning.' : TRAIN.mode === 'fight' ? 'Coached rounds, combos and drills.' : 'Today’s training: what’s next and your week.'}") + """
+    ${TRAIN.mode === 'run'""")
+swap("const TRAIN = { mode: ['history', 'run', 'fight'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };", "const TRAIN = { mode: ['run', 'fight'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };")
+# --- Progress: History first (B2)
+swap("""  const tab = lsGet('statsTab') || 'overall';
+  const pick = t => { lsSet('statsTab', t); S.rerender(); };
+  return html`<div>
+    <div class="seg wide" role="tablist" style="margin-top:8px">${[['overall', 'Overall'],""", """  const tab = lsGet('statsTab') || 'history';
+  const pick = t => { lsSet('statsTab', t); S.rerender(); };
+  return html`<div>
+    <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['overall', 'Overall'],""")
+swap("""    ${tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex'""", """    ${tab === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex'""")
+# Stats: three numbers, the rest behind More numbers
+swap("""      ${kpi(o.n, 'Workouts')}${kpi(fmt(r1(o.perWeek)), per === '1w' ? 'Last 7 days' : 'Per week')}${kpi(o.n ? fmtDur(o.avgDur) : '–', 'Avg duration')}
+      ${kpi(fmtDur(o.dur), 'Total time')}${kpi(fmtBig(o.vol), 'Volume, ' + U())}${kpi(fmtBig(o.sets), 'Sets')}
+      ${kpi(fmtBig(o.reps), 'Reps')}${kpi(o.sets ? fmt(r1(o.rps)) : '–', 'Reps per set')}${kpi(o.n ? fmt(r1(o.spw)) : '–', 'Sets per workout')}
+    </div>""", """      ${kpi(o.n, 'Workouts')}${kpi(fmt(r1(o.perWeek)), per === '1w' ? 'Last 7 days' : 'Per week')}${kpi(fmtBig(o.vol), 'Volume, ' + U())}
+      ${lsGet('statsMore') === '1' ? html`${kpi(o.n ? fmtDur(o.avgDur) : '–', 'Avg duration')}${kpi(fmtDur(o.dur), 'Total time')}${kpi(fmtBig(o.sets), 'Sets')}
+      ${kpi(fmtBig(o.reps), 'Reps')}${kpi(o.sets ? fmt(r1(o.rps)) : '–', 'Reps per set')}${kpi(o.n ? fmt(r1(o.spw)) : '–', 'Sets per workout')}` : null}
+    </div>
+    <button class="btn text" id="stats-more" onClick=${() => { lsSet('statsMore', lsGet('statsMore') === '1' ? '0' : '1'); S.rerender(); }}>${lsGet('statsMore') === '1' ? 'Fewer numbers' : 'More numbers'}</button>""")
+# --- Train home order (C1, B4, C4, A1 words, gray buttons)
+swap("""    <${MonthCard}/>
+    <${PlanWeekCard}/>
+    <${GoalsCard}/>
+    <${ChallengeFinder} where="train"/>
+    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length""", """    <${PlanWeekCard}/>
+    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length""")
+_r0 = src.index("""    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">""")
+_r1 = src.index("""    ${!nx ? html`<${AlsoToday} nx=${null} quiet=${!pid}/>` : null}""", _r0)
+_tail = src[_r0:_r1]
+src = src[:_r0] + src[_r1:]
+swap("""    <div class="row" style="margin-top:12px">
+      <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
+      ${chs.length ? null : html`<button class="btn" style="flex:1" onClick=${newCh}>${I.check} Start a challenge</button>`}
+    </div>
+  </div>`;""", """    <div class="row" style="margin-top:12px">
+      <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
+    </div>
+    <${GoalsCard}/>
+    <${MonthCard}/>
+""" + _tail.replace('<button class="btn primary" onClick=${() => openSheet({ type: \'restore\' })}>Restore a backup</button>', '<button class="btn" onClick=${() => openSheet({ type: \'restore\' })}>Restore a backup</button>') + """  </div>`;""")
+swap("<button class=\"btn ghost wide\" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>${actBtn}</div>`", "<button class=\"btn ghost wide\" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button></div>`")
+swap("<div class=\"stack\" style=\"margin-top:10px\"><button class=\"btn wide\" onClick=${() => UI.setTab('routines')}>Start a saved routine</button>${actBtn}</div>`", "<div class=\"stack\" style=\"margin-top:10px\"><button class=\"btn wide\" onClick=${() => UI.setTab('routines')}>Start a saved routine</button></div>`")
+swap("""        ${pickBtn('Create or select a program', 'btn wide')}</div>
+      <div class="stack" style="margin-top:10px">${actBtn}</div>`}""", """        ${pickBtn('Choose a plan', 'btn wide')}</div>`}""")
+swap("<p class=\"note\">Follow a program and Ironwood lines up the next day for you, or self-log whatever you do.</p>", "<p class=\"note\">Follow a plan and Ironwood lines up the next day for you, or self-log whatever you do.</p>")
+swap("id=\"change-program\" onClick=${() => openSheet({ type: 'program' })}>Follow a program</button>", "id=\"change-program\" onClick=${() => openSheet({ type: 'program' })}>Follow a plan</button>")
+swap("""<button class="btn primary wide" style="margin-top:10px" id="month-open\"""", """<button class="btn wide" style="margin-top:10px" id="month-open\"""")
+# tour: History is now in Progress
+_t0 = src.index("  ['train', 'history', '.log-item', 'History',"); _t1 = src.index("\n", _t0)
+_hist = src[_t0:_t1]; src = src[:_t0] + src[_t1 + 1:]
+_hist = _hist.replace("['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first.", "['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first.").replace("{ max: 3 }]", "{ max: 3, ls: { statsTab: 'history' } }]")
+_s0 = src.index("  ['stats', null, '.lift-row', 'Stats',")
+src = src[:_s0] + _hist + "\n" + src[_s0:]
+swap("  ['stats', null, '.lift-row', 'Stats', 'Each lift", "  ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift")
+swap("""      const needTab = lsGet('tab') !== tab, needMode = !!mode && TRAIN.mode !== mode;
+      const ls = (extra && extra.ls) || {};""", """      const ls = (extra && extra.ls) || {};
+      const needTab = lsGet('tab') !== tab || Object.keys(ls).some(k => lsGet(k) !== ls[k]), needMode = !!mode && TRAIN.mode !== mode;""")
+swap("  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more.", "  ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more.")
+swap("        if (needTab) UI.setTab(tab); else S.rerender();\n        await tourFrame(); await tourFrame();", "        if (needTab) { UI.setTab(tab); S.rerender(); } else S.rerender();\n        await tourFrame(); await tourFrame();")
+# --- Choose a plan sheet (A1)
+swap('<${Sheet} label="Choose a program"><h2>Choose a program</h2>', '<${Sheet} label="Choose a plan"><h2>Choose a plan</h2>')
+swap("Train shows the next day of the program you pick. You can change it any time.", "Train shows the next day of the plan you pick. You can change it any time.")
+swap("<div>${I.plus} Create a new program</div><div class=\"d\">Build your own days and exercises.</div>", "<div>${I.plus} Create a new plan</div><div class=\"d\">Build your own days and exercises.</div>")
+swap("No program. Start an empty workout and add exercises as you go.", "No plan. Start an empty workout and add exercises as you go.")
+# --- Your plan sheet (A2)
+swap("""  return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
+    <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>""",
+ """  const chs = Object.values(S.meta.challenges || {});
+  return html`<${Sheet} label="Your plan"><h2>Your plan</h2>
+    <p class="note">Everything you follow, in one place. Your main plan sets your lifting days; plans alongside it show in Train on their own days.</p>
+    <div class="eyebrow" style="margin:14px 0 2px">Main plan</div>
+    <div class="opt" style="cursor:default" id="yp-main"><div style="flex:1;min-width:0"><div>${pid && pid !== 'self' && getRoutine(pid) ? getRoutine(pid).name : pid === 'self' ? 'Self-log (no plan)' : 'None yet'}</div><div class="d">${pid && pid !== 'self' && getRoutine(pid) ? getRoutine(pid).days.length + ' days a week' : 'Pick one and Train lines up the next day'}</div></div><button class="btn text" id="yp-change" onClick=${() => openSheet({ type: 'program' })}>${pid ? 'Change' : 'Choose'}</button></div>
+    ${chs.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Challenges</div>${chs.map(c => html`<div key=${c.id} class="opt" style="cursor:default"><div style="flex:1;min-width:0"><div>${c.name}</div><div class="d">${c.days} days</div></div><button class="btn text" onClick=${() => { closeSheet(); UI.setTab('train'); UI.setView({ type: 'challenge', id: c.id }); }}>Open</button></div>`)}` : null}
+    <div class="eyebrow" style="margin:16px 0 2px">Alongside</div>""")
+swap("Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.", "Off. Set it up in Train → Run; your times are optional.")
+swap("""<div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
+    <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;""", """<div class="eyebrow" style="margin:16px 0 2px">Add alongside: ${t}</div>${rs.map(row)}</div>`)}
+    <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;""")
+swap("['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]];", "['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);")
+# --- Plans tab (A3, C2, C4, D3)
+swap("""  const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
+    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your program.'}<//>
+    <${CareFinder}/>
+    <${ChallengeFinder} where="routines"/>
+    <div class="row" style="margin-top:12px">${seg}</div>`;""", """  const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
+    """ + TAB_INTRO("Workouts and plans to start or follow.") + """
+    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your plan.'}<//>
+    <div class="row" style="margin-top:12px">${seg}</div>`;
+  const kinds = [['Lifting', r => !r.info && !r.goalPlan], ['Goal plans', r => r.goalPlan], ['Running and conditioning', r => r.info && !r.info.care && !r.info.fight], ['Fight', r => r.info && r.info.fight], ['Joint care', r => r.info && r.info.care]];
+  const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
+  const more = kind === 'plans' ? html`<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/>` : html`<${CareFinder}/>`;""")
+swap("""    ${lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
+    <div class="stack" style="margin-top:10px">${bring}</div></div>`;""", """    ${kind === 'plans' ? kinds.map(([t, f]) => { const rs = lib.filter(f); return rs.length || t === 'Running and conditioning' ? html`<div key=${t}><div class="section-h"><h2>${t}</h2></div><div class="stack">${t === 'Running and conditioning' ? runRow : null}${rs.map(card)}</div></div>` : null; })
+      : lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
+    ${more}
+    <div class="stack" style="margin-top:10px">${bring}</div></div>`;""")
+swap("""    <div class="stack" style="margin-top:18px">${actions}${bring}</div></div>`;
+}""", """    <div class="stack" style="margin-top:18px">${actions}${bring}</div>${more}</div>`;
+}""")
+# --- Meals intro (D3), meal plan card points to Build my plan (D1)
+swap("""  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>""", """  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
+    """ + TAB_INTRO("What you eat: logged, planned and shopped for.") + """""")
+swap("""    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button></div>`;""", """    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button>
+    <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`;""")
+swap("""    <p class="small faint" style="margin-top:14px">${RUN_NOTE}</p></div>`;
+  const common""", """    <button class="btn text" id="run-whole" style="padding-left:0;margin-top:6px" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a whole plan: lifting, running and meals</button>
+    <p class="small faint" style="margin-top:14px">${RUN_NOTE}</p></div>`;
+  const common""")
+# Run and Fight wording (A1, A4)
+swap("[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Programs'], ['times', 'Times']]", "[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Conditioning'], ['times', 'Times']]")
+swap("Each is a plan in Routines you can start, edit or follow.", "Each is a plan in the Plans tab you can start, edit, follow or add alongside.")
+swap("[['coach', 'Coach'], ['combos', 'Combos'], ['drills', 'Drills'], ['programs', 'Programs']]", "[['coach', 'Coach'], ['combos', 'Combos'], ['drills', 'Drills'], ['programs', 'Plans']]")
+# --- Profile order (C3) + Your plan entry (A2)
+_h0 = src.index("""    <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>\n    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour\"""")
+_h1 = src.index("""    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""", _h0)
+_help = src[_h0:_h1]; src = src[:_h0] + src[_h1:]
+_b0 = src.index("""    <div class="section-h"><h2>Backup</h2></div>""")
+_b1 = src.index("""      <${StorageNote}/>\n    </div>\n""", _b0) + len("""      <${StorageNote}/>\n    </div>\n""")
+_backup = src[_b0:_b1]; src = src[:_b0] + _help + src[_b1:]
+swap("""    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""", _backup + """    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>""")
+swap("""    <div class="section-h"><h2>Training</h2></div>
+    <div class="card stack" style="gap:14px">""", """    <div class="section-h"><h2>Training</h2><button class="btn text" id="profile-plan" onClick=${() => openSheet({ type: 'addons' })}>Your plan</button></div>
+    <div class="card stack" style="gap:14px">""")
+swap("""  return html`<div class="stack" style="gap:12px">
+    <div class=${'sync ' + S.sync} style="margin-top:6px">""", """  return html`<div class="stack" style="gap:12px">
+    <div class=${'sync ' + S.sync} style="margin-top:6px">""")
+# --- Your week card wording (D2): Your week is the planned schedule, This week is what you did
+swap("<span style=\"font-weight:700;flex:1\">Your week</span><button class=\"btn text\" id=\"plan-add\" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Program</button>", "<span style=\"font-weight:700;flex:1\">Your schedule</span><button class=\"btn text\" id=\"plan-add\" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Plan</button>")
+# --- Colors: Classic, Forest (new), Color-blind friendly (two kinds), Custom
+swap("""  forest: ['Forest', '', { a: '#3fbf73', p: '#ffcf40', s: '#f0603f', g: '#2ec4c4', r: '#ff7d61', pi: '#1b1400' }, { a: '#1e8a4c', p: '#f5c22e', s: '#d2452a', g: '#12898c', r: '#b3341b', pi: '#2a1e00' }],
+  grape: ['Lavender', '', { a: '#9b7bff', p: '#ffcf40', s: '#ff5c7a', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#6d4fd6', p: '#f5c22e', s: '#d0304f', g: '#1d9a62', r: '#b0243f', pi: '#2a1e00' }],
+  ember: ['Ember', '', { a: '#ff7a3d', p: '#ffd84d', s: '#ff4d6d', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#d65314', p: '#e6b400', s: '#c9184a', g: '#1d9a62', r: '#b0243f', pi: '#241a00' }],""",
+ """  forest: ['Forest', 'Pine, brass and iron', { a: '#6fbe8a', ai: '#0d1a12', p: '#d9ab4c', pi: '#1a1300', s: '#e0784f', si: '#200a02', g: '#7fb6d1', r: '#f08e66', bg: '#10130f', surface: '#181d17', raised: '#222921', line: '#2f392d', ink: '#eceee6', ink2: '#a8b1a1', ink3: '#929b8c' },
+    { a: '#2e6b45', ai: '#ffffff', p: '#c48f2a', pi: '#1f1500', s: '#a8461f', si: '#ffffff', g: '#2f6f8f', r: '#9e3d19', bg: '#efeee7', surface: '#fbfaf5', raised: '#e5e3d8', line: '#d3d0c2', ink: '#1a1c17', ink2: '#555b50', ink3: '#5d6358' }],""")
+swap("""const palVars = (c, al) => '--accent:' + c.a""", """const palSurf = c => c.bg ? '--bg:' + c.bg + ';--surface:' + c.surface + ';--raised:' + c.raised + ';--line:' + c.line + ';--ink:' + c.ink + ';--ink-2:' + c.ink2 + ';--ink-3:' + c.ink3 + ';' : '';
+const palVars = (c, al) => palSurf(c) + '--accent:' + c.a""")
+swap("""  return html`<div><span class="lbl">Colors</span><div class="pal-grid">${Object.entries(PALETTES).map(([k, [n, sub, d]]) => html`<button key=${k} class=${'pal' + (cur === k ? ' on' : '')} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>""",
+ """  const cb = cur === 'rg' || cur === 'by'; const tiles = [['classic'], ['forest'], ['cb']];
+  return html`<div><span class="lbl">Colors</span><div class="pal-grid">${tiles.map(([k]) => { const isCb = k === 'cb'; const P = PALETTES[isCb ? (cb ? cur : 'rg') : k]; const [n0, sub0, d] = P; const n = isCb ? 'Color-blind friendly' : n0; const sub = isCb ? 'Two kinds to choose from' : sub0; const on = isCb ? cb : cur === k;
+    return html`<button key=${k} class=${'pal' + (on ? ' on' : '')} id=${'pal-' + k} aria-pressed=${on} onClick=${() => setDisp('palette', isCb ? (cb ? cur : 'rg') : k)}>""")
+swap("""<span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`)}
+    <button class=${'pal' + (cur === 'custom' ? ' on' : '')} id="pal-custom\"""", """<span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`; })}
+    <button class=${'pal' + (cur === 'custom' ? ' on' : '')} id="pal-custom\"""")
+swap("""<span class="pn">Custom</span><span class="pd">${customGet() ? 'Tap to edit' : 'Pick your own three'}</span></button></div></div>`;""", """<span class="pn">Custom</span><span class="pd">${customGet() ? 'Tap to edit' : 'Pick your own three'}</span></button></div>
+    ${cb ? html`<div class="seg wide" role="group" aria-label="Kind of color blindness" id="pal-cb" style="margin-top:8px">${[['rg', 'Red-green'], ['by', 'Blue-yellow']].map(([k, l]) => html`<button key=${k} id=${'pal-' + k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>${l}</button>`)}</div>
+      <p class="small muted" style="margin-top:4px">${cur === 'rg' ? 'For protanopia and deuteranopia.' : 'For tritanopia.'}</p>` : null}</div>`;""")
+
+swap("tag: 'Lift', role: 'Main program', days: schedFor(main.id, main) });", "tag: 'Lift', role: 'Main plan', days: schedFor(main.id, main) });")
+swap("const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your program' : '',", "const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '',")
+swap("${[r.base ? 'Edited' : '', programId() === r.id ? 'Your program' : '',", "${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '',")
+swap("""    <div class="eyebrow" style="margin:16px 0 2px">Alongside</div>""", """    <div class="eyebrow" style="margin:16px 0 2px">Alongside</div>
+    ${[...on].map(id => getRoutine(id)).filter(Boolean).map(row)}""")
+# 38. Review my eating (eatreview.js, Nov 3, Newt's request): Meals → Log → Review my eating, and Progress → Overall →
+#     Nutrition. Averages against goals, where calories, sodium and sugar come from, time of day, training vs rest
+#     days, food groups behind the nutrients the app can't count, and suggestions with recipes to add to your prep.
+ERJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'eatreview.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", ERJS + "\n/* ---------- APP ---------- */")
+swap("  if (vt === 'foods') return html`<${MyFoods}/>`;", "  if (vt === 'foods') return html`<${MyFoods}/>`;\n  if (vt === 'eatReview') return html`<${EatReview}/>`;")
+swap("  if (tab === 'meals' && vt === 'foods') title = 'My foods';", "  if (tab === 'meals' && vt === 'foods') title = 'My foods';\n  if (tab === 'meals' && vt === 'eatReview') title = 'Review my eating';")
+swap("""onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>""", """onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>""")
+swap("""<p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p></div></div>`;""", """<p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p>
+      <button class="btn text" id="stats-eat-review" style="padding-left:0" onClick=${() => { UI.setTab('meals'); UI.setView({ type: 'eatReview' }); }}>Review my eating</button></div></div>`;""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

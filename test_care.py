@@ -23,7 +23,7 @@ async def main():
         check('no therapy, rehab, cure or diagnosis claims', not bad, bad)
         check('says it is not medical advice or treatment', 'not medical advice, diagnosis or treatment' in text and 'physical therapist' in text)
         # Routines finder → program page → start
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('finder on Routines lists the areas', await pg.locator('#care-finder .chip').count() == 7)
         await pg.click('#care-ankle'); await pg.wait_for_timeout(300)
         info = await pg.locator('#care-info').inner_text()
@@ -38,7 +38,7 @@ async def main():
         check('Run → Programs links to Ankle & Foot Care', await pg.locator('h2', has_text='Ankle & Foot Care').count() == 1)
         # By type has a Joint care section
         await ev("lsSet('rtView', 'type'); lsSet('rtKind', 'plans')"); await pg.reload(); await pg.wait_for_timeout(1200)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('By type has a Joint care section', 'JOINT CARE' in (await pg.locator('main').inner_text()).upper())
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())

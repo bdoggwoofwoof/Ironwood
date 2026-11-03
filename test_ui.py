@@ -14,24 +14,24 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         tabs = await pg.locator('.tabs .tab').all_inner_texts()
-        check('five tabs, no Log', [t.strip() for t in tabs] == ['Train', 'Routines', 'Meals', 'Stats', 'Profile'], tabs)
+        check('five tabs, no Log', [t.strip() for t in tabs] == ['Train', 'Plans', 'Meals', 'Progress', 'Profile'], tabs)
         check('no program by default', await pg.locator('#get-started').count() == 1 and await pg.locator('.next-card', has_text="Newt's").count() == 0)
         # Self-log
-        await pg.get_by_role('button', name='Create or select a program').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Choose a plan').click(); await pg.wait_for_timeout(300)
         opts = await pg.locator('.opt > div > div:first-child').all_inner_texts()
-        check('picker: Self-log, Build my plan, Create, then the 4-Day Split first', opts[0] == 'Self-log' and opts[1] == 'Build my plan' and 'Create a new program' in opts[2] and opts[3] == "Newt's 4-Day Split", opts[:4])
+        check('picker: Self-log, Build my plan, Create, then the 4-Day Split first', opts[0] == 'Self-log' and opts[1] == 'Build my plan' and 'Create a new plan' in opts[2] and opts[3] == "Newt's 4-Day Split", opts[:4])
         await pg.locator('#pick-self').click(); await pg.wait_for_timeout(300)
         check('Self-log card', await pg.locator('.next-card', has_text='Log your own workout').count() == 1)
         # Follow a plan from its page
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Efficient Push/Pull/Legs').click(); await pg.wait_for_timeout(300)
         await pg.locator('#follow').click(); await pg.wait_for_timeout(300)
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(300)
         check('Up next follows the chosen plan', await pg.locator('.next-card h2').inner_text() == 'PUSH' or (await pg.locator('.next-card h2').inner_text()).upper() == 'PUSH', await pg.locator('.next-card h2').inner_text())
         # History and save status
-        await pg.locator('.topsw button', has_text='History').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pg.wait_for_timeout(300)
         check('History shows a labeled save status', await pg.locator('.sync-line').count() == 1, await pg.locator('.sync-line').inner_text())
-        await pg.locator('.topsw button', has_text='Train').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(200)
         # Sheet handle: drag up = full height, drag down = smaller, drag further = close, tap toggles
         async def drag(dy):
             b = await pg.locator('.grab-zone').bounding_box(); x, y = b['x'] + b['width'] / 2, b['y'] + b['height'] / 2
@@ -63,7 +63,7 @@ async def main():
         for _ in range(23):
             await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train'] * 11 + ['Routines'] * 3 + ['Stats'] * 2 + ['Meals'] * 3 + ['Profile'] * 2 + ['Train'] * 2, seen)
+        check('tour walks through each page', seen == ['Train'] * 10 + ['Plans'] * 3 + ['Progress'] * 3 + ['Meals'] * 3 + ['Profile'] * 2 + ['Train'] * 2, seen)
         check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
@@ -74,7 +74,9 @@ async def main():
         # Colors
         before = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
         await pg.locator('.tabs button', has_text='Profile').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.pal', has_text='Red-green friendly').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.pal', has_text='Color-blind friendly').click(); await pg.wait_for_timeout(200)
+        check('color-blind friendly offers two kinds', await pg.locator('#pal-cb button').count() == 2)
+        check('only Classic, Forest, Color-blind friendly and Custom', await pg.locator('.pal').count() == 4)
         after = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
         check('color theme changes accent', before != after and after.lower() in ('#56b4e9', '#0072b2'), (before, after))
         await pg.reload(); await pg.wait_for_timeout(1500)
@@ -107,7 +109,7 @@ async def main():
         check('custom colors kept after reload', await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == acc)
         # an old link to #log opens History
         await pg.goto(URL + '#log'); await pg.reload(); await pg.wait_for_timeout(1500)
-        check('#log opens History', (await pg.locator('.topsw button.on').inner_text()).upper() == 'HISTORY')
+        check('#log opens Progress → History', (await pg.locator('.tab.on').inner_text()).strip() == 'Progress' and (await pg.locator('.seg button.on').first.inner_text()).strip() == 'History')
         # First launch: the tour opens by itself, shows sample stats, and leaves no trace
         q = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
         await q.goto(URL); await q.wait_for_timeout(2200)
@@ -120,7 +122,7 @@ async def main():
             if not st[1]: early.append(st[0])
         check('early steps find what they point at', not early, early)
         check('each step highlights what it talks about', all(holes), holes)
-        check('tour reaches Stats with sample data', (await q.locator('.tab.on').inner_text()).strip() == 'Stats' and await q.locator('#demo-banner').count() == 1 and await q.locator('.lift-row').count() >= 5, await q.locator('.lift-row').count())
+        check('tour reaches Stats with sample data', (await q.locator('.tab.on').inner_text()).strip() == 'Progress' and await q.locator('#demo-banner').count() == 1 and await q.locator('.lift-row').count() >= 5, await q.locator('.lift-row').count())
         miss = []
         for _ in range(7):
             await q.locator('#tour-next').click(); await q.wait_for_timeout(500)

@@ -40,7 +40,7 @@ async def main():
         check('coach note: not a substitute for a coach, supervised sparring', 'not a substitute for a qualified coach' in text and 'supervision' in text)
         # Screen
         await pg.locator('.topsw button', has_text='Fight').click(); await pg.wait_for_timeout(300)
-        check('Train has a Fight switch with four tabs', await pg.locator('.fight-seg button').count() == 4 and await pg.locator('.topsw.four').count() == 1)
+        check('Train has a Fight switch with four tabs', await pg.locator('.fight-seg button').count() == 4 and await pg.locator('.topsw button').count() == 3)
         await pg.click('#fc-rounds-up'); await pg.wait_for_timeout(500)
         check('settings are saved', await ev("S.meta.fight.rounds === 4") and (await pg.locator('#fc-total').inner_text()) == '11:10')
         await pg.click('#fc-rounds-dn'); await pg.wait_for_timeout(300)
@@ -142,7 +142,7 @@ async def main():
         check('fight settings are in meta, so backups carry them', bk.get('fight', {}).get('fav') == ['box:1'])
         check('tour has a Fight step', await ev("TOUR.some(t => t[1] === 'fight' && /combos/.test(t[4]))"))
         await ev("lsSet('rtView', 'type'); lsSet('rtKind', 'plans')"); await pg.reload(); await pg.wait_for_timeout(1200)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('By type has a Fight training section', 'FIGHT TRAINING' in (await pg.locator('main').inner_text()).upper())
         check('interval timer will not start while rounds run', await ev("(() => { if (!fRunning()) return 'skip'; const r = startInterval({ id: 'x', name: 'x', work: 20, rest: 10, rounds: 2 }); return r === false && !S.itimer; })()") in (True, 'skip'))
         check('no page errors', not errs, errs[:3]); await b.close()

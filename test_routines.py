@@ -18,8 +18,8 @@ async def main():
         await pg.add_init_script("try { localStorage.setItem('liftbook.tourDone', '1') } catch (e) {}")
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
-        lib = pg.locator('.r-card')
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
+        lib = pg.locator('.r-card:not(#lib-run)')
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
         await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         pnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
@@ -39,9 +39,9 @@ async def main():
         first = await pg.locator('.r-items li').first.inner_text()
         check('edit saved', 'Bench Press' not in first and await pg.locator('.wo-title').inner_text() in ('My Upper Lower', 'MY UPPER LOWER'), first)
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('plans still 35, one tagged Edited', await pg.locator('.r-card').count() == 35 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('plans still 35, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 35 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
@@ -54,7 +54,7 @@ async def main():
         check('copy becomes your own plan', '(copy)' in (await pg.locator('.wo-title').inner_text()).lower())
 
         # Remove a library routine, then bring it back
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Full Body 5×5').click(); await pg.wait_for_timeout(300)
         await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove routine').click(); await pg.wait_for_timeout(300)
@@ -67,7 +67,7 @@ async def main():
         await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove routine').click(); await pg.wait_for_timeout(800)
         await pg.reload(); await pg.wait_for_timeout(1500)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('removal kept after reload', await pg.locator('.r-card', has_text="Newt's").count() == 0)
 
         # Start a new program's day
@@ -80,10 +80,10 @@ async def main():
         # Notes on routine items, and during the workout
         await pg.evaluate("UI.setView(null)"); await pg.wait_for_timeout(200)
         await pg.evaluate("S.active = null; S.rerender()"); await pg.wait_for_timeout(200)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Efficient Push/Pull/Legs').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         check('exercise note shows in routine', await pg.locator('.r-items .cue', has_text='elbows out').count() == 1)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.topsw button', has_text='Routines').click(); await pg.wait_for_timeout(200)
         await pg.locator('.r-card', has_text='Core 2').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
@@ -91,7 +91,7 @@ async def main():
         await pg.evaluate("S.active = null; S.rerender()"); await pg.wait_for_timeout(200)
 
         # By type view
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.get_by_role('tab', name='By type').click(); await pg.wait_for_timeout(300)
         secs = await pg.locator('.wsec-h h2').all_inner_texts()
         check('routine type sections', [s.title() for s in secs] == ['Full Body', 'Core', 'Mobility', 'Conditioning'], secs)
@@ -109,7 +109,7 @@ async def main():
         n_all = await pg.locator('.wk-row').count()
         check('open all', n_all > 20, n_all)
         await pg.reload(); await pg.wait_for_timeout(1500)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('view and open sections remembered', await pg.locator('.wk-row').count() == n_all)
         await pg.get_by_role('button', name='Close all').click(); await pg.wait_for_timeout(200)
         await pg.locator('.topsw button', has_text='Routines').click(); await pg.wait_for_timeout(300)
@@ -122,7 +122,7 @@ async def main():
         await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
         await pg.locator('.ed-tags button', has_text='Full Body').click()
         await pg.get_by_role('button', name='Save routine').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.wsec-h', has_text='Full Body').click(); await pg.wait_for_timeout(200)
         check('manual type moves workout', await pg.locator('.wsec', has=pg.locator('h2', has_text='Full Body')).locator('.wk-row', has_text='Burpee Grinder').count() == 1)
         await pg.get_by_role('tab', name='List').click(); await pg.wait_for_timeout(300)

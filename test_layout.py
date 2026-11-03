@@ -13,7 +13,7 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
         heads = []
-        for t in ['Train', 'Routines', 'Meals', 'Stats', 'Profile']:
+        for t in ['Train', 'Plans', 'Meals', 'Progress', 'Profile']:
             await pg.locator('.tabs button', has_text=t).click(); await pg.wait_for_timeout(250)
             heads.append(await ev("(() => { const e = document.querySelector('main .topsw button.on, main .page-title'); const r = e.getBoundingClientRect(); return [getComputedStyle(e).fontSize, Math.round(r.top), Math.round(r.height)]; })()"))
         check('same header size and position on all five pages', len({tuple(h) for h in heads}) == 1, heads)
@@ -21,10 +21,10 @@ async def main():
         fill = await ev("[document.documentElement.scrollHeight, innerHeight, Math.round(document.querySelector('nav.tabs').getBoundingClientRect().bottom)]")
         check('short pages still fill the screen, tab bar at the very bottom', fill[0] > fill[1] and fill[2] == fill[1], fill)
         check('no small centered title on Stats and Profile', await pg.locator('header.hdr').count() == 0)
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(200)
+        await pg.evaluate("lsSet('rtKind', 'plans')"); await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(200)
         check('challenges on Routines', await pg.locator('#ch-finder-routines').count() == 1)
-        await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(200)
-        await pg.click('#ch-finder-train'); await pg.wait_for_timeout(250)
+        check('no challenge card on Train until one runs (it lives in Plans)', await pg.locator('#ch-finder-train').count() == 0)
+        await pg.click('#ch-finder-routines'); await pg.wait_for_timeout(250)
         check('templates: Iron 75, Iron 75 Lite, 30-Day Streak, 6-Week Protein & Sleep, your own', await pg.locator('.sheet .opt').count() == 5)
         await pg.click('#cht-iron75'); await pg.wait_for_timeout(300)
         check('Iron 75 asks a few questions first', await pg.locator('#iron-preview').count() == 1)

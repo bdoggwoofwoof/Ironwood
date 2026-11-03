@@ -2,7 +2,8 @@
 /* ---- Progression: weight jump per exercise, smaller jumps after a miss, a drop after three misses ----
    settings.fine: the smallest weight you can add (5 / 2.5 / 1 lb, 2.5 / 1.25 / 0.5 kg).
    settings.stepDown: after a jump, if a set falls below the bottom of the rep range, the next suggestion is half the jump.
-   settings.deload: after three sessions short at one weight, suggest about 10% less.
+   settings.deload: after three sessions short at one weight, suggest about 10% less. A session counts as short only when
+   half or more of its sets fall below the range (7, 6, 4 on 5-8 reps is close enough; it holds the weight).
    meta.exJump: { exercise id: { v, u } } — a weight jump just for that exercise (total added to the bar or machine). */
 const FINE_OPTS = { lb: [5, 2.5, 1], kg: [2.5, 1, 0.5] };
 const JUMP_PRESETS = { lb: [2.5, 5, 10, 15, 20], kg: [1, 2.5, 5, 10] };
@@ -49,6 +50,7 @@ function progPlan(it, kind, u, occ) {
   const e1 = h[0], e0 = h[1];
   const full = e => e.sets.length >= n && e.sets.every(x => x.r >= top);
   const miss = e => e.sets.some(x => x.r < low);
+  const mostShort = e => (e.sets.filter(x => x.r < low).length + Math.max(0, n - e.sets.length)) * 2 >= Math.max(n, e.sets.length);
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
   const w = v => fmt(v) + ' ' + u;
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
@@ -58,7 +60,7 @@ function progPlan(it, kind, u, occ) {
     if (step >= fine - 1e-9 && e0.top + step < e1.top - 1e-9)
       return { mode: 'step', delta: e0.top + step - e1.top, msg: 'Smaller jump today: ' + w(e0.top + step) + ' (+' + w(step) + '). ' + w(e1.top) + ' fell short of ' + low + ' reps last time.' };
   }
-  if (st.deload !== false && h.length >= 3 && h.every(e => Math.abs(e.top - e1.top) < 1e-9 && miss(e)) && e1.top > 0) {
+  if (st.deload !== false && h.length >= 3 && h.every(e => Math.abs(e.top - e1.top) < 1e-9 && mostShort(e)) && e1.top > 0) {
     const to = Math.floor(e1.top * 0.9 / fine + 1e-9) * fine;
     if (to < e1.top) return { mode: 'deload', factor: to / e1.top, to, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
   }
@@ -123,7 +125,7 @@ function ProgressionSettings({ set }) {
       <p class="small muted" style="margin-top:4px">${'One ' + fmt(fine / 2) + ' ' + u + ' plate each side' + (fine < (u === 'lb' ? 5 : 2.5) ? ' (fractional plates). The plate readout uses them.' : '.')}</p></div>
     ${tog('stepDown', 'Smaller jump after a miss', 'If a set falls below the bottom of the range after a jump, suggest half the jump next time (10 → 5 → 2.5), down to your smallest jump.')}
     <label class="toggle-row" for="tg-bigJumps"><span><span>Bigger jumps</span><span class="d">Off: a jump is at most ${u === 'kg' ? '10 kg' : '20 lb (10 each side)'}. On: any amount.</span></span><input type="checkbox" role="switch" id="tg-bigJumps" checked=${!!st.bigJumps} onChange=${e => set('bigJumps', e.target.checked)}/></label>
-    ${tog('deload', 'Drop about 10% after three misses', 'Three sessions in a row short of the range at the same weight.')}
+    ${tog('deload', 'Drop about 10% after three misses', 'Three sessions in a row at the same weight where half or more of the sets fell short of the range.')}
     ${ej.length ? html`<div><span class="lbl">Per-exercise jumps</span>${ej.map(([ex, j]) => html`<div key=${ex} class="row small" style="min-height:40px"><span style="flex:1">${exName(ex)}</span><b class="num">+${fmt(j.v)} ${j.u}</b><button class="icon-btn" aria-label=${'Use the default jump for ' + exName(ex)} onClick=${() => commit(x => { delete x.meta.exJump[ex]; }, 'meta', 600)}>${I.x}</button></div>`)}</div>` : null}
     <p class="note">Set one exercise's jump from its ⋯ menu during a workout.</p></div>`;
 }

@@ -56,6 +56,7 @@ async def main():
         check('restart a program: next up is day 1 again', await ev("nextUp().day.id") == d0)
         # Edit opens the plan; plan page has restart and stop
         await ev("UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-5x5' })"); await pg.wait_for_timeout(200)
+        await pg.click('#rt-more'); await pg.wait_for_timeout(150)
         check('plan page: restart and stop following', await pg.locator('#plan-restart').count() == 1 and await pg.locator('#plan-stop').count() == 1)
         await pg.click('#plan-stop'); await pg.wait_for_timeout(200)
         check('stop following → Self-log', await ev("S.meta.settings.program") == 'self')

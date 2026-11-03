@@ -1160,23 +1160,23 @@ src = src[:_t0] + """const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
-  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
+  ['train', 'train', '#also-today, #add-alongside, #plan-week-open, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. The week strip shows a dot for each planned program, and Plan your week sets their days and saves them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
-  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
-  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Tap the check when a set is done (or swipe right as a shortcut). The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#ch-finder-train, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
   ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
   ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3 }],
   ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtKind: 'routines', rtView: 'list' } }],
-  ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
+  ['routines', null, '#more-ways', 'Joint care', 'Under More ways to train: strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
   ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
   ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
   ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],\n  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
-  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
-  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
+  ['profile', null, '#pg-look', 'Make it yours', 'Settings come in groups. Appearance and accessibility has colors (two color-blind friendly sets), text size, high contrast and reduced motion. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
+  ['profile', null, '#pg-data', 'Keep a backup', 'Everything stays on this phone, with no account. Data and backups comes first: save a backup file now and then, and restore it on a new phone.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
   ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
@@ -1446,6 +1446,275 @@ swap(".sess-acts{gap:8px}", """.gs-steps{display:flex;gap:6px;margin-top:6px}
 swap("if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs;", "if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.habits && b.habits) a.habits = b.habits;")
 swap("    case 'goalSetup': return html`<${GoalSetupSheet}/>`;", "    case 'goalSetup': return html`<${GoalSetupSheet} welcome=${sheet.welcome}/>`;")
 swap("function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }", "function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }")
+
+# 36. Workout screen refinement (Nov 2, design review phase 1): a visible 44px check on every set (swipes stay as
+#     shortcuts), balanced set row (equal weight and reps fields, 21px tabular values, Last and Note, then the check),
+#     completed sets tinted green with a filled check, one Finish (the sticky header button, now 44px), a quieter
+#     gesture hint, a calmer day title. Undoing a check clears only the reps, so a typed weight is kept.
+swap("function uncompleteSet(it, s, clear) {", "function uncheckSet(it, s) { s.r = ''; s.c = null; s.pr = false; s.prInfo = null; touch(); }\nfunction uncompleteSet(it, s, clear) {")
+swap("if (!done) completeSet(it, s, true); else uncompleteSet(it, s, true);", "if (!done) completeSet(it, s, true); else uncheckSet(it, s);")
+swap("done ? uncompleteSet(it, s, true) : completeSet(it, s, true)", "done ? uncheckSet(it, s) : completeSet(it, s, true)")
+swap("${noteCell}</div>\n    </div></div>${s.pr", "${noteCell}</div>\n      <button class=${'set-ok' + (done ? ' on' : '')} id=${'ok-' + s.id} aria-pressed=${done} aria-label=${done ? 'Set ' + (j + 1) + ' done. Tap to undo' : 'Mark set ' + (j + 1) + ' done'} onClick=${() => { SW.open = null; if (done) uncheckSet(it, s); else if (completeSet(it, s, false)) lsSet('swiped', '1'); }}>${I.check}</button>\n    </div></div>${s.pr")
+swap("<span>Note</span></span></div>", "<span>Note</span></span><span class=\"th-ok\"><span class=\"sr-only\">Done</span></span></div>")
+swap("Swipe a set right to log it as shown. Swipe part way for Complete or Copy, or left to delete. Typing the reps logs it too.", "Tap the check when a set is done. Shortcuts: swipe right to log, part way to copy, left to delete.")
+swap("      <button class=\"btn primary wide\" onClick=${() => openSheet({ type: 'finish' })}>Finish workout</button>\n", "")
+swap(".sess-acts{gap:8px}", """main .set-row{grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) 44px;gap:6px}
+main .set-row input{font-size:21px;font-weight:600;padding:7px 2px;min-height:44px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+main .set-row.th{min-height:36px}
+main .set-row .last-note{gap:4px}
+main .set-row .last-note .prev{flex:1 1 auto;font-size:13px}
+main .set-row .note-add{width:32px;height:32px;box-shadow:none;color:var(--ink-3)}
+.th-ok{display:block}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.set-ok,.meas-ok{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--ink-2);box-shadow:none;background:none}
+.set-ok svg,.meas-ok svg{width:32px;height:32px;padding:7px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink-3);stroke-width:2.6;transition:background .15s ease,color .15s ease}
+.set-ok.on svg,.meas-ok.on svg{background:var(--good);color:var(--good-ink);box-shadow:none}
+main .set-row.done,.meas-row.done{background:var(--surface);background:color-mix(in srgb,var(--good) 10%,var(--surface))}
+main .set-row.done input{background:transparent}
+.side-tog{position:relative}.side-tog::after{content:'';position:absolute;inset:-6px -4px}
+.swipe-hint{background:none;padding:0;margin-top:8px}
+.hdr .pill-btn{min-height:44px;padding:0 16px}
+.wo-title{font-size:26px;text-transform:none;letter-spacing:0}
+.wo-clock{font-size:22px}
+.note-add.wide{box-shadow:none;min-height:44px;padding:0 10px 0 6px;margin-left:-6px;color:var(--ink-2);font-weight:600}
+.sess-acts{gap:8px}""")
+
+# 37. Hit areas (Nov 2, design review accessibility): shared small controls keep their look but get at least a 44px
+#     tap area through an invisible ::after (icon buttons, note buttons, tip close, unit toggle, segmented buttons,
+#     plan-week cells, text buttons). The tab bar stays during a workout: there is no minimize flow, people
+#     check Meals or Stats mid-workout, and the Train tab marks the running workout.
+swap(".sess-acts{gap:8px}", """.icon-btn,.note-add,.tip-x,.unit-tog,.seg button,.pw-cell,.btn.text,.mini-btn{position:relative}
+.icon-btn::after,.note-add::after,.tip-x::after,.unit-tog::after,.seg button::after,.pw-cell::after,.btn.text::after,.mini-btn::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+.sess-acts{gap:8px}""")
+
+# 38. Train home reordered (trainhome.js, Nov 2, design review phase 2): the next workout and Start come first, then
+#     check-ins and today's add-ons, one week strip (done = filled check, planned = ring + dot; planning opens in a
+#     sheet instead of a second grid), other days and activities, then challenges, lift goals, month review, and the
+#     restore prompt as a quiet line. Replaces the old TrainHome whole.
+_h0 = src.index("function TrainHome() {"); _h1 = src.index("function ProgramSheet()", _h0)
+src = src[:_h0] + open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trainhome.js'), encoding='utf8').read() + "\n" + src[_h1:]
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'planWeek': return html`<${PlanWeekSheet}/>`;")
+swap("const cls = 'wd' + (hit ? ' hit' : '') + (k === today ? ' is-today' : '') + (m ? (EXCUSED[m] ? ' mk-ex' : ' mk-rest') : '');",
+     "const cls = 'wd' + (hit ? ' hit' : '') + (k === today ? ' is-today' : '') + (m ? (EXCUSED[m] ? ' mk-ex' : ' mk-rest') : '') + (!hit && !m && typeof planList === 'function' && planList().some(p => p.days.includes((i + 1) % 7)) ? ' planned' : '');")
+swap(".sess-acts{gap:8px}", """.today .next-card{margin-bottom:4px}
+.today .next-card h2{margin-top:2px}
+.btn.btn-sm{min-height:32px;padding:4px 6px;font-size:15px}
+.week-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;min-height:32px}
+.wd.planned i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+.list-group{display:flex;flex-direction:column;background:var(--surface);border-radius:12px;overflow:hidden}
+.list-group .day-btn{border-radius:0;background:none;box-shadow:inset 0 -1px 0 var(--line)}
+.list-group .day-btn:last-child{box-shadow:none}
+.inline-note{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:16px;padding:10px 0;border-top:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.inline-note b{color:var(--ink)}
+.muted-btn{color:var(--ink-2)}
+.sheet .plan-week{padding:0;background:none}
+.row-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:10px 14px;text-align:left;font-weight:600;color:var(--ink);box-shadow:inset 0 -1px 0 var(--line)}
+.row-btn:last-child{box-shadow:none}
+.row-btn svg{width:20px;height:20px;color:var(--ink-2);flex:none}
+.ch-ic{background:var(--raised)!important;color:var(--ink)!important}
+.sess-acts{gap:8px}""")
+
+# 39. Button and control system (Nov 2, design review phase 3): four treatments. Primary = solid accent, kept for the
+#     screen's main action. Secondary = surface with a 1px --edge outline (3:1 against card and page), so it no
+#     longer looks like an input or a disabled control. Text = accent words for small contextual actions. Destructive
+#     = red text or outline, with Undo kept. Fields and set inputs get the same 3:1 edge. Selected chips go neutral
+#     (ink), done days in the week go green like done sets, and the rest bar becomes a neutral dark panel, so
+#     saturated blue means "the main action". Month in review and New routine/plan drop to secondary.
+swap(".sess-acts{gap:8px}", """:root{--edge:#6b737d}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--edge:#7d858e}}
+:root[data-theme="light"]{--edge:#7d858e}
+:root[data-theme="dark"]{--edge:#6b737d}
+.btn{background:var(--surface);box-shadow:inset 0 0 0 1px var(--edge);color:var(--ink)}
+.btn.primary{box-shadow:none}
+.btn.text,.btn.ghost,.btn.ghost.wide{box-shadow:none}
+.btn.text{background:none}
+.btn.ghost{border:1px dashed var(--edge)}
+.btn.danger{color:var(--red-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red-text) 55%,transparent)}
+.btn.text.danger{box-shadow:none}
+.btn:disabled{opacity:.45}
+input.field,select.field,textarea.field{border:1px solid var(--edge)}
+input.field:focus,select.field:focus,textarea.field:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.set-row input{border:1px solid var(--edge)}
+.set-row.done input{border-color:transparent}
+.chip.on,button.chip.on{background:var(--ink);color:var(--surface)}
+.wd.hit i{background:var(--good);color:var(--good-ink)}
+.restbar-in{background:#20242a;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.08)}
+.restbar button{background:rgba(255,255,255,.14)}
+.sess-acts{gap:8px}""")
+swap('<button class="btn primary wide" style="margin-top:10px" id="month-open"', '<button class="btn" style="margin-top:10px" id="month-open"')
+swap('<button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: \'edit\', draft: newDraft(), isNew: true })}>', '<button class="btn" style="flex:1" onClick=${() => UI.setView({ type: \'edit\', draft: newDraft(), isNew: true })}>')
+
+# 40. Navigation and type rules (Nov 2, design review phase 4 + typography). The page switcher (Train/Run/Fight/History,
+#     Routines/Plans, Log/Prep/Recipes/List) becomes a quiet 17px tab row, so content titles outrank navigation.
+#     Rules: Barlow Condensed uppercase only for small section headings and eyebrows; titles (page, workout day,
+#     sheets, routine names) are Barlow Condensed in sentence case; the header bar is a 17px native-style title;
+#     numbers use tabular figures. Stats and Profile get a real page title, not a lone tab.
+swap(".sess-acts{gap:8px}", """#app .topsw{display:flex;gap:20px;margin:0 0 6px;border-bottom:1px solid var(--line)}
+#app .topsw button,#app .topsw.four button{font-family:var(--body);font-size:17px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink-2);min-height:44px;padding:8px 0 6px;border-bottom:2px solid transparent;margin-bottom:-1px}
+#app .topsw button.on,#app .topsw.four button.on{color:var(--ink);border-bottom-color:var(--accent)}
+#app .topsw:has(.page-title){border-bottom:0}
+.page-title{font-size:28px;text-transform:none;letter-spacing:0;border-bottom:0;padding:4px 0 2px}
+.next-card h2,.wo-title,.sheet h2,.r-card h3{text-transform:none;letter-spacing:0}
+.next-card h2{font-size:28px}
+.r-card h3{font-family:var(--body);font-size:17px}
+.section-h h2{font-size:18px}
+.hdr h1{font-family:var(--body);font-size:17px;font-weight:700;text-transform:none;letter-spacing:0}
+.num,.kpi b,.set-row input,.log-item .r,.prl b,.wo-clock{font-variant-numeric:tabular-nums}
+.sess-acts{gap:8px}""")
+
+# 41. Routines and routine pages (Nov 2, design review phase 5). Routines: your routines first, then the library, as
+#     compact lists; Joint care and Challenges move to a short "More ways to train" list at the bottom (Joint care
+#     opens its chips in a sheet); the tip cards go. Routine page: at most three actions in view (Follow or Restart,
+#     Add alongside or Edit, More); the rest (Copy, Stop following, Reset, Remove) open under More. Only the next day
+#     (or a one-day routine) gets the accent Start; the other days get a quiet Start.
+swap("""    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your program.'}<//>
+    <${CareFinder}/>
+    <${ChallengeFinder} where="routines"/>
+    <div class="row" style="margin-top:12px">${seg}</div>`;""", """    <div class="row" style="margin-top:10px;gap:10px"><span class="small muted" style="flex:1">${kind === 'plans' ? 'Several days. Follow one and Train lines up the next day.' : 'Single workouts. Start one any time.'}</span>${seg}</div>`;
+  const more = html`<div class="section-h"><h2>More ways to train</h2></div><div class="list-group" id="more-ways">
+    <button class="row-btn" id="care-open" onClick=${() => openSheet({ type: 'careFinder' })}>${I.plus}<span style="flex:1">Joint care<span class="small muted" style="display:block;font-weight:400">Strength and mobility for common aches</span></span></button>
+    <button class="row-btn" id="ch-finder-routines" onClick=${() => openSheet({ type: 'challenges' })}>${I.check}<span style="flex:1">Challenges<span class="small muted" style="display:block;font-weight:400">Iron 75, Iron 75 Lite, 30-day streak and more</span></span></button></div>`;""")
+swap("""    <div class="stack">${mine.length ? mine.map(card) : html`<${Tip} id=${'yours-' + kind}>${kind === 'plans' ? 'Plans you build, copy, or import live here.' : 'Routines you build, copy, or import live here.'} Library ones can be edited or removed too.<//>`}${actions}</div>
+    ${lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
+    <div class="stack" style="margin-top:10px">${bring}</div></div>`;""", """    ${mine.length ? html`<div class="list-group rt-list">${mine.map(card)}</div>` : html`<p class="small muted" style="margin:0 0 8px">${kind === 'plans' ? 'Plans you build, copy or import show here.' : 'Routines you build, copy or import show here.'}</p>`}<div style="margin-top:10px">${actions}</div>
+    ${lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="list-group rt-list">${lib.map(card)}</div>` : null}
+    <div class="stack" style="margin-top:10px">${bring}</div>${more}</div>`;""")
+swap("""    <div class="stack" style="margin-top:18px">${actions}${bring}</div></div>`;
+}""", """    <div class="stack" style="margin-top:18px">${actions}${bring}</div>${more}</div>`;
+}""")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'careFinder': return html`<${Sheet} label=\"Joint care\"><h2>Joint care</h2><${CareFinder}/><//>`;")
+swap("onClick=${() => UI.setView({ type: 'routine', id: P.id })}>${P.area}</button>", "onClick=${() => { closeSheet(); UI.setView({ type: 'routine', id: P.id }); }}>${P.area}</button>")
+# routine page actions
+_a0 = src.index('    <div class="row wrap" style="margin:14px 0 4px">\n      ${programId() === r.id ? null : html`<button class=${\'btn\' + (addonIds()')
+_a1 = src.index('    <${PrefillRow} r=${r}/>', _a0)
+src = src[:_a0] + """    <${RoutineActions} r=${r} lib=${lib} edit=${edit} copy=${copy} reset=${reset} del=${del}/>
+""" + src[_a1:]
+swap("function CareFinder() {", r"""function RoutineActions({ r, lib, edit, copy, reset, del }) {
+  const [open, setOpen] = useState(false); const prog = programId() === r.id; const along = addonIds().includes(r.id);
+  const toggleAlong = () => { const on = !along; setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' }); };
+  return html`<div class="rt-acts"><div class="row" style="gap:8px;margin:14px 0 4px">
+      ${prog ? html`<button class="btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>Restart from day 1</button>` : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
+      ${prog ? html`<button class="btn" onClick=${edit}>${I.edit} Edit</button>` : html`<button class="btn" id="alongside" aria-pressed=${along} onClick=${toggleAlong}>${along ? html`${I.check} Alongside` : html`${I.plus} Alongside`}</button>`}
+      <button class="btn icon-only" id="rt-more" aria-expanded=${open} aria-label="More actions" onClick=${() => setOpen(!open)}>${I.more}</button></div>
+    ${open ? html`<div class="list-group" id="rt-more-list" style="margin-top:6px">
+      ${prog ? null : html`<button class="row-btn" onClick=${edit}>${I.edit}<span>Edit</span></button>`}
+      ${!prog && along ? html`<button class="row-btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>${I.back}<span>Restart from day 1</span></button>` : null}
+      ${prog ? html`<button class="row-btn" id="plan-stop" onClick=${() => stopPlan(r.id)}>${I.x}<span>Stop following</span></button>` : null}
+      <button class="row-btn" onClick=${copy}>${I.copy}<span>Copy</span></button>
+      ${r.base ? html`<button class="row-btn" onClick=${reset}>${I.back}<span>Reset to the original</span></button>` : null}
+      <button class="row-btn danger-row" onClick=${del}>${I.trash}<span>${lib ? 'Remove from library' : 'Delete'}</span></button></div>` : null}</div>`;
+}
+function CareFinder() {""")
+swap("""<button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <ul class="r-items">""", """<button class=${(r.days.length === 1 || (programId() === r.id ? (nextUp() || {}).day : addonIds().includes(r.id) ? nextFor(r).day : null)?.id === d.id) ? 'pill-btn accent' : 'btn text btn-sm'} onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <ul class="r-items">""")
+swap(".sess-acts{gap:8px}", """.rt-list .r-card{border-radius:0;background:none;box-shadow:inset 0 -1px 0 var(--line);padding:12px 14px}
+.rt-list .r-card:last-child{box-shadow:none}
+.btn.icon-only{padding:0;width:46px;min-width:46px}
+.danger-row,.danger-row svg{color:var(--red-text)!important}
+.sheet .care-finder{background:none;padding:0;margin-top:4px!important}
+.sess-acts{gap:8px}""")
+
+# 42. Profile grouped (profile.js, Nov 2, design review phase 6): six groups that open in place (Data and backups,
+#     Appearance and accessibility, Training preferences, Units, Rest timers and sounds, Help), each with a summary
+#     line. Colors become one compact row that opens the palette choices in a sheet.
+_p0 = src.index("function ProfileScreen() {"); _p1 = src.index("\nfunction ", _p0 + 30)
+src = src[:_p0] + open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'profile.js'), encoding='utf8').read() + src[_p1:]
+swap("    <${PaletteChooser}/>\n", """    <button class="row-btn pal-row" id="pal-open" onClick=${() => openSheet({ type: 'palettes' })}><span style="flex:1"><span class="lbl" style="margin:0">Colors</span><span class="small muted" style="display:block">${(PALETTES[DISP.palette] || [DISP.palette === 'custom' ? 'Custom' : 'Classic'])[0]} · includes two color-blind friendly sets</span></span><span class="sw" aria-hidden="true">${(() => { const P = DISP.palette === 'custom' ? customPal()[2] : (PALETTES[DISP.palette] || PALETTES.classic)[2]; return [P.a, P.p, P.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`); })()}</span></button>
+""")
+swap("    case 'mealGoals': return html`<${GoalsSheet}/>`;", "    case 'mealGoals': return html`<${GoalsSheet}/>`;\n    case 'palettes': return html`<${Sheet} label=\"Colors\"><h2>Colors</h2><${PaletteChooser}/><//>`;")
+swap(".sess-acts{gap:8px}", """.pgroups{display:flex;flex-direction:column;background:var(--surface);border-radius:12px;overflow:hidden}
+.pgrp{box-shadow:inset 0 -1px 0 var(--line)}.pgrp:last-child{box-shadow:none}
+.pgrp-h{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:10px 14px;text-align:left}
+.pgrp-h svg{width:18px;height:18px;color:var(--ink-2);flex:none}
+.pgrp-t{display:block;font-weight:700}
+.pgrp-s{display:block;font-size:13.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgrp-b{padding:2px 14px 16px}
+.pgrp-b .card{background:none;padding:0}
+.pal-row{padding:0;box-shadow:none}
+.pal-row .sw{display:flex;gap:4px}.pal-row .sw i{width:14px;height:14px;border-radius:50%}
+.sess-acts{gap:8px}""")
+
+# 43. Stats (Nov 2, design review phase 7): three headline numbers (workouts, per week, volume) and the rest in a
+#     compact details list; the period becomes a small menu beside the Summary heading instead of a second stacked
+#     segmented control; Month in review is a list row with the latest month's summary, and Lift goal is a text action
+#     on the goals heading (GoalsCard already has "+ Goal").
+swap("""    <div class="seg wide per" style="margin-top:14px">${PERIODS.map(([k, l]) => html`<button key=${k} class=${per === k ? 'on' : ''} aria-pressed=${per === k} onClick=${() => setPer(k)}>${l}</button>`)}</div>
+    <div class="kpis kpis3" style="margin-top:10px">
+      ${kpi(o.n, 'Workouts')}${kpi(fmt(r1(o.perWeek)), per === '1w' ? 'Last 7 days' : 'Per week')}${kpi(o.n ? fmtDur(o.avgDur) : '–', 'Avg duration')}
+      ${kpi(fmtDur(o.dur), 'Total time')}${kpi(fmtBig(o.vol), 'Volume, ' + U())}${kpi(fmtBig(o.sets), 'Sets')}
+      ${kpi(fmtBig(o.reps), 'Reps')}${kpi(o.sets ? fmt(r1(o.rps)) : '–', 'Reps per set')}${kpi(o.n ? fmt(r1(o.spw)) : '–', 'Sets per workout')}
+    </div>""", """    <div class="section-h"><h2>Summary</h2><select class="field field-sm" id="stats-per" aria-label="Period" value=${per} onChange=${e => setPer(e.target.value)}>${PERIODS.map(([k, l]) => html`<option key=${k} value=${k}>${l}</option>`)}</select></div>
+    <div class="kpis kpis3">
+      ${kpi(o.n, 'Workouts')}${kpi(fmt(r1(o.perWeek)), per === '1w' ? 'Last 7 days' : 'Per week')}${kpi(fmtBig(o.vol), 'Volume, ' + U())}
+    </div>
+    <dl class="dl2" id="stats-details"><div><dt>Total time</dt><dd class="num">${fmtDur(o.dur)}</dd></div><div><dt>Avg duration</dt><dd class="num">${o.n ? fmtDur(o.avgDur) : '–'}</dd></div>
+      <div><dt>Sets</dt><dd class="num">${fmtBig(o.sets)}</dd></div><div><dt>Reps</dt><dd class="num">${fmtBig(o.reps)}</dd></div>
+      <div><dt>Reps per set</dt><dd class="num">${o.sets ? fmt(r1(o.rps)) : '–'}</dd></div><div><dt>Sets per workout</dt><dd class="num">${o.n ? fmt(r1(o.spw)) : '–'}</dd></div></dl>""")
+swap("""  return html`<div class="row" style="gap:8px;margin-top:14px" id="stats-extras">
+    <button class="btn" style="flex:1" id="open-month" onClick=${() => UI.setView({ type: 'month', ym: ymAdd(ymOf(new Date()), -1) })}>Month in review</button>
+    <button class="btn" style="flex:1" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Lift goal</button></div>
+    <div style="margin-top:6px"><${GoalsCard}/></div>`;""", """  const ym = ymAdd(ymOf(new Date()), -1);
+  return html`<div id="stats-extras"><div class="list-group" style="margin-top:12px">
+    <button class="row-btn" id="open-month" onClick=${() => UI.setView({ type: 'month', ym })}>${I.cal}<span style="flex:1">Month in review<span class="small muted" style="display:block;font-weight:400">${ymName(ym)}</span></span></button></div>
+    ${goalList().length ? html`<${GoalsCard}/>` : html`<div class="row" style="margin-top:4px"><button class="btn text btn-sm" id="open-goal" onClick=${() => openSheet({ type: 'liftGoal' })}>${I.plus} Set a lift goal</button></div>`}</div>`;""")
+swap(".sess-acts{gap:8px}", """.field.field-sm{width:auto;min-height:36px;padding:6px 30px 6px 10px;font-size:16px}
+.dl2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin:10px 0 0;background:var(--surface);border-radius:12px;padding:4px 14px}
+.dl2>div{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;box-shadow:inset 0 -1px 0 var(--line)}
+.dl2>div:nth-last-child(-n+2){box-shadow:none}
+.dl2 dt{color:var(--ink-2);font-size:14px}.dl2 dd{margin:0;font-weight:700}
+.sess-acts{gap:8px}""")
+
+# 44. Meals (Nov 2, design review phase 8). Log stays as it is. Prep: meal plan, then Your prep with People and Weeks as
+#     one compact line under its heading (the separate card and tip card go). Recipes: the three wrapping dashed
+#     buttons become a short list (New recipe, From a post, My foods) with a line of explanation each; the blue
+#     "Open" on every Mix & match row becomes a quiet chevron, since the whole row opens.
+swap("""    <div class="card mp-who" style="margin-top:12px">
+      <div class="mp-cell"><div class="lbl">People</div><${MStep} label="people" value=${P.people} min=${1} max=${12} onChange=${v => setP('people', v)}/></div>
+      <div class="mp-cell"><div class="lbl">Weeks</div><${MStep} label="weeks" value=${P.weeks} min=${1} max=${4} onChange=${v => setP('weeks', v)}/></div>
+    </div>
+    <${Tip} id="meal-prep" style="margin-top:10px">Set how many times a week each person eats a meal. Recipes and the shopping list scale to match.<//>
+    <div class="section-h"><h2>Your prep</h2>${items.length ? html`<span class="aside num">${total} serving${total === 1 ? '' : 's'}</span>` : null}</div>""", """    <div class="section-h"><h2>Your prep</h2>${items.length ? html`<span class="aside num">${total} serving${total === 1 ? '' : 's'}</span>` : null}</div>
+    <div class="mp-who mp-who-inline">
+      <div class="mp-cell"><span class="lbl">People</span><${MStep} label="people" value=${P.people} min=${1} max=${12} onChange=${v => setP('people', v)}/></div>
+      <div class="mp-cell"><span class="lbl">Weeks</span><${MStep} label="weeks" value=${P.weeks} min=${1} max=${4} onChange=${v => setP('weeks', v)}/></div>
+    </div>
+    <p class="small muted" style="margin:4px 0 10px">Recipes and the shopping list scale to the people, weeks and times a week you set.</p>""")
+swap("""    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>""",
+ """    <div class="list-group" style="margin-top:12px" id="recipe-actions">
+      <button class="row-btn" id="new-recipe" onClick=${() => newRecipe()}>${I.plus}<span style="flex:1">New recipe<span class="small muted" style="display:block;font-weight:400">Type it in or start from a copy</span></span></button>
+      <button class="row-btn" id="from-post" onClick=${() => newRecipe(true)}>${I.link}<span style="flex:1">From a post<span class="small muted" style="display:block;font-weight:400">Paste a caption and link from Instagram, TikTok or a blog</span></span></button>
+      <button class="row-btn" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>${I.layers}<span style="flex:1">My foods<span class="small muted" style="display:block;font-weight:400">Foods and barcodes you saved, not recipes</span></span></button></div>""")
+swap("""…</div></div><span class="go">Open</span></button>`; })}</div>`;""", """…</div></div><span class="go chev" aria-hidden="true">›</span></button>`; })}</div>`;""")
+swap(".sess-acts{gap:8px}", """.mp-who-inline{display:flex;gap:16px;background:none;padding:0;margin-top:2px}
+.mp-who-inline .mp-cell{display:flex;align-items:center;gap:8px}
+.mp-who-inline .lbl{margin:0}
+.go.chev{color:var(--ink-3);font-size:24px;line-height:1;font-weight:400}
+.sess-acts{gap:8px}""")
+
+# 45. Shared surfaces, radii, spacing and wider screens (Nov 2, design review sections 2 and 4). Radii settle on three
+#     sizes plus pill: 8 (inputs, set rows, segments, small tiles), 12 (buttons, cards, list groups), 16 (hero card,
+#     sheets, rest bar). Tips lose their white box and become a quiet line with a rule on the left, so they no longer
+#     read as content. On tablets and desktops the column widens to 760px, the tab bar stays as wide as the content,
+#     and the routine library and fight quick-starts use two columns.
+swap(".sess-acts{gap:8px}", """:root{--r:12px}
+.card,.btn,.list-group,.pgroups,.dl2,.day-btn,.r-day,.mp-item{border-radius:12px}
+.next-card,.sheet{border-radius:16px}.sheet{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.restbar-in{border-radius:16px}
+input.field,select.field,textarea.field,.set-row,.set-row input,.seg button,.wd i,.pw-cell{border-radius:8px}
+.seg{border-radius:10px}
+.tip-card{background:none;box-shadow:inset 2px 0 0 var(--line);border-radius:0;padding:4px 4px 4px 12px}
+.tip-card .tip-x{margin-top:-4px}
+.note-add.wide::after{display:none}
+@media (min-width:900px){
+  main,.hdr-in{max-width:760px}
+  .tabs-in{max-width:520px}
+  .restbar-in{max-width:728px}
+  .rt-list{display:grid;grid-template-columns:1fr 1fr}
+  .rt-list .r-card{box-shadow:inset 0 -1px 0 var(--line),inset -1px 0 0 var(--line)}
+}
+.sess-acts{gap:8px}""")
+swap("${I.plus} Add joint care, conditioning, running or another plan alongside", "${I.plus} Add a plan alongside: joint care, running, conditioning")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller

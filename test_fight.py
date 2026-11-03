@@ -118,7 +118,7 @@ async def main():
         await pg.click('#fprog-bi-fight-box'); await pg.wait_for_timeout(400)
         info = await pg.locator('#fight-info').inner_text()
         check('program page: strengths, results, watch-outs, coach note', all(x in info for x in ['Strengths', 'Likely results', 'Watch out for', 'qualified coach']))
-        await pg.locator('.pill-btn', has_text='Start').first.click(); await pg.wait_for_timeout(400)
+        await pg.locator('.r-day button', has_text='Start').first.click(); await pg.wait_for_timeout(400)
         check('workout has a Start the coach button', await pg.locator('#wo-fight').count() == 1 and 'Boxing 3 × 2:00' in await pg.locator('#wo-fight').inner_text())
         yb = await ev("document.getElementById('wo-fight').getBoundingClientRect().top < document.querySelector('.slot').getBoundingClientRect().top")
         check('the coach button is at the top of the workout', yb)

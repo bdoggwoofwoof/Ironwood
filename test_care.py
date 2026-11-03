@@ -24,11 +24,12 @@ async def main():
         check('says it is not medical advice or treatment', 'not medical advice, diagnosis or treatment' in text and 'physical therapist' in text)
         # Routines finder → program page → start
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
+        await pg.click('#care-open'); await pg.wait_for_timeout(250)
         check('finder on Routines lists the areas', await pg.locator('#care-finder .chip').count() == 7)
         await pg.click('#care-ankle'); await pg.wait_for_timeout(300)
         info = await pg.locator('#care-info').inner_text()
         check('program page: how to use, what to expect, watch-outs, red flags', all(x in info for x in ['How to use it', 'What to expect', 'Watch out for', 'Pain rule', 'See a doctor or physical therapist']))
-        await pg.locator('.pill-btn', has_text='Start').first.click(); await pg.wait_for_timeout(400)
+        await pg.locator('.r-day button', has_text='Start').first.click(); await pg.wait_for_timeout(400)
         check('day A starts with a timed balance hold', await ev("S.active.items.some(i => exName(i.ex) === 'Single-Leg Balance' && exKind(i.ex) === 'timed' && i.target.dur === 30)"))
         await ev("commit(st => { st.active = null; }, 'active')")
         # Run → Programs points to ankle care

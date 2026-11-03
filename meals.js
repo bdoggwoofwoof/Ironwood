@@ -818,7 +818,7 @@ function RecipeEditor({ view }) {
     mealCommit(m => { m.recipes[d.id] = rec; });
     UI.setView({ type: 'meal', id: d.id });
   };
-  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
+  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src, ...(x.serves ? { serves: x.serves } : {}), ...(x.mins ? { mins: x.mins } : {}), ...(x.macros && Object.keys(x.macros).length ? { macros: { ...cur.macros, ...x.macros } } : {}) })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
   return html`<div class="stack" style="margin-top:6px">
     ${view.paste ? html`<${PasteBox} onFill=${fillFrom}/>` : null}
     <div><label class="lbl" for="me-name">Name</label><input class="field" id="me-name" value=${d.name} placeholder="e.g. Lemon pepper chicken" onInput=${e => { set('name', e.target.value); setErr(''); }}/></div>

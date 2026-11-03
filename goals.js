@@ -45,20 +45,37 @@ const GP_TPL = [
 ];
 const GP_GOALS = [['recomp', 'Lose fat and build muscle'], ['mass', 'Get bigger'], ['strength', 'Lift more weight'], ['lose', 'Lose fat'], ['speed', 'Get faster and fitter'], ['sport', 'Get better at a sport']];
 const GP_SPORTS = [['box', 'Boxing / MMA'], ['swim', 'Swimming'], ['row', 'Rowing'], ['run', 'Running'], ['bike', 'Cycling'], ['other', 'Another sport']];
-const GP_GEAR = [['gym', 'Full gym'], ['db', 'Dumbbells'], ['bw', 'Bodyweight only']];
+const GP_GEAR = [['gym', 'Full gym'], ['db', 'Dumbbells'], ['bar', 'Bodyweight + pull-up bar'], ['bw', 'Bodyweight only']];
 const GP_CARDIO = [['row', 'Rower'], ['pool', 'Pool'], ['bike', 'Bike'], ['airbike', 'Assault bike'], ['road', 'Treadmill or road'], ['track', 'Track'], ['hills', 'Hills'], ['sled', 'Sled'], ['rope', 'Jump rope'], ['bag', 'Heavy bag']];
 const GP_JOINTS = [['knees', 'Knees'], ['back', 'Lower back'], ['shoulders', 'Shoulders'], ['wrists', 'Wrists'], ['hips', 'Hips']];
 const GP_SWAP = {
   db: { 'Back Squat': 'Goblet Squat', 'Front Squat': 'Goblet Squat', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Deadlift': 'Dumbbell Romanian Deadlift', 'Romanian Deadlift': 'Dumbbell Romanian Deadlift', 'Barbell Row': 'Dumbbell Row', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Lat Pulldown': 'Pull-Up', 'Seated Cable Row': 'Dumbbell Row', 'Leg Press': 'Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Dumbbell Step-Up', 'Face Pulls': 'Dumbbell Rear Delt Fly', 'Tricep Pushdowns': 'Dumbbell Overhead Tricep Extension', 'Cable Fly': 'Push-Ups', 'Skull Crushers': 'Dumbbell Overhead Tricep Extension', 'Kettlebell Swing': 'Dumbbell Romanian Deadlift' },
-  bw: { 'Back Squat': 'Air Squat', 'Front Squat': 'Bodyweight Bulgarian Split Squat', 'Goblet Squat': 'Air Squat', 'Bench Press': 'Push-Ups', 'Dumbbell Bench Press': 'Push-Ups', 'Incline Barbell Bench Press': 'Push-Ups', 'Incline Dumbbell Press': 'Push-Ups', 'Deadlift': 'Single-Leg Glute Bridge', 'Romanian Deadlift': 'Single-Leg Glute Bridge', 'Dumbbell Romanian Deadlift': 'Single-Leg Glute Bridge', 'Barbell Row': 'Pull-Up', 'Dumbbell Row': 'Pull-Up', 'Seated Cable Row': 'Pull-Up', 'Lat Pulldown': 'Pull-Up', 'Overhead Barbell Press': 'Push-Ups', 'Seated Dumbbell Overhead Press': 'Push-Ups', 'Leg Press': 'Bodyweight Bulgarian Split Squat', 'Bulgarian Split Squat': 'Bodyweight Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Wall Sit', 'Dumbbell Hip Thrust': 'Glute Bridge', 'Lateral Raises': 'Scapular Push-Up', 'Face Pulls': 'Prone Y-T-W Raise', 'Dumbbell Rear Delt Fly': 'Prone Y-T-W Raise', 'Cable Fly': 'Push-Ups', 'Tricep Pushdowns': 'Dips', 'Skull Crushers': 'Dips', 'Dumbbell Overhead Tricep Extension': 'Dips', 'Dumbbell Curl': 'Pull-Up', 'Hammer Curls': 'Pull-Up', 'Kettlebell Swing': 'Burpee Broad Jumps', 'Farmer\'s Carry': 'Bear Crawl', 'Dumbbell Step-Up': 'Bodyweight Bulgarian Split Squat', 'Calf Raises': 'Calf Raises', 'Incline Walk': 'Incline Walk' },
+  bw: { 'Back Squat': 'Air Squat', 'Front Squat': 'Bodyweight Bulgarian Split Squat', 'Goblet Squat': 'Air Squat', 'Bench Press': 'Push-Ups', 'Dumbbell Bench Press': 'Push-Ups', 'Incline Barbell Bench Press': 'Push-Ups', 'Incline Dumbbell Press': 'Push-Ups', 'Deadlift': 'Single-Leg Glute Bridge', 'Romanian Deadlift': 'Single-Leg Glute Bridge', 'Dumbbell Romanian Deadlift': 'Single-Leg Glute Bridge', 'Barbell Row': 'Inverted Row', 'Dumbbell Row': 'Inverted Row', 'Seated Cable Row': 'Inverted Row', 'Lat Pulldown': 'Inverted Row', 'Pull-Up': 'Inverted Row', 'Hanging Leg Raises': 'Reverse Crunch', 'Overhead Barbell Press': 'Push-Ups', 'Seated Dumbbell Overhead Press': 'Push-Ups', 'Leg Press': 'Bodyweight Bulgarian Split Squat', 'Bulgarian Split Squat': 'Bodyweight Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Wall Sit', 'Dumbbell Hip Thrust': 'Glute Bridge', 'Lateral Raises': 'Scapular Push-Up', 'Face Pulls': 'Prone Y-T-W Raise', 'Dumbbell Rear Delt Fly': 'Prone Y-T-W Raise', 'Cable Fly': 'Push-Ups', 'Tricep Pushdowns': 'Bench Dips', 'Skull Crushers': 'Bench Dips', 'Dumbbell Overhead Tricep Extension': 'Bench Dips', 'Dumbbell Curl': 'Inverted Row', 'Hammer Curls': 'Inverted Row', 'Kettlebell Swing': 'Burpee Broad Jumps', 'Farmer\'s Carry': 'Bear Crawl', 'Dumbbell Step-Up': 'Bodyweight Bulgarian Split Squat', 'Calf Raises': 'Calf Raises', 'Incline Walk': 'Incline Walk' },
+  get bar() { return { ...this.bw, 'Barbell Row': 'Pull-Up', 'Dumbbell Row': 'Pull-Up', 'Seated Cable Row': 'Pull-Up', 'Lat Pulldown': 'Pull-Up', 'Pull-Up': 'Pull-Up', 'Hanging Leg Raises': 'Hanging Leg Raises', 'Dumbbell Curl': 'Chin-Up', 'Hammer Curls': 'Chin-Up' }; }
 };
-const GP_JOINT = {
-  knees: { 'Back Squat': 'Leg Press', 'Front Squat': 'Dumbbell Hip Thrust', 'Bulgarian Split Squat': 'Dumbbell Step-Up', 'Leg Extension': 'Terminal Knee Extension', 'Broad Jump': 'Kettlebell Swing', 'Air Squat': 'Glute Bridge', 'Bodyweight Bulgarian Split Squat': 'Glute Bridge' },
-  back: { 'Deadlift': 'Dumbbell Hip Thrust', 'Romanian Deadlift': 'Lying Leg Curl', 'Barbell Row': 'Seated Cable Row', 'Back Squat': 'Leg Press', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Kettlebell Swing': 'Glute Bridge' },
-  shoulders: { 'Overhead Barbell Press': 'Incline Dumbbell Press', 'Seated Dumbbell Overhead Press': 'Lateral Raises', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Skull Crushers': 'Tricep Pushdowns', 'Pull-Up': 'Lat Pulldown', 'Dips': 'Tricep Pushdowns' },
+/* Joint swaps by gear, applied after the gear swap so they never bring back gear you don't have. [name, cue] adds a cue. */
+const GP_JOINT_GYM = {
+  knees: { 'Back Squat': ['Box Squat', 'Sit back to a box at or above knee height.'], 'Front Squat': 'Dumbbell Hip Thrust', 'Leg Press': ['Leg Press', 'Shorter range: stop before your knees bend past 90°.'], 'Bulgarian Split Squat': 'Dumbbell Hip Thrust', 'Leg Extension': 'Terminal Knee Extension', 'Broad Jump': 'Kettlebell Swing' },
+  back: { 'Deadlift': 'Dumbbell Hip Thrust', 'Romanian Deadlift': 'Lying Leg Curl', 'Barbell Row': 'Seated Cable Row', 'Back Squat': 'Leg Press', 'Box Squat': 'Leg Press', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Kettlebell Swing': 'Glute Bridge' },
+  shoulders: { 'Overhead Barbell Press': 'Incline Dumbbell Press', 'Seated Dumbbell Overhead Press': 'Incline Dumbbell Press', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Skull Crushers': 'Tricep Pushdowns', 'Pull-Up': 'Lat Pulldown', 'Dips': 'Tricep Pushdowns' },
   wrists: { 'Front Squat': 'Goblet Squat', 'Barbell Curl': 'Hammer Curls', 'Dumbbell Curl': 'Hammer Curls', 'Skull Crushers': 'Tricep Pushdowns', 'Push-Ups': 'Machine Chest Press' },
   hips: { 'Bulgarian Split Squat': 'Leg Press', 'Deadlift': 'Romanian Deadlift', 'Broad Jump': 'Kettlebell Swing' },
 };
+const GP_JOINT_DB = {
+  knees: { 'Goblet Squat': ['Goblet Box Squat', 'Sit back to a box at or above knee height.'], 'Bulgarian Split Squat': 'Dumbbell Hip Thrust', 'Dumbbell Step-Up': 'Dumbbell Hip Thrust', 'Broad Jump': 'Dumbbell Romanian Deadlift' },
+  back: { 'Dumbbell Romanian Deadlift': 'Dumbbell Hip Thrust', 'Dumbbell Row': 'Chest-Supported Dumbbell Row' },
+  shoulders: { 'Seated Dumbbell Overhead Press': 'Incline Dumbbell Press', 'Dumbbell Bench Press': 'Dumbbell Floor Press', 'Pull-Up': 'Chest-Supported Dumbbell Row', 'Dumbbell Overhead Tricep Extension': 'Dumbbell Kickback' },
+  wrists: { 'Dumbbell Curl': 'Hammer Curls', 'Push-Ups': ['Push-Ups', 'On fists or push-up handles so your wrists stay straight.'] },
+  hips: { 'Bulgarian Split Squat': ['Goblet Box Squat', 'Sit back to a box at or above knee height.'], 'Broad Jump': 'Dumbbell Romanian Deadlift' },
+};
+const GP_JOINT_BW = {
+  knees: { 'Air Squat': 'Glute Bridge', 'Bodyweight Bulgarian Split Squat': 'Single-Leg Glute Bridge', 'Wall Sit': ['Wall Sit', 'Only as deep as feels fine.'], 'Burpee Broad Jumps': 'Mountain Climbers', 'Broad Jump': 'Glute Bridge' },
+  back: { 'Burpee Broad Jumps': 'Bear Crawl' },
+  shoulders: { 'Push-Ups': ['Push-Ups', 'Elbows about 45° from your sides; stop short of any pinch.'], 'Pull-Up': 'Inverted Row', 'Chin-Up': 'Inverted Row', 'Bench Dips': 'Close-Grip Push-Ups', 'Hanging Leg Raises': 'Reverse Crunch' },
+  wrists: { 'Push-Ups': ['Push-Ups', 'On fists or push-up handles so your wrists stay straight.'], 'Close-Grip Push-Ups': ['Close-Grip Push-Ups', 'On fists or push-up handles so your wrists stay straight.'], 'Bear Crawl': 'Dead Bug' },
+  hips: { 'Bodyweight Bulgarian Split Squat': 'Glute Bridge', 'Broad Jump': 'Glute Bridge' },
+};
+const jointMap = gear => gear === 'db' ? GP_JOINT_DB : gear === 'bw' || gear === 'bar' ? GP_JOINT_BW : GP_JOINT_GYM;
 /* Conditioning by mode: [hard day items, easy day items] */
 const GP_COND = {
   row: [[['Rowing Machine (Erg)', 6, '', '500 m hard, 2 minutes easy between.']], [['Rowing Machine (Erg)', 1, '', '20–30 minutes steady; you can still talk.']]],
@@ -68,6 +85,7 @@ const GP_COND = {
   hills: [[['Hill Sprints', 8, '', '10–15 seconds up, walk down.']], [['Easy Run', 1, '', '25–35 minutes; you can still talk.']]],
   bike: [[['Bike Sprints', 8, '', '20 seconds hard, 100 seconds easy.']], [['Bike', 1, '', '30–45 minutes steady.']]],
   airbike: [[['Bike Sprints', 10, '', '15 seconds all-out, 45 seconds easy.']], [['Bike', 1, '', '25–30 minutes steady.']]],
+  shadow: [[['Shadowboxing Rounds', 8, '', '2 minutes fast and sharp, 1 minute rest.'], ['Burpees', 3, '10', '']], [['Shadowboxing Rounds', 6, '', '3 minute rounds, easy pace, sharp technique.'], ['Easy Run', 1, '', '20 minutes easy.']]],
   box: [[['Heavy Bag Rounds', 6, '', '2 minutes hard, 1 minute rest.'], ['Jump Rope', 3, '', '2 minutes.']], [['Shadowboxing Rounds', 6, '', '3 minute rounds, easy pace, sharp technique.'], ['Easy Run', 1, '', '20 minutes easy.']]],
   sled: [[['Sled Push', 8, '', '20 m hard, walk back.']], [['Incline Walk', 1, '', '30 minutes.']]],
   rope: [[['Jump Rope', 10, '', '30 seconds fast, 30 seconds easy.']], [['Incline Walk', 1, '', '30 minutes.']]],
@@ -77,12 +95,13 @@ const GP_COND = {
 function condMode(a) {
   const c = a.cardio || []; const knees = (a.joints || []).includes('knees');
   const sport = { box: 'box', swim: 'swim', row: 'row', run: 'run', bike: 'bike' }[a.goal === 'sport' ? a.sport : ''];
-  if (sport && (sport === 'box' || sport === 'run' || c.includes(sport === 'swim' ? 'pool' : sport))) return knees && sport === 'run' ? 'bike' : sport;
+  if (sport === 'box') return c.includes('bag') ? 'box' : 'shadow';
+  if (sport && (sport === 'run' || c.includes(sport === 'swim' ? 'pool' : sport))) return knees && sport === 'run' ? 'bike' : sport;
   if (a.goal === 'speed' && !knees) { if (c.includes('track')) return 'track'; if (c.includes('hills')) return 'hills'; }
   for (const [k, m] of [['row', 'row'], ['airbike', 'airbike'], ['bike', 'bike'], ['pool', 'swim'], ['road', knees ? 'walk' : 'run'], ['track', knees ? 'walk' : 'track'], ['sled', 'sled'], ['rope', knees ? 'walk' : 'rope'], ['bag', 'box']]) if (c.includes(k)) return m;
   return knees ? 'walk' : 'run';
 }
-const CMODE_NAME = { row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
+const CMODE_NAME = { shadow: 'shadowboxing', row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
 const phaseByDate = s => { const t = ymd(new Date()); return t >= s.cutTo ? 'keep' : t >= s.cutFrom ? 'cut' : t >= s.bulkFrom ? 'bulk' : 'keep'; };
 const seasonOn = a => !!(a && a.season && a.season.on && (a.goal === 'recomp' || a.goal === 'mass')); /* the switch only shows for these goals */
 const gpPhaseNow = a => (seasonOn(a) ? (a.season.cur || phaseByDate(a.season)) : null);
@@ -94,17 +113,18 @@ function pickPlanFor(a) {
   if (a.goal === 'strength') return 'gp-strength3';
   if (a.goal === 'lose') return 'gp-cut3';
   if (a.goal === 'mass') return days >= 4 ? 'gp-bulk4' : 'gp-recomp3';
-  if (a.goal === 'speed' || a.goal === 'sport') return days >= 4 ? 'gp-hybrid' : 'gp-recomp3';
+  if (a.goal === 'speed' || a.goal === 'sport') return 'gp-hybrid';
   return days >= 4 ? 'gp-recomp4' : 'gp-recomp3';
 }
 const GP_MAX_ITEMS = { 30: 4, 45: 5, 60: 6, 75: 9 };
-/* Adjust one day's raw items for gear, joints, minutes and phase. Returns { items, swaps } */
+const GP_MAX_SETS = { 30: 11, 45: 15, 60: 20 };   /* about 2½ minutes a set with rest */
+/* Adjust one day's raw items for gear, joints, minutes and phase. Returns { items, swaps } (swaps: [from, to, joint]) */
 function adaptItems(items, a) {
-  const swaps = []; const out = [];
-  for (const [n0, s0, r, cue, role] of items) {
-    let n = n0;
-    for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) { swaps.push([n, to, j]); n = to; } }
-    const g = GP_SWAP[a.gear]; if (g && g[n] && g[n] !== n) { n = g[n]; for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) n = to; } }
+  const swaps = []; const out = []; const J = jointMap(a.gear); const G = GP_SWAP[a.gear] || {};
+  for (const [n0, s0, r, cue0, role] of items) {
+    let n = G[n0] || n0; let cue = cue0;
+    for (const j of a.joints || []) { const v = (J[j] || {})[n]; if (!v) continue; const [to, c] = Array.isArray(v) ? v : [v, ''];
+      if (to !== n) swaps.push([n, to, j]); n = to; if (c && !String(cue).includes(c)) cue = cue ? cue + ' ' + c : c; }
     if (out.some(x => x[0] === n)) continue;
     let s = s0; const ph = gpPhaseNow(a) || (a.goal === 'mass' ? 'bulk' : a.goal === 'lose' ? 'cut' : null);
     if (role === 'a' && s > 1) s = ph === 'bulk' ? Math.min(4, s + 1) : ph === 'cut' ? Math.max(2, s - 1) : s;
@@ -112,24 +132,38 @@ function adaptItems(items, a) {
   }
   const cap = GP_MAX_ITEMS[a.mins] || 6; const kept = out.slice(0, cap);
   if (+a.mins >= 75) kept.forEach(x => { if (x[4] === 'm') x[1] = Math.min(6, x[1] + 1); });
-  return { items: kept, swaps };
+  /* short workouts: trim sets (accessories to 2, then main lifts to 3), then the last exercise */
+  const maxSets = GP_MAX_SETS[a.mins]; const lifts = x => x[4] !== 'c';
+  while (maxSets && kept.filter(lifts).reduce((t, x) => t + x[1], 0) > maxSets) {
+    const x = kept.filter(y => lifts(y) && y[4] === 'a' && y[1] > 2).sort((p, q) => q[1] - p[1])[0] || kept.filter(y => lifts(y) && y[4] === 'm' && y[1] > 3).sort((p, q) => q[1] - p[1])[0];
+    if (x) x[1]--; else if (kept.length > 2) kept.pop(); else break;
+  }
+  return { items: kept, swaps: swaps.filter(([f, t]) => kept.some(x => x[0] === t)) };
 }
 /* Your own copy of the plan */
+const condDay = (mode, hard) => { const its = GP_COND[mode][hard ? 0 : 1].map(x => [...x, 'c']);
+  return [(hard ? 'Conditioning: intervals' : 'Conditioning: steady') + ' (' + CMODE_NAME[mode] + ')', ['Conditioning'], its.concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.', 'a']])]; };
 function buildGoalPlan(a) {
   const T = GP_TPL.find(t => t.id === pickPlanFor(a)); const mode = condMode(a); const allSwaps = [];
-  const daysRaw = T.t.map(d => {
-    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') { const hard = d[0] === 'COND-HARD'; const its = GP_COND[mode][hard ? 0 : 1].map(x => [...x, 'c']);
-      return [(hard ? 'Conditioning: intervals' : 'Conditioning: steady') + ' (' + CMODE_NAME[mode] + ')', ['Conditioning'], its.concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.', 'a']])]; }
+  const want = Math.max(1, Math.min(7, +a.days || 3));
+  /* fit the template to your days: the hybrid keeps strength A and the interval day first */
+  const pri = T.id === 'gp-hybrid' ? [0, 3, 1, 2, 4] : T.t.map((_, i) => i);
+  const keepIdx = pri.slice(0, Math.min(want, T.t.length)).sort((x, y) => x - y);
+  const daysRaw = keepIdx.map(i => T.t[i]).map(d => {
+    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') return condDay(mode, d[0] === 'COND-HARD');
     const { items, swaps } = adaptItems(d[2], a); allSwaps.push(...swaps); return [d[0], d[1], items];
   });
-  /* Wanted conditioning but the plan has none, and there's a free day: add one */
-  const wantsCond = a.goal === 'speed' || a.goal === 'sport' || a.goal === 'lose' || gpPhaseNow(a) === 'cut';
-  if (wantsCond && T.id !== 'gp-hybrid' && (+a.days || 3) > daysRaw.length) daysRaw.push(['Conditioning (' + CMODE_NAME[mode] + ')', ['Conditioning'], GP_COND[mode][a.goal === 'lose' || gpPhaseNow(a) === 'cut' ? 1 : 0].map(x => [...x, 'c'])]);
+  /* more days than the plan has: conditioning days (steady first while cutting, bulking or losing fat) */
+  const easyFirst = a.goal === 'lose' || a.goal === 'mass' || !!gpPhaseNow(a);
+  for (let k = 0; daysRaw.length < want && k < 4; k++) daysRaw.push(condDay(mode, easyFirst ? k % 2 === 1 : k % 2 === 0));
   const days = daysRaw.map(([dn, tags, its], i) => planDay('gp-mine', i + 1, dn, tags, its.map(([n, s, r, cue]) => [n, s, r, cue])));
   const uniq = []; for (const s of allSwaps) if (!uniq.some(u => u[0] === s[0] && u[1] === s[1])) uniq.push(s);
   const jn = Object.fromEntries(GP_JOINTS);
-  return { id: 'gp-mine', name: 'My ' + T.name, source: 'mine', createdAt: Date.now(), days, base: T.id, mode,
-    note: T.why + (uniq.length ? ' Joint care: ' + uniq.map(([f, t, j]) => t + ' instead of ' + f + ' (' + jn[j].toLowerCase() + ')').join(', ') + '.' : '') };
+  const want0 = { swim: ['swim', 'a pool'], row: ['row', 'a rower'], bike: ['bike', 'a bike'], box: ['box', 'a heavy bag'] }[a.goal === 'sport' ? a.sport : ''];
+  const gearNote = want0 && mode !== want0[0] ? ' You didn’t pick ' + want0[1] + ', so conditioning uses ' + CMODE_NAME[mode] + '.' : '';
+  const name = a.goal === 'mass' && T.id === 'gp-recomp3' && !gpPhaseNow(a) ? 'Lean Bulk 3-Day' : (T.id === 'gp-hybrid' && days.length !== 5 ? T.name.replace(/ 3\+2$/, ' ' + days.length + '-Day') : T.name);
+  return { id: 'gp-mine', name: 'My ' + name, source: 'mine', createdAt: Date.now(), days, base: T.id, mode,
+    note: T.why + gearNote + (uniq.length ? ' Joint care: ' + uniq.map(([f, t, j]) => t + ' instead of ' + f + ' (' + jn[j].toLowerCase() + ')').join(', ') + '.' : '') };
 }
 /* Keep your program: what to add around it */
 function keepPlanFor(a) {
@@ -146,8 +180,8 @@ function keepPlanFor(a) {
   return { pid, r, free, mode, addon: free > 0 ? addon : null, tips };
 }
 function applyGoal(a, d) {
-  const prevProg = programId();
-  if (seasonOn(a) && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
+  const prevProg = programId(); const prevMine = S.meta.routines['gp-mine'] ? clone(S.meta.routines['gp-mine']) : null;
+  if (seasonOn(a)) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
   commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
   if (a.keep && prevProg && prevProg !== 'self') {
     const k = keepPlanFor(a);
@@ -158,7 +192,8 @@ function applyGoal(a, d) {
   const r = d || buildGoalPlan(a);
   commit(st => { st.meta.routines[r.id] = r; }, 'meta');
   setProgram(r.id);
-  showToast({ kind: 'info', ms: 7000, text: 'Following ' + r.name, action: prevProg && prevProg !== r.id ? 'Undo' : null, fn: () => setProgram(prevProg) });
+  const undo = prevMine || (prevProg && prevProg !== r.id);
+  showToast({ kind: 'info', ms: 9000, text: 'Following ' + r.name, action: undo ? 'Undo' : null, fn: () => { if (prevMine) commit(st => { st.meta.routines['gp-mine'] = prevMine; }, 'meta'); setProgram(prevProg || r.id); showToast({ kind: 'info', text: 'Back to ' + ((getRoutine(prevProg) || {}).name || 'your plan') }); } });
 }
 /* Meal goal that goes with the training goal */
 function mealGoalFor(a) {
@@ -179,6 +214,8 @@ function GoalSetupSheet({ welcome } = {}) {
   const chips = (k, opts, multi) => html`<div class="cat-pick">${opts.map(([v, l]) => { const on = multi ? a[k].includes(v) : a[k] === v; return html`<button key=${v} id=${'gs-' + k + '-' + v} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => multi ? tog(k, v) : set(k, v)}>${l}</button>`; })}</div>`;
   const seg = (k, opts) => html`<div class="seg wide" role="group">${opts.map(([v, l]) => html`<button key=${v} id=${'gs-' + k + '-' + v} class=${a[k] === v ? 'on' : ''} aria-pressed=${a[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const bulky = a.goal === 'recomp' || a.goal === 'mass';
+  const sd = a.season; const badDates = bulky && sd.on ? (!sd.bulkFrom || !sd.cutFrom || !sd.cutTo ? 'Fill in all three dates.' : sd.cutFrom <= sd.bulkFrom ? 'The cut has to start after the bulk does.' : sd.cutTo <= sd.cutFrom ? 'The cut has to end after it starts.' : '') : '';
+  const mine0 = S.meta.routines['gp-mine'];
   const keep = a.keep && hasProg; const plan = keep ? null : buildGoalPlan(a); const kp = keep ? keepPlanFor(a) : null;
   const finish = toMeals => { applyGoal(a, plan); if (toMeals) { const mg = mealGoalFor(a); setTimeout(() => openSheet({ type: 'mealTargets', preset: mg }), 80); } else closeSheet(); };
   const steps = ['Goal', 'Time', 'Gear', 'Your plan'];
@@ -190,10 +227,11 @@ function GoalSetupSheet({ welcome } = {}) {
       <div><span class="lbl">What do you want most?</span>${chips('goal', GP_GOALS)}</div>
       ${a.goal === 'sport' ? html`<div><span class="lbl">Which sport?</span>${chips('sport', GP_SPORTS)}</div>` : null}
       ${bulky ? html`<label class="toggle-row" for="gs-season"><span><span>Bulk this winter, cut in spring</span><span class="d">Eat a little more and train more now (about ½ lb a week), then lose the extra fat (about 1 lb a week). Ironwood asks before switching.</span></span><input type="checkbox" role="switch" id="gs-season" checked=${a.season.on} onChange=${e => setSeason('on', e.target.checked)}/></label>` : null}
-      ${bulky && a.season.on ? html`<div class="row" style="gap:8px">${[['bulkFrom', 'Bulk from'], ['cutFrom', 'Cut from'], ['cutTo', 'Cut until']].map(([k, l]) => html`<div key=${k} style="flex:1;min-width:0"><label class="lbl" for=${'gs-' + k}>${l}</label><input class="field" type="date" id=${'gs-' + k} value=${a.season[k]} onInput=${e => setSeason(k, e.target.value)}/></div>`)}</div>` : null}`
+      ${bulky && a.season.on ? html`<div class="stack" style="gap:8px">${[['bulkFrom', 'Bulk from'], ['cutFrom', 'Cut from'], ['cutTo', 'Cut until']].map(([k, l]) => html`<div key=${k} class="row" style="gap:10px"><label class="lbl" style="flex:0 0 84px;margin:0" for=${'gs-' + k}>${l}</label><input class="field" style="flex:1;min-width:0" type="date" id=${'gs-' + k} value=${a.season[k]} onInput=${e => setSeason(k, e.target.value)}/></div>`)}
+        ${badDates ? html`<p class="small" id="gs-date-bad" style="color:var(--stop)">${badDates}</p>` : null}</div>` : null}`
     : step === 1 ? html`
       ${hasProg ? html`<div><span class="lbl">You follow ${getRoutine(pid).name}</span><div class="seg wide" role="group"><button id="gs-keep" class=${a.keep ? 'on' : ''} aria-pressed=${a.keep} onClick=${() => set('keep', true)}>Keep it and adjust</button><button id="gs-new" class=${!a.keep ? 'on' : ''} aria-pressed=${!a.keep} onClick=${() => set('keep', false)}>Give me a new plan</button></div></div>` : null}
-      <div><span class="lbl">Days a week you can train</span>${seg('days', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6']])}</div>
+      <div><span class="lbl">Days a week you can train</span>${seg('days', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']])}</div>
       <div><span class="lbl">Minutes per workout</span>${seg('mins', [[30, '30'], [45, '45'], [60, '60'], [75, '75+']])}</div>`
     : step === 2 ? html`
       <div><span class="lbl">What can you lift with?</span>${chips('gear', GP_GEAR)}</div>
@@ -205,11 +243,12 @@ function GoalSetupSheet({ welcome } = {}) {
       : html`<div class="eyebrow">Your plan</div><div style="font-weight:700" id="gs-name">${plan.name}</div><p class="small muted" style="margin:2px 0 6px">${plan.note}</p>
         <div class="stack" style="gap:4px" id="gs-days">${plan.days.map(dd => html`<div key=${dd.id} class="small"><b>${dd.name}</b><span class="muted"> · ${dd.items.map(it => exName(it.ex)).join(', ')}</span></div>`)}</div>`}
       ${a.season.on && bulky ? html`<p class="small" style="margin-top:8px">Season: bulk until ${shortDate(parseYmd(a.season.cutFrom))}, then cut until ${shortDate(parseYmd(a.season.cutTo))}. Ironwood asks before each switch.</p>` : null}
+      ${!keep && mine0 ? html`<p class="small" id="gs-replaces" style="margin-top:8px">This replaces your current ${mine0.name}${mine0.updatedAt || mine0.edited ? ', including your changes to it' : ''}. You can undo right after.</p>` : null}
       <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
       <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
       <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
     <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" id="gs-cancel" onClick=${closeSheet}>${welcome ? 'Skip for now' : 'Cancel'}</button>`}
-      ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
+      ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" disabled=${step === 0 && !!badDates} onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
 }
 /* ---- season phases: ask before switching ---- */
 function phaseDue() {

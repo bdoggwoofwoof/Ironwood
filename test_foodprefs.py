@@ -74,6 +74,8 @@ async def main():
         check('allergy synonyms are caught (ghee, bulgur, prawns)', 'Dairy' in al['ghee'] and 'Gluten / wheat' in al['bulgur'] and 'Shellfish' in al['prawn'], al)
         check('look-alikes are not flagged (almond milk as dairy, rice noodles, butternut, coconut)', 'Dairy' not in al['almondmilk'] and 'Dairy' not in al['pb'] and not al['ricenoodle'] and not al['butternut'] and not al['coconut'], al)
         await ev("mealCommit(m => { m.prefs = { allergies: [], diet: 'none', dislikes: '' }; })")
+        pp = await ev(r"""parsePost('🔥 High Protein Chicken Burrito Bowls (only 520 cals!!) save this\nServes 4\n📝 Ingredients:\n1\uFE0F\u20E3 2 lb chicken breast\n🍚 2 cups rice\nHow to make it:\n1\uFE0F\u20E3 Season the chicken and cook it in a hot pan until done, about 6 minutes a side.\n2\uFE0F\u20E3 Cook the rice.\nMacros per serving: 520 cal, 45P 50C 15F\nFull recipe: https://example.com/x')""")
+        check('emoji-heavy caption: clean name, amounts kept, steps, servings and macros read', pp['name'] == 'High Protein Chicken Burrito Bowls' and pp['ing'] == ['2 lb chicken breast', '2 cups rice'] and len(pp['steps']) == 2 and pp['serves'] == 4 and pp['macros'] == {'kcal': 520, 'p': 45, 'c': 50, 'f': 15}, pp)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

@@ -23,7 +23,7 @@ function targetsFor(me) {
   if (goal === 'lose' && bmi != null && bmi < 18.5) { goal = 'keep'; note = 'Your weight is already on the low side for your height, so this plan is for keeping it steady, not losing.'; }
   let kcal = tdee + (GOAL_ADJ[goal] || GOAL_ADJ.keep)[me.pace || 'gentle'];
   const floor = Math.max(KCAL_FLOOR[me.sex] || KCAL_FLOOR.x, Math.round(bmr));
-  if (goal === 'lose' && kcal < floor) { kcal = floor; note = note || 'Ironwood doesn’t plan below ' + floor + ' calories a day, so the loss will be slower.'; }
+  if (goal === 'lose' && kcal < floor) { kcal = floor; note = note || 'Ironwood doesn’t plan below ' + fmt(Math.round(floor / 10) * 10) + ' calories a day, so the loss will be slower.'; }
   kcal = Math.round(kcal / 10) * 10;
   const basis = bmi != null && bmi > 30 ? 27 * Math.pow(me.h / 100, 2) : me.w;   /* protein from a lean-ish weight when BMI is high */
   const p = Math.min(220, Math.round(basis * (goal === 'keep' ? 1.6 : 1.8) / 5) * 5);
@@ -191,7 +191,7 @@ function TargetsSheet({ preset } = {}) {
     ${preset ? html`<p class="small muted" id="tg-from-goal">Your goal is filled in from your plan answers. Change it if you like.</p>` : typeof GoalSetupSheet === 'function' ? html`<button class="btn text" id="tg-goal" onClick=${() => openSheet({ type: 'goalSetup' })}>Want a training plan too? Answer a few questions</button>` : null}
     <div class="stack" style="margin-top:12px">
       <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
-      <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => set('inch', e.target.value.replace(/\D/g, ''))}/></div></div>`
+      <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => { const v = e.target.value.replace(/\D/g, ''); set('inch', v === '' ? '' : String(Math.min(11, +v))); }}/></div></div>`
         : html`<div style="flex:1"><label class="lbl" for="tg-cm">Height (cm)</label><input class="field" id="tg-cm" inputmode="numeric" value=${d.cm} onInput=${e => set('cm', e.target.value.replace(/\D/g, ''))}/></div>`}
         <div style="flex:1"><label class="lbl" for="tg-w">Weight (${d.us ? 'lb' : 'kg'})</label><input class="field" id="tg-w" inputmode="decimal" value=${d.w} onInput=${e => set('w', e.target.value.replace(/[^\d.]/g, ''))}/></div></div>
       <div class="row" style="gap:10px"><div style="flex:1"><label class="lbl" for="tg-age">Age</label><input class="field" id="tg-age" inputmode="numeric" value=${d.age} onInput=${e => set('age', e.target.value.replace(/\D/g, ''))}/></div>

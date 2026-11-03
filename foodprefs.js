@@ -5,17 +5,17 @@
    bottom of the recipe, and a recipe can be filled in from a pasted post (caption from Instagram, TikTok, a blog). */
 /* [id, label, matches, safe phrases removed first (so almond milk isn't dairy and rice noodles aren't wheat)] */
 const ALLERGENS = [
-  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|half[- ]and[- ]half|custard|protein powder/,
+  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|buttermilk|\bparm\b|half[- ]and[- ]half|custard|protein powder/,
     /(almond|oat|soy|coconut|rice|cashew|hemp|pea|plant|non-?dairy|dairy-?free|vegan)[ -](milk|cream|butter|cheese|yogh?urt|creamer)|(peanut|almond|cashew|sunflower|nut|seed|apple|cocoa|shea|pumpkin) butter|cream of tartar|butternut|(plant|vegan|pea|soy) protein( powder)?/g],
   ['egg', 'Eggs', /\beggs?\b|egg white|mayo|aioli|meringue|frittata|omelet/, /(vegan|egg-?free) (mayo|aioli)|eggplant/g],
   ['peanut', 'Peanuts', /peanut|\bsatay\b/],
   ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|nutella|pesto|\bnuts?\b/, /butternut|nutmeg|doughnut|donut|water chestnut|coconut|nut-?free pesto/g],
   ['soy', 'Soy', /\bsoy|tofu|tempeh|edamame|\bmiso\b|tamari|shoyu|teriyaki/, /soy-?free/g],
-  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer/,
+  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer|spaghetti|naan|crouton|hoisin|gochujang/,
     /buckwheat|gluten-?free \w+( \w+)?|(almond|coconut|rice|chickpea|cassava|corn|tapioca|potato|oat|lentil) (flour|pasta|noodles?|tortillas?|wraps?|crackers?)|rice noodles?|corn tortillas?|lettuce wraps?/g],
   ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|halibut|trout|mackerel|haddock|pollock|\bbass\b|mahi|snapper|swordfish|\bfish\b|anchov|sardine|worcestershire/],
   ['shellfish', 'Shellfish', /shrimp|prawn|crab|lobster|scallop|clam|mussel|oyster|crawfish|crayfish|squid|calamari|octopus/],
-  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake/]];
+  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake|everything[- ]bagel/]];
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
@@ -66,22 +66,32 @@ function SourceLine({ r }) {
 /* Pull a name, ingredients, steps and the link out of pasted caption text. Lines that start with an amount (or sit
    under an "Ingredients" heading) are ingredients; numbered lines or lines under "Steps / Directions / Method" are steps. */
 function parsePost(text) {
-  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/^[\s•\-*–·✔✅👉🔸🔹▪️]+/u, '').trim()).filter(Boolean);
+  const EMO = /^(?:[\s•\-*–·▪️]|\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}])+/u;
+  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/^(\d)️?⃣\s*/u, '$1. ').replace(EMO, '').replace(/^(\d)️?⃣\s*/u, '$1. ').trim()).filter(Boolean);
   const url = (String(text).match(/https?:\/\/\S+/) || [])[0] || '';
-  const ing = [], steps = []; let name = '', mode = '';
+  const ing = [], steps = []; let name = '', mode = '', serves = 0, mins = 0; const mac = {};
+  const macros = l => { const g = (re) => { const m = l.match(re); return m ? +m[1] : null; };
+    const kcal = g(/(\d{2,4})\s*(?:k?cals?|calories)\b/i), p = g(/(\d{1,3})\s*g?\s*(?:p\b|protein)/i), c = g(/(\d{1,3})\s*g?\s*(?:c\b|carbs?)/i), f = g(/(\d{1,3})\s*g?\s*(?:f\b|fat)/i);
+    if (kcal) mac.kcal = kcal; if (p) mac.p = p; if (c) mac.c = c; if (f) mac.f = f; };
   for (const l0 of lines) {
     const l = l0.replace(/https?:\/\/\S+/g, '').trim(); if (!l) continue;
-    if (/^#\w/.test(l) || /^(follow|like|save|share|comment|link in bio)/i.test(l)) continue;
+    if (/^#\w/.test(l) || /^(follow|like|save|share|comment|tag|link in bio|full recipe|recipe (below|in bio|on my)|dm me)/i.test(l)) continue;
+    const sv = l.match(/^(?:serves|servings|makes|yield)\s*:?\s*(\d+)/i) || l.match(/^(\d+)\s+servings?\b/i); if (sv) { serves = +sv[1]; continue; }
+    const tm = l.match(/^(?:total |cook |prep )?time\s*:?\s*(\d+)\s*min/i); if (tm) { mins = +tm[1]; continue; }
+    if (/^(macros?|nutrition|per serving|each serving)\b/i.test(l) || ((l.match(/\d+\s*g?\s*(p|c|f|protein|carbs?|fat)\b/gi) || []).length >= 2 && l.length < 120)) { macros(l); continue; }
     if (/^(ingredients?|you(’|')ll need|what you need)\b[:\s]*$/i.test(l)) { mode = 'ing'; continue; }
-    if (/^(steps?|directions?|method|instructions?|how to( make)?)\b[:\s]*$/i.test(l)) { mode = 'step'; continue; }
+    if (/^(steps?|directions?|method|instructions?|how to( make)?( it| this| them)?|let'?s make it)\b[:\s]*$/i.test(l)) { mode = 'step'; continue; }
     const numbered = l.match(/^(\d+)[.)]\s+(.+)/);
     const amount = /^(\d+([.,/]\d+)?|[½⅓⅔¼¾⅛]|a |one |two |three |half )/i.test(l) && l.length < 80;
     if (numbered && (mode === 'step' || numbered[2].length > 40)) { steps.push(numbered[2]); continue; }
-    if (mode === 'ing' || (amount && mode !== 'step')) { ing.push(l.replace(/^(\d+)[.)]\s+/, '$1 ')); continue; }
+    if (mode === 'ing' || (amount && mode !== 'step')) { ing.push(numbered && /^(\d|[½⅓⅔¼¾⅛]|a |an |one |two |half )/i.test(numbered[2]) ? numbered[2] : l.replace(/^(\d+)[.)]\s+/, '$1 ')); continue; }
+    const clean = l.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\b(save (this|it|for later)|recipe below|must try)\b[!.]*/gi, '')
+      .replace(/\((?:only |just )?\d+\s*(?:k?cals?|calories)[^)]*\)/gi, '').replace(/[-–|:,!.\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
+    if (!name && !mode && !ing.length && !steps.length && clean && clean.length <= 60) { name = clean; continue; }
     if (mode === 'step' || l.length > 60) { steps.push(l); continue; }
-    if (!name && l.length <= 60) name = l.replace(/[!:.\s]+$/, '').replace(/[\u{1F300}-\u{1FAFF}]/gu, '').trim();
+    if (!name && clean && clean.length <= 60) name = clean;
   }
-  return { name, ing, steps, url };
+  return { name, ing, steps, url, serves, mins, macros: mac };
 }
 function PasteBox({ onFill }) {
   const [t, setT] = useState('');

@@ -31,7 +31,8 @@ function editPlan(id) {
 
 /* ---- missed sessions ---- */
 function runMissedLeft(R, w) { const done = R.done || {}; return runMissed(R, w).filter(x => !done[sessId(R, w, x.key)]); }
-function runStarted(R) { const b = (R.block || 1) + '-'; return sessionList().some(s => s.run && String(s.run.id || '').startsWith(b)) || Object.keys(R.done || {}).some(k => k.startsWith(b)); }
+/* Started = a plan run logged, a session marked done, or any run logged since the plan began (quick-logged runs count) */
+function runStarted(R) { const b = (R.block || 1) + '-'; return sessionList().some(s => (s.run && String(s.run.id || '').startsWith(b)) || (s.kind === 'activity' && s.activity === 'run' && R.start && ymd(s.startedAt) >= R.start)) || Object.keys(R.done || {}).some(k => k.startsWith(b)); }
 /* What slipped for one plan: { key, id, name, missed, planned, never, wk, keys } or null */
 function slipFor(p) {
   const today = startOfDay(new Date()); const ans = S.meta.settings.checkins || {};

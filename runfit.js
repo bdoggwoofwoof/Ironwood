@@ -10,7 +10,7 @@ const RUN_LEVELS = [
   ['some', 'Run now and then', 'A few easy miles feel OK', { t100: 16, t1: 540, t3: 1770 }],
   ['reg', 'Run regularly', 'Most weeks, some faster running', { t100: 14.5, t1: 450, t3: 1470 }]];
 const FIT_PATHS = [
-  ['mixed', 'Mixed (recommended)', 'Easy run on a lifting day; hard runs on days off, never next to leg day'],
+  ['mixed', 'Mixed (recommended)', 'Easy run on a lifting day; hard runs on days off, away from leg days when the week allows'],
   ['off', 'On my days off', 'Most recovery. Best for 2–3 runs a week'],
   ['double', 'On my lifting days', 'Lift first, run after. Keeps rest days fully off'],
   ['run', 'Running comes first', 'Runs get the best days; you may need to move leg day']];
@@ -41,7 +41,7 @@ function fitDays(path, lifts, runs) {
     off: [[d => !isLift(d) && !nearLegs(d), d => !isLift(d)], [d => !nearLegs(d), d => !isLift(d)], [d => !legs(d), () => true]],
     double: [[d => isLift(d) && !nearLegs(d), d => isLift(d)], [d => isLift(d) && !legs(d), d => isLift(d)], [d => !legs(d), () => true]],
     run: [[d => !nearLegs(d), () => true], [d => !legs(d), () => true], [() => true, () => true]],
-    mixed: [[d => !isLift(d) && !nearLegs(d), d => isLift(d)], [d => !nearLegs(d), d => isLift(d)], [d => !legs(d), () => true]] }[path] || [];
+    mixed: [[d => !isLift(d) && !nearLegs(d), d => isLift(d)], [d => !isLift(d) && !legs(d), d => isLift(d) && !legs(d)], [d => !isLift(d), () => true], [d => !nearLegs(d), d => isLift(d)], [d => !legs(d), () => true]] }[path] || [];
   const gap = (a, b) => { const x = Math.abs(order.indexOf(a) - order.indexOf(b)); return Math.min(x, 7 - x); };
   const need = runs >= 2 ? 2 : 1;
   for (const [hardOk, easyOk] of tiers.concat([[() => true, () => true]])) {
@@ -107,6 +107,7 @@ function RunStart() {
 }
 /* Plan tab: estimate banner and the fit button */
 function RunFitBar() {
+  useEffect(() => { try { runFitSync(); } catch (e) {} }, [programId()]);
   const R = runSt(); if (!R) return null; const p = FIT_PATHS.find(x => x[0] === (R.fit || ''));
   return html`<div style="margin-top:10px">${R.est ? html`<div class="tip-card" id="run-est" style="padding-right:14px"><b>Paces are estimates.</b> After a week of runs, put in a real mile time and every pace updates. <button class="btn text" id="run-est-go" onClick=${() => { lsSet('runTab', 'times'); S.rerender(); }}>Add my times</button></div>` : null}
     <button class="btn text" id="run-fit" style="padding-left:0" onClick=${() => openSheet({ type: 'runFit' })}>${I.cal} Fit with my lifting${p ? ': ' + p[1].replace(' (recommended)', '') : ''}</button></div>`;
@@ -136,3 +137,13 @@ function AddonFitSheet({ id }) {
   return html`<${Sheet} label="How it fits"><h2>${r ? r.name : 'Program'} alongside</h2><p class="note">It shows in Train next to your main program. Which days should it go on?</p>
     <div style="margin-top:10px"><${AddonFit} id=${id} onDone=${closeSheet}/></div><button class="btn wide" style="margin-top:12px" onClick=${closeSheet}>Decide later</button><//>`;
 }
+
+/* When the lifting program's days change (a new program, a new schedule, or a plan made before this setup existed),
+   move the runs to match, once per change, and say so. */
+function runFitSync() {
+  const R = runSt(); if (!R || R.off || !R.t1) return; const lifts = liftMapFromProgram(); if (!lifts) return;
+  const same = JSON.stringify(Object.entries(lifts).sort()) === JSON.stringify(Object.entries(R.lifts || {}).map(([k, v]) => [String(k), v]).sort().map(([k, v]) => [k, v]));
+  const key = JSON.stringify(lifts); if (same || R.fitFor === key) return;
+  runCommit(r => { r.fitFor = key; }); applyFit(R.fit || 'mixed');
+}
+setTimeout(() => { try { if (!S.active) runFitSync(); } catch (e) {} }, 2000);

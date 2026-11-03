@@ -532,7 +532,7 @@ function runStatus(R, w, key) {
   return { s: last, auto: last.run.status || sessionStatus(last.items), st: mark || last.run.status || sessionStatus(last.items), manual: !!mark };
 }
 /* Lifting the day before (or the same day as) a sprint or interval session */
-const LEGGY = { Legs: 1, Lower: 1 };
+const LEGGY = { Legs: 1, Lower: 1, 'Full Body': 1 };   /* full-body days squat or hinge too */
 function legsClash(R, dow, hard) {
   if (!hard) return null;
   const prev = R.lifts[(dow + 6) % 7], same = R.lifts[dow];

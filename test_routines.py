@@ -32,8 +32,7 @@ async def main():
         # Edit a library routine: rename, drop the first exercise, save
         await pg.locator('.r-card', has_text='Upper / Lower').click(); await pg.wait_for_timeout(300)
         await pg.screenshot(path='shot-routine-view.png', full_page=True)
-        if not await pg.get_by_role('button', name='Edit', exact=True).count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Edit', exact=True).click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
         await pg.fill('#rt-name', 'My Upper Lower')
         await pg.get_by_role('button', name='Remove exercise').first.click()
         await pg.get_by_role('button', name='Save routine').click(); await pg.wait_for_timeout(300)
@@ -46,21 +45,18 @@ async def main():
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
-        if not await pg.get_by_role('button', name='Reset to the original').count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Reset to the original').click(); await pg.wait_for_timeout(200)
+        await pg.get_by_role('button', name='Reset').click(); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Reset routine').click(); await pg.wait_for_timeout(300)
         check('reset restores original', 'Bench Press' in await pg.locator('.r-items li').first.inner_text())
 
         # Copy
-        if not await pg.locator('#rt-more-list').count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Copy', exact=True).click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Copy').click(); await pg.wait_for_timeout(300)
         check('copy becomes your own plan', '(copy)' in (await pg.locator('.wo-title').inner_text()).lower())
 
         # Remove a library routine, then bring it back
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Full Body 5×5').click(); await pg.wait_for_timeout(300)
-        if not await pg.locator('#rt-more-list').count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Remove from library').click(); await pg.wait_for_timeout(200)
+        await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove routine').click(); await pg.wait_for_timeout(300)
         check('removed from library', await pg.locator('.r-card', has_text='Full Body 5×5').count() == 0)
         await pg.get_by_role('button', name='Bring back').click(); await pg.wait_for_timeout(300)
@@ -68,8 +64,7 @@ async def main():
 
         # Survives reload
         await pg.locator('.r-card', has_text="Newt's").click(); await pg.wait_for_timeout(300)
-        if not await pg.locator('#rt-more-list').count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Remove from library').click(); await pg.wait_for_timeout(200)
+        await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove routine').click(); await pg.wait_for_timeout(800)
         await pg.reload(); await pg.wait_for_timeout(1500)
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
@@ -77,7 +72,7 @@ async def main():
 
         # Start a new program's day
         await pg.locator('.r-card', has_text='Dumbbells Only').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
-        await pg.locator('.r-day button', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
+        await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
         check('workout starts from new program', await pg.locator('.set-row').count() > 0)
         kinds = await pg.evaluate("Object.values(BUILTIN_EX).filter(e => /dumbbell|goblet/i.test(e.name)).every(e => e.kind === 'dumbbell')")
         check('dumbbell exercises use dumbbell kind', kinds)
@@ -91,7 +86,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         await pg.locator('.topsw button', has_text='Routines').click(); await pg.wait_for_timeout(200)
         await pg.locator('.r-card', has_text='Core 2').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
-        await pg.locator('.r-day button', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
+        await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
         check('exercise note shows during workout', await pg.locator('.slot', has_text='Plank Twists').locator('p', has_text='Each side').count() == 1)
         await pg.evaluate("S.active = null; S.rerender()"); await pg.wait_for_timeout(200)
 
@@ -124,8 +119,7 @@ async def main():
 
         # Set a type by hand in the editor
         await pg.locator('.wk-row', has_text='Burpee Grinder').locator('.wk-main').click(); await pg.wait_for_timeout(300)
-        if not await pg.get_by_role('button', name='Edit', exact=True).count(): await pg.click('#rt-more'); await pg.wait_for_timeout(150)
-        await pg.get_by_role('button', name='Edit', exact=True).click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
         await pg.locator('.ed-tags button', has_text='Full Body').click()
         await pg.get_by_role('button', name='Save routine').click(); await pg.wait_for_timeout(300)
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)

@@ -33,7 +33,7 @@ async def main():
         check('first launch offers Restore', await pg.locator('#restore-hint').count() == 1)
 
         # Log a workout: start the next day, fill the first set, finish
-        await pg.get_by_role('button', name='Choose a program').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Create or select a program').click(); await pg.wait_for_timeout(300)
         await pg.locator('.opt', has_text="Newt's 4-Day Split").click(); await pg.wait_for_timeout(300)
         await pg.locator('.next-card .btn.primary').click(); await pg.wait_for_timeout(400)
         inputs = pg.locator('.set-row input[inputmode="decimal"]')
@@ -63,7 +63,6 @@ async def main():
         await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(400)
         sync = await pg.locator('.sync').first.inner_text()
         check('profile says saved on this phone', 'this phone' in sync, sync)
-        await pg.click('#pg-data'); await pg.wait_for_timeout(200)
         async with pg.expect_download() as dl:
             await pg.get_by_role('button', name='Save backup file').click()
         d = await dl.value
@@ -73,7 +72,6 @@ async def main():
         persisted = await pg.evaluate("navigator.storage && navigator.storage.persisted ? navigator.storage.persisted() : 'n/a'")
         print('storage persisted (Chrome headless usually says false; iOS decides on its own):', persisted)
         # About links and the policy pages work offline
-        await pg.click('#pg-help'); await pg.wait_for_timeout(200)
         check('profile links to privacy policy', await pg.locator('a[href="privacy.html"]').count() == 1)
         await pg.goto(URL + 'privacy.html'); await pg.wait_for_timeout(500)
         check('privacy page opens offline', 'PRIVACY' in (await pg.locator('h1').inner_text()).upper())

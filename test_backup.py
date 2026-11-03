@@ -32,7 +32,6 @@ COUNT_PHOTOS = """() => new Promise(res => { const rq = indexedDB.open('liftbook
 
 async def profile(pg):
     await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(300)
-    await pg.evaluate("(() => { const b = document.querySelector('#pg-data'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); })()"); await pg.wait_for_timeout(200)
 
 async def main():
     async with async_playwright() as p:

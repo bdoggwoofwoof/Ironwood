@@ -3,24 +3,32 @@
    style block a recipe completely from meal plans and suggestions and flag it everywhere; dislikes keep it out of plans
    and suggestions but it can still be found and logged. Recipes can credit a source (src: { by, url }), shown at the
    bottom of the recipe, and a recipe can be filled in from a pasted post (caption from Instagram, TikTok, a blog). */
+/* [id, label, matches, safe phrases removed first (so almond milk isn't dairy and rice noodles aren't wheat)] */
 const ALLERGENS = [
-  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|yogurt|butter\b|cream\b|kefir|whey|protein powder/],
-  ['egg', 'Eggs', /\beggs?\b|egg white|mayo/], ['peanut', 'Peanuts', /peanut/], ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|\bnuts?\b/],
-  ['soy', 'Soy', /\bsoy\b|soy sauce|tofu|tempeh|edamame|\bmiso\b|tamari/], ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|farro|couscous|barley|panko|crumbs|cracker|\bbuns?\b|soy sauce|cereal|granola/],
-  ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|\bfish\b|anchov|sardine/], ['shellfish', 'Shellfish', /shrimp|crab|lobster|scallop|clam|mussel/],
-  ['sesame', 'Sesame', /sesame|tahini/]];
+  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|half[- ]and[- ]half|custard|protein powder/,
+    /(almond|oat|soy|coconut|rice|cashew|hemp|pea|plant|non-?dairy|dairy-?free|vegan)[ -](milk|cream|butter|cheese|yogh?urt|creamer)|(peanut|almond|cashew|sunflower|nut|seed|apple|cocoa|shea|pumpkin) butter|cream of tartar|butternut|(plant|vegan|pea|soy) protein( powder)?/g],
+  ['egg', 'Eggs', /\beggs?\b|egg white|mayo|aioli|meringue|frittata|omelet/, /(vegan|egg-?free) (mayo|aioli)|eggplant/g],
+  ['peanut', 'Peanuts', /peanut|\bsatay\b/],
+  ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|nutella|pesto|\bnuts?\b/, /butternut|nutmeg|doughnut|donut|water chestnut|coconut|nut-?free pesto/g],
+  ['soy', 'Soy', /\bsoy|tofu|tempeh|edamame|\bmiso\b|tamari|shoyu|teriyaki/, /soy-?free/g],
+  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer/,
+    /buckwheat|gluten-?free \w+( \w+)?|(almond|coconut|rice|chickpea|cassava|corn|tapioca|potato|oat|lentil) (flour|pasta|noodles?|tortillas?|wraps?|crackers?)|rice noodles?|corn tortillas?|lettuce wraps?/g],
+  ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|halibut|trout|mackerel|haddock|pollock|\bbass\b|mahi|snapper|swordfish|\bfish\b|anchov|sardine|worcestershire/],
+  ['shellfish', 'Shellfish', /shrimp|prawn|crab|lobster|scallop|clam|mussel|oyster|crawfish|crayfish|squid|calamari|octopus/],
+  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake/]];
 const DIETS = [
-  ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|liver|broth|anchov/],
-  ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|liver|chicken broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2]],
+  ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
+  ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
   ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/]];
 const prefsOf = () => { const p = ML().prefs || {}; return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diet: p.diet || 'none', dislikes: String(p.dislikes || '') }; };
 const dislikeTerms = () => prefsOf().dislikes.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
 function recipeIssues(r) {
-  const P = prefsOf(); const names = ingNames(r); const has = re => names.some(n => re.test(n));
-  const block = ALLERGENS.filter(([k, , re]) => P.allergies.includes(k) && has(re)).map(a => a[1]);
-  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
+  const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
+  const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
+  const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
+  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2], d[3]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
   const dislike = dislikeTerms().filter(t => names.some(n => n.includes(t)) || String(r.name).toLowerCase().includes(t));
   return { block, dislike };
 }
@@ -36,7 +44,7 @@ function PrefsFields({ v, set }) {
   return html`<div class="stack" style="gap:12px" id="prefs-fields">
     <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
       <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
-    <div><span class="lbl">How you eat</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
+    <div><span class="lbl">Diet</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
       <p class="small muted">Left out of plans and suggestions. You can still search for them.</p></div></div>`;
 }

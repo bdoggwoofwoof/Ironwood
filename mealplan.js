@@ -7,8 +7,15 @@ const ACT_LEVELS = [[1, 'Light', 'Desk job, 1–3 workouts a week', 1.375], [2, 
 const GOAL_ADJ = { lose: { gentle: -250, steady: -500 }, keep: { gentle: 0, steady: 0 }, gain: { gentle: 200, steady: 350 } };
 const KCAL_FLOOR = { m: 1500, f: 1200, x: 1350 };
 const bmiOf = me => me && me.h > 0 && me.w > 0 ? me.w / Math.pow(me.h / 100, 2) : null;
+/* Why the numbers can't be worked out (empty fields, out of range, or under 18), or '' when they can */
+function meProblem(me) {
+  if (!me || !(me.h > 0) || !(me.w > 0) || !(me.age > 0)) return 'Fill in height, weight and age to see your numbers.';
+  if (me.age < 18) return 'Calorie targets here are for adults. If you’re under 18, a doctor or dietitian can help with how much to eat while you’re still growing. You can still use the recipes, prep and shopping list.';
+  if (me.age > 110 || me.h < 120 || me.h > 230 || me.w < 35 || me.w > 300) return 'Check your height, weight and age: one looks off (' + (me.us ? 'height in feet and inches, weight in pounds' : 'height in cm, weight in kg') + ').';
+  return '';
+}
 function targetsFor(me) {
-  if (!me || !(me.h > 0) || !(me.w > 0) || !(me.age > 0)) return null;
+  if (meProblem(me)) return null;
   const s = me.sex === 'm' ? 5 : me.sex === 'f' ? -161 : -78;
   const bmr = 10 * me.w + 6.25 * me.h - 5 * me.age + s; const act = (ACT_LEVELS.find(a => a[0] === me.act) || ACT_LEVELS[1])[3];
   const tdee = bmr * act; const bmi = bmiOf(me);
@@ -26,6 +33,13 @@ function targetsFor(me) {
 
 /* ---- the menu ---- */
 const PLAN_SLOTS = [['b', 'Breakfast'], ['l', 'Lunch'], ['d', 'Dinner'], ['s', 'Snack']];
+/* A day's items in slot order, each with a key and a label (two snacks read Snack 1 and Snack 2) */
+function menuRows(day) {
+  const order = PLAN_SLOTS.map(p => p[0]); const ns = day.filter(x => x.slot === 's').length; let k = 0;
+  return day.slice().sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot)).map(x => {
+    const lbl = (PLAN_SLOTS.find(p => p[0] === x.slot) || [, 'Meal'])[1];
+    if (x.slot !== 's') return { x, key: x.slot, label: lbl }; k++; return { x, key: k > 1 ? 's' + k : 's', label: ns > 1 ? 'Snack ' + k : 'Snack' }; });
+}
 function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
 function planPool() {
@@ -42,19 +56,25 @@ const mealHabits = () => ({ ...HABITS0, ...(ML().habits || {}) });
 const PRICEY = /salmon|steak|sirloin|shrimp|scallop|bison|lamb|almond|cashew|pecan|walnut|pistachio|pine nut|berr|avocado|parmesan|feta|goat cheese|prosciutto|quinoa|protein powder|whey|\bcod\b|halibut|mahi|cheese crisps/;
 const CHEAP = /\brice\b|\boats?\b|beans?\b|lentil|\beggs?\b|potato|chicken thigh|ground (turkey|beef|chicken)|pasta|frozen|cabbage|carrot|banana|onion|canned|peanut butter|tortilla|\bmilk\b|cottage cheese|chicken breast/;
 function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = String(g && g.n || g || '').toLowerCase(); if (PRICEY.test(n)) s += 2; else if (CHEAP.test(n)) s -= 0.5; } return s; }
+/* Narrow the list by your answers, each step only when enough recipes are left: keeps all week (once a week), then
+   cheap (nothing pricey, then the cheaper half), then quick (30 minutes or less, else the quickest). */
 function shapePool(list, n, H, rnd) {
-  let L = list;
+  let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
+  if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
+  if (H.cheap) { keep(r => costScore(r) < 2); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
-  if (H.cheap) { const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   return pickN(L, Math.min(n, L.length), rnd);
 }
 function buildMenu(t, seed) {
   const P = planPool(); const rnd = seeded(seed); const H = mealHabits(); const two = +H.meals === 2;
   if ((!two && !P.b.length) || P.m.length < 2) return null;
   const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
-  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(P.m, nM, H, rnd);
-  const snacks = (H.cheap ? P.s.filter(r => costScore(r) <= 0) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
-  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2;
+  const mains = two && P.m.length > nM ? P.m.slice().sort((a, b) => macros(b).kcal - macros(a).kcal).slice(0, Math.max(nM, Math.ceil(P.m.length / 2))) : P.m; /* two meals: the bigger mains */
+  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(mains, nM, H, rnd);
+  const cheapS = P.s.filter(r => costScore(r) <= 0);
+  const snacks = (H.cheap && cheapS.length ? cheapS : H.cheap && P.s.length ? P.s.slice().sort((a, b) => costScore(a) - costScore(b)).slice(0, 2) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2; const topUp = snacks.length ? snacks.slice().sort((a, b) => macros(b).kcal - macros(a).kcal)[0] : null;
+  const addSnack = (day, r) => { const y = day.find(x => x.slot === 's' && x.r === r.id); if (y) y.sv += 1; else day.push({ slot: 's', r: r.id, sv: 1 }); };
   const days = [];
   for (let i = 0; i < 7; i++) {
     const day = two ? [{ slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }]
@@ -63,7 +83,7 @@ function buildMenu(t, seed) {
     /* snacks when there's room: the most protein for its calories when protein is short */
     let T = tot();
     for (let k = 0; k < maxSnacks && snacks.length; k++) { T = tot(); if (T.kcal >= t.kcal - 120) break;
-      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
+      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; addSnack(day, s); }
     /* then portions in half steps toward the calorie target */
     for (let k = 0; k < 14; k++) {
       T = tot(); const gap = t.kcal - T.kcal; if (Math.abs(gap) < 90) break;
@@ -71,6 +91,8 @@ function buildMenu(t, seed) {
       if (gap > 0) { const x = main.filter(y => y.sv < maxSv).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
       else { const s = day.filter(y => y.slot === 's').pop(); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
     }
+    /* still more than 10% short with portions at their cap (2 or 3 meals, big targets): top up with a snack */
+    for (let k = 0; k < 2 && topUp; k++) { T = tot(); if (t.kcal - T.kcal < t.kcal * 0.1) break; addSnack(day, topUp); }
     days.push(day);
   }
   return { seed, t, days, at: Date.now(), h: H };
@@ -161,7 +183,8 @@ function TargetsSheet({ preset } = {}) {
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
     mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
-    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: 7000, text: ML().menu ? 'Your targets and a week of meals are ready.' : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
+    const hadPrep = ML().plan.items.length > 0 && !ML().rot;
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Update my prep', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your targets and a week of meals are ready.' + (hadPrep ? ' Your prep and shopping list still have the old recipes.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
@@ -183,12 +206,19 @@ function TargetsSheet({ preset } = {}) {
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
-          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">Fill in height, weight and age to see your numbers.</p>`}
+          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
       <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 
 /* ---- the plan on Prep, today's menu on Log ---- */
+/* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
+function usePlanForPrep(sure) {
+  const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
+  const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
+  if (sure || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
+}
 function MenuCard() {
   const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
   if (!mn || !mn.days || !mn.days.length) return html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Make me a meal plan</div>
@@ -196,19 +226,17 @@ function MenuCard() {
     <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button></div>`;
   const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
   const reroll = () => mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); });
-  const usePlan = () => {
-    const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
-    const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
-    if (!m.plan.items.length && !m.rot) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
-  };
+  const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diet !== 'none' || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
-    <div class="menu-list">${PLAN_SLOTS.map(([s, label]) => { const x = day.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r);
+    <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
       return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
     <div class="small muted num">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat</div>
+    ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
+      : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
     <p class="small faint" style="margin-top:8px">Estimates for planning, not medical or diet advice.</p></div>`;
@@ -217,7 +245,7 @@ function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;
   const list = (mn.days[menuDayIdx(parseYmd(day))] || []).filter(x => getRecipe(x.r)); if (!list.length) return null;
   const logged = new Set((ML().log[day] || []).filter(e => e.k === 'recipe').map(e => e.r + ':' + (e.slot || '')));
-  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${PLAN_SLOTS.map(([s, label]) => { const x = list.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
+  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
     return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
       <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
 }

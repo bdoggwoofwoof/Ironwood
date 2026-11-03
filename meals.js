@@ -618,8 +618,9 @@ function MealsScreen({ view }) {
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
-  if (P.weeks > 1) return r.freezes ? 'Lasts ' + keeps + ' days in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
-  if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + keeps + ' days in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : 'Lasts ' + keeps + ' days in the fridge. Make a second batch midweek.';
+  if (P.weeks > 1) return r.freezes ? 'Lasts ' + keeps + (keeps === 1 ? ' day' : ' days') + ' in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
+  const dd = n => n + (n === 1 ? ' day' : ' days'); const once = typeof mealHabits === 'function' && mealHabits().prep === 'once';
+  if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
 }
 function PrepPane() {
@@ -629,7 +630,10 @@ function PrepPane() {
   const withM = items.map(x => ({ ...x, m: macros(x.r) })).filter(x => x.m); const partial = withM.length < items.length || withM.some(x => x.m.missing.length);
   const perDay = Object.fromEntries(MACRO_KEYS.map(([k]) => [k, Math.round(withM.reduce((a, x) => a + x.m[k] * x.it.n, 0) / 7)]));
   const mins = items.reduce((a, x) => a + (+x.r.mins || 0), 0);
-  const usePrep = pr => {
+  const usePrep = (pr, ok) => {
+    const bad = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length);
+    if (bad.length && !ok) return openSheet({ type: 'confirm', title: 'Some of ' + pr.name + ' goes against your food preferences', body: bad.map(([r]) => getRecipe(r).name + ' (' + recipeIssues(getRecipe(r)).block.join(', ') + ')').join('; ') + '.',
+      ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrep({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrep(pr, true), 60); } });
     const apply = replace => { mealCommit(mm => { if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
     if (!P.items.length) apply(true);
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace what’s in your prep now, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
@@ -683,8 +687,9 @@ function rotIndex(rot, day) { const wk = Math.round((+startOfWeek(day || new Dat
 function rotCheck() {
   const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied === mon) return false;
   const i = rotIndex(rot); if (i < 0) return false; const pr = prepById(rot.ids[i]); if (!pr) return false;
-  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
-  showToast({ kind: 'info', text: 'This week’s prep: ' + pr.name + '. Your shopping list is ready.' }); return true;
+  const blocked = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length).map(([r]) => getRecipe(r).name);
+  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
+  showToast({ kind: 'info', ms: blocked.length ? 9000 : 4000, text: 'This week’s prep: ' + pr.name + '.' + (blocked.length ? ' Left out for your food preferences: ' + blocked.join(', ') + '.' : '') + ' Your shopping list is ready.' }); return true;
 }
 function deleteMyPrep(pr) {
   const inRot = ML().rot && ML().rot.ids.includes(pr.id);
@@ -779,8 +784,8 @@ function RecipeView({ id }) {
       ${Math.abs(f - 1) > 0.01 ? html`<p class="small muted" style="margin:-4px 0 8px">Written for ${r.serves} servings. Cooking times stay about the same; use more pans so food isn’t crowded.</p>` : null}
       <ol class="step-list card">${r.steps.map((s, i) => html`<li key=${i}>${s}</li>`)}</ol>` : null}
     ${r.note ? html`<div class="tip-card" style="margin-top:12px;padding-right:14px">${r.note}</div>` : null}
-    ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(comboRecipe) ? html`<div class="section-h"><h2>Goes with</h2></div>
-      <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(comboRecipe).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
+    ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
+      <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
     ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">In your prep · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
@@ -1267,11 +1272,11 @@ function BaseView({ id }) {
       ${pm ? html`<div class="small muted num">${macroLine(pm)} a serving</div>` : null}</div><span class="go">Recipe</span></button>
     ${b.tip ? html`<div class="tip-card" style="margin-top:10px;padding-right:14px">${b.tip}</div>` : null}
     <div class="section-h"><h2>Pick a flavor</h2><span class="aside">${flavorsFor(b).length} ideas</span></div>
-    <div class="stack">${flavorsFor(b).map(f => { const cid = b.id + '~' + f.id; const r = comboRecipe(cid); const m = macros(r); const inP = planItemFor(cid);
+    <div class="stack">${flavorsFor(b).map(f => [f, !recipeIssues(comboRecipe(b.id + '~' + f.id)).block.length]).sort((x, y) => y[1] - x[1]).map(([f]) => { const cid = b.id + '~' + f.id; const r = comboRecipe(cid); const m = macros(r); const inP = planItemFor(cid);
       return html`<div key=${f.id} class="meal-row mix-flavor"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: cid, from: { type: 'base', id: b.id } })}><div class="t">${r.name}</div>
         <div class="s">${f.d}${f.kind === 'rub' && b.fam !== 'eggs' && b.fam !== 'oats' && b.fam !== 'salad' ? ' · spice rub' : f.kind === 'sauce' && (b.fam === 'protein' || b.fam === 'veg') ? ' · sauce' : ''}</div>
         <div class="s faint">Adds ${f.ing.map(x => shopName(parseIng(x).n).replace(/\s*\(.*\)$/, '')).join(', ')}</div>
-        ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}</button>
+        ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}<${IssueLine} r=${r}/></button>
         <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
     <p class="small faint" style="margin-top:14px">Add two or three flavors to your prep and the shopping list buys the base once, in the total amount.</p>
   </div>`;

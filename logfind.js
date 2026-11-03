@@ -60,6 +60,6 @@ function FindView({ day, go }) {
       ${foods.length ? html`<div class="aisle-h">Foods</div><div class="find-list">${foods.map(f => html`<button key=${f.id} class="opt" onClick=${() => go('food', { txt: foodTxt(f), fk: f.id })}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${f.mine ? 'Your food · ' : ''}${per100(f)}</div></div></button>`)}</div>` : null}
       <div class="row wrap" style="gap:8px;margin-top:4px"><button class="btn ghost" style="flex:1" id="lf-find-online" onClick=${() => go('scan', { only: 'search', q0: (g && g.q != null ? shopName(g.n) : q.trim()) })}>Look up “${q.trim()}” online</button>
         <button class="btn ghost" style="flex:1" id="lf-find-num" onClick=${() => go('num', { name0: q.trim() })}>Enter its numbers</button></div>
-      ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div></div></button>`)}</div>` : null}`}
+      ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div>${recipeIssues(r).block.length ? html`<${IssueLine} r=${r}/>` : null}</div></button>`)}</div>` : null}`}
   </div>`;
 }

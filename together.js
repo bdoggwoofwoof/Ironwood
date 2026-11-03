@@ -20,7 +20,7 @@ const doneToday = id => sessionList().some(s => ymd(s.startedAt) === ymd(new Dat
 function addDayToWorkout(r, day) {
   const a = S.active; if (!a) return;
   const base = a.items.length;
-  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); if (i === 0) it.ss = false; a.items.push(it); });
+  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (i === 0) it.ss = false; a.items.push(it); });
   a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
   if (day.timer && !a.timer) a.timer = clone(day.timer);
   touch(); showToast({ kind: 'info', text: r.name + ' · ' + day.name + ' added' });

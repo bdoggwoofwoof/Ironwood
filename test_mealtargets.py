@@ -82,6 +82,8 @@ async def main():
         lst = await ev("shoppingList().filter(x => /chicken/i.test(x.name)).map(x => x.qty + ' ' + x.label)")
         check('shopping list in Easy counts chicken pieces', any('chicken thigh' in x or 'chicken breast' in x for x in lst) and all('lb' not in x.split(' ')[1] for x in lst), lst)
         check('saved after reload', await ev("(() => { const n = normMeals(JSON.parse(JSON.stringify(ML()))); return !!(n.me && n.menu && n.units === 'easy'); })()"))
+        check('no calorie targets for under-18s', await ev("targetsFor({ h: 170, w: 60, age: 15, sex: 'm', act: 2, goal: 'lose', pace: 'steady' })") is None and 'adults' in await ev("meProblem({ h: 170, w: 60, age: 15 })"))
+        check('typos are caught (a 6 kg adult)', await ev("targetsFor({ h: 170, w: 6, age: 30, sex: 'm', act: 2 })") is None)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

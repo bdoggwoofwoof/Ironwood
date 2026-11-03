@@ -68,6 +68,12 @@ async def main():
         check('saved recipe keeps its source link', saved and saved['src']['url'] == 'https://www.instagram.com/reel/ABC123/', saved and saved.get('src'))
         check('...shown at the bottom as instagram.com', 'instagram.com' in (await pg.inner_text('#recipe-src') if await pg.locator('#recipe-src').count() else ''))
         check('prefs survive reload', await ev("normMeals(JSON.parse(JSON.stringify(ML()))).prefs.diet") == 'halal')
+        al = await ev("""(() => { mealCommit(m => { m.prefs = { allergies: ['dairy', 'gluten', 'treenut', 'shellfish'], diet: 'none', dislikes: '' }; });
+          const t = ing => recipeIssues({ name: 'x', ing: ing.map(n => ({ n })) }).block;
+          return { almondmilk: t(['almond milk']), pb: t(['peanut butter']), ghee: t(['ghee']), ricenoodle: t(['rice noodles']), bulgur: t(['bulgur']), coconut: t(['coconut flakes']), butternut: t(['butternut squash']), prawn: t(['prawns']) }; })()""")
+        check('allergy synonyms are caught (ghee, bulgur, prawns)', 'Dairy' in al['ghee'] and 'Gluten / wheat' in al['bulgur'] and 'Shellfish' in al['prawn'], al)
+        check('look-alikes are not flagged (almond milk as dairy, rice noodles, butternut, coconut)', 'Dairy' not in al['almondmilk'] and 'Dairy' not in al['pb'] and not al['ricenoodle'] and not al['butternut'] and not al['coconut'], al)
+        await ev("mealCommit(m => { m.prefs = { allergies: [], diet: 'none', dislikes: '' }; })")
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

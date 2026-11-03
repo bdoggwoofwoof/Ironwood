@@ -556,6 +556,8 @@ function normalizeMeta(m) {
   const e = emptyMeta(); m = m ? clone(m) : {};
   const settings = { ...e.settings, ...(m.settings || {}) };
   if (m.settings && !('restSS' in m.settings) && +m.settings.rest === 90) settings.rest = 120; /* old 1:30 default becomes 2:00 */
+  /* Nov 2 builds saved the Build my plan answers over the weekly goal number: move them to settings.plan */
+  if (settings.goal && typeof settings.goal === 'object') { if (!settings.plan) settings.plan = settings.goal; settings.goal = Math.min(7, Math.max(1, +settings.goal.days || 4)); }
   return { ...e, ...m, settings, exercises: m.exercises || {}, routines: m.routines || {}, exUnit: m.exUnit || {}, exRest: m.exRest || {}, exCat: m.exCat || {}, bw: m.bw || [], dayMarks: m.dayMarks || {}, challenges: m.challenges || {}, timers: m.timers || [], deleted: m.deleted || [] };
 }
 /* A saved workout as the app expects it, or null if it can't be used. Backups and old data pass through here so one
@@ -2109,7 +2111,7 @@ function buildPhases(c) {
 }
 function tElapsed(T) { const now = Date.now(); return (now - T.startedAt - T.pausedTotal - (T.pausedAt ? now - T.pausedAt : 0)) / 1000; }
 function tLocate(T) { const el = tElapsed(T); let acc = 0; for (let i = 0; i < T.phases.length; i++) { const p = T.phases[i]; if (el < acc + p.secs) return { idx: i, phase: p, into: el - acc, left: acc + p.secs - el, el }; acc += p.secs; } return null; }
-function startInterval(cfg) { const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); lsSave(); S.rerender(); }
+function startInterval(cfg) { if (typeof fRunning === 'function' && fRunning()) { showToast({ kind: 'info', text: 'End your rounds first, so two timers don’t beep at once.' }); return false; } const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); lsSave(); S.rerender(); }
 function tPause(T) { if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; } else T.pausedAt = Date.now(); bgTimer(); S.rerender(); }
 function tSkip(T) { const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; bgTimer(); S.rerender(); }
 function tBack(T) { const p = tLocate(T); if (!p) return; const back = p.into > 2 || p.idx === 0 ? p.into : p.into + T.phases[p.idx - 1].secs; T.startedAt += back * 1000; T.beeped = {}; bgTimer(); S.rerender(); }

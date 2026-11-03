@@ -6,7 +6,7 @@
      - keeps your program and adjusts around it (adds conditioning that fits your sport and gear on free days), or
      - makes your own copy of the best-fitting plan ('gp-mine'): swaps for your gear and joints, trims to your minutes,
        sets per phase (bulk +1 accessory set, cut -1), and conditioning days built from the gear you have.
-   Season phases (settings.goal.season) ask before switching: calories and the plan change only when you say so.
+   Season phases (settings.plan.season) ask before switching: calories and the plan change only when you say so.
    Everything is an estimate for planning, not coaching or medical advice. */
 const GP_TPL = [
   { id: 'gp-recomp3', name: 'Recomp 3-Day', days: 3, goal: ['recomp'], fit: 'Lose fat and build muscle at the same time on three full-body days.',
@@ -84,7 +84,8 @@ function condMode(a) {
 }
 const CMODE_NAME = { row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
 const phaseByDate = s => { const t = ymd(new Date()); return t >= s.cutTo ? 'keep' : t >= s.cutFrom ? 'cut' : t >= s.bulkFrom ? 'bulk' : 'keep'; };
-const gpPhaseNow = a => (a.season && a.season.on ? (a.season.cur || phaseByDate(a.season)) : null);
+const seasonOn = a => !!(a && a.season && a.season.on && (a.goal === 'recomp' || a.goal === 'mass')); /* the switch only shows for these goals */
+const gpPhaseNow = a => (seasonOn(a) ? (a.season.cur || phaseByDate(a.season)) : null);
 /* Which built-in plan fits the answers */
 function pickPlanFor(a) {
   const days = +a.days || 3; const ph = gpPhaseNow(a);
@@ -146,8 +147,8 @@ function keepPlanFor(a) {
 }
 function applyGoal(a, d) {
   const prevProg = programId();
-  if (a.season && a.season.on && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
-  commit(st => { st.meta.settings.goal = { ...a, at: Date.now() }; }, 'meta');
+  if (seasonOn(a) && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
+  commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
   if (a.keep && prevProg && prevProg !== 'self') {
     const k = keepPlanFor(a);
     if (k.addon && !(S.meta.settings.addons || []).includes(k.addon)) { setAddon(k.addon, true); if (typeof openSheet === 'function') setTimeout(() => openSheet({ type: 'addonFit', id: k.addon }), 50); }
@@ -169,7 +170,7 @@ function mealGoalFor(a) {
 function nextDate(month, day, after) { const a = after || new Date(); let d = new Date(a.getFullYear(), month - 1, day); if (d <= a) d = new Date(a.getFullYear() + 1, month - 1, day); return ymd(d); }
 function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
 function GoalSetupSheet({ welcome } = {}) {
-  const saved = S.meta.settings.goal || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
+  const saved = S.meta.settings.plan || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
   const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
     gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
   const [step, setStep] = useState(0);
@@ -212,23 +213,27 @@ function GoalSetupSheet({ welcome } = {}) {
 }
 /* ---- season phases: ask before switching ---- */
 function phaseDue() {
-  const g = S.meta.settings.goal; const s = g && g.season; if (!s || !s.on) return null;
+  const g = S.meta.settings.plan; const s = g && g.season; if (!seasonOn(g)) return null;
   const today = ymd(new Date()); const want = today >= s.cutTo ? 'keep' : today >= s.cutFrom ? 'cut' : today >= s.bulkFrom ? 'bulk' : null;
   if (!want || want === (s.cur || phaseByDate(s))) return null; const ans = (s.asked || {})[want];
   if (ans === 'stay' || (typeof ans === 'number' && ans > Date.now())) return null; return want;
 }
 function switchPhase(to) {
-  commit(st => { const g = st.meta.settings.goal; g.season = { ...g.season, cur: to }; }, 'meta');
-  const g = S.meta.settings.goal; const me = ML().me;
+  commit(st => { const g = st.meta.settings.plan; g.season = { ...g.season, cur: to }; }, 'meta');
+  const g = S.meta.settings.plan; const me = ML().me; let meals = false, plan = false;
   if (me && me.h) { const mg = mealGoalFor(g); const m2 = { ...me, ...mg }; const t = targetsFor(m2);
-    if (t) mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); }
-  if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); }
-  else if (to === 'cut' && !g.keep) applyGoal(g);
-  showToast({ kind: 'info', ms: 7000, text: to === 'cut' ? 'Cut started: calories down about 1 lb a week, heavy lifts stay heavy.' : to === 'bulk' ? 'Bulk started: a small surplus, about ½ lb a week.' : 'Back to maintaining. Nice work.' });
+    if (t) { meals = true; mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); } }
+  /* Only your own Build my plan copy is rebuilt; a program you picked yourself is never replaced */
+  if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); plan = true; }
+  const what = to === 'cut' ? 'Cut started' : to === 'bulk' ? 'Bulk started' : 'Back to maintaining';
+  const cal = meals ? (to === 'cut' ? ': calories down to lose about 1 lb a week' : to === 'bulk' ? ': a small surplus, about ½ lb a week' : ': maintenance calories') : '';
+  const tr = plan ? (to === 'cut' ? '. Your plan keeps heavy lifts heavy with fewer accessory sets.' : to === 'bulk' ? '. Your plan adds an accessory set.' : '. Your plan is back to normal.')
+    : '. Your program is unchanged' + (to === 'cut' ? ': keep the heavy lifts heavy and drop an accessory set.' : to === 'bulk' ? ': add an accessory set where it feels good.' : '.');
+  showToast({ kind: 'info', ms: 9000, text: what + cal + tr + (meals ? '' : ' Set up meals to have calories follow along.') });
 }
-function snoozePhase(to, how) { commit(st => { const s = st.meta.settings.goal.season; s.asked = { ...(s.asked || {}), [to]: how === 'stay' ? 'stay' : Date.now() + 7 * 864e5 }; }, 'meta'); }
+function snoozePhase(to, how) { commit(st => { const s = st.meta.settings.plan.season; s.asked = { ...(s.asked || {}), [to]: how === 'stay' ? 'stay' : Date.now() + 7 * 864e5 }; }, 'meta'); }
 function PhaseCheck() {
-  if (S.active) return null; const to = phaseDue(); if (!to) return null; const s = S.meta.settings.goal.season;
+  if (S.active) return null; const to = phaseDue(); if (!to) return null; const s = S.meta.settings.plan.season;
   const t = { cut: ['Time for your spring cut', 'Your bulk was set to end ' + shortDate(parseYmd(s.cutFrom)) + '. Switch to cutting? Calories drop to lose about 1 lb a week; heavy lifts stay heavy, fewer accessory sets.'],
     bulk: ['Ready to start your bulk?', 'A small surplus (about ½ lb a week) and one more accessory set.'],
     keep: ['Your cut is done', 'Switch to maintenance calories and your regular plan?'] }[to];
@@ -246,6 +251,6 @@ for (const T of GP_TPL) {
 /* First launch: when the tour ends (or is skipped) on a fresh install, offer the interview once. */
 function offerSetup() {
   if (lsGet('setupOffered') === '1') return; lsSet('setupOffered', '1');
-  if (S.meta.settings.program || S.meta.settings.goal || Object.keys(S.sessions).length) return;
+  if (S.meta.settings.program || S.meta.settings.plan || Object.keys(S.sessions).length) return;
   setTimeout(() => { if (!S.active) openSheet({ type: 'goalSetup', welcome: true }); }, 350);
 }

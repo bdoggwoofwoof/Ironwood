@@ -144,6 +144,7 @@ async def main():
         await ev("lsSet('rtView', 'type'); lsSet('rtKind', 'plans')"); await pg.reload(); await pg.wait_for_timeout(1200)
         await pg.locator('.tabs button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         check('By type has a Fight training section', 'FIGHT TRAINING' in (await pg.locator('main').inner_text()).upper())
+        check('interval timer will not start while rounds run', await ev("(() => { if (!fRunning()) return 'skip'; const r = startInterval({ id: 'x', name: 'x', work: 20, rest: 10, rounds: 2 }); return r === false && !S.itimer; })()") in (True, 'skip'))
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

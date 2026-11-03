@@ -52,6 +52,10 @@ async def main():
         await ev("setAddon('bi-cond-aerobic', false)"); await pg.wait_for_timeout(200)
         check('removing an add-on', await pg.locator('#also-bi-cond-aerobic').count() == 0 and await ev("addonIds()") == ['bi-care-back'])
         check('add-ons are in the backup', 'bi-care-back' in await ev("JSON.parse(backupJSON()).meta.settings.addons.join(',')"))
+        # skipped add-on day doesn't count
+        await ev("(() => { startWorkout(getRoutine(programId()), nextUp().day); addDayToWorkout(getRoutine('bi-care-back'), nextFor(getRoutine('bi-care-back')).day); S.active.items.forEach(it => { if (!it.from) it.sets.forEach(s => { s.w = '100'; s.r = '5'; s.c = Date.now(); }); }); finishWorkout(); closeSheet(); })()"); await pg.wait_for_timeout(400)
+        s = await ev("sessionList().slice(-1)[0]")
+        check('an add-on day with no sets done is not recorded', not s.get('addons'), s.get('addons'))
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

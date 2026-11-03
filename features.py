@@ -1693,6 +1693,21 @@ main .page-title{font-size:min(30px, 8vw)}
 .tabs{padding:4px 10px max(6px, calc(env(safe-area-inset-bottom,0px) - 14px))}
 .sess-acts{gap:8px}""")
 
+# 41. Read a nutrition label (labelread.js, Nov 3, Newt's request: scanning wasn't finding his foods). New food / Edit
+#     food gets a "Read the label" card: a photo of the Nutrition Facts panel is read on the phone (Tesseract.js in
+#     vendor/ocr, loaded on first use) or label text pasted from iPhone Live Text, and the numbers fill the fields to
+#     check before saving. Scan gets "Read a nutrition label"; a barcode that wasn't found keeps its number, so the
+#     next scan finds the saved food offline.
+LRJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'labelread.js'), encoding='utf8').read()
+swap("/* ---------- APP ---------- */", LRJS + "\n/* ---------- APP ---------- */")
+swap("""    <div class="stack" style="margin-top:12px">
+      <div><label class="lbl" for="fd-name">Name</label>""", """    <div class="stack" style="margin-top:12px">
+      <${LabelReader} onFill=${r => { setD(x => ({ ...x, ...r })); setErr(''); }}/>
+      <div><label class="lbl" for="fd-name">Name</label>""")
+swap("""html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}""",
+     """html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}
+    ${only === 'search' || cam ? null : html`<button class="btn wide" id="scan-label" onClick=${() => addLabel(miss || '')}>Read a nutrition label</button>`}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

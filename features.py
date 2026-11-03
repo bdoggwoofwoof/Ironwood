@@ -1661,6 +1661,24 @@ swap("""onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change 
 swap("""<p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p></div></div>`;""", """<p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p>
       <button class="btn text" id="stats-eat-review" style="padding-left:0" onClick=${() => { UI.setTab('meals'); UI.setView({ type: 'eatReview' }); }}>Review my eating</button></div></div>`;""")
 
+# 39. Workout clock in the header (Nov 3, Newt's request): once the big elapsed clock scrolls under the header, the same
+#     time shows at the header's top left, so it's visible anywhere in the workout. Same font and color as the big clock.
+swap("/* ---------- APP ---------- */", """function HdrClock({ since }) {
+  const [show, setShow] = useState(false); const [, tick] = useState(0);
+  useEffect(() => {
+    const check = () => { const c = document.querySelector('.wo-head .wo-clock'), h = document.querySelector('.hdr');
+      setShow(!!c && !!h && c.getBoundingClientRect().bottom <= h.getBoundingClientRect().bottom + 1); };
+    const iv = setInterval(() => { check(); tick(x => x + 1); }, 1000);
+    window.addEventListener('scroll', check, { passive: true }); check();
+    return () => { clearInterval(iv); window.removeEventListener('scroll', check); };
+  }, []);
+  if (!show) return null;
+  return html`<span class="hdr-clock" id="hdr-clock" role="timer" aria-label="Elapsed time">${clock(Math.max(0, Math.floor((Date.now() - since) / 1000)))}</span>`;
+}
+/* ---------- APP ---------- */""")
+swap("  let left = null, right = null;", "  let left = null, right = null;\n  if (tab === 'train' && S.active && !view) left = html`<${HdrClock} since=${S.active.startedAt}/>`;")
+swap(".sess-acts{gap:8px}", ".hdr-clock{font-family:var(--display);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-2)}\n.sess-acts{gap:8px}")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

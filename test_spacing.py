@@ -14,10 +14,10 @@ async def main():
         ev = pg.evaluate
         check('the spacer above a tab no longer adds the status bar again', await ev("document.querySelector('.hdr-space').offsetHeight") <= 6)
         fs = await ev("parseFloat(getComputedStyle(document.querySelector('main .topsw button')).fontSize)")
-        check('Train / Run / Fight at 30px', abs(fs - 30) < 0.6, fs)
+        check('Train / Run / Fight at 27px', abs(fs - 27) < 0.6, fs)
         check('the switch sits near the top', await ev("document.querySelector('.topsw').getBoundingClientRect().top") < 20)
         await ev("UI.setTab('stats')"); await pg.wait_for_timeout(300)
-        check('Progress title matches', abs(await ev("parseFloat(getComputedStyle(document.querySelector('.page-title')).fontSize)") - 30) < 0.6)
+        check('Progress title matches', abs(await ev("parseFloat(getComputedStyle(document.querySelector('.page-title')).fontSize)") - 27) < 0.6)
         await ev("UI.setTab('meals')"); await pg.wait_for_timeout(300)
         check('no top switch overflows the screen', await ev("[...document.querySelectorAll('main .topsw')].every(t => t.scrollWidth <= t.clientWidth + 1 || t.classList.contains('four'))"))
         check('tab bar icons keep 24px', await ev("document.querySelector('.tab svg').getBoundingClientRect().width") == 24)

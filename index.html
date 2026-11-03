@@ -1110,7 +1110,7 @@ const MY_PLANS = [
     ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
-const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips)\b/;
+const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips|bench dips|inverted rows?|reverse crunch(es)?|chin ?ups?|mountain climbers?|bear crawls?)\b/;
 function planDay(rid, i, name, tags, items) {
   return { id: `${rid}-d${i}`, name, tags, items: items.map(([nm, sets, reps, cue, ss], j) => {
     let ex = findIn(BUILTIN_EX)(nm);
@@ -3095,7 +3095,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 79c1128</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a72c561</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3330,7 +3330,7 @@ function ChallengeEditor({ view }) {
         <div class="row"><input class="field" id=${'chi-' + it.id} value=${it.name} placeholder="e.g. Read 10 pages" aria-label="Checklist item" onInput=${e => { it.name = e.target.value; }}/>
           <button class="icon-btn" aria-label="Move up" onClick=${() => move(i, -1)}>${I.up}</button><button class="icon-btn" aria-label="Remove item" onClick=${() => { d.items.splice(i, 1); re(); }}>${I.x}</button></div>
         <div class="row small"><label class="muted" for=${'cha-' + it.id}>Ticks itself</label><select class="field mini-select" id=${'cha-' + it.id} value=${it.auto || ''} onChange=${e => { it.auto = e.target.value || null; re(); }}>
-          <option value="">No, I tick it</option><option value="w1">When I log a workout</option><option value="w2">When I log a 2nd workout</option></select></div></div>`)}</div>
+          <option value="">No, I tick it</option><option value="w1">When I log a workout</option><option value="w2">When I log a 2nd workout</option><option value="protein">When I hit my protein goal</option><option value="kcal">When I stay within my calories</option></select></div></div>`)}</div>
       <button class="btn ghost wide" style="margin-top:8px" onClick=${() => { const it = { id: uid('k'), name: '', auto: null }; if (started) it.since = today; d.items.push(it); re(); }}>${I.plus} Add item</button>
       ${started ? html`<p class="note" style="margin-top:6px">New items count from today, so past days stay complete.</p>` : null}</div>
     <label class="toggle-row" for="ch-restart"><span><span>Start over if I miss a day</span><span class="d">Back to day 1 the day after a miss.</span></span><input type="checkbox" role="switch" id="ch-restart" checked=${!!d.restart} onChange=${e => { d.restart = e.target.checked; re(); }}/></label>
@@ -4730,7 +4730,7 @@ function RecipeEditor({ view }) {
     mealCommit(m => { m.recipes[d.id] = rec; });
     UI.setView({ type: 'meal', id: d.id });
   };
-  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
+  const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src, ...(x.serves ? { serves: x.serves } : {}), ...(x.mins ? { mins: x.mins } : {}), ...(x.macros && Object.keys(x.macros).length ? { macros: { ...cur.macros, ...x.macros } } : {}) })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
   return html`<div class="stack" style="margin-top:6px">
     ${view.paste ? html`<${PasteBox} onFill=${fillFrom}/>` : null}
     <div><label class="lbl" for="me-name">Name</label><input class="field" id="me-name" value=${d.name} placeholder="e.g. Lemon pepper chicken" onInput=${e => { set('name', e.target.value); setErr(''); }}/></div>
@@ -5728,7 +5728,7 @@ function runStatus(R, w, key) {
   return { s: last, auto: last.run.status || sessionStatus(last.items), st: mark || last.run.status || sessionStatus(last.items), manual: !!mark };
 }
 /* Lifting the day before (or the same day as) a sprint or interval session */
-const LEGGY = { Legs: 1, Lower: 1 };
+const LEGGY = { Legs: 1, Lower: 1, 'Full Body': 1 };   /* full-body days squat or hinge too */
 function legsClash(R, dow, hard) {
   if (!hard) return null;
   const prev = R.lifts[(dow + 6) % 7], same = R.lifts[dow];
@@ -7985,7 +7985,7 @@ function targetsFor(me) {
   if (goal === 'lose' && bmi != null && bmi < 18.5) { goal = 'keep'; note = 'Your weight is already on the low side for your height, so this plan is for keeping it steady, not losing.'; }
   let kcal = tdee + (GOAL_ADJ[goal] || GOAL_ADJ.keep)[me.pace || 'gentle'];
   const floor = Math.max(KCAL_FLOOR[me.sex] || KCAL_FLOOR.x, Math.round(bmr));
-  if (goal === 'lose' && kcal < floor) { kcal = floor; note = note || 'Ironwood doesn’t plan below ' + floor + ' calories a day, so the loss will be slower.'; }
+  if (goal === 'lose' && kcal < floor) { kcal = floor; note = note || 'Ironwood doesn’t plan below ' + fmt(Math.round(floor / 10) * 10) + ' calories a day, so the loss will be slower.'; }
   kcal = Math.round(kcal / 10) * 10;
   const basis = bmi != null && bmi > 30 ? 27 * Math.pow(me.h / 100, 2) : me.w;   /* protein from a lean-ish weight when BMI is high */
   const p = Math.min(220, Math.round(basis * (goal === 'keep' ? 1.6 : 1.8) / 5) * 5);
@@ -8153,7 +8153,7 @@ function TargetsSheet({ preset } = {}) {
     ${preset ? html`<p class="small muted" id="tg-from-goal">Your goal is filled in from your plan answers. Change it if you like.</p>` : typeof GoalSetupSheet === 'function' ? html`<button class="btn text" id="tg-goal" onClick=${() => openSheet({ type: 'goalSetup' })}>Want a training plan too? Answer a few questions</button>` : null}
     <div class="stack" style="margin-top:12px">
       <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
-      <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => set('inch', e.target.value.replace(/\D/g, ''))}/></div></div>`
+      <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => { const v = e.target.value.replace(/\D/g, ''); set('inch', v === '' ? '' : String(Math.min(11, +v))); }}/></div></div>`
         : html`<div style="flex:1"><label class="lbl" for="tg-cm">Height (cm)</label><input class="field" id="tg-cm" inputmode="numeric" value=${d.cm} onInput=${e => set('cm', e.target.value.replace(/\D/g, ''))}/></div>`}
         <div style="flex:1"><label class="lbl" for="tg-w">Weight (${d.us ? 'lb' : 'kg'})</label><input class="field" id="tg-w" inputmode="decimal" value=${d.w} onInput=${e => set('w', e.target.value.replace(/[^\d.]/g, ''))}/></div></div>
       <div class="row" style="gap:10px"><div style="flex:1"><label class="lbl" for="tg-age">Age</label><input class="field" id="tg-age" inputmode="numeric" value=${d.age} onInput=${e => set('age', e.target.value.replace(/\D/g, ''))}/></div>
@@ -8376,7 +8376,8 @@ function editPlan(id) {
 
 /* ---- missed sessions ---- */
 function runMissedLeft(R, w) { const done = R.done || {}; return runMissed(R, w).filter(x => !done[sessId(R, w, x.key)]); }
-function runStarted(R) { const b = (R.block || 1) + '-'; return sessionList().some(s => s.run && String(s.run.id || '').startsWith(b)) || Object.keys(R.done || {}).some(k => k.startsWith(b)); }
+/* Started = a plan run logged, a session marked done, or any run logged since the plan began (quick-logged runs count) */
+function runStarted(R) { const b = (R.block || 1) + '-'; return sessionList().some(s => (s.run && String(s.run.id || '').startsWith(b)) || (s.kind === 'activity' && s.activity === 'run' && R.start && ymd(s.startedAt) >= R.start)) || Object.keys(R.done || {}).some(k => k.startsWith(b)); }
 /* What slipped for one plan: { key, id, name, missed, planned, never, wk, keys } or null */
 function slipFor(p) {
   const today = startOfDay(new Date()); const ans = S.meta.settings.checkins || {};
@@ -8448,7 +8449,7 @@ const RUN_LEVELS = [
   ['some', 'Run now and then', 'A few easy miles feel OK', { t100: 16, t1: 540, t3: 1770 }],
   ['reg', 'Run regularly', 'Most weeks, some faster running', { t100: 14.5, t1: 450, t3: 1470 }]];
 const FIT_PATHS = [
-  ['mixed', 'Mixed (recommended)', 'Easy run on a lifting day; hard runs on days off, never next to leg day'],
+  ['mixed', 'Mixed (recommended)', 'Easy run on a lifting day; hard runs on days off, away from leg days when the week allows'],
   ['off', 'On my days off', 'Most recovery. Best for 2–3 runs a week'],
   ['double', 'On my lifting days', 'Lift first, run after. Keeps rest days fully off'],
   ['run', 'Running comes first', 'Runs get the best days; you may need to move leg day']];
@@ -8479,7 +8480,7 @@ function fitDays(path, lifts, runs) {
     off: [[d => !isLift(d) && !nearLegs(d), d => !isLift(d)], [d => !nearLegs(d), d => !isLift(d)], [d => !legs(d), () => true]],
     double: [[d => isLift(d) && !nearLegs(d), d => isLift(d)], [d => isLift(d) && !legs(d), d => isLift(d)], [d => !legs(d), () => true]],
     run: [[d => !nearLegs(d), () => true], [d => !legs(d), () => true], [() => true, () => true]],
-    mixed: [[d => !isLift(d) && !nearLegs(d), d => isLift(d)], [d => !nearLegs(d), d => isLift(d)], [d => !legs(d), () => true]] }[path] || [];
+    mixed: [[d => !isLift(d) && !nearLegs(d), d => isLift(d)], [d => !isLift(d) && !legs(d), d => isLift(d) && !legs(d)], [d => !isLift(d), () => true], [d => !nearLegs(d), d => isLift(d)], [d => !legs(d), () => true]] }[path] || [];
   const gap = (a, b) => { const x = Math.abs(order.indexOf(a) - order.indexOf(b)); return Math.min(x, 7 - x); };
   const need = runs >= 2 ? 2 : 1;
   for (const [hardOk, easyOk] of tiers.concat([[() => true, () => true]])) {
@@ -8545,6 +8546,7 @@ function RunStart() {
 }
 /* Plan tab: estimate banner and the fit button */
 function RunFitBar() {
+  useEffect(() => { try { runFitSync(); } catch (e) {} }, [programId()]);
   const R = runSt(); if (!R) return null; const p = FIT_PATHS.find(x => x[0] === (R.fit || ''));
   return html`<div style="margin-top:10px">${R.est ? html`<div class="tip-card" id="run-est" style="padding-right:14px"><b>Paces are estimates.</b> After a week of runs, put in a real mile time and every pace updates. <button class="btn text" id="run-est-go" onClick=${() => { lsSet('runTab', 'times'); S.rerender(); }}>Add my times</button></div>` : null}
     <button class="btn text" id="run-fit" style="padding-left:0" onClick=${() => openSheet({ type: 'runFit' })}>${I.cal} Fit with my lifting${p ? ': ' + p[1].replace(' (recommended)', '') : ''}</button></div>`;
@@ -8575,6 +8577,16 @@ function AddonFitSheet({ id }) {
     <div style="margin-top:10px"><${AddonFit} id=${id} onDone=${closeSheet}/></div><button class="btn wide" style="margin-top:12px" onClick=${closeSheet}>Decide later</button><//>`;
 }
 
+/* When the lifting program's days change (a new program, a new schedule, or a plan made before this setup existed),
+   move the runs to match, once per change, and say so. */
+function runFitSync() {
+  const R = runSt(); if (!R || R.off || !R.t1) return; const lifts = liftMapFromProgram(); if (!lifts) return;
+  const same = JSON.stringify(Object.entries(lifts).sort()) === JSON.stringify(Object.entries(R.lifts || {}).map(([k, v]) => [String(k), v]).sort().map(([k, v]) => [k, v]));
+  const key = JSON.stringify(lifts); if (same || R.fitFor === key) return;
+  runCommit(r => { r.fitFor = key; }); applyFit(R.fit || 'mixed');
+}
+setTimeout(() => { try { if (!S.active) runFitSync(); } catch (e) {} }, 2000);
+
 /* ============ Food preferences, recipe sources, and recipes from a post (Nov 2) ============ */
 /* meals.prefs: { allergies: [allergen ids], diet: 'none' | id, dislikes: 'mushrooms, olives' }. Allergies and the diet
    style block a recipe completely from meal plans and suggestions and flag it everywhere; dislikes keep it out of plans
@@ -8582,17 +8594,17 @@ function AddonFitSheet({ id }) {
    bottom of the recipe, and a recipe can be filled in from a pasted post (caption from Instagram, TikTok, a blog). */
 /* [id, label, matches, safe phrases removed first (so almond milk isn't dairy and rice noodles aren't wheat)] */
 const ALLERGENS = [
-  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|half[- ]and[- ]half|custard|protein powder/,
+  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|buttermilk|\bparm\b|half[- ]and[- ]half|custard|protein powder/,
     /(almond|oat|soy|coconut|rice|cashew|hemp|pea|plant|non-?dairy|dairy-?free|vegan)[ -](milk|cream|butter|cheese|yogh?urt|creamer)|(peanut|almond|cashew|sunflower|nut|seed|apple|cocoa|shea|pumpkin) butter|cream of tartar|butternut|(plant|vegan|pea|soy) protein( powder)?/g],
   ['egg', 'Eggs', /\beggs?\b|egg white|mayo|aioli|meringue|frittata|omelet/, /(vegan|egg-?free) (mayo|aioli)|eggplant/g],
   ['peanut', 'Peanuts', /peanut|\bsatay\b/],
   ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|nutella|pesto|\bnuts?\b/, /butternut|nutmeg|doughnut|donut|water chestnut|coconut|nut-?free pesto/g],
   ['soy', 'Soy', /\bsoy|tofu|tempeh|edamame|\bmiso\b|tamari|shoyu|teriyaki/, /soy-?free/g],
-  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer/,
+  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer|spaghetti|naan|crouton|hoisin|gochujang/,
     /buckwheat|gluten-?free \w+( \w+)?|(almond|coconut|rice|chickpea|cassava|corn|tapioca|potato|oat|lentil) (flour|pasta|noodles?|tortillas?|wraps?|crackers?)|rice noodles?|corn tortillas?|lettuce wraps?/g],
   ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|halibut|trout|mackerel|haddock|pollock|\bbass\b|mahi|snapper|swordfish|\bfish\b|anchov|sardine|worcestershire/],
   ['shellfish', 'Shellfish', /shrimp|prawn|crab|lobster|scallop|clam|mussel|oyster|crawfish|crayfish|squid|calamari|octopus/],
-  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake/]];
+  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake|everything[- ]bagel/]];
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
@@ -8643,22 +8655,32 @@ function SourceLine({ r }) {
 /* Pull a name, ingredients, steps and the link out of pasted caption text. Lines that start with an amount (or sit
    under an "Ingredients" heading) are ingredients; numbered lines or lines under "Steps / Directions / Method" are steps. */
 function parsePost(text) {
-  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/^[\s•\-*–·✔✅👉🔸🔹▪️]+/u, '').trim()).filter(Boolean);
+  const EMO = /^(?:[\s•\-*–·▪️]|\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}])+/u;
+  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/^(\d)️?⃣\s*/u, '$1. ').replace(EMO, '').replace(/^(\d)️?⃣\s*/u, '$1. ').trim()).filter(Boolean);
   const url = (String(text).match(/https?:\/\/\S+/) || [])[0] || '';
-  const ing = [], steps = []; let name = '', mode = '';
+  const ing = [], steps = []; let name = '', mode = '', serves = 0, mins = 0; const mac = {};
+  const macros = l => { const g = (re) => { const m = l.match(re); return m ? +m[1] : null; };
+    const kcal = g(/(\d{2,4})\s*(?:k?cals?|calories)\b/i), p = g(/(\d{1,3})\s*g?\s*(?:p\b|protein)/i), c = g(/(\d{1,3})\s*g?\s*(?:c\b|carbs?)/i), f = g(/(\d{1,3})\s*g?\s*(?:f\b|fat)/i);
+    if (kcal) mac.kcal = kcal; if (p) mac.p = p; if (c) mac.c = c; if (f) mac.f = f; };
   for (const l0 of lines) {
     const l = l0.replace(/https?:\/\/\S+/g, '').trim(); if (!l) continue;
-    if (/^#\w/.test(l) || /^(follow|like|save|share|comment|link in bio)/i.test(l)) continue;
+    if (/^#\w/.test(l) || /^(follow|like|save|share|comment|tag|link in bio|full recipe|recipe (below|in bio|on my)|dm me)/i.test(l)) continue;
+    const sv = l.match(/^(?:serves|servings|makes|yield)\s*:?\s*(\d+)/i) || l.match(/^(\d+)\s+servings?\b/i); if (sv) { serves = +sv[1]; continue; }
+    const tm = l.match(/^(?:total |cook |prep )?time\s*:?\s*(\d+)\s*min/i); if (tm) { mins = +tm[1]; continue; }
+    if (/^(macros?|nutrition|per serving|each serving)\b/i.test(l) || ((l.match(/\d+\s*g?\s*(p|c|f|protein|carbs?|fat)\b/gi) || []).length >= 2 && l.length < 120)) { macros(l); continue; }
     if (/^(ingredients?|you(’|')ll need|what you need)\b[:\s]*$/i.test(l)) { mode = 'ing'; continue; }
-    if (/^(steps?|directions?|method|instructions?|how to( make)?)\b[:\s]*$/i.test(l)) { mode = 'step'; continue; }
+    if (/^(steps?|directions?|method|instructions?|how to( make)?( it| this| them)?|let'?s make it)\b[:\s]*$/i.test(l)) { mode = 'step'; continue; }
     const numbered = l.match(/^(\d+)[.)]\s+(.+)/);
     const amount = /^(\d+([.,/]\d+)?|[½⅓⅔¼¾⅛]|a |one |two |three |half )/i.test(l) && l.length < 80;
     if (numbered && (mode === 'step' || numbered[2].length > 40)) { steps.push(numbered[2]); continue; }
-    if (mode === 'ing' || (amount && mode !== 'step')) { ing.push(l.replace(/^(\d+)[.)]\s+/, '$1 ')); continue; }
+    if (mode === 'ing' || (amount && mode !== 'step')) { ing.push(numbered && /^(\d|[½⅓⅔¼¾⅛]|a |an |one |two |half )/i.test(numbered[2]) ? numbered[2] : l.replace(/^(\d+)[.)]\s+/, '$1 ')); continue; }
+    const clean = l.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\b(save (this|it|for later)|recipe below|must try)\b[!.]*/gi, '')
+      .replace(/\((?:only |just )?\d+\s*(?:k?cals?|calories)[^)]*\)/gi, '').replace(/[-–|:,!.\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
+    if (!name && !mode && !ing.length && !steps.length && clean && clean.length <= 60) { name = clean; continue; }
     if (mode === 'step' || l.length > 60) { steps.push(l); continue; }
-    if (!name && l.length <= 60) name = l.replace(/[!:.\s]+$/, '').replace(/[\u{1F300}-\u{1FAFF}]/gu, '').trim();
+    if (!name && clean && clean.length <= 60) name = clean;
   }
-  return { name, ing, steps, url };
+  return { name, ing, steps, url, serves, mins, macros: mac };
 }
 function PasteBox({ onFill }) {
   const [t, setT] = useState('');
@@ -8681,8 +8703,10 @@ function ironItems(v) {
   out.push(['Workout' + (strict ? ' 1' : ''), 'w1']);
   if (strict) out.push(['Workout 2' + (v.habits.includes('outdoor') ? ' (outdoors)' : ''), 'w2']);
   if (v.prios.includes('run')) out.push(['One workout is a run or cardio']);
-  if (v.prios.includes('muscle')) out.push(['Hit your protein goal', 'protein']);
-  if (v.prios.includes('fat')) out.push(['Stay at or under your calories', 'kcal']);
+  /* these tick from the food log, so only when there's a goal to compare with; otherwise you tick them */
+  const G = typeof ML === 'function' ? ML().goals || {} : {};
+  if (v.prios.includes('muscle')) out.push(G.p ? ['Hit your protein goal', 'protein'] : ['Eat enough protein']);
+  if (v.prios.includes('fat')) out.push(G.kcal ? ['Stay at or under your calories', 'kcal'] : ['Stick to your calories']);
   if (!v.prios.includes('fat') && !v.prios.includes('muscle')) out.push(['Stick to your eating plan']);
   for (const [k, l] of IRON_HABITS) if (v.habits.includes(k) && !(k === 'outdoor' && strict)) out.push([k === 'water' ? 'Drink ' + v.water : k === 'read' ? 'Read ' + v.pages + ' pages' : l]);
   return out;
@@ -8691,17 +8715,22 @@ function IronSetupSheet({ ver: ver0 }) {
   const [v, setV] = useState({ ver: ver0 || 'iron75', prios: ['habits'], habits: IRON_HABITS.filter(h => h[2]).map(h => h[0]).filter(k => (ver0 || 'iron75') === 'iron75' || !['outdoor', 'photo', 'alcohol'].includes(k)), water: (ver0 || 'iron75') === 'iron75' ? 'a gallon of water' : '3 liters of water', pages: 10 });
   const tog = (k, x) => setV({ ...v, [k]: v[k].includes(x) ? v[k].filter(y => y !== x) : v[k].concat(x) });
   const items = ironItems(v); const strict = v.ver === 'iron75';
+  const G = typeof ML === 'function' ? ML().goals || {} : {}; const noGoals = (v.prios.includes('muscle') && !G.p) || (v.prios.includes('fat') && !G.kcal);
+  const startNow = () => { const d = { ...challengeFrom({ name: strict ? 'Iron 75' : 'Iron 75 Lite', days: 75, restart: strict, rest: strict ? 0 : 1, items }), light: true, prios: v.prios };
+    commit(m => { m.meta.challenges[d.id] = d; }, 'meta', 300); closeSheet(); UI.setTab('train'); UI.setView({ type: 'challenge', id: d.id }); showToast({ kind: 'info', text: d.name + ' started. Day 1 is today.' }); };
   const start = () => openChallengeDraft({ ...challengeFrom({ name: strict ? 'Iron 75' : 'Iron 75 Lite', days: 75, restart: strict, rest: strict ? 0 : 1, items }), light: true, prios: v.prios });
   return html`<${Sheet} label="Set up Iron 75"><h2>Set up ${strict ? 'Iron 75' : 'Iron 75 Lite'}</h2>
     <div class="stack" style="gap:12px;margin-top:8px">
       <div class="seg wide" role="group" aria-label="Version">${[['iron75', 'Iron 75 (strict)'], ['iron75lite', 'Lite']].map(([k, l]) => html`<button key=${k} id=${'iv-' + k} class=${v.ver === k ? 'on' : ''} aria-pressed=${v.ver === k} onClick=${() => setV({ ...v, ver: k, water: k === 'iron75' ? 'a gallon of water' : '3 liters of water' })}>${l}</button>`)}</div>
       <p class="small muted">${strict ? 'Two workouts a day, no rest days; miss a day and it starts over. A sick or hurt day can be a light day.' : 'One workout a day with a rest day each week. A missed day is counted but doesn’t reset it.'}</p>
       <div><span class="lbl">What matters most to you?</span><div class="cat-pick">${IRON_PRIOS.map(([k, l]) => html`<button key=${k} id=${'ip-' + k} class=${'chip' + (v.prios.includes(k) ? ' on' : '')} aria-pressed=${v.prios.includes(k)} onClick=${() => tog('prios', k)}>${l}</button>`)}</div>
-        <p class="small muted">Muscle adds a protein goal and fat loss a calorie limit, both ticked from your food log.</p></div>
+        <p class="small muted">Muscle adds a protein goal and fat loss a calorie limit, both ticked from your food log.</p>
+        ${noGoals ? html`<p class="small" id="iron-nogoals">You don’t have ${!G.p && !G.kcal ? 'meal targets' : !G.p ? 'a protein goal' : 'a calorie goal'} yet, so ${v.prios.includes('muscle') && v.prios.includes('fat') ? 'those items' : 'that item'} can’t tick itself: you’ll tick it by hand${strict ? ', and forgetting would restart the challenge' : ''}. <button class="btn text" id="iron-meals" style="padding:0;min-height:0" onClick=${() => openSheet({ type: 'mealTargets' })}>Set up meals first</button></p>` : null}</div>
       <div><span class="lbl">Daily habits</span><div class="cat-pick">${IRON_HABITS.map(([k, l]) => html`<button key=${k} id=${'ih-' + k} class=${'chip' + (v.habits.includes(k) ? ' on' : '')} aria-pressed=${v.habits.includes(k)} onClick=${() => tog('habits', k)}>${l}</button>`)}</div></div>
       ${v.habits.includes('water') ? html`<div><span class="lbl">Water</span><div class="cat-pick">${['a gallon of water', '3 liters of water', '2 liters of water'].map(w => html`<button key=${w} class=${'chip' + (v.water === w ? ' on' : '')} onClick=${() => setV({ ...v, water: w })}>${w.replace(' of water', '')}</button>`)}</div></div>` : null}
       <div class="card"><div style="font-weight:700">Your daily checklist</div><ul class="small" id="iron-preview" style="margin:6px 0 0 18px">${items.map(([n]) => html`<li key=${n}>${n}</li>`)}</ul></div>
-      <button class="btn primary wide" id="iron-go" onClick=${start}>Review and start</button>
+      <button class="btn primary wide" id="iron-start" onClick=${startNow}>Start ${strict ? 'Iron 75' : 'Iron 75 Lite'}</button>
+      <button class="btn wide" id="iron-go" onClick=${start}>Change the list first</button>
       <p class="small faint">Strict challenges are hard on recovery. Take a light day if you feel run down, and skip anything that hurts. Not medical advice.</p></div><//>`;
 }
 /* ---- adaptive checks ---- */
@@ -8771,20 +8800,37 @@ const GP_TPL = [
 ];
 const GP_GOALS = [['recomp', 'Lose fat and build muscle'], ['mass', 'Get bigger'], ['strength', 'Lift more weight'], ['lose', 'Lose fat'], ['speed', 'Get faster and fitter'], ['sport', 'Get better at a sport']];
 const GP_SPORTS = [['box', 'Boxing / MMA'], ['swim', 'Swimming'], ['row', 'Rowing'], ['run', 'Running'], ['bike', 'Cycling'], ['other', 'Another sport']];
-const GP_GEAR = [['gym', 'Full gym'], ['db', 'Dumbbells'], ['bw', 'Bodyweight only']];
+const GP_GEAR = [['gym', 'Full gym'], ['db', 'Dumbbells'], ['bar', 'Bodyweight + pull-up bar'], ['bw', 'Bodyweight only']];
 const GP_CARDIO = [['row', 'Rower'], ['pool', 'Pool'], ['bike', 'Bike'], ['airbike', 'Assault bike'], ['road', 'Treadmill or road'], ['track', 'Track'], ['hills', 'Hills'], ['sled', 'Sled'], ['rope', 'Jump rope'], ['bag', 'Heavy bag']];
 const GP_JOINTS = [['knees', 'Knees'], ['back', 'Lower back'], ['shoulders', 'Shoulders'], ['wrists', 'Wrists'], ['hips', 'Hips']];
 const GP_SWAP = {
   db: { 'Back Squat': 'Goblet Squat', 'Front Squat': 'Goblet Squat', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Deadlift': 'Dumbbell Romanian Deadlift', 'Romanian Deadlift': 'Dumbbell Romanian Deadlift', 'Barbell Row': 'Dumbbell Row', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Lat Pulldown': 'Pull-Up', 'Seated Cable Row': 'Dumbbell Row', 'Leg Press': 'Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Dumbbell Step-Up', 'Face Pulls': 'Dumbbell Rear Delt Fly', 'Tricep Pushdowns': 'Dumbbell Overhead Tricep Extension', 'Cable Fly': 'Push-Ups', 'Skull Crushers': 'Dumbbell Overhead Tricep Extension', 'Kettlebell Swing': 'Dumbbell Romanian Deadlift' },
-  bw: { 'Back Squat': 'Air Squat', 'Front Squat': 'Bodyweight Bulgarian Split Squat', 'Goblet Squat': 'Air Squat', 'Bench Press': 'Push-Ups', 'Dumbbell Bench Press': 'Push-Ups', 'Incline Barbell Bench Press': 'Push-Ups', 'Incline Dumbbell Press': 'Push-Ups', 'Deadlift': 'Single-Leg Glute Bridge', 'Romanian Deadlift': 'Single-Leg Glute Bridge', 'Dumbbell Romanian Deadlift': 'Single-Leg Glute Bridge', 'Barbell Row': 'Pull-Up', 'Dumbbell Row': 'Pull-Up', 'Seated Cable Row': 'Pull-Up', 'Lat Pulldown': 'Pull-Up', 'Overhead Barbell Press': 'Push-Ups', 'Seated Dumbbell Overhead Press': 'Push-Ups', 'Leg Press': 'Bodyweight Bulgarian Split Squat', 'Bulgarian Split Squat': 'Bodyweight Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Wall Sit', 'Dumbbell Hip Thrust': 'Glute Bridge', 'Lateral Raises': 'Scapular Push-Up', 'Face Pulls': 'Prone Y-T-W Raise', 'Dumbbell Rear Delt Fly': 'Prone Y-T-W Raise', 'Cable Fly': 'Push-Ups', 'Tricep Pushdowns': 'Dips', 'Skull Crushers': 'Dips', 'Dumbbell Overhead Tricep Extension': 'Dips', 'Dumbbell Curl': 'Pull-Up', 'Hammer Curls': 'Pull-Up', 'Kettlebell Swing': 'Burpee Broad Jumps', 'Farmer\'s Carry': 'Bear Crawl', 'Dumbbell Step-Up': 'Bodyweight Bulgarian Split Squat', 'Calf Raises': 'Calf Raises', 'Incline Walk': 'Incline Walk' },
+  bw: { 'Back Squat': 'Air Squat', 'Front Squat': 'Bodyweight Bulgarian Split Squat', 'Goblet Squat': 'Air Squat', 'Bench Press': 'Push-Ups', 'Dumbbell Bench Press': 'Push-Ups', 'Incline Barbell Bench Press': 'Push-Ups', 'Incline Dumbbell Press': 'Push-Ups', 'Deadlift': 'Single-Leg Glute Bridge', 'Romanian Deadlift': 'Single-Leg Glute Bridge', 'Dumbbell Romanian Deadlift': 'Single-Leg Glute Bridge', 'Barbell Row': 'Inverted Row', 'Dumbbell Row': 'Inverted Row', 'Seated Cable Row': 'Inverted Row', 'Lat Pulldown': 'Inverted Row', 'Pull-Up': 'Inverted Row', 'Hanging Leg Raises': 'Reverse Crunch', 'Overhead Barbell Press': 'Push-Ups', 'Seated Dumbbell Overhead Press': 'Push-Ups', 'Leg Press': 'Bodyweight Bulgarian Split Squat', 'Bulgarian Split Squat': 'Bodyweight Bulgarian Split Squat', 'Lying Leg Curl': 'Slider Hamstring Curl', 'Leg Extension': 'Wall Sit', 'Dumbbell Hip Thrust': 'Glute Bridge', 'Lateral Raises': 'Scapular Push-Up', 'Face Pulls': 'Prone Y-T-W Raise', 'Dumbbell Rear Delt Fly': 'Prone Y-T-W Raise', 'Cable Fly': 'Push-Ups', 'Tricep Pushdowns': 'Bench Dips', 'Skull Crushers': 'Bench Dips', 'Dumbbell Overhead Tricep Extension': 'Bench Dips', 'Dumbbell Curl': 'Inverted Row', 'Hammer Curls': 'Inverted Row', 'Kettlebell Swing': 'Burpee Broad Jumps', 'Farmer\'s Carry': 'Bear Crawl', 'Dumbbell Step-Up': 'Bodyweight Bulgarian Split Squat', 'Calf Raises': 'Calf Raises', 'Incline Walk': 'Incline Walk' },
+  get bar() { return { ...this.bw, 'Barbell Row': 'Pull-Up', 'Dumbbell Row': 'Pull-Up', 'Seated Cable Row': 'Pull-Up', 'Lat Pulldown': 'Pull-Up', 'Pull-Up': 'Pull-Up', 'Hanging Leg Raises': 'Hanging Leg Raises', 'Dumbbell Curl': 'Chin-Up', 'Hammer Curls': 'Chin-Up' }; }
 };
-const GP_JOINT = {
-  knees: { 'Back Squat': 'Leg Press', 'Front Squat': 'Dumbbell Hip Thrust', 'Bulgarian Split Squat': 'Dumbbell Step-Up', 'Leg Extension': 'Terminal Knee Extension', 'Broad Jump': 'Kettlebell Swing', 'Air Squat': 'Glute Bridge', 'Bodyweight Bulgarian Split Squat': 'Glute Bridge' },
-  back: { 'Deadlift': 'Dumbbell Hip Thrust', 'Romanian Deadlift': 'Lying Leg Curl', 'Barbell Row': 'Seated Cable Row', 'Back Squat': 'Leg Press', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Kettlebell Swing': 'Glute Bridge' },
-  shoulders: { 'Overhead Barbell Press': 'Incline Dumbbell Press', 'Seated Dumbbell Overhead Press': 'Lateral Raises', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Skull Crushers': 'Tricep Pushdowns', 'Pull-Up': 'Lat Pulldown', 'Dips': 'Tricep Pushdowns' },
+/* Joint swaps by gear, applied after the gear swap so they never bring back gear you don't have. [name, cue] adds a cue. */
+const GP_JOINT_GYM = {
+  knees: { 'Back Squat': ['Box Squat', 'Sit back to a box at or above knee height.'], 'Front Squat': 'Dumbbell Hip Thrust', 'Leg Press': ['Leg Press', 'Shorter range: stop before your knees bend past 90°.'], 'Bulgarian Split Squat': 'Dumbbell Hip Thrust', 'Leg Extension': 'Terminal Knee Extension', 'Broad Jump': 'Kettlebell Swing' },
+  back: { 'Deadlift': 'Dumbbell Hip Thrust', 'Romanian Deadlift': 'Lying Leg Curl', 'Barbell Row': 'Seated Cable Row', 'Back Squat': 'Leg Press', 'Box Squat': 'Leg Press', 'Overhead Barbell Press': 'Seated Dumbbell Overhead Press', 'Kettlebell Swing': 'Glute Bridge' },
+  shoulders: { 'Overhead Barbell Press': 'Incline Dumbbell Press', 'Seated Dumbbell Overhead Press': 'Incline Dumbbell Press', 'Bench Press': 'Dumbbell Bench Press', 'Incline Barbell Bench Press': 'Incline Dumbbell Press', 'Skull Crushers': 'Tricep Pushdowns', 'Pull-Up': 'Lat Pulldown', 'Dips': 'Tricep Pushdowns' },
   wrists: { 'Front Squat': 'Goblet Squat', 'Barbell Curl': 'Hammer Curls', 'Dumbbell Curl': 'Hammer Curls', 'Skull Crushers': 'Tricep Pushdowns', 'Push-Ups': 'Machine Chest Press' },
   hips: { 'Bulgarian Split Squat': 'Leg Press', 'Deadlift': 'Romanian Deadlift', 'Broad Jump': 'Kettlebell Swing' },
 };
+const GP_JOINT_DB = {
+  knees: { 'Goblet Squat': ['Goblet Box Squat', 'Sit back to a box at or above knee height.'], 'Bulgarian Split Squat': 'Dumbbell Hip Thrust', 'Dumbbell Step-Up': 'Dumbbell Hip Thrust', 'Broad Jump': 'Dumbbell Romanian Deadlift' },
+  back: { 'Dumbbell Romanian Deadlift': 'Dumbbell Hip Thrust', 'Dumbbell Row': 'Chest-Supported Dumbbell Row' },
+  shoulders: { 'Seated Dumbbell Overhead Press': 'Incline Dumbbell Press', 'Dumbbell Bench Press': 'Dumbbell Floor Press', 'Pull-Up': 'Chest-Supported Dumbbell Row', 'Dumbbell Overhead Tricep Extension': 'Dumbbell Kickback' },
+  wrists: { 'Dumbbell Curl': 'Hammer Curls', 'Push-Ups': ['Push-Ups', 'On fists or push-up handles so your wrists stay straight.'] },
+  hips: { 'Bulgarian Split Squat': ['Goblet Box Squat', 'Sit back to a box at or above knee height.'], 'Broad Jump': 'Dumbbell Romanian Deadlift' },
+};
+const GP_JOINT_BW = {
+  knees: { 'Air Squat': 'Glute Bridge', 'Bodyweight Bulgarian Split Squat': 'Single-Leg Glute Bridge', 'Wall Sit': ['Wall Sit', 'Only as deep as feels fine.'], 'Burpee Broad Jumps': 'Mountain Climbers', 'Broad Jump': 'Glute Bridge' },
+  back: { 'Burpee Broad Jumps': 'Bear Crawl' },
+  shoulders: { 'Push-Ups': ['Push-Ups', 'Elbows about 45° from your sides; stop short of any pinch.'], 'Pull-Up': 'Inverted Row', 'Chin-Up': 'Inverted Row', 'Bench Dips': 'Close-Grip Push-Ups', 'Hanging Leg Raises': 'Reverse Crunch' },
+  wrists: { 'Push-Ups': ['Push-Ups', 'On fists or push-up handles so your wrists stay straight.'], 'Close-Grip Push-Ups': ['Close-Grip Push-Ups', 'On fists or push-up handles so your wrists stay straight.'], 'Bear Crawl': 'Dead Bug' },
+  hips: { 'Bodyweight Bulgarian Split Squat': 'Glute Bridge', 'Broad Jump': 'Glute Bridge' },
+};
+const jointMap = gear => gear === 'db' ? GP_JOINT_DB : gear === 'bw' || gear === 'bar' ? GP_JOINT_BW : GP_JOINT_GYM;
 /* Conditioning by mode: [hard day items, easy day items] */
 const GP_COND = {
   row: [[['Rowing Machine (Erg)', 6, '', '500 m hard, 2 minutes easy between.']], [['Rowing Machine (Erg)', 1, '', '20–30 minutes steady; you can still talk.']]],
@@ -8794,6 +8840,7 @@ const GP_COND = {
   hills: [[['Hill Sprints', 8, '', '10–15 seconds up, walk down.']], [['Easy Run', 1, '', '25–35 minutes; you can still talk.']]],
   bike: [[['Bike Sprints', 8, '', '20 seconds hard, 100 seconds easy.']], [['Bike', 1, '', '30–45 minutes steady.']]],
   airbike: [[['Bike Sprints', 10, '', '15 seconds all-out, 45 seconds easy.']], [['Bike', 1, '', '25–30 minutes steady.']]],
+  shadow: [[['Shadowboxing Rounds', 8, '', '2 minutes fast and sharp, 1 minute rest.'], ['Burpees', 3, '10', '']], [['Shadowboxing Rounds', 6, '', '3 minute rounds, easy pace, sharp technique.'], ['Easy Run', 1, '', '20 minutes easy.']]],
   box: [[['Heavy Bag Rounds', 6, '', '2 minutes hard, 1 minute rest.'], ['Jump Rope', 3, '', '2 minutes.']], [['Shadowboxing Rounds', 6, '', '3 minute rounds, easy pace, sharp technique.'], ['Easy Run', 1, '', '20 minutes easy.']]],
   sled: [[['Sled Push', 8, '', '20 m hard, walk back.']], [['Incline Walk', 1, '', '30 minutes.']]],
   rope: [[['Jump Rope', 10, '', '30 seconds fast, 30 seconds easy.']], [['Incline Walk', 1, '', '30 minutes.']]],
@@ -8803,12 +8850,13 @@ const GP_COND = {
 function condMode(a) {
   const c = a.cardio || []; const knees = (a.joints || []).includes('knees');
   const sport = { box: 'box', swim: 'swim', row: 'row', run: 'run', bike: 'bike' }[a.goal === 'sport' ? a.sport : ''];
-  if (sport && (sport === 'box' || sport === 'run' || c.includes(sport === 'swim' ? 'pool' : sport))) return knees && sport === 'run' ? 'bike' : sport;
+  if (sport === 'box') return c.includes('bag') ? 'box' : 'shadow';
+  if (sport && (sport === 'run' || c.includes(sport === 'swim' ? 'pool' : sport))) return knees && sport === 'run' ? 'bike' : sport;
   if (a.goal === 'speed' && !knees) { if (c.includes('track')) return 'track'; if (c.includes('hills')) return 'hills'; }
   for (const [k, m] of [['row', 'row'], ['airbike', 'airbike'], ['bike', 'bike'], ['pool', 'swim'], ['road', knees ? 'walk' : 'run'], ['track', knees ? 'walk' : 'track'], ['sled', 'sled'], ['rope', knees ? 'walk' : 'rope'], ['bag', 'box']]) if (c.includes(k)) return m;
   return knees ? 'walk' : 'run';
 }
-const CMODE_NAME = { row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
+const CMODE_NAME = { shadow: 'shadowboxing', row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
 const phaseByDate = s => { const t = ymd(new Date()); return t >= s.cutTo ? 'keep' : t >= s.cutFrom ? 'cut' : t >= s.bulkFrom ? 'bulk' : 'keep'; };
 const seasonOn = a => !!(a && a.season && a.season.on && (a.goal === 'recomp' || a.goal === 'mass')); /* the switch only shows for these goals */
 const gpPhaseNow = a => (seasonOn(a) ? (a.season.cur || phaseByDate(a.season)) : null);
@@ -8820,17 +8868,18 @@ function pickPlanFor(a) {
   if (a.goal === 'strength') return 'gp-strength3';
   if (a.goal === 'lose') return 'gp-cut3';
   if (a.goal === 'mass') return days >= 4 ? 'gp-bulk4' : 'gp-recomp3';
-  if (a.goal === 'speed' || a.goal === 'sport') return days >= 4 ? 'gp-hybrid' : 'gp-recomp3';
+  if (a.goal === 'speed' || a.goal === 'sport') return 'gp-hybrid';
   return days >= 4 ? 'gp-recomp4' : 'gp-recomp3';
 }
 const GP_MAX_ITEMS = { 30: 4, 45: 5, 60: 6, 75: 9 };
-/* Adjust one day's raw items for gear, joints, minutes and phase. Returns { items, swaps } */
+const GP_MAX_SETS = { 30: 11, 45: 15, 60: 20 };   /* about 2½ minutes a set with rest */
+/* Adjust one day's raw items for gear, joints, minutes and phase. Returns { items, swaps } (swaps: [from, to, joint]) */
 function adaptItems(items, a) {
-  const swaps = []; const out = [];
-  for (const [n0, s0, r, cue, role] of items) {
-    let n = n0;
-    for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) { swaps.push([n, to, j]); n = to; } }
-    const g = GP_SWAP[a.gear]; if (g && g[n] && g[n] !== n) { n = g[n]; for (const j of a.joints || []) { const to = (GP_JOINT[j] || {})[n]; if (to) n = to; } }
+  const swaps = []; const out = []; const J = jointMap(a.gear); const G = GP_SWAP[a.gear] || {};
+  for (const [n0, s0, r, cue0, role] of items) {
+    let n = G[n0] || n0; let cue = cue0;
+    for (const j of a.joints || []) { const v = (J[j] || {})[n]; if (!v) continue; const [to, c] = Array.isArray(v) ? v : [v, ''];
+      if (to !== n) swaps.push([n, to, j]); n = to; if (c && !String(cue).includes(c)) cue = cue ? cue + ' ' + c : c; }
     if (out.some(x => x[0] === n)) continue;
     let s = s0; const ph = gpPhaseNow(a) || (a.goal === 'mass' ? 'bulk' : a.goal === 'lose' ? 'cut' : null);
     if (role === 'a' && s > 1) s = ph === 'bulk' ? Math.min(4, s + 1) : ph === 'cut' ? Math.max(2, s - 1) : s;
@@ -8838,24 +8887,38 @@ function adaptItems(items, a) {
   }
   const cap = GP_MAX_ITEMS[a.mins] || 6; const kept = out.slice(0, cap);
   if (+a.mins >= 75) kept.forEach(x => { if (x[4] === 'm') x[1] = Math.min(6, x[1] + 1); });
-  return { items: kept, swaps };
+  /* short workouts: trim sets (accessories to 2, then main lifts to 3), then the last exercise */
+  const maxSets = GP_MAX_SETS[a.mins]; const lifts = x => x[4] !== 'c';
+  while (maxSets && kept.filter(lifts).reduce((t, x) => t + x[1], 0) > maxSets) {
+    const x = kept.filter(y => lifts(y) && y[4] === 'a' && y[1] > 2).sort((p, q) => q[1] - p[1])[0] || kept.filter(y => lifts(y) && y[4] === 'm' && y[1] > 3).sort((p, q) => q[1] - p[1])[0];
+    if (x) x[1]--; else if (kept.length > 2) kept.pop(); else break;
+  }
+  return { items: kept, swaps: swaps.filter(([f, t]) => kept.some(x => x[0] === t)) };
 }
 /* Your own copy of the plan */
+const condDay = (mode, hard) => { const its = GP_COND[mode][hard ? 0 : 1].map(x => [...x, 'c']);
+  return [(hard ? 'Conditioning: intervals' : 'Conditioning: steady') + ' (' + CMODE_NAME[mode] + ')', ['Conditioning'], its.concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.', 'a']])]; };
 function buildGoalPlan(a) {
   const T = GP_TPL.find(t => t.id === pickPlanFor(a)); const mode = condMode(a); const allSwaps = [];
-  const daysRaw = T.t.map(d => {
-    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') { const hard = d[0] === 'COND-HARD'; const its = GP_COND[mode][hard ? 0 : 1].map(x => [...x, 'c']);
-      return [(hard ? 'Conditioning: intervals' : 'Conditioning: steady') + ' (' + CMODE_NAME[mode] + ')', ['Conditioning'], its.concat(hard ? [] : [['Dead Bug', 2, '10', 'Each side.', 'a']])]; }
+  const want = Math.max(1, Math.min(7, +a.days || 3));
+  /* fit the template to your days: the hybrid keeps strength A and the interval day first */
+  const pri = T.id === 'gp-hybrid' ? [0, 3, 1, 2, 4] : T.t.map((_, i) => i);
+  const keepIdx = pri.slice(0, Math.min(want, T.t.length)).sort((x, y) => x - y);
+  const daysRaw = keepIdx.map(i => T.t[i]).map(d => {
+    if (d[0] === 'COND-HARD' || d[0] === 'COND-EASY') return condDay(mode, d[0] === 'COND-HARD');
     const { items, swaps } = adaptItems(d[2], a); allSwaps.push(...swaps); return [d[0], d[1], items];
   });
-  /* Wanted conditioning but the plan has none, and there's a free day: add one */
-  const wantsCond = a.goal === 'speed' || a.goal === 'sport' || a.goal === 'lose' || gpPhaseNow(a) === 'cut';
-  if (wantsCond && T.id !== 'gp-hybrid' && (+a.days || 3) > daysRaw.length) daysRaw.push(['Conditioning (' + CMODE_NAME[mode] + ')', ['Conditioning'], GP_COND[mode][a.goal === 'lose' || gpPhaseNow(a) === 'cut' ? 1 : 0].map(x => [...x, 'c'])]);
+  /* more days than the plan has: conditioning days (steady first while cutting, bulking or losing fat) */
+  const easyFirst = a.goal === 'lose' || a.goal === 'mass' || !!gpPhaseNow(a);
+  for (let k = 0; daysRaw.length < want && k < 4; k++) daysRaw.push(condDay(mode, easyFirst ? k % 2 === 1 : k % 2 === 0));
   const days = daysRaw.map(([dn, tags, its], i) => planDay('gp-mine', i + 1, dn, tags, its.map(([n, s, r, cue]) => [n, s, r, cue])));
   const uniq = []; for (const s of allSwaps) if (!uniq.some(u => u[0] === s[0] && u[1] === s[1])) uniq.push(s);
   const jn = Object.fromEntries(GP_JOINTS);
-  return { id: 'gp-mine', name: 'My ' + T.name, source: 'mine', createdAt: Date.now(), days, base: T.id, mode,
-    note: T.why + (uniq.length ? ' Joint care: ' + uniq.map(([f, t, j]) => t + ' instead of ' + f + ' (' + jn[j].toLowerCase() + ')').join(', ') + '.' : '') };
+  const want0 = { swim: ['swim', 'a pool'], row: ['row', 'a rower'], bike: ['bike', 'a bike'], box: ['box', 'a heavy bag'] }[a.goal === 'sport' ? a.sport : ''];
+  const gearNote = want0 && mode !== want0[0] ? ' You didn’t pick ' + want0[1] + ', so conditioning uses ' + CMODE_NAME[mode] + '.' : '';
+  const name = a.goal === 'mass' && T.id === 'gp-recomp3' && !gpPhaseNow(a) ? 'Lean Bulk 3-Day' : (T.id === 'gp-hybrid' && days.length !== 5 ? T.name.replace(/ 3\+2$/, ' ' + days.length + '-Day') : T.name);
+  return { id: 'gp-mine', name: 'My ' + name, source: 'mine', createdAt: Date.now(), days, base: T.id, mode,
+    note: T.why + gearNote + (uniq.length ? ' Joint care: ' + uniq.map(([f, t, j]) => t + ' instead of ' + f + ' (' + jn[j].toLowerCase() + ')').join(', ') + '.' : '') };
 }
 /* Keep your program: what to add around it */
 function keepPlanFor(a) {
@@ -8872,8 +8935,8 @@ function keepPlanFor(a) {
   return { pid, r, free, mode, addon: free > 0 ? addon : null, tips };
 }
 function applyGoal(a, d) {
-  const prevProg = programId();
-  if (seasonOn(a) && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
+  const prevProg = programId(); const prevMine = S.meta.routines['gp-mine'] ? clone(S.meta.routines['gp-mine']) : null;
+  if (seasonOn(a)) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
   commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
   if (a.keep && prevProg && prevProg !== 'self') {
     const k = keepPlanFor(a);
@@ -8884,7 +8947,8 @@ function applyGoal(a, d) {
   const r = d || buildGoalPlan(a);
   commit(st => { st.meta.routines[r.id] = r; }, 'meta');
   setProgram(r.id);
-  showToast({ kind: 'info', ms: 7000, text: 'Following ' + r.name, action: prevProg && prevProg !== r.id ? 'Undo' : null, fn: () => setProgram(prevProg) });
+  const undo = prevMine || (prevProg && prevProg !== r.id);
+  showToast({ kind: 'info', ms: 9000, text: 'Following ' + r.name, action: undo ? 'Undo' : null, fn: () => { if (prevMine) commit(st => { st.meta.routines['gp-mine'] = prevMine; }, 'meta'); setProgram(prevProg || r.id); showToast({ kind: 'info', text: 'Back to ' + ((getRoutine(prevProg) || {}).name || 'your plan') }); } });
 }
 /* Meal goal that goes with the training goal */
 function mealGoalFor(a) {
@@ -8905,6 +8969,8 @@ function GoalSetupSheet({ welcome } = {}) {
   const chips = (k, opts, multi) => html`<div class="cat-pick">${opts.map(([v, l]) => { const on = multi ? a[k].includes(v) : a[k] === v; return html`<button key=${v} id=${'gs-' + k + '-' + v} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => multi ? tog(k, v) : set(k, v)}>${l}</button>`; })}</div>`;
   const seg = (k, opts) => html`<div class="seg wide" role="group">${opts.map(([v, l]) => html`<button key=${v} id=${'gs-' + k + '-' + v} class=${a[k] === v ? 'on' : ''} aria-pressed=${a[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const bulky = a.goal === 'recomp' || a.goal === 'mass';
+  const sd = a.season; const badDates = bulky && sd.on ? (!sd.bulkFrom || !sd.cutFrom || !sd.cutTo ? 'Fill in all three dates.' : sd.cutFrom <= sd.bulkFrom ? 'The cut has to start after the bulk does.' : sd.cutTo <= sd.cutFrom ? 'The cut has to end after it starts.' : '') : '';
+  const mine0 = S.meta.routines['gp-mine'];
   const keep = a.keep && hasProg; const plan = keep ? null : buildGoalPlan(a); const kp = keep ? keepPlanFor(a) : null;
   const finish = toMeals => { applyGoal(a, plan); if (toMeals) { const mg = mealGoalFor(a); setTimeout(() => openSheet({ type: 'mealTargets', preset: mg }), 80); } else closeSheet(); };
   const steps = ['Goal', 'Time', 'Gear', 'Your plan'];
@@ -8916,10 +8982,11 @@ function GoalSetupSheet({ welcome } = {}) {
       <div><span class="lbl">What do you want most?</span>${chips('goal', GP_GOALS)}</div>
       ${a.goal === 'sport' ? html`<div><span class="lbl">Which sport?</span>${chips('sport', GP_SPORTS)}</div>` : null}
       ${bulky ? html`<label class="toggle-row" for="gs-season"><span><span>Bulk this winter, cut in spring</span><span class="d">Eat a little more and train more now (about ½ lb a week), then lose the extra fat (about 1 lb a week). Ironwood asks before switching.</span></span><input type="checkbox" role="switch" id="gs-season" checked=${a.season.on} onChange=${e => setSeason('on', e.target.checked)}/></label>` : null}
-      ${bulky && a.season.on ? html`<div class="row" style="gap:8px">${[['bulkFrom', 'Bulk from'], ['cutFrom', 'Cut from'], ['cutTo', 'Cut until']].map(([k, l]) => html`<div key=${k} style="flex:1;min-width:0"><label class="lbl" for=${'gs-' + k}>${l}</label><input class="field" type="date" id=${'gs-' + k} value=${a.season[k]} onInput=${e => setSeason(k, e.target.value)}/></div>`)}</div>` : null}`
+      ${bulky && a.season.on ? html`<div class="stack" style="gap:8px">${[['bulkFrom', 'Bulk from'], ['cutFrom', 'Cut from'], ['cutTo', 'Cut until']].map(([k, l]) => html`<div key=${k} class="row" style="gap:10px"><label class="lbl" style="flex:0 0 84px;margin:0" for=${'gs-' + k}>${l}</label><input class="field" style="flex:1;min-width:0" type="date" id=${'gs-' + k} value=${a.season[k]} onInput=${e => setSeason(k, e.target.value)}/></div>`)}
+        ${badDates ? html`<p class="small" id="gs-date-bad" style="color:var(--stop)">${badDates}</p>` : null}</div>` : null}`
     : step === 1 ? html`
       ${hasProg ? html`<div><span class="lbl">You follow ${getRoutine(pid).name}</span><div class="seg wide" role="group"><button id="gs-keep" class=${a.keep ? 'on' : ''} aria-pressed=${a.keep} onClick=${() => set('keep', true)}>Keep it and adjust</button><button id="gs-new" class=${!a.keep ? 'on' : ''} aria-pressed=${!a.keep} onClick=${() => set('keep', false)}>Give me a new plan</button></div></div>` : null}
-      <div><span class="lbl">Days a week you can train</span>${seg('days', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6']])}</div>
+      <div><span class="lbl">Days a week you can train</span>${seg('days', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']])}</div>
       <div><span class="lbl">Minutes per workout</span>${seg('mins', [[30, '30'], [45, '45'], [60, '60'], [75, '75+']])}</div>`
     : step === 2 ? html`
       <div><span class="lbl">What can you lift with?</span>${chips('gear', GP_GEAR)}</div>
@@ -8931,11 +8998,12 @@ function GoalSetupSheet({ welcome } = {}) {
       : html`<div class="eyebrow">Your plan</div><div style="font-weight:700" id="gs-name">${plan.name}</div><p class="small muted" style="margin:2px 0 6px">${plan.note}</p>
         <div class="stack" style="gap:4px" id="gs-days">${plan.days.map(dd => html`<div key=${dd.id} class="small"><b>${dd.name}</b><span class="muted"> · ${dd.items.map(it => exName(it.ex)).join(', ')}</span></div>`)}</div>`}
       ${a.season.on && bulky ? html`<p class="small" style="margin-top:8px">Season: bulk until ${shortDate(parseYmd(a.season.cutFrom))}, then cut until ${shortDate(parseYmd(a.season.cutTo))}. Ironwood asks before each switch.</p>` : null}
+      ${!keep && mine0 ? html`<p class="small" id="gs-replaces" style="margin-top:8px">This replaces your current ${mine0.name}${mine0.updatedAt || mine0.edited ? ', including your changes to it' : ''}. You can undo right after.</p>` : null}
       <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
       <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
       <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
     <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" id="gs-cancel" onClick=${closeSheet}>${welcome ? 'Skip for now' : 'Cancel'}</button>`}
-      ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
+      ${step < 3 ? html`<button class="btn primary" style="flex:2" id="gs-next" disabled=${step === 0 && !!badDates} onClick=${() => setStep(step + 1)}>Next</button>` : null}</div></div><//>`;
 }
 /* ---- season phases: ask before switching ---- */
 function phaseDue() {

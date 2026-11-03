@@ -26,7 +26,7 @@ async def main():
         # ---- Lift goals
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(200)
         check('no goals card until you set one', await pg.locator('#goals-card').count() == 0)
-        await pg.locator('.tabs button', has_text='Stats').click(); await pg.wait_for_timeout(200)
+        await pg.evaluate("lsSet('statsTab', 'overall')"); await pg.locator('.tabs button', has_text='Progress').click(); await pg.wait_for_timeout(200)
         await pg.click('#open-goal'); await pg.wait_for_timeout(200)
         check('goal sheet picks your logged lift', await ev("document.querySelector('#lg-ex').value") == sq)
         now_txt = await pg.inner_text('.sheet')

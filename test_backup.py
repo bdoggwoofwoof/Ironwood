@@ -65,7 +65,7 @@ async def main():
         check('settings restored on a fresh install', st['meta']['settings']['goal'] == 5 and st['meta']['settings']['rest'] == 150, st['meta']['settings'].get('goal'))
         check('bodyweight and day marks restored', len(st['meta']['bw']) == 1 and st['meta']['dayMarks'].get('2026-10-02') == 'rest')
         await pb.locator('.tab', has_text='Train').click(); await pb.wait_for_timeout(200)
-        await pb.locator('.topsw button', has_text='History').click(); await pb.wait_for_timeout(300)
+        await pb.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pb.wait_for_timeout(300)
         check('History shows restored workouts', await pb.locator('.log-item').count() == 3)
         await profile(pb)
         await pb.get_by_role('button', name='Restore').click(); await pb.wait_for_timeout(300)
@@ -93,7 +93,7 @@ async def main():
         check('damaged entries skipped and reported', 'skipped' in toast and 'ok1' in st3['sessions'] and 'noItems' in st3['sessions'] and 'noTime' not in st3['sessions'] and 'junk' not in st3['sessions'], toast)
         check('bad set dropped from a good workout', len(st3['sessions']['ok1']['items'][0]['sets']) == 1)
         await pb.reload(); await pb.wait_for_timeout(1500)
-        await pb.locator('.tab', has_text='Train').click(); await pb.locator('.topsw button', has_text='History').click(); await pb.wait_for_timeout(400)
+        await pb.locator('.tab', has_text='Train').click(); await pb.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pb.wait_for_timeout(400)
         check('app and History open after a damaged restore', await pb.locator('.tabs').count() == 1 and await pb.locator('.log-item').count() >= 4, await pb.locator('.log-item').count())
 
         # Unreadable saved data: a recovery screen, a kept copy, and no overwrite

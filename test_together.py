@@ -16,7 +16,7 @@ async def main():
         await ev("setProgram('bi-5x5')"); await pg.wait_for_timeout(200)
         check('Train offers to add programs alongside', await pg.locator('#add-alongside').count() == 1)
         # add from a program page
-        await pg.locator('.tabs button', has_text='Routines').click(); await pg.click('#care-back'); await pg.wait_for_timeout(200)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.click('#care-back'); await pg.wait_for_timeout(200)
         await pg.click('#alongside'); await pg.wait_for_timeout(200)
         check('program page adds it alongside', await ev("addonIds()") == ['bi-care-back'] and 'Alongside' in await pg.locator('#alongside').inner_text())
         check('...and asks which days', await pg.locator('.sheet', has_text='Which days').count() == 1); await ev("closeSheet()"); await pg.wait_for_timeout(150)

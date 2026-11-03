@@ -1154,6 +1154,8 @@ function normalizeMeta(m) {
   const e = emptyMeta(); m = m ? clone(m) : {};
   const settings = { ...e.settings, ...(m.settings || {}) };
   if (m.settings && !('restSS' in m.settings) && +m.settings.rest === 90) settings.rest = 120; /* old 1:30 default becomes 2:00 */
+  /* Nov 2 builds saved the Build my plan answers over the weekly goal number: move them to settings.plan */
+  if (settings.goal && typeof settings.goal === 'object') { if (!settings.plan) settings.plan = settings.goal; settings.goal = Math.min(7, Math.max(1, +settings.goal.days || 4)); }
   return { ...e, ...m, settings, exercises: m.exercises || {}, routines: m.routines || {}, exUnit: m.exUnit || {}, exRest: m.exRest || {}, exCat: m.exCat || {}, bw: m.bw || [], dayMarks: m.dayMarks || {}, challenges: m.challenges || {}, meals: normMeals(m.meals), timers: m.timers || [], deleted: m.deleted || [], hidden: m.hidden || [] };
 }
 /* A saved workout as the app expects it, or null if it can't be used. Backups and old data pass through here so one
@@ -1929,7 +1931,8 @@ function finishWorkout(opts = {}) {
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
   if (a.run) session.run = { ...a.run };
-  if (a.addons && a.addons.length) session.addons = a.addons.slice();
+  /* an add-on day counts as done only if at least one of its sets was (older workouts without .from still count) */
+  if (a.addons && a.addons.length) { const did = new Set(a.items.filter(it => it.from && it.sets.some(isDone)).map(it => it.from)); const ad = a.addons.filter(x => did.has(x.id) || !a.items.some(it => it.from === x.id)); if (ad.length) session.addons = ad; }
   session.prs = detectPRs(session);
   commit(st => { st.sessions[session.id] = session; st.active = null; st.rest = null; }, ['s_' + session.id, 'active'], 300);
   if (session.run) runFinished(session);
@@ -3092,7 +3095,7 @@ function ProfileScreen() {
       <${StorageNote}/>
     </div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 28ad450</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 79c1128</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3174,7 +3177,7 @@ function buildPhases(c) {
 }
 function tElapsed(T) { const now = Date.now(); return (now - T.startedAt - T.pausedTotal - (T.pausedAt ? now - T.pausedAt : 0)) / 1000; }
 function tLocate(T) { const el = tElapsed(T); let acc = 0; for (let i = 0; i < T.phases.length; i++) { const p = T.phases[i]; if (el < acc + p.secs) return { idx: i, phase: p, into: el - acc, left: acc + p.secs - el, el }; acc += p.secs; } return null; }
-function startInterval(cfg) { const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); lsSave(); S.rerender(); }
+function startInterval(cfg) { if (typeof fRunning === 'function' && fRunning()) { showToast({ kind: 'info', text: 'End your rounds first, so two timers don’t beep at once.' }); return false; } const c = clone(cfg); const phases = buildPhases(c); S.itimer = { cfg: c, phases, total: phases.reduce((a, p) => a + p.secs, 0), startedAt: Date.now(), pausedAt: null, pausedTotal: 0, laps: [], rounds: 0, beeped: {}, done: false }; unlockAudio(); bgTimer(); lsSave(); S.rerender(); }
 function tPause(T) { if (T.pausedAt) { T.pausedTotal += Date.now() - T.pausedAt; T.pausedAt = null; } else T.pausedAt = Date.now(); bgTimer(); S.rerender(); }
 function tSkip(T) { const p = tLocate(T); if (!p) return; T.startedAt -= p.left * 1000; bgTimer(); S.rerender(); }
 function tBack(T) { const p = tLocate(T); if (!p) return; const back = p.into > 2 || p.idx === 0 ? p.into : p.into + T.phases[p.idx - 1].secs; T.startedAt += back * 1000; T.beeped = {}; bgTimer(); S.rerender(); }
@@ -4527,8 +4530,9 @@ function MealsScreen({ view }) {
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
-  if (P.weeks > 1) return r.freezes ? 'Lasts ' + keeps + ' days in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
-  if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + keeps + ' days in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : 'Lasts ' + keeps + ' days in the fridge. Make a second batch midweek.';
+  if (P.weeks > 1) return r.freezes ? 'Lasts ' + keeps + (keeps === 1 ? ' day' : ' days') + ' in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
+  const dd = n => n + (n === 1 ? ' day' : ' days'); const once = typeof mealHabits === 'function' && mealHabits().prep === 'once';
+  if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
 }
 function PrepPane() {
@@ -4538,7 +4542,10 @@ function PrepPane() {
   const withM = items.map(x => ({ ...x, m: macros(x.r) })).filter(x => x.m); const partial = withM.length < items.length || withM.some(x => x.m.missing.length);
   const perDay = Object.fromEntries(MACRO_KEYS.map(([k]) => [k, Math.round(withM.reduce((a, x) => a + x.m[k] * x.it.n, 0) / 7)]));
   const mins = items.reduce((a, x) => a + (+x.r.mins || 0), 0);
-  const usePrep = pr => {
+  const usePrep = (pr, ok) => {
+    const bad = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length);
+    if (bad.length && !ok) return openSheet({ type: 'confirm', title: 'Some of ' + pr.name + ' goes against your food preferences', body: bad.map(([r]) => getRecipe(r).name + ' (' + recipeIssues(getRecipe(r)).block.join(', ') + ')').join('; ') + '.',
+      ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrep({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrep(pr, true), 60); } });
     const apply = replace => { mealCommit(mm => { if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
     if (!P.items.length) apply(true);
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace what’s in your prep now, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
@@ -4592,8 +4599,9 @@ function rotIndex(rot, day) { const wk = Math.round((+startOfWeek(day || new Dat
 function rotCheck() {
   const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied === mon) return false;
   const i = rotIndex(rot); if (i < 0) return false; const pr = prepById(rot.ids[i]); if (!pr) return false;
-  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
-  showToast({ kind: 'info', text: 'This week’s prep: ' + pr.name + '. Your shopping list is ready.' }); return true;
+  const blocked = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length).map(([r]) => getRecipe(r).name);
+  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
+  showToast({ kind: 'info', ms: blocked.length ? 9000 : 4000, text: 'This week’s prep: ' + pr.name + '.' + (blocked.length ? ' Left out for your food preferences: ' + blocked.join(', ') + '.' : '') + ' Your shopping list is ready.' }); return true;
 }
 function deleteMyPrep(pr) {
   const inRot = ML().rot && ML().rot.ids.includes(pr.id);
@@ -4688,8 +4696,8 @@ function RecipeView({ id }) {
       ${Math.abs(f - 1) > 0.01 ? html`<p class="small muted" style="margin:-4px 0 8px">Written for ${r.serves} servings. Cooking times stay about the same; use more pans so food isn’t crowded.</p>` : null}
       <ol class="step-list card">${r.steps.map((s, i) => html`<li key=${i}>${s}</li>`)}</ol>` : null}
     ${r.note ? html`<div class="tip-card" style="margin-top:12px;padding-right:14px">${r.note}</div>` : null}
-    ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(comboRecipe) ? html`<div class="section-h"><h2>Goes with</h2></div>
-      <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(comboRecipe).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
+    ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
+      <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
     ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">In your prep · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
@@ -5176,11 +5184,11 @@ function BaseView({ id }) {
       ${pm ? html`<div class="small muted num">${macroLine(pm)} a serving</div>` : null}</div><span class="go">Recipe</span></button>
     ${b.tip ? html`<div class="tip-card" style="margin-top:10px;padding-right:14px">${b.tip}</div>` : null}
     <div class="section-h"><h2>Pick a flavor</h2><span class="aside">${flavorsFor(b).length} ideas</span></div>
-    <div class="stack">${flavorsFor(b).map(f => { const cid = b.id + '~' + f.id; const r = comboRecipe(cid); const m = macros(r); const inP = planItemFor(cid);
+    <div class="stack">${flavorsFor(b).map(f => [f, !recipeIssues(comboRecipe(b.id + '~' + f.id)).block.length]).sort((x, y) => y[1] - x[1]).map(([f]) => { const cid = b.id + '~' + f.id; const r = comboRecipe(cid); const m = macros(r); const inP = planItemFor(cid);
       return html`<div key=${f.id} class="meal-row mix-flavor"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: cid, from: { type: 'base', id: b.id } })}><div class="t">${r.name}</div>
         <div class="s">${f.d}${f.kind === 'rub' && b.fam !== 'eggs' && b.fam !== 'oats' && b.fam !== 'salad' ? ' · spice rub' : f.kind === 'sauce' && (b.fam === 'protein' || b.fam === 'veg') ? ' · sauce' : ''}</div>
         <div class="s faint">Adds ${f.ing.map(x => shopName(parseIng(x).n).replace(/\s*\(.*\)$/, '')).join(', ')}</div>
-        ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}</button>
+        ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}<${IssueLine} r=${r}/></button>
         <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
     <p class="small faint" style="margin-top:14px">Add two or three flavors to your prep and the shopping list buys the base once, in the total amount.</p>
   </div>`;
@@ -6807,7 +6815,7 @@ const doneToday = id => sessionList().some(s => ymd(s.startedAt) === ymd(new Dat
 function addDayToWorkout(r, day) {
   const a = S.active; if (!a) return;
   const base = a.items.length;
-  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); if (i === 0) it.ss = false; a.items.push(it); });
+  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (i === 0) it.ss = false; a.items.push(it); });
   a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
   if (day.timer && !a.timer) a.timer = clone(day.timer);
   if (day.fight && !a.fight) a.fight = clone(day.fight);
@@ -7961,8 +7969,15 @@ const ACT_LEVELS = [[1, 'Light', 'Desk job, 1–3 workouts a week', 1.375], [2, 
 const GOAL_ADJ = { lose: { gentle: -250, steady: -500 }, keep: { gentle: 0, steady: 0 }, gain: { gentle: 200, steady: 350 } };
 const KCAL_FLOOR = { m: 1500, f: 1200, x: 1350 };
 const bmiOf = me => me && me.h > 0 && me.w > 0 ? me.w / Math.pow(me.h / 100, 2) : null;
+/* Why the numbers can't be worked out (empty fields, out of range, or under 18), or '' when they can */
+function meProblem(me) {
+  if (!me || !(me.h > 0) || !(me.w > 0) || !(me.age > 0)) return 'Fill in height, weight and age to see your numbers.';
+  if (me.age < 18) return 'Calorie targets here are for adults. If you’re under 18, a doctor or dietitian can help with how much to eat while you’re still growing. You can still use the recipes, prep and shopping list.';
+  if (me.age > 110 || me.h < 120 || me.h > 230 || me.w < 35 || me.w > 300) return 'Check your height, weight and age: one looks off (' + (me.us ? 'height in feet and inches, weight in pounds' : 'height in cm, weight in kg') + ').';
+  return '';
+}
 function targetsFor(me) {
-  if (!me || !(me.h > 0) || !(me.w > 0) || !(me.age > 0)) return null;
+  if (meProblem(me)) return null;
   const s = me.sex === 'm' ? 5 : me.sex === 'f' ? -161 : -78;
   const bmr = 10 * me.w + 6.25 * me.h - 5 * me.age + s; const act = (ACT_LEVELS.find(a => a[0] === me.act) || ACT_LEVELS[1])[3];
   const tdee = bmr * act; const bmi = bmiOf(me);
@@ -7980,6 +7995,13 @@ function targetsFor(me) {
 
 /* ---- the menu ---- */
 const PLAN_SLOTS = [['b', 'Breakfast'], ['l', 'Lunch'], ['d', 'Dinner'], ['s', 'Snack']];
+/* A day's items in slot order, each with a key and a label (two snacks read Snack 1 and Snack 2) */
+function menuRows(day) {
+  const order = PLAN_SLOTS.map(p => p[0]); const ns = day.filter(x => x.slot === 's').length; let k = 0;
+  return day.slice().sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot)).map(x => {
+    const lbl = (PLAN_SLOTS.find(p => p[0] === x.slot) || [, 'Meal'])[1];
+    if (x.slot !== 's') return { x, key: x.slot, label: lbl }; k++; return { x, key: k > 1 ? 's' + k : 's', label: ns > 1 ? 'Snack ' + k : 'Snack' }; });
+}
 function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
 function planPool() {
@@ -7996,19 +8018,25 @@ const mealHabits = () => ({ ...HABITS0, ...(ML().habits || {}) });
 const PRICEY = /salmon|steak|sirloin|shrimp|scallop|bison|lamb|almond|cashew|pecan|walnut|pistachio|pine nut|berr|avocado|parmesan|feta|goat cheese|prosciutto|quinoa|protein powder|whey|\bcod\b|halibut|mahi|cheese crisps/;
 const CHEAP = /\brice\b|\boats?\b|beans?\b|lentil|\beggs?\b|potato|chicken thigh|ground (turkey|beef|chicken)|pasta|frozen|cabbage|carrot|banana|onion|canned|peanut butter|tortilla|\bmilk\b|cottage cheese|chicken breast/;
 function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = String(g && g.n || g || '').toLowerCase(); if (PRICEY.test(n)) s += 2; else if (CHEAP.test(n)) s -= 0.5; } return s; }
+/* Narrow the list by your answers, each step only when enough recipes are left: keeps all week (once a week), then
+   cheap (nothing pricey, then the cheaper half), then quick (30 minutes or less, else the quickest). */
 function shapePool(list, n, H, rnd) {
-  let L = list;
+  let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
+  if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
+  if (H.cheap) { keep(r => costScore(r) < 2); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
-  if (H.cheap) { const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   return pickN(L, Math.min(n, L.length), rnd);
 }
 function buildMenu(t, seed) {
   const P = planPool(); const rnd = seeded(seed); const H = mealHabits(); const two = +H.meals === 2;
   if ((!two && !P.b.length) || P.m.length < 2) return null;
   const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
-  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(P.m, nM, H, rnd);
-  const snacks = (H.cheap ? P.s.filter(r => costScore(r) <= 0) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
-  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2;
+  const mains = two && P.m.length > nM ? P.m.slice().sort((a, b) => macros(b).kcal - macros(a).kcal).slice(0, Math.max(nM, Math.ceil(P.m.length / 2))) : P.m; /* two meals: the bigger mains */
+  const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(mains, nM, H, rnd);
+  const cheapS = P.s.filter(r => costScore(r) <= 0);
+  const snacks = (H.cheap && cheapS.length ? cheapS : H.cheap && P.s.length ? P.s.slice().sort((a, b) => costScore(a) - costScore(b)).slice(0, 2) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
+  const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2; const topUp = snacks.length ? snacks.slice().sort((a, b) => macros(b).kcal - macros(a).kcal)[0] : null;
+  const addSnack = (day, r) => { const y = day.find(x => x.slot === 's' && x.r === r.id); if (y) y.sv += 1; else day.push({ slot: 's', r: r.id, sv: 1 }); };
   const days = [];
   for (let i = 0; i < 7; i++) {
     const day = two ? [{ slot: 'l', r: ms[i % ms.length].id, sv: 1 }, { slot: 'd', r: ms[(i + 1) % ms.length].id, sv: 1 }]
@@ -8017,7 +8045,7 @@ function buildMenu(t, seed) {
     /* snacks when there's room: the most protein for its calories when protein is short */
     let T = tot();
     for (let k = 0; k < maxSnacks && snacks.length; k++) { T = tot(); if (T.kcal >= t.kcal - 120) break;
-      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; day.push({ slot: 's', r: s.id, sv: 1 }); }
+      const s = T.p < t.p - 15 && !day.some(x => x.r === snacks[0].id) ? snacks[0] : snacks[(i + k + Math.floor(rnd() * snacks.length)) % snacks.length]; addSnack(day, s); }
     /* then portions in half steps toward the calorie target */
     for (let k = 0; k < 14; k++) {
       T = tot(); const gap = t.kcal - T.kcal; if (Math.abs(gap) < 90) break;
@@ -8025,6 +8053,8 @@ function buildMenu(t, seed) {
       if (gap > 0) { const x = main.filter(y => y.sv < maxSv).sort((a, b) => macros(getRecipe(b.r)).p / macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).p / macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > gap + 120) break; x.sv += 0.5; }
       else { const s = day.filter(y => y.slot === 's').pop(); if (s) { day.splice(day.indexOf(s), 1); continue; } const x = main.filter(y => y.sv > 0.5).sort((a, b) => macros(getRecipe(b.r)).kcal - macros(getRecipe(a.r)).kcal)[0]; if (!x || macros(getRecipe(x.r)).kcal * 0.5 > -gap + 120) break; x.sv -= 0.5; }
     }
+    /* still more than 10% short with portions at their cap (2 or 3 meals, big targets): top up with a snack */
+    for (let k = 0; k < 2 && topUp; k++) { T = tot(); if (t.kcal - T.kcal < t.kcal * 0.1) break; addSnack(day, topUp); }
     days.push(day);
   }
   return { seed, t, days, at: Date.now(), h: H };
@@ -8115,7 +8145,8 @@ function TargetsSheet({ preset } = {}) {
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
     mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
-    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: 7000, text: ML().menu ? 'Your targets and a week of meals are ready.' : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
+    const hadPrep = ML().plan.items.length > 0 && !ML().rot;
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Update my prep', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your targets and a week of meals are ready.' + (hadPrep ? ' Your prep and shopping list still have the old recipes.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
@@ -8137,12 +8168,19 @@ function TargetsSheet({ preset } = {}) {
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
-          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">Fill in height, weight and age to see your numbers.</p>`}
+          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
       <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 
 /* ---- the plan on Prep, today's menu on Log ---- */
+/* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
+function usePlanForPrep(sure) {
+  const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
+  const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
+  if (sure || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
+}
 function MenuCard() {
   const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
   if (!mn || !mn.days || !mn.days.length) return html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Make me a meal plan</div>
@@ -8150,19 +8188,17 @@ function MenuCard() {
     <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button></div>`;
   const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
   const reroll = () => mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); });
-  const usePlan = () => {
-    const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
-    const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
-    if (!m.plan.items.length && !m.rot) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
-  };
+  const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diet !== 'none' || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
-    <div class="menu-list">${PLAN_SLOTS.map(([s, label]) => { const x = day.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r);
+    <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
       return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
     <div class="small muted num">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat</div>
+    ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
+      : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
     <p class="small faint" style="margin-top:8px">Estimates for planning, not medical or diet advice.</p></div>`;
@@ -8171,7 +8207,7 @@ function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;
   const list = (mn.days[menuDayIdx(parseYmd(day))] || []).filter(x => getRecipe(x.r)); if (!list.length) return null;
   const logged = new Set((ML().log[day] || []).filter(e => e.k === 'recipe').map(e => e.r + ':' + (e.slot || '')));
-  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${PLAN_SLOTS.map(([s, label]) => { const x = list.find(y => y.slot === s); if (!x) return null; const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
+  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
     return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
       <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
 }
@@ -8303,7 +8339,7 @@ function FindView({ day, go }) {
       ${foods.length ? html`<div class="aisle-h">Foods</div><div class="find-list">${foods.map(f => html`<button key=${f.id} class="opt" onClick=${() => go('food', { txt: foodTxt(f), fk: f.id })}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${f.mine ? 'Your food · ' : ''}${per100(f)}</div></div></button>`)}</div>` : null}
       <div class="row wrap" style="gap:8px;margin-top:4px"><button class="btn ghost" style="flex:1" id="lf-find-online" onClick=${() => go('scan', { only: 'search', q0: (g && g.q != null ? shopName(g.n) : q.trim()) })}>Look up “${q.trim()}” online</button>
         <button class="btn ghost" style="flex:1" id="lf-find-num" onClick=${() => go('num', { name0: q.trim() })}>Enter its numbers</button></div>
-      ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div></div></button>`)}</div>` : null}`}
+      ${recipes.length ? html`<div class="aisle-h">Recipes</div><div class="find-list">${recipes.map(r => html`<button key=${r.id} class="opt" onClick=${() => go('recipe', { r0: r.id })}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${macroLine(macros(r))} a serving</div>${recipeIssues(r).block.length ? html`<${IssueLine} r=${r}/>` : null}</div></button>`)}</div>` : null}`}
   </div>`;
 }
 
@@ -8544,24 +8580,32 @@ function AddonFitSheet({ id }) {
    style block a recipe completely from meal plans and suggestions and flag it everywhere; dislikes keep it out of plans
    and suggestions but it can still be found and logged. Recipes can credit a source (src: { by, url }), shown at the
    bottom of the recipe, and a recipe can be filled in from a pasted post (caption from Instagram, TikTok, a blog). */
+/* [id, label, matches, safe phrases removed first (so almond milk isn't dairy and rice noodles aren't wheat)] */
 const ALLERGENS = [
-  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|yogurt|butter\b|cream\b|kefir|whey|protein powder/],
-  ['egg', 'Eggs', /\beggs?\b|egg white|mayo/], ['peanut', 'Peanuts', /peanut/], ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|\bnuts?\b/],
-  ['soy', 'Soy', /\bsoy\b|soy sauce|tofu|tempeh|edamame|\bmiso\b|tamari/], ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|farro|couscous|barley|panko|crumbs|cracker|\bbuns?\b|soy sauce|cereal|granola/],
-  ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|\bfish\b|anchov|sardine/], ['shellfish', 'Shellfish', /shrimp|crab|lobster|scallop|clam|mussel/],
-  ['sesame', 'Sesame', /sesame|tahini/]];
+  ['dairy', 'Dairy', /\bmilk\b|cheese|cheddar|mozzarella|parmesan|ricotta|\bfeta\b|cottage|paneer|queso|brie\b|gouda|provolone|yogh?urt|\bskyr\b|butter|ghee|cream|\bcurds?\b|casein|kefir|whey|half[- ]and[- ]half|custard|protein powder/,
+    /(almond|oat|soy|coconut|rice|cashew|hemp|pea|plant|non-?dairy|dairy-?free|vegan)[ -](milk|cream|butter|cheese|yogh?urt|creamer)|(peanut|almond|cashew|sunflower|nut|seed|apple|cocoa|shea|pumpkin) butter|cream of tartar|butternut|(plant|vegan|pea|soy) protein( powder)?/g],
+  ['egg', 'Eggs', /\beggs?\b|egg white|mayo|aioli|meringue|frittata|omelet/, /(vegan|egg-?free) (mayo|aioli)|eggplant/g],
+  ['peanut', 'Peanuts', /peanut|\bsatay\b/],
+  ['treenut', 'Tree nuts', /almond|walnut|pecan|cashew|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|nutella|pesto|\bnuts?\b/, /butternut|nutmeg|doughnut|donut|water chestnut|coconut|nut-?free pesto/g],
+  ['soy', 'Soy', /\bsoy|tofu|tempeh|edamame|\bmiso\b|tamari|shoyu|teriyaki/, /soy-?free/g],
+  ['gluten', 'Gluten / wheat', /wheat|flour|bread|pasta|noodle|tortilla|\bwraps?\b|pita|bagel|farro|couscous|barley|bulgur|semolina|spelt|\brye\b|orzo|seitan|udon|ramen|\bmalt|panko|crumbs|cracker|\bbuns?\b|soy sauce|teriyaki|cereal|granola|\boats?\b|beer/,
+    /buckwheat|gluten-?free \w+( \w+)?|(almond|coconut|rice|chickpea|cassava|corn|tapioca|potato|oat|lentil) (flour|pasta|noodles?|tortillas?|wraps?|crackers?)|rice noodles?|corn tortillas?|lettuce wraps?/g],
+  ['fish', 'Fish', /salmon|tuna|\bcod\b|tilapia|halibut|trout|mackerel|haddock|pollock|\bbass\b|mahi|snapper|swordfish|\bfish\b|anchov|sardine|worcestershire/],
+  ['shellfish', 'Shellfish', /shrimp|prawn|crab|lobster|scallop|clam|mussel|oyster|crawfish|crayfish|squid|calamari|octopus/],
+  ['sesame', 'Sesame', /sesame|tahini|hummus|za.?atar|furikake/]];
 const DIETS = [
-  ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|liver|broth|anchov/],
-  ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|ham\b|steak|liver|chicken broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2]],
+  ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
+  ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
   ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/]];
 const prefsOf = () => { const p = ML().prefs || {}; return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diet: p.diet || 'none', dislikes: String(p.dislikes || '') }; };
 const dislikeTerms = () => prefsOf().dislikes.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
 function recipeIssues(r) {
-  const P = prefsOf(); const names = ingNames(r); const has = re => names.some(n => re.test(n));
-  const block = ALLERGENS.filter(([k, , re]) => P.allergies.includes(k) && has(re)).map(a => a[1]);
-  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
+  const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
+  const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
+  const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
+  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2], d[3]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
   const dislike = dislikeTerms().filter(t => names.some(n => n.includes(t)) || String(r.name).toLowerCase().includes(t));
   return { block, dislike };
 }
@@ -8577,7 +8621,7 @@ function PrefsFields({ v, set }) {
   return html`<div class="stack" style="gap:12px" id="prefs-fields">
     <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
       <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
-    <div><span class="lbl">How you eat</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
+    <div><span class="lbl">Diet</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
       <p class="small muted">Left out of plans and suggestions. You can still search for them.</p></div></div>`;
 }
@@ -8688,7 +8732,7 @@ function LightDay({ ch, k }) {
      - keeps your program and adjusts around it (adds conditioning that fits your sport and gear on free days), or
      - makes your own copy of the best-fitting plan ('gp-mine'): swaps for your gear and joints, trims to your minutes,
        sets per phase (bulk +1 accessory set, cut -1), and conditioning days built from the gear you have.
-   Season phases (settings.goal.season) ask before switching: calories and the plan change only when you say so.
+   Season phases (settings.plan.season) ask before switching: calories and the plan change only when you say so.
    Everything is an estimate for planning, not coaching or medical advice. */
 const GP_TPL = [
   { id: 'gp-recomp3', name: 'Recomp 3-Day', days: 3, goal: ['recomp'], fit: 'Lose fat and build muscle at the same time on three full-body days.',
@@ -8766,7 +8810,8 @@ function condMode(a) {
 }
 const CMODE_NAME = { row: 'rowing', swim: 'swimming', run: 'running', track: 'track running', hills: 'hill sprints', bike: 'cycling', airbike: 'the assault bike', box: 'bag work', sled: 'the sled', rope: 'jump rope', walk: 'incline walking' };
 const phaseByDate = s => { const t = ymd(new Date()); return t >= s.cutTo ? 'keep' : t >= s.cutFrom ? 'cut' : t >= s.bulkFrom ? 'bulk' : 'keep'; };
-const gpPhaseNow = a => (a.season && a.season.on ? (a.season.cur || phaseByDate(a.season)) : null);
+const seasonOn = a => !!(a && a.season && a.season.on && (a.goal === 'recomp' || a.goal === 'mass')); /* the switch only shows for these goals */
+const gpPhaseNow = a => (seasonOn(a) ? (a.season.cur || phaseByDate(a.season)) : null);
 /* Which built-in plan fits the answers */
 function pickPlanFor(a) {
   const days = +a.days || 3; const ph = gpPhaseNow(a);
@@ -8828,8 +8873,8 @@ function keepPlanFor(a) {
 }
 function applyGoal(a, d) {
   const prevProg = programId();
-  if (a.season && a.season.on && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
-  commit(st => { st.meta.settings.goal = { ...a, at: Date.now() }; }, 'meta');
+  if (seasonOn(a) && !a.season.cur) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
+  commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
   if (a.keep && prevProg && prevProg !== 'self') {
     const k = keepPlanFor(a);
     if (k.addon && !(S.meta.settings.addons || []).includes(k.addon)) { setAddon(k.addon, true); if (typeof openSheet === 'function') setTimeout(() => openSheet({ type: 'addonFit', id: k.addon }), 50); }
@@ -8851,7 +8896,7 @@ function mealGoalFor(a) {
 function nextDate(month, day, after) { const a = after || new Date(); let d = new Date(a.getFullYear(), month - 1, day); if (d <= a) d = new Date(a.getFullYear() + 1, month - 1, day); return ymd(d); }
 function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
 function GoalSetupSheet({ welcome } = {}) {
-  const saved = S.meta.settings.goal || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
+  const saved = S.meta.settings.plan || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
   const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
     gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
   const [step, setStep] = useState(0);
@@ -8894,23 +8939,27 @@ function GoalSetupSheet({ welcome } = {}) {
 }
 /* ---- season phases: ask before switching ---- */
 function phaseDue() {
-  const g = S.meta.settings.goal; const s = g && g.season; if (!s || !s.on) return null;
+  const g = S.meta.settings.plan; const s = g && g.season; if (!seasonOn(g)) return null;
   const today = ymd(new Date()); const want = today >= s.cutTo ? 'keep' : today >= s.cutFrom ? 'cut' : today >= s.bulkFrom ? 'bulk' : null;
   if (!want || want === (s.cur || phaseByDate(s))) return null; const ans = (s.asked || {})[want];
   if (ans === 'stay' || (typeof ans === 'number' && ans > Date.now())) return null; return want;
 }
 function switchPhase(to) {
-  commit(st => { const g = st.meta.settings.goal; g.season = { ...g.season, cur: to }; }, 'meta');
-  const g = S.meta.settings.goal; const me = ML().me;
+  commit(st => { const g = st.meta.settings.plan; g.season = { ...g.season, cur: to }; }, 'meta');
+  const g = S.meta.settings.plan; const me = ML().me; let meals = false, plan = false;
   if (me && me.h) { const mg = mealGoalFor(g); const m2 = { ...me, ...mg }; const t = targetsFor(m2);
-    if (t) mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); }
-  if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); }
-  else if (to === 'cut' && !g.keep) applyGoal(g);
-  showToast({ kind: 'info', ms: 7000, text: to === 'cut' ? 'Cut started: calories down about 1 lb a week, heavy lifts stay heavy.' : to === 'bulk' ? 'Bulk started: a small surplus, about ½ lb a week.' : 'Back to maintaining. Nice work.' });
+    if (t) { meals = true; mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); } }
+  /* Only your own Build my plan copy is rebuilt; a program you picked yourself is never replaced */
+  if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); plan = true; }
+  const what = to === 'cut' ? 'Cut started' : to === 'bulk' ? 'Bulk started' : 'Back to maintaining';
+  const cal = meals ? (to === 'cut' ? ': calories down to lose about 1 lb a week' : to === 'bulk' ? ': a small surplus, about ½ lb a week' : ': maintenance calories') : '';
+  const tr = plan ? (to === 'cut' ? '. Your plan keeps heavy lifts heavy with fewer accessory sets.' : to === 'bulk' ? '. Your plan adds an accessory set.' : '. Your plan is back to normal.')
+    : '. Your program is unchanged' + (to === 'cut' ? ': keep the heavy lifts heavy and drop an accessory set.' : to === 'bulk' ? ': add an accessory set where it feels good.' : '.');
+  showToast({ kind: 'info', ms: 9000, text: what + cal + tr + (meals ? '' : ' Set up meals to have calories follow along.') });
 }
-function snoozePhase(to, how) { commit(st => { const s = st.meta.settings.goal.season; s.asked = { ...(s.asked || {}), [to]: how === 'stay' ? 'stay' : Date.now() + 7 * 864e5 }; }, 'meta'); }
+function snoozePhase(to, how) { commit(st => { const s = st.meta.settings.plan.season; s.asked = { ...(s.asked || {}), [to]: how === 'stay' ? 'stay' : Date.now() + 7 * 864e5 }; }, 'meta'); }
 function PhaseCheck() {
-  if (S.active) return null; const to = phaseDue(); if (!to) return null; const s = S.meta.settings.goal.season;
+  if (S.active) return null; const to = phaseDue(); if (!to) return null; const s = S.meta.settings.plan.season;
   const t = { cut: ['Time for your spring cut', 'Your bulk was set to end ' + shortDate(parseYmd(s.cutFrom)) + '. Switch to cutting? Calories drop to lose about 1 lb a week; heavy lifts stay heavy, fewer accessory sets.'],
     bulk: ['Ready to start your bulk?', 'A small surplus (about ½ lb a week) and one more accessory set.'],
     keep: ['Your cut is done', 'Switch to maintenance calories and your regular plan?'] }[to];
@@ -8928,7 +8977,7 @@ for (const T of GP_TPL) {
 /* First launch: when the tour ends (or is skipped) on a fresh install, offer the interview once. */
 function offerSetup() {
   if (lsGet('setupOffered') === '1') return; lsSet('setupOffered', '1');
-  if (S.meta.settings.program || S.meta.settings.goal || Object.keys(S.sessions).length) return;
+  if (S.meta.settings.program || S.meta.settings.plan || Object.keys(S.sessions).length) return;
   setTimeout(() => { if (!S.active) openSheet({ type: 'goalSetup', welcome: true }); }, 350);
 }
 

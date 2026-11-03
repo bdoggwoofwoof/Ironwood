@@ -130,7 +130,7 @@ async def main():
         check('other days start empty', 'Yesterday' in await pg.locator('.day-nav').inner_text() and await pg.locator('.log-row').count() == 0)
         await pg.locator('button[aria-label="Next day"]').click()
         # stats and backup
-        await pg.evaluate("UI.setTab('stats')"); await pg.wait_for_timeout(300)
+        await pg.evaluate("(() => { lsSet('statsTab', 'overall'); UI.setTab('stats'); })()"); await pg.wait_for_timeout(300)
         check('Stats shows nutrition', await pg.locator('#nutrition-stats .kpi').count() == 3)
         bk = json.loads(await pg.evaluate("backupJSON()"))
         check('backup carries foods, log and goals', len(bk['meta']['meals']['foods']) == 1 and len(bk['meta']['meals']['log']) == 1 and bk['meta']['meals']['goals']['p'] == 160)

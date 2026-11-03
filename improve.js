@@ -3,7 +3,8 @@
    settings.fine: the smallest weight you can add (5 / 2.5 / 1 lb, 2.5 / 1.25 / 0.5 kg).
    settings.stepDown: after a jump, if a set falls below the bottom of the rep range, the next suggestion is half the jump.
    settings.deload: after three sessions short at one weight, suggest about 10% less. A session counts as short only when
-   half or more of its sets fall below the range (7, 6, 4 on 5-8 reps is close enough; it holds the weight).
+   half or more of the sets done fall below the range (7, 6, 4 on 5-8 reps is close enough; it holds the weight), and
+   skipped sets don't count. No drop when the smallest step can't come within 15% (20 lb in 5 lb steps would be 15, -25%).
    meta.exJump: { exercise id: { v, u } } — a weight jump just for that exercise (total added to the bar or machine). */
 const FINE_OPTS = { lb: [5, 2.5, 1], kg: [2.5, 1, 0.5] };
 const JUMP_PRESETS = { lb: [2.5, 5, 10, 15, 20], kg: [1, 2.5, 5, 10] };
@@ -50,7 +51,7 @@ function progPlan(it, kind, u, occ) {
   const e1 = h[0], e0 = h[1];
   const full = e => e.sets.length >= n && e.sets.every(x => x.r >= top);
   const miss = e => e.sets.some(x => x.r < low);
-  const mostShort = e => (e.sets.filter(x => x.r < low).length + Math.max(0, n - e.sets.length)) * 2 >= Math.max(n, e.sets.length);
+  const mostShort = e => e.sets.filter(x => x.r < low).length * 2 >= e.sets.length;
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
   const w = v => fmt(v) + ' ' + u;
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
@@ -62,7 +63,7 @@ function progPlan(it, kind, u, occ) {
   }
   if (st.deload !== false && h.length >= 3 && h.every(e => Math.abs(e.top - e1.top) < 1e-9 && mostShort(e)) && e1.top > 0) {
     const to = Math.floor(e1.top * 0.9 / fine + 1e-9) * fine;
-    if (to < e1.top) return { mode: 'deload', factor: to / e1.top, to, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
+    if (to < e1.top && to >= e1.top * 0.85 - 1e-9) return { mode: 'deload', factor: to / e1.top, to, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
   }
   return { mode: 'hold' };
 }

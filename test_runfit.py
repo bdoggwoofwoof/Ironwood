@@ -61,6 +61,7 @@ async def main():
         await ev("openSheet({ type: 'addons' })"); await pg.wait_for_timeout(200)
         await pg.click('#addon-bi-care-knee'); await pg.wait_for_timeout(150)
         check('Programs alongside sheet asks too', await pg.locator('#afit-bi-care-knee').count() == 1)
+        check('an added plan is listed once (under Alongside, not again in its group)', await pg.locator('#addon-bi-care-knee').count() == 1)
         await pg.click('#afit-bi-care-knee-same'); await pg.wait_for_timeout(150)
         check('“lifting days” puts it on lifting days', all(d in (1, 2, 4, 6) for d in await ev("S.meta.settings.sched['bi-care-knee']")))
         ul = await ev("fitDays('mixed', { 1: 'Upper', 2: 'Legs', 4: 'Upper', 5: 'Legs' }, 3)")

@@ -71,6 +71,6 @@ function AddonsSheet() {
   return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
     <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
     <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
-    ${groups.filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
+    ${groups.map(([t, rs]) => [t, rs.filter(r => !on.has(r.id))]).filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }

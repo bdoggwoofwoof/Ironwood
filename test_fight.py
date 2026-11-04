@@ -31,7 +31,7 @@ async def main():
         check('starred combos come up more often', await ev("fightPool({ ...FDEF, fav: ['box:1-2'] }).find(x => x.c === '1-2').w === 6"))
         check('at least 30 drills, all with steps', await ev("FDRILLS.length >= 30 && FDRILLS.every(d => d[4].length >= 2 && d[5])"))
         progs = await ev("BUILTIN_ROUTINES.filter(r => r.info && r.info.fight).map(r => ({ id: r.id, days: r.days.length, tags: r.days.map(d => d.tags[0]), unknown: r.days.some(d => d.items.some(i => getEx(i.ex).name === 'Unknown exercise')), fill: r.days.filter(d => d.fight).every(d => d.fight.fill && d.items.some(i => i.ex === d.fight.fill)) }))")
-        check('six fight programs, tagged Fight training', len(progs) == 6 and all(t == 'Fight training' for p in progs for t in p['tags']), [p['id'] for p in progs])
+        check('seven fight programs (with the partner plan), tagged Fight training', len(progs) == 7 and all(t == 'Fight training' for p in progs for t in p['tags']), [p['id'] for p in progs])
         check('no unknown exercises; coach days fill an exercise in the day', all(not p['unknown'] and p['fill'] for p in progs))
         check('round exercises log time', await ev("['Shadowboxing Rounds', 'Heavy Bag Rounds', 'Jump Rope', 'BJJ Solo Movement Rounds'].every(n => exKind(findIn(BUILTIN_EX)(n).id) === 'timed')"))
         text = await ev("JSON.stringify([FPROGS, FDRILLS, FIGHT_NOTE])")
@@ -114,7 +114,7 @@ async def main():
         await ev("S.itimer = null; UI.setView(null)"); await pg.wait_for_timeout(200)
         # Program: workout → coach → rounds fill the exercise
         await pg.click('#fight-tab-programs'); await pg.wait_for_timeout(200)
-        check('Programs lists six plus Fight Rounds', await pg.locator('#fight-programs .r-card').count() == 7)
+        check('Programs lists seven plus Fight Rounds', await pg.locator('#fight-programs .r-card').count() == 8)
         await pg.click('#fprog-bi-fight-box'); await pg.wait_for_timeout(400)
         info = await pg.locator('#fight-info').inner_text()
         check('program page: strengths, results, watch-outs, coach note', all(x in info for x in ['Strengths', 'Likely results', 'Watch out for', 'qualified coach']))

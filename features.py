@@ -1708,6 +1708,23 @@ swap("""html`<button class="btn primary wide" id="scan-start" onClick=${() => { 
      """html`<button class="btn primary wide" id="scan-start" onClick=${() => { setErr(''); setCam(true); }}>${I.camera} Scan a barcode</button>`}
     ${only === 'search' || cam ? null : html`<button class="btn wide" id="scan-label" onClick=${() => addLabel(miss || '')}>Read a nutrition label</button>`}""")
 
+# 42. Sheets stay above the iPhone keyboard (Nov 3, Newt's report: typing in Log food's search, the sheet sat behind the
+#     keyboard). The keyboard covers the screen without resizing the page, so the sheet's backdrop now follows the
+#     visible area (visualViewport) while the keyboard is up, and the field being typed in scrolls into view.
+swap("/* ---------- APP ---------- */", """function kbFit(h, top) {
+  const r = document.documentElement; const kb = Math.max(0, window.innerHeight - h - top);
+  if (kb > 80) { r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', top + 'px'); r.classList.add('kb-open'); }
+  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open'); }
+  const a = document.activeElement;
+  if (kb > 80 && a && a.closest && a.closest('.sheet')) setTimeout(() => { try { a.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
+}
+if (window.visualViewport) { const vv = window.visualViewport; const on = () => kbFit(vv.height, vv.offsetTop); vv.addEventListener('resize', on); vv.addEventListener('scroll', on); }
+/* ---------- APP ---------- */""")
+swap(".sess-acts{gap:8px}", """.kb-open .scrim{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+.kb-open .sheet{padding-bottom:12px}
+.kb-open .sheet.big{height:calc(100% - 12px);max-height:calc(100% - 12px)}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

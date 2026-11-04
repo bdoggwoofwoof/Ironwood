@@ -308,6 +308,9 @@ main .topsw button{font-size:min(27px, 7.2vw)}
 main .topsw.four button{font-size:min(27px, 7.2vw)}
 main .page-title{font-size:min(27px, 7.2vw)}
 .tabs{padding:4px 10px max(6px, calc(env(safe-area-inset-bottom,0px) - 14px))}
+.kb-open .scrim{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+.kb-open .sheet{padding-bottom:12px}
+.kb-open .sheet.big{height:calc(100% - 12px);max-height:calc(100% - 12px)}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -3123,7 +3126,7 @@ function ProfileScreen() {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a060382</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 1159d67</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -9427,6 +9430,14 @@ function LabelReader({ onFill }) {
   </div>`;
 }
 
+function kbFit(h, top) {
+  const r = document.documentElement; const kb = Math.max(0, window.innerHeight - h - top);
+  if (kb > 80) { r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', top + 'px'); r.classList.add('kb-open'); }
+  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open'); }
+  const a = document.activeElement;
+  if (kb > 80 && a && a.closest && a.closest('.sheet')) setTimeout(() => { try { a.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
+}
+if (window.visualViewport) { const vv = window.visualViewport; const on = () => kbFit(vv.height, vv.offsetTop); vv.addEventListener('resize', on); vv.addEventListener('scroll', on); }
 /* ---------- APP ---------- */
 const TABS = [['train', 'Train'], ['routines', 'Plans'], ['meals', 'Meals'], ['stats', 'Progress'], ['profile', 'Profile']];
 function App() {

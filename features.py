@@ -1725,6 +1725,26 @@ swap(".sess-acts{gap:8px}", """.kb-open .scrim{top:var(--vvt,0px);bottom:auto;he
 .kb-open .sheet.big{height:calc(100% - 12px);max-height:calc(100% - 12px)}
 .sess-acts{gap:8px}""")
 
+# 43. Change how much you ate (Nov 4, Newt's request: eating two of something meant logging it twice). Every logged food,
+#     today or on any earlier day, gets an Amount stepper (× what was logged, in halves up to 20); recipes keep their
+#     Servings stepper. Logging from Recent or Saved shows "Undo" and "Change amount" in the message. Toasts can carry a
+#     second button (action2 / fn2), same look as the first.
+swap("""<span>${t.text}</span>${t.action ? html`<button onClick=${() => { const f = t.fn; S.toast = null; if (f) f(); S.rerender(); }}>${t.action}</button>` : null}</div>`;""",
+     """<span>${t.text}</span>${t.action ? html`<button onClick=${() => { const f = t.fn; S.toast = null; if (f) f(); S.rerender(); }}>${t.action}</button>` : null}${t.action2 ? html`<button id="toast-2" onClick=${() => { const f = t.fn2; S.toast = null; if (f) f(); S.rerender(); }}>${t.action2}</button>` : null}</div>`;""")
+swap("""  showToast({ kind: 'info', text: e.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, n.id) });""",
+     """  showToast({ kind: 'info', text: e.name + ' logged', action: 'Undo', ms: 7000, fn: () => dropLog(day, n.id), action2: 'Change amount', fn2: () => openSheet({ type: 'logEntry', day, id: n.id }) });""")
+swap("""  const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });""",
+     """  const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });
+  const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
+    if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
+    x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });""")
+swap("""    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    ${e.k === 'num' ?""", """    ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    ${e.k === 'num' ?""")
+swap("if (!x) return; x.name = name; x.m = m1; if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });",
+     "if (!x) return; x.name = name; x.m = m1; if (x.m1) x.m1 = scaleNut(m1, 1 / (x.q || 1)); if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

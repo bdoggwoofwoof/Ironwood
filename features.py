@@ -1745,6 +1745,17 @@ swap("""    <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} 
 swap("if (!x) return; x.name = name; x.m = m1; if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });",
      "if (!x) return; x.name = name; x.m = m1; if (x.m1) x.m1 = scaleNut(m1, 1 / (x.q || 1)); if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });")
 
+# 44. Last photo in red, no outline on top (Nov 9, Newt's request). In a check-in, the last photo of the same pose shows
+#     tinted red so it's clear which one is you now and which is last time; while it shows, the standard pose outline
+#     and its level lines are hidden. Slide "Last photo" to 0% to get the outline back.
+swap("""      ${ghost && ghostOp > 0 ? html`<img class="cam-ghost" src=${phUrl(ghost)} style=${{ opacity: ghostOp / 100 }} alt=""/>` : null}
+      ${!shot ? html`<${PoseGuide} pose=${pose} hand=${view.hand} lines=${true}/>` : null}""",
+     """      ${ghost && ghostOp > 0 ? html`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="ghost-red" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.45 0.9 0.2 0 0.2  0.05 0.1 0.03 0 0.02  0.05 0.1 0.03 0 0.02  0 0 0 1 0"/></filter></svg><img class="cam-ghost red" src=${phUrl(ghost)} style=${{ opacity: ghostOp / 100 }} alt=""/>` : null}
+      ${!shot && !(ghost && ghostOp > 0) ? html`<${PoseGuide} pose=${pose} hand=${view.hand} lines=${true}/>` : null}""")
+swap('>Last photo</label><input id="ghost-op"', '>Last photo <span style="color:#e5484d">(red)</span></label><input id="ghost-op"')
+swap(".sess-acts{gap:8px}", """.cam .cam-ghost.red{filter:url(#ghost-red)}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

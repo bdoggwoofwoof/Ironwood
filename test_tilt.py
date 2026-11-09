@@ -25,12 +25,12 @@ async def main():
         s9, c9 = 9.8 * 0.0698, 9.8 * 0.9976   # 4 degrees
         await ev(MOVE, [-s9, c9, 0]); await pg.wait_for_timeout(200)   # right side lower by 4°
         t = await pg.inner_text('#cam-level')
-        check('right side lower: says raise the right side about 4°', 'Raise the right side 4°' in t and 'ok' not in await pg.get_attribute('#cam-level', 'class'), t)
+        check('right side lower: says raise the right side about 4°', 'Raise the right side 4°' in t and 'ok' not in await pg.get_attribute('#cam-level', 'class') and await pg.locator('.lvl-plus.float').count() == 1, t)
         await ev(MOVE, [0, c9, -s9]); await pg.wait_for_timeout(200)   # top leaning toward the screen side
         t = await pg.inner_text('#cam-level')
         check('top leaning toward you: says tilt the top away', 'Tilt the top away 4°' in t, t)
         await ev(MOVE, [0, 9.8, 0]); await pg.wait_for_timeout(200)
-        check('straight: green and says Level', await pg.inner_text('#cam-level') == 'Level' and 'ok' in await pg.get_attribute('#cam-level', 'class'))
+        check('straight: green and says Level', await pg.inner_text('#cam-level') == 'Level' and 'ok' in await pg.get_attribute('#cam-level', 'class') and await pg.locator('.lvl-plus.float').count() == 0 and await pg.locator('.cam-lvl.ok .lvl-seg').count() == 3)
         check('the switch can turn it off', await pg.locator('#tilt-off').count() == 1)
         # take a photo at a slight angle: its tilt is saved
         await ev(MOVE, [0, c9, s9]); await pg.wait_for_timeout(200)

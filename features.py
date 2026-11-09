@@ -1757,7 +1757,8 @@ swap(".sess-acts{gap:8px}", """.cam .cam-ghost.red{filter:url(#ghost-red)}
 .sess-acts{gap:8px}""")
 
 # 45. Level for check-in photos (tilt.js, Nov 9, Newt's request). With the live camera, "Show level" reads the phone's
-#     motion sensor (iPhone asks once): a bubble and plain directions, green when the phone matches the last photo's
+#     motion sensor (iPhone asks once): an iPhone-Camera-style level (thin line whose centre turns with the phone, a fixed
+#     + with a floating + for the remaining angle, yellow when lined up) and plain directions, green when the phone matches the last photo's
 #     angle, or level when there's no earlier angle. Each live photo saves its tilt (rec.tilt) for next time.
 TLJS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tilt.js'), encoding='utf8').read()
 swap("/* ---------- APP ---------- */", TLJS + "\n/* ---------- APP ---------- */")
@@ -1767,10 +1768,19 @@ swap("    toBlob(c, b => setShot({ blob: b, url: URL.createObjectURL(b) })); };\
 swap("const rec = { id: uid('ph'), date: view.date, pose, t: Date.now(), blob: shot.blob };", "const rec = { id: uid('ph'), date: view.date, pose, t: Date.now(), blob: shot.blob }; if (shot.tilt) rec.tilt = shot.tilt;")
 swap("      ${count ? html`<div class=\"cam-count\" aria-live=\"assertive\">${count}</div>` : null}", "      ${mode === 'live' && !shot ? html`<${TiltLevel} target=${ghost && ghost.tilt}/>` : null}\n      ${count ? html`<div class=\"cam-count\" aria-live=\"assertive\">${count}</div>` : null}")
 swap("      : mode === 'live' ? html`<div class=\"cam-ctl\">", "      : mode === 'live' ? html`<${TiltToggle} target=${ghost && ghost.tilt}/><div class=\"cam-ctl\">")
-swap(".sess-acts{gap:8px}", """.cam-level{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;max-width:calc(100% - 20px);background:rgba(0,0,0,.62);color:#ffffff;border-radius:999px;padding:5px 12px 5px 5px;font-size:13px;line-height:1.25;pointer-events:none}
-.cam-level .lv{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);position:relative}
-.cam-level .lv i{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#ffffff}
-.cam-level.ok{background:rgba(30,122,58,.88)}
+swap(".sess-acts{gap:8px}", """.cam-level{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:calc(100% - 20px);background:rgba(0,0,0,.55);color:#ffffff;border-radius:999px;padding:5px 12px;font-size:13px;line-height:1.25;text-align:center;pointer-events:none}
+.cam-level.ok{color:#ffd60a}
+.cam-lvl{position:absolute;inset:0;pointer-events:none}
+.cam-lvl .lvl-seg{position:absolute;top:50%;height:1px;background:#ffffff;box-shadow:0 0 2px rgba(0,0,0,.7)}
+.cam-lvl .lvl-seg.l{left:8%;width:20%}
+.cam-lvl .lvl-seg.r{right:8%;width:20%}
+.cam-lvl .lvl-seg.m{left:50%;width:40%;transform-origin:center}
+.cam-lvl .lvl-plus{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+.cam-lvl .lvl-plus i{position:absolute;background:#ffffff;box-shadow:0 0 2px rgba(0,0,0,.7)}
+.cam-lvl .lvl-plus i:first-child{left:0;right:0;top:50%;height:1px}
+.cam-lvl .lvl-plus i:last-child{top:0;bottom:0;left:50%;width:1px}
+.cam-lvl .lvl-plus.float i{background:#ffd60a}
+.cam-lvl.ok .lvl-seg,.cam-lvl.ok .lvl-plus i{background:#ffd60a}
 .sess-acts{gap:8px}""")
 
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the

@@ -35,10 +35,17 @@ function tiltAdvice(c, target) {
        Math.abs(dp) > tol ? (dp > 0 ? 'Tilt the top away ' : 'Tilt the top toward you ') + Math.round(Math.abs(dp)) + '°' : ''].filter(Boolean).join(' · ');
   return { ok, msg, dp, dr };
 }
+/* Like the iPhone Camera level: a thin line across the middle whose centre piece turns with the phone, and a fixed +
+   in the centre with a second + that floats off by the remaining angle. Both turn yellow and line up when it matches. */
 function TiltLevel({ target }) {
   const c = TILT.cur(); if (!c) return null;
-  const a = tiltAdvice(c, target); const cl = v => Math.max(-9, Math.min(9, v * 2));
-  return html`<div class=${'cam-level' + (a.ok ? ' ok' : '')} id="cam-level"><span class="lv"><i style=${{ transform: 'translate(' + cl(a.dr) + 'px,' + cl(-a.dp) + 'px)' }}></i></span><span>${a.msg}</span></div>`;
+  const a = tiltAdvice(c, target); const cl = (v, m) => Math.max(-m, Math.min(m, v));
+  const plus = (cls, st) => html`<span class=${'lvl-plus ' + cls} style=${st}><i></i><i></i></span>`;
+  return html`<div class=${'cam-lvl' + (a.ok ? ' ok' : '')} aria-hidden="true">
+      <span class="lvl-seg l"></span><span class="lvl-seg r"></span>
+      <span class="lvl-seg m" style=${{ transform: 'translate(-50%,-50%) rotate(' + cl(-a.dr, 45) + 'deg)' }}></span>
+      ${plus('fix', null)}${a.ok ? null : plus('float', { transform: 'translate(-50%,-50%) translate(' + cl(a.dr * 5, 70) + 'px,' + cl(a.dp * 5, 70) + 'px)' })}</div>
+    <div class=${'cam-level' + (a.ok ? ' ok' : '')} id="cam-level" role="status">${a.msg}</div>`;
 }
 function TiltToggle({ target }) {
   const [err, setErr] = useState(''); const live = !!TILT.cur();

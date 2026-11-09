@@ -311,6 +311,20 @@ main .page-title{font-size:min(27px, 7.2vw)}
 .kb-open .scrim{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
 .kb-open .sheet{padding-bottom:12px}
 .kb-open .sheet.big{height:calc(100% - 12px);max-height:calc(100% - 12px)}
+.cam .cam-ghost.red{filter:url(#ghost-red)}
+.cam-level{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:calc(100% - 20px);background:rgba(0,0,0,.55);color:#ffffff;border-radius:999px;padding:5px 12px;font-size:calc(13 * var(--u));line-height:1.25;text-align:center;pointer-events:none}
+.cam-level.ok{color:#ffd60a}
+.cam-lvl{position:absolute;inset:0;pointer-events:none}
+.cam-lvl .lvl-seg{position:absolute;top:50%;height:1px;background:#ffffff;box-shadow:0 0 2px rgba(0,0,0,.7)}
+.cam-lvl .lvl-seg.l{left:8%;width:20%}
+.cam-lvl .lvl-seg.r{right:8%;width:20%}
+.cam-lvl .lvl-seg.m{left:50%;width:40%;transform-origin:center}
+.cam-lvl .lvl-plus{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+.cam-lvl .lvl-plus i{position:absolute;background:#ffffff;box-shadow:0 0 2px rgba(0,0,0,.7)}
+.cam-lvl .lvl-plus i:first-child{left:0;right:0;top:50%;height:1px}
+.cam-lvl .lvl-plus i:last-child{top:0;bottom:0;left:50%;width:1px}
+.cam-lvl .lvl-plus.float i{background:#ffd60a}
+.cam-lvl.ok .lvl-seg,.cam-lvl.ok .lvl-plus i{background:#ffd60a}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -3126,7 +3140,7 @@ function ProfileScreen() {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 7af9a65</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6862345</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3576,7 +3590,7 @@ function PhotoCapture({ view }) {
   const [ghostOp, setGhostOp] = useState(+(lsGet('ghostOp') || 35)); const [timer, setTimer] = useState(+(lsGet('camTimer') || 0)); const [count, setCount] = useState(0);
   const [shot, setShot] = useState(null); const [img, setImg] = useState(null); const [xf, setXf] = useState({ x: 0, y: 0, s: 1, flip: false }); const [fw, setFw] = useState(0);
   const videoRef = useRef(null); const frameRef = useRef(null); const streamRef = useRef(null); const xfRef = useRef(xf); xfRef.current = xf;
-  const ptrs = useRef(new Map()); const g0 = useRef(null);
+  const ptrs = useRef(new Map()); const g0 = useRef(null); useTilt();
   useEffect(() => { if (!PH.list) phLoad(); }, []);
   useEffect(() => { setShot(null); setImg(null); setXf({ x: 0, y: 0, s: 1, flip: false }); setCount(0); const want = POSE_CAM[pose] || lsGet('camFacing') || 'user'; if (want !== facing) setFacing(want); }, [view.i]);
   useEffect(() => { if (frameRef.current) setFw(frameRef.current.offsetWidth); });
@@ -3593,7 +3607,7 @@ function PhotoCapture({ view }) {
   const snapLive = () => { const v = videoRef.current; if (!v || !v.videoWidth) return; const c = document.createElement('canvas'); c.width = 1080; c.height = 1440; const g = c.getContext('2d');
     const sc = Math.max(1080 / v.videoWidth, 1440 / v.videoHeight); const dw = v.videoWidth * sc, dh = v.videoHeight * sc;
     if (facing === 'user') { g.translate(1080, 0); g.scale(-1, 1); } g.drawImage(v, (1080 - dw) / 2, (1440 - dh) / 2, dw, dh);
-    toBlob(c, b => setShot({ blob: b, url: URL.createObjectURL(b) })); };
+    const tl = TILT.cur(); toBlob(c, b => setShot({ blob: b, url: URL.createObjectURL(b), tilt: tl })); };
   const shoot = () => { unlockAudio(); if (!timer) return snapLive(); let n = timer; setCount(n); beep(660, 100);
     const iv = setInterval(() => { n--; if (n <= 0) { clearInterval(iv); setCount(0); beep(990, 220); snapLive(); } else { setCount(n); beep(660, 100); } }, 1000); };
   const onFile = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; const url = URL.createObjectURL(f); const im = new Image();
@@ -3611,7 +3625,7 @@ function PhotoCapture({ view }) {
     g.translate(540 + xf.x * k, 720 + xf.y * k); g.scale((xf.flip ? -1 : 1) * xf.s * b * k, xf.s * b * k); g.drawImage(img.el, -img.iw / 2, -img.ih / 2);
     toBlob(c, bl => setShot({ blob: bl, url: URL.createObjectURL(bl) })); };
   const next = () => { if (last) { UI.setView(null); showToast({ kind: 'info', text: 'Check-in saved' }); } else UI.setView({ ...view, i: view.i + 1 }); };
-  const save = async () => { const rec = { id: uid('ph'), date: view.date, pose, t: Date.now(), blob: shot.blob }; if (HANDED.has(pose)) rec.hand = view.hand || 'right';
+  const save = async () => { const rec = { id: uid('ph'), date: view.date, pose, t: Date.now(), blob: shot.blob }; if (shot.tilt) rec.tilt = shot.tilt; if (HANDED.has(pose)) rec.hand = view.hand || 'right';
     try { await pdbTx('readwrite', st => st.put(rec)); } catch (e) { showToast({ kind: 'info', text: 'Couldn’t save the photo on this device.' }); return; }
     for (const old of (PH.list || []).filter(p => p.date === rec.date && p.pose === rec.pose)) await phDelete(old.id);
     PH.list = [rec, ...(PH.list || [])]; next(); };
@@ -3625,17 +3639,18 @@ function PhotoCapture({ view }) {
       ${shot ? html`<img class="cam-shot" src=${shot.url} alt="Your photo"/>`
         : img ? html`<img class="cam-img" src=${img.url} style=${imgStyle} alt="Photo to line up"/>`
         : html`<video ref=${videoRef} class=${'cam-video' + (facing === 'user' ? ' mirror' : '')} playsinline muted autoplay></video>`}
-      ${ghost && ghostOp > 0 ? html`<img class="cam-ghost" src=${phUrl(ghost)} style=${{ opacity: ghostOp / 100 }} alt=""/>` : null}
-      ${!shot ? html`<${PoseGuide} pose=${pose} hand=${view.hand} lines=${true}/>` : null}
+      ${ghost && ghostOp > 0 ? html`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="ghost-red" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.45 0.9 0.2 0 0.2  0.05 0.1 0.03 0 0.02  0.05 0.1 0.03 0 0.02  0 0 0 1 0"/></filter></svg><img class="cam-ghost red" src=${phUrl(ghost)} style=${{ opacity: ghostOp / 100 }} alt=""/>` : null}
+      ${!shot && !(ghost && ghostOp > 0) ? html`<${PoseGuide} pose=${pose} hand=${view.hand} lines=${true}/>` : null}
+      ${mode === 'live' && !shot ? html`<${TiltLevel} target=${ghost && ghost.tilt}/>` : null}
       ${count ? html`<div class="cam-count" aria-live="assertive">${count}</div>` : null}
       ${mode === 'nocam' && !img && !shot ? html`<div class="cam-msg">The live camera isn’t allowed inside this view. Take the photo with your camera, then line it up with the outline here.</div>` : null}
       ${mode === 'align' && img && !shot ? html`<div class="cam-tip">Drag to move · pinch or use the slider to zoom</div>` : null}
     </div>
-    ${ghost ? html`<div class="cam-ghost-row"><label for="ghost-op">Last photo</label><input id="ghost-op" type="range" min="0" max="70" value=${ghostOp} onInput=${e => { const v = +e.target.value; setGhostOp(v); lsSet('ghostOp', String(v)); }}/><span class="num" style="min-width:36px;text-align:right">${ghostOp}%</span></div>` : null}
+    ${ghost ? html`<div class="cam-ghost-row"><label for="ghost-op">Last photo <span style="color:#e5484d">(red)</span></label><input id="ghost-op" type="range" min="0" max="70" value=${ghostOp} onInput=${e => { const v = +e.target.value; setGhostOp(v); lsSet('ghostOp', String(v)); }}/><span class="num" style="min-width:36px;text-align:right">${ghostOp}%</span></div>` : null}
     ${shot ? html`<div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onClick=${() => { setShot(null); if (!img) setMode('init'); }}>Retake</button><button class="btn primary" style="flex:2" onClick=${save}>${last ? 'Save check-in' : 'Save, next pose'}</button></div>`
       : img ? html`<div class="stack" style="margin-top:12px"><div class="cam-ghost-row"><label for="zoom">Zoom</label><input id="zoom" type="range" min="50" max="300" value=${Math.round(xf.s * 100)} onInput=${e => setXf({ ...xf, s: +e.target.value / 100 })}/></div>
           <div class="row"><button class="btn" style="flex:1" onClick=${() => setXf({ ...xf, flip: !xf.flip })}>Flip</button><button class="btn" style="flex:1" onClick=${() => { setImg(null); setMode('init'); }}>Retake</button><button class="btn primary" style="flex:1.4" onClick=${useAligned}>Use photo</button></div></div>`
-      : mode === 'live' ? html`<div class="cam-ctl">
+      : mode === 'live' ? html`<${TiltToggle} target=${ghost && ghost.tilt}/><div class="cam-ctl">
           <button class="btn" onClick=${() => { const f = facing === 'user' ? 'environment' : 'user'; setFacing(f); if (!POSE_CAM[pose]) lsSet('camFacing', f); }}>Flip camera</button>
           <button class="shutter" aria-label="Take photo" disabled=${!!count} onClick=${shoot}></button>
           <button class="btn" onClick=${() => { const t = timerOpts[(timerOpts.indexOf(timer) + 1) % timerOpts.length]; setTimer(t); lsSet('camTimer', String(t)); }}>${timer ? timer + 's timer' : 'Timer off'}</button></div>`
@@ -9476,6 +9491,63 @@ function kbFit(h, top) {
   if (kb > 80 && a && a.closest && a.closest('.sheet')) setTimeout(() => { try { a.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
 }
 if (window.visualViewport) { const vv = window.visualViewport; const on = () => kbFit(vv.height, vv.offsetTop); vv.addEventListener('resize', on); vv.addEventListener('scroll', on); }
+/* ============ Level for check-in photos (Nov 9, Newt's request) ============
+   The phone's motion sensor (devicemotion, gravity) tells how far the phone leans: pitch = top toward or away from
+   the screen side, roll = one side lower. The check-in camera shows a bubble and plain directions, green when the
+   phone matches the last photo's angle (saved with each photo as rec.tilt) or, with no earlier angle, when it's
+   level. iPhone asks permission the first time you tap Show level. Readings stay on the phone. */
+const TILT = { on: false, v: null, at: 0, raf: 0, subs: new Set(),
+  ios: /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) };
+/* iPhone reports the gravity vector; Android reports its opposite. Normalized so upright portrait is y = -9.8. */
+function tiltRead(e) {
+  const g = e.accelerationIncludingGravity; if (!g || g.x == null || g.y == null || g.z == null) return;
+  const k = TILT.ios ? 1 : -1; const x = g.x * k, y = g.y * k, z = g.z * k;
+  const r = Math.atan2(x, -y) * 180 / Math.PI, p = Math.atan2(z, Math.hypot(x, y)) * 180 / Math.PI;
+  TILT.v = TILT.v ? { p: TILT.v.p * 0.7 + p * 0.3, r: TILT.v.r * 0.7 + r * 0.3 } : { p, r }; TILT.at = Date.now();
+  if (!TILT.raf) TILT.raf = requestAnimationFrame(() => { TILT.raf = 0; TILT.subs.forEach(f => f()); });
+}
+async function tiltStart(ask) {
+  const DM = window.DeviceMotionEvent; if (!DM) return 'none';
+  if (ask && typeof DM.requestPermission === 'function') { try { if (await DM.requestPermission() !== 'granted') return 'denied'; } catch (e) { return 'denied'; } }
+  if (!TILT.on) { window.addEventListener('devicemotion', tiltRead); TILT.on = true; }
+  lsSet('tiltOn', '1'); TILT.subs.forEach(f => f()); return 'ok';
+}
+function tiltStop() { window.removeEventListener('devicemotion', tiltRead); TILT.on = false; TILT.v = null; lsSet('tiltOn', ''); TILT.subs.forEach(f => f()); }
+TILT.cur = () => TILT.v && Date.now() - TILT.at < 1500 ? { p: Math.round(TILT.v.p * 10) / 10, r: Math.round(TILT.v.r * 10) / 10 } : null;
+function useTilt() {
+  const [, t] = useState(0);
+  useEffect(() => { const f = () => t(x => x + 1); TILT.subs.add(f); if (lsGet('tiltOn') === '1' && !TILT.on) tiltStart(false); return () => { TILT.subs.delete(f); }; }, []);
+  return TILT.cur();
+}
+/* What to do to match the target angle (the last photo's, or level) */
+function tiltAdvice(c, target) {
+  const t = target || { p: 0, r: 0 }; const dp = c.p - t.p, dr = c.r - t.r, tol = 1.5;
+  const ok = Math.abs(dp) <= tol && Math.abs(dr) <= tol;
+  const msg = ok ? (target ? 'Same angle as last photo' : 'Level')
+    : [Math.abs(dr) > tol ? (dr > 0 ? 'Raise the right side ' : 'Raise the left side ') + Math.round(Math.abs(dr)) + '°' : '',
+       Math.abs(dp) > tol ? (dp > 0 ? 'Tilt the top away ' : 'Tilt the top toward you ') + Math.round(Math.abs(dp)) + '°' : ''].filter(Boolean).join(' · ');
+  return { ok, msg, dp, dr };
+}
+/* Like the iPhone Camera level: a thin line across the middle whose centre piece turns with the phone, and a fixed +
+   in the centre with a second + that floats off by the remaining angle. Both turn yellow and line up when it matches. */
+function TiltLevel({ target }) {
+  const c = TILT.cur(); if (!c) return null;
+  const a = tiltAdvice(c, target); const cl = (v, m) => Math.max(-m, Math.min(m, v));
+  const plus = (cls, st) => html`<span class=${'lvl-plus ' + cls} style=${st}><i></i><i></i></span>`;
+  return html`<div class=${'cam-lvl' + (a.ok ? ' ok' : '')} aria-hidden="true">
+      <span class="lvl-seg l"></span><span class="lvl-seg r"></span>
+      <span class="lvl-seg m" style=${{ transform: 'translate(-50%,-50%) rotate(' + cl(-a.dr, 45) + 'deg)' }}></span>
+      ${plus('fix', null)}${a.ok ? null : plus('float', { transform: 'translate(-50%,-50%) translate(' + cl(a.dr * 5, 70) + 'px,' + cl(a.dp * 5, 70) + 'px)' })}</div>
+    <div class=${'cam-level' + (a.ok ? ' ok' : '')} id="cam-level" role="status">${a.msg}</div>`;
+}
+function TiltToggle({ target }) {
+  const [err, setErr] = useState(''); const live = !!TILT.cur();
+  const on = async () => { setErr(''); const r = await tiltStart(true); if (r === 'denied') setErr('Motion access was turned down. To use the level, allow Motion & Orientation for Ironwood in Settings, then try again.'); else if (r === 'none') setErr('This phone doesn’t share its tilt here.'); };
+  return html`<div class="cam-ghost-row" id="tilt-row"><span style="flex:1">${live ? (target ? 'Level: matching your last photo’s angle' : 'Level: on') : 'Level helps hold the phone at the same angle'}</span>
+    ${live ? html`<button class="btn text" id="tilt-off" onClick=${tiltStop}>Turn off</button>` : html`<button class="btn text" id="tilt-on" onClick=${on}>Show level</button>`}</div>
+    ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}`;
+}
+
 /* ---------- APP ---------- */
 const TABS = [['train', 'Train'], ['routines', 'Plans'], ['meals', 'Meals'], ['stats', 'Progress'], ['profile', 'Profile']];
 function App() {

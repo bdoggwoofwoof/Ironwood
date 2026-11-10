@@ -115,7 +115,7 @@ async def main():
         check('share picture makes a PNG', d.suggested_filename.endswith('.png'), d.suggested_filename)
         await ev("closeSheet()")
         # ---- measurements ----
-        await pg.locator('.tabs button', has_text='Progress').click(); await pg.locator('.seg button', has_text='Overall').first.click(); await pg.wait_for_timeout(200)
+        await pg.locator('.tabs button', has_text='Progress').click(); await pg.locator('.seg button', has_text='Numbers').first.click(); await pg.wait_for_timeout(200)
         await pg.click('#log-meas'); await pg.fill('#ms-waist', '34'); await pg.fill('#ms-bf', '18'); await pg.click('#ms-save'); await pg.wait_for_timeout(300)
         mc = await pg.locator('#measure-card').inner_text()
         check('measurements saved and shown', '34 in' in mc and '18 %' in mc, mc.replace('\n', ' | '))

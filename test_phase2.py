@@ -29,7 +29,7 @@ async def main():
         check('Fight filter shows only fight plans', await pg.locator('#ps-fight').count() == 1 and await pg.locator('#ps-lift').count() == 0)
         check('filter is remembered', await ev("lsGet('rtFilter')") == 'fight')
         await pg.click('#pf-all'); await pg.fill('#plan-q', '5x5'); await pg.wait_for_timeout(200)
-        check('search finds a plan by name', '5x5' in (await pg.inner_text('.r-card')).lower() if await pg.locator('.r-card').count() else False)
+        check('search finds a plan by name', '5×5' in (await pg.inner_text('.r-card')).lower() if await pg.locator('.r-card').count() else False)
         await pg.fill('#plan-q', 'zzzqqq'); await pg.wait_for_timeout(200)
         check('search with no match says so', await pg.locator('text=Nothing found').count() == 1)
         await pg.fill('#plan-q', ''); await pg.click('#pf-care'); await pg.wait_for_timeout(200)

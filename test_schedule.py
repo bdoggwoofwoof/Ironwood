@@ -33,7 +33,7 @@ async def main():
         check('next run shows even on a day without one', ('Tomorrow' in run_card or 'Start it early' in run_card) and 'Run' in run_card, run_card.replace('\n', ' | ')[:120])
         jc = await pg.locator('#also-bi-care-back').inner_text()
         check('joint care says when it is next', any(w in jc for w in ['Today', 'Tomorrow', 'day']), jc[:60])
-        await pg.click('#edit-addons'); await pg.wait_for_timeout(200)
+        await ev('closeSheet()'); await pg.wait_for_timeout(200); await pg.click('#edit-addons'); await pg.wait_for_timeout(200)
         check('Programs alongside says the running plan is on', 'On · 3 runs a week' in await pg.locator('#addon-run').inner_text())
         await ev("closeSheet()")
         # calendar file
@@ -43,7 +43,7 @@ async def main():
         check('valid calendar file shape', ics.startswith('BEGIN:VCALENDAR\r\nVERSION:2.0') and ics.rstrip().endswith('END:VCALENDAR') and 'BEGIN:VALARM' in ics and all(len(l) <= 75 for l in ics.split('\r\n')))
         check('events named with the program day', 'SUMMARY:Ironwood · Full Body 5×5: Workout A' in ics and 'SUMMARY:Ironwood · Lower Back Care: A: Trunk endurance' in ics and re.search(r'SUMMARY:Ironwood · Run [ABC]', ics) is not None)
         check('rotation predicted: A then B', ics.index('Workout A') < ics.index('Workout B'))
-        await pg.click('#plan-cal'); await pg.wait_for_timeout(300)
+        await ev("openSheet({ type: 'schedule' })"); await pg.wait_for_timeout(300); await pg.click('#plan-cal'); await pg.wait_for_timeout(300)
         await pg.click('#cal-w2'); await pg.wait_for_timeout(100)
         async with pg.expect_download() as dl:
             await pg.click('#cal-save')

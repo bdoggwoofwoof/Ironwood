@@ -4,7 +4,7 @@
    diagnosis or treatment claims, a pain rule, and clear signs to see a doctor. Each program has two
    days (A: strength, B: mobility and control) done three times a week, alternating, about 15–20 minutes, after a warm-up or
    at the end of a lifting day. Items: [exercise, sets, reps, note, target, kind for a new exercise]. */
-const CARE_NOTE = 'General strength and mobility exercise for common aches. It doesn’t diagnose or treat anything and doesn’t replace a doctor.';
+const CARE_NOTE = 'General strength and mobility exercise for common aches. It isn’t a medical treatment and doesn’t replace a doctor.';
 const CARE_PAIN = 'Pain rule: mild discomfort during an exercise (up to about 3 out of 10) that settles within 24 hours is okay. If it’s sharper, or worse the next morning, use less weight, fewer reps or a smaller range next time. Stop anything that causes sharp, catching or worsening pain.';
 const CARE_RED = ['Pain after a fall, a pop or a direct hit', 'Numbness, tingling or weakness', 'Swelling, redness or warmth around a joint', 'Pain at night or at rest that doesn’t ease with changing position', 'Pain that keeps getting worse over 2 weeks, or no better after 4–6 weeks of this program'];
 const CARE = [

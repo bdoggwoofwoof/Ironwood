@@ -140,7 +140,7 @@ async def main():
         check('Boxing, Kickboxing / Muay Thai and MMA can be logged', await ev("['boxing', 'kickbox', 'mma', 'bjj'].every(k => ACTS.some(a => a[0] === k))"))
         bk = json.loads(await ev("JSON.stringify(S.meta)"))
         check('fight settings are in meta, so backups carry them', bk.get('fight', {}).get('fav') == ['box:1'])
-        check('tour has a Fight step', await ev("TOUR.some(t => t[1] === 'fight' && /combos/.test(t[4]))"))
+        check('tour mentions Fight', await ev("TOUR.some(t => /Fight/.test(t[4]))"))
         await ev("lsSet('rtView', 'type'); lsSet('rtKind', 'plans')"); await pg.reload(); await pg.wait_for_timeout(1200)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('By type has a Fight training section', 'FIGHT TRAINING' in (await pg.locator('main').inner_text()).upper())

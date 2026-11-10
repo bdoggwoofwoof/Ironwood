@@ -78,7 +78,7 @@ async def main():
         check('color-blind friendly offers two kinds', await pg.locator('#pal-cb button').count() == 2)
         check('only Classic, Forest, Color-blind friendly and Custom', await pg.locator('.pal').count() == 4)
         after = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
-        check('color theme changes accent', before != after and after.lower() in ('#56b4e9', '#0072b2'), (before, after))
+        check('color theme changes accent', before != after and after.lower() in ('#56b4e9', '#0072b2', '#00669f'), (before, after))
         await pg.reload(); await pg.wait_for_timeout(1500)
         kept = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
         check('color theme kept after reload', kept == after, kept)

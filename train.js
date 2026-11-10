@@ -256,13 +256,14 @@ const PALETTES = {
   forest: ['Forest', '', { a: '#3fbf73', p: '#ffcf40', s: '#f0603f', g: '#2ec4c4', r: '#ff7d61', pi: '#1b1400' }, { a: '#1e8a4c', p: '#f5c22e', s: '#d2452a', g: '#12898c', r: '#b3341b', pi: '#2a1e00' }],
   grape: ['Lavender', '', { a: '#9b7bff', p: '#ffcf40', s: '#ff5c7a', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#6d4fd6', p: '#f5c22e', s: '#d0304f', g: '#1d9a62', r: '#b0243f', pi: '#2a1e00' }],
   ember: ['Ember', '', { a: '#ff7a3d', p: '#ffd84d', s: '#ff4d6d', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#d65314', p: '#e6b400', s: '#c9184a', g: '#1d9a62', r: '#b0243f', pi: '#241a00' }],
-  rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#0072b2', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
-  by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#00838f', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
+  rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#00669f', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
+  by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#006e78', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
 };
 const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
 const lum = h => { const n = parseInt(h.slice(1), 16); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(n >> 16) + .7152 * f((n >> 8) & 255) + .0722 * f(n & 255); };
-const inkFor = h => lum(h) > .2 ? '#14171b' : '#ffffff';  /* white text needs a fairly dark fill to reach 4.5:1 */
-const palVars = (c, al) => '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || '#ffffff') + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+/* Text on a color: white or near-black, whichever contrasts more (white needs a fairly dark fill to reach 4.5:1) */
+const inkFor = h => (1.05 / (lum(h) + .05)) >= ((lum(h) + .05) / (lum('#14171b') + .05)) ? '#ffffff' : '#14171b';
+const palVars = (c, al) => '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || inkFor(c.a)) + ';--accent-btn:' + ((c.ai || inkFor(c.a)) === '#ffffff' ? 'color-mix(in srgb, ' + c.a + ' 72%, #000)' : hexA('#ffffff', .3)) + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
 /* ---- Custom colors: three colors picked on a hue/saturation wheel, all at one shared brightness (HSV value). ---- */
 const hsv2hex = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
   return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };

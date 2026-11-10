@@ -1783,6 +1783,32 @@ swap(".sess-acts{gap:8px}", """.cam-level{position:absolute;top:10px;left:50%;tr
 .cam-lvl.ok .lvl-seg,.cam-lvl.ok .lvl-plus i{background:#ffd60a}
 .sess-acts{gap:8px}""")
 
+# 46. Audit P0 fixes (Nov 10, Newt's Yes in the Ironwood App Audit). (1) Text on accent buttons is picked by contrast in
+#     every palette (train.js inkFor/palVars), so the color-blind themes' dark Start/Log food/Finish buttons pass 4.5:1.
+#     (2) Rest bar buttons sit on a darker (or, with dark text, lighter) shade of the accent, and the Rest label is full
+#     strength. (3) Each set number is a button that opens Log/Clear, Copy set and Delete set (with Undo), so a set in
+#     the middle no longer needs a swipe. (4) Schedule strip cells lose the table roles that hid their state.
+swap("""      <span class=${'n' + (s.pr && done ? ' pr' : '')} >${j + 1}</span>""",
+     """      <button type="button" class=${'n' + (s.pr && done ? ' pr' : '')} id=${'sn-' + s.id} aria-label=${'Set ' + (j + 1) + (done ? ', logged' : '') + '. Actions'} onClick=${() => openSheet({ type: 'setActs', it, s })}>${j + 1}</button>""")
+swap("    case 'confirm': return html`<${ConfirmSheet} ...${sheet}/>`;", "    case 'confirm': return html`<${ConfirmSheet} ...${sheet}/>`;\n    case 'setActs': return html`<${SetActsSheet} ...${sheet}/>`;")
+swap("/* ---------- APP ---------- */", """function SetActsSheet({ it, s }) {
+  const j = it.sets.indexOf(s); if (j < 0) return null; const done = isDone(s);
+  const go = fn => { closeSheet(); fn(); };
+  return html`<${Sheet} label=${'Set ' + (j + 1)}><h2>Set ${j + 1}</h2><p class="note">${exName(it.ex)}${done ? ' · logged' : ''}</p>
+    <div class="stack" style="margin-top:12px">
+      <button class="btn wide" id="sa-log" onClick=${() => go(() => { if (done) uncompleteSet(it, s, false); else completeSet(it, s, false); S.rerender(); })}>${done ? 'Clear this set' : 'Log this set'}</button>
+      <button class="btn wide" id="sa-copy" onClick=${() => go(() => copySet(it, s))}>Copy set</button>
+      <button class="btn wide danger" id="sa-del" onClick=${() => go(() => deleteSet(it, s))}>Delete set</button>
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+/* ---------- APP ---------- */""")
+swap(".sess-acts{gap:8px}", """.set-row button.n{background:none;border:0;padding:0;min-height:44px;min-width:36px;color:var(--ink-2);font-family:var(--display);font-weight:700;font-size:18px;text-align:center}
+.set-row button.n.pr{background:var(--pr);color:var(--pr-ink);border-radius:8px;min-height:32px;padding:3px 0}
+.restbar button{background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
+.restbar .lbl2{opacity:1}
+span.chip.wtag{color:color-mix(in srgb, var(--accent) 78%, var(--ink))}
+.sess-acts{gap:8px}""")
+
 # Text size follows the iPhone (Dynamic Type). Every CSS font size N px becomes N × --u, where --u is 1px at the
 # default size. On iPhone the root size comes from -apple-system-body (17px at the default setting, larger or smaller
 # with Settings → Display & Brightness → Text Size); elsewhere it stays 17px, so nothing changes. --u is capped at

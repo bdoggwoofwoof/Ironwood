@@ -52,12 +52,12 @@ function PlanWeekCard() {
   const doubled = WEEK_ORDER.filter(d => ps.filter(p => p.days.includes(d)).length > 1);
   return html`<div class="card plan-week" id="plan-week">
     <div class="row" style="align-items:baseline"><span style="font-weight:700;flex:1">Your week</span><button class="btn text" id="plan-add" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Program</button><button class="btn text" id="plan-cal" onClick=${() => openSheet({ type: 'calendar' })}>${I.cal || I.timer} Calendar</button></div>
-    <div class="pw-grid" role="table" aria-label="Weekly schedule">
-      <div class="pw-row pw-head" role="row">${WEEK_ORDER.map(d => html`<span key=${d} role="columnheader" class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
-      ${ps.map(p => html`<div key=${p.key} class="pw-row" role="row" id=${'pw-' + p.key}>
-        <span class="pw-name" role="rowheader"><i style=${{ background: p.color }}></i><span><b>${p.name}</b><small>${p.role} · ${p.days.length}×</small></span></span>
+    <div class="pw-grid" role="group" aria-label="Weekly schedule">
+      <div class="pw-row pw-head" aria-hidden="true">${WEEK_ORDER.map(d => html`<span key=${d} class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
+      ${ps.map(p => html`<div key=${p.key} class="pw-row" role="group" aria-label=${p.name} id=${'pw-' + p.key}>
+        <span class="pw-name"><i style=${{ background: p.color }}></i><span><b>${p.name}</b><small>${p.role} · ${p.days.length}×</small></span></span>
         ${WEEK_ORDER.map(d => { const on = p.days.includes(d); const k = ymd(addDays(ws, (d + 6) % 7)); const done = on && progDoneOn(p, k);
-          return html`<button key=${d} role="cell" class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
+          return html`<button key=${d} class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
             aria-label=${p.name + ', ' + DOW_FULL[d] + (on ? ', planned' : ', not planned') + (done ? ', done' : '')} aria-pressed=${on}
             onClick=${() => p.key === 'run' ? openSheet({ type: 'runDay', dow: d }) : toggleSched(p.key, d)}>${on ? (done ? I.check : p.tag[0]) : ''}</button>`; })}</div>`)}
     </div>

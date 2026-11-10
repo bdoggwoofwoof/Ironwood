@@ -179,7 +179,7 @@ function saveSessionAsRoutine(id) {
   const s = S.sessions[id]; if (!s) return;
   const r = { id: uid('r'), name: s.name && s.name !== 'Workout' ? s.name : 'Workout from ' + shortDate(s.startedAt), source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: s.name || 'Day 1', items: itemsFromSession(s) }] };
   commit(st => { st.meta.routines[r.id] = r; }, 'meta'); closeSheet(); UI.setTab('routines'); UI.setView({ type: 'routine', id: r.id });
-  showToast({ kind: 'info', text: 'Saved as a routine. Edit it to change sets or reps.' });
+  showToast({ kind: 'info', text: 'Saved as a plan. Edit it to change sets or reps.' });
 }
 
 /* ---- Body measurements, next to bodyweight ---- */
@@ -242,7 +242,7 @@ function SessionActions({ id, summary }) {
   const s = S.sessions[id]; if (!s || s.kind === 'activity') return null;
   return html`<div class="row wrap sess-acts" style="margin-top:12px">
     <button class="btn" id="sess-again" onClick=${() => repeatSession(id)}>${I.swap} Do it again</button>
-    ${!s.routineId || s.routineId === 'run-plan' || summary === false ? html`<button class="btn" id="sess-save-routine" onClick=${() => saveSessionAsRoutine(id)}>${I.plus} Save as routine</button>` : null}
+    ${!s.routineId || s.routineId === 'run-plan' || summary === false ? html`<button class="btn" id="sess-save-routine" onClick=${() => saveSessionAsRoutine(id)}>${I.plus} Save as a plan</button>` : null}
     <button class="btn" id="sess-share" onClick=${() => shareWorkout(id)}>${I.share || I.copy} Share picture</button></div>`;
 }
 

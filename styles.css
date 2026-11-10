@@ -807,4 +807,7 @@ main.with-mini{padding-top:64px}
 .pr-line.tbl{grid-column:1/-1;padding:0 0 4px}
 .pr-line span{display:block}
 .pose img,.pose svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.plan-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:10px calc(-1 * var(--gut)) 0;padding:0 var(--gut) 2px}
+.plan-chips::-webkit-scrollbar{display:none}
+.plan-chips .chip{flex:none}
 

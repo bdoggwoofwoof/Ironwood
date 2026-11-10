@@ -506,10 +506,11 @@ function FightInfo({ r }) {
 }
 function FightPrograms() {
   return html`<div id="fight-programs">
-    <p class="note" style="margin-top:14px">Six fight programs. Follow one on its own, or add it alongside your lifting program from its page so Train shows its next day too.</p>
+    <p class="note" style="margin-top:14px">${FPROGS.length} fight plans. Follow one on its own, or add it alongside your lifting plan from its page so Train shows its next day too.</p>
     <div class="stack" style="margin-top:10px">${FPROGS.map(P => html`<button key=${P.id} class="r-card cond-card" id=${'fprog-' + P.id} onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: P.id }); }}>
       <span class="tag">${P.cost} recovery cost · ${P.week}</span><h3>${P.name}</h3><span class="days">Builds: ${P.builds} · ${P.equip}</span></button>`)}
       <button class="r-card cond-card" id="fprog-rounds" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-cond-fight' }); }}><span class="tag">Conditioning · 3 days</span><h3>Fight Rounds</h3><span class="days">Kettlebell, sprawl and bag rounds, roadwork and grip, from the conditioning programs</span></button></div>
+    <button class="btn text" id="fight-in-plans" onClick=${() => { setPlanFilter('fight'); UI.setView(null); UI.setTab('routines'); }}>See fight plans in Plans</button>
     <div class="section-h"><h2>Fitting it in with lifting</h2></div>
     <div class="card"><ul class="run-ul">
       <li>Two fight sessions a week fit alongside a 4-day split. Three or more: drop to 3 lifting days or cut a set from each lift on your heaviest days.</li>

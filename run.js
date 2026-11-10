@@ -826,10 +826,11 @@ function RunPaces({ c: c0 }) {
 }
 function RunPrograms() {
   return html`<div>
-    <p class="note" style="margin-top:14px">Six conditioning programs. Run one at a time for 6–8 weeks, in place of the running plan or replacing one of its runs. Each is a plan in the Plans tab you can start, edit, follow or add alongside.</p>
+    <p class="note" style="margin-top:14px">Six conditioning plans. Run one at a time for 6–8 weeks, in place of the running plan or replacing one of its runs. Each is in Plans, where you can start, edit, follow or add it alongside.</p>
     <div class="stack" style="margin-top:10px">${COND.map(P => html`<button key=${P.id} class="r-card cond-card" id=${'cond-' + P.id} onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: P.id }); }}>
       <span class="tag">${P.cost} recovery cost · ${P.week} a week</span><h3>${P.name}</h3><span class="days">Builds: ${P.builds} · ${P.equip}</span></button>`)}</div>
-    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-ankle' }); }}>Ankle & Foot Care</button> builds them up. Other joint care programs are in Routines.</p>
+    <button class="btn text" id="run-in-plans" onClick=${() => { setPlanFilter('run'); UI.setView(null); UI.setTab('routines'); }}>See conditioning plans in Plans</button>
+    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-ankle' }); }}>Ankle & Foot Care</button> builds them up. <button class="btn text" id="run-care-plans" style="padding:0;min-height:0" onClick=${() => { setPlanFilter('care'); UI.setView(null); UI.setTab('routines'); }}>Other joint care plans</button> are in Plans.</p>
     <div class="section-h"><h2>Fitting them in</h2></div>
     <div class="card"><ul class="run-ul">${COND_FIT.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="section-h"><h2>Cross-training swaps</h2></div>

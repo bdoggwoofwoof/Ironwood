@@ -647,40 +647,64 @@ function RoutinesScreen({ view }) {
 }
 const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
+/* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
+   chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
+const PLAN_FILTERS = [['all', 'All'], ['mine', 'Yours'], ['lift', 'Lifting'], ['one', 'One-day'], ['goal', 'Goal plans'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['type', 'By type']];
+const PLAN_MORE = {};
+function setPlanFilter(f) { lsSet('rtFilter', f); }
 function RoutineList() {
-  const [kind, setKind] = useState(lsGet('rtKind') === 'plans' ? 'plans' : 'routines');
-  const [mode, setMode] = useState(lsGet('rtView') === 'type' ? 'type' : 'list'); const [, setT] = useState(0); const re = () => setT(x => x + 1);
-  const pickKind = k => { setKind(k); lsSet('rtKind', k); }; const pick = m => { setMode(m); lsSet('rtView', m); };
-  const isPlan = r => r.days.length > 1; const want = r => kind === 'plans' ? isPlan(r) : !isPlan(r);
-  const mine = myRoutines().filter(want); const lib = libRoutines().filter(want); const hidden = (S.meta.hidden || []).filter(libBase);
+  const fl = PLAN_FILTERS.some(x => x[0] === lsGet('rtFilter')) ? lsGet('rtFilter') : 'all';
+  const [q, setQ] = useState(''); const [, setT] = useState(0); const re = () => setT(x => x + 1);
+  const pickF = f => { setPlanFilter(f); re(); };
+  const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
   const pid = programId();
-  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ');
+  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
     return html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
     ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
     <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`; };
-  const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: kind === 'plans' ? [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] : [{ id: uid('d'), name: 'Day 1', items: [] }] });
-  const seg = html`<div class="seg" role="tablist" aria-label="Routine view" style="margin:2px 0 0">
-    <button role="tab" aria-selected=${mode === 'list'} class=${mode === 'list' ? 'on' : ''} onClick=${() => pick('list')}>List</button>
-    <button role="tab" aria-selected=${mode === 'type'} class=${mode === 'type' ? 'on' : ''} onClick=${() => pick('type')}>By type</button></div>`;
-  const actions = html`<div class="row"><button class="btn primary" style="flex:1" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} ${kind === 'plans' ? 'New plan' : 'New routine'}</button>
+  const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] });
+  const actions = html`<div class="row"><button class="btn primary" style="flex:1" id="plan-new" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} New plan</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
-  const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed routine${hidden.length === 1 ? '' : 's'}</button>` : null;
-  const top = html`<${TopSwitch} value=${kind} options=${[['routines', 'Routines'], ['plans', 'Plans']]} onChange=${pickKind}/>
-    <p class="small muted tab-intro" style="margin:2px 0 8px">Workouts and plans to start or follow.</p>
-    <${Tip} id=${'kind-' + kind} style="margin-top:12px">${kind === 'plans' ? 'Plans have several days. Follow one from its page and Train lines up the next day for you.' : 'Routines are single workouts. Start one any time, or follow it as your plan.'}<//>
-    <div class="row" style="margin-top:12px">${seg}</div>`;
-  const kinds = [['Lifting', r => !r.info && !r.goalPlan], ['Goal plans', r => r.goalPlan], ['Running and conditioning', r => r.info && !r.info.care && !r.info.fight], ['Fight', r => r.info && r.info.fight], ['Joint care', r => r.info && r.info.care]];
+  const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed plan${hidden.length === 1 ? '' : 's'}</button>` : null;
+  const multi = r => r.days.length > 1;
+  const SECS = [
+    ['mine', 'Yours', mine],
+    ['lift', 'Lifting', lib.filter(r => multi(r) && !r.info && !r.goalPlan)],
+    ['one', 'One-day', lib.filter(r => !multi(r) && !r.info)],
+    ['goal', 'Goal plans', lib.filter(r => r.goalPlan)],
+    ['run', 'Running and conditioning', lib.filter(r => r.info && !r.info.care && !r.info.fight)],
+    ['fight', 'Fight', lib.filter(r => r.info && r.info.fight)],
+    ['care', 'Joint care', lib.filter(r => r.info && r.info.care)]];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
-  const more = kind === 'plans' ? html`<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/>` : html`<${CareFinder}/>`;
-  if (mode === 'list') return html`<div>${top}
-    <div class="section-h"><h2>Yours</h2></div>
-    <div class="stack">${mine.length ? mine.map(card) : html`<${Tip} id=${'yours-' + kind}>${kind === 'plans' ? 'Plans you build, copy, or import live here.' : 'Routines you build, copy, or import live here.'} Library ones can be edited or removed too.<//>`}${actions}</div>
-    ${kind === 'plans' ? kinds.map(([t, f]) => { const rs = lib.filter(f); return rs.length || t === 'Running and conditioning' ? html`<div key=${t}><div class="section-h"><h2>${t}</h2></div><div class="stack">${t === 'Running and conditioning' ? runRow : null}${rs.map(card)}</div></div>` : null; })
-      : lib.length ? html`<div class="section-h"><h2>Library</h2></div><div class="stack">${lib.map(card)}</div>` : null}
-    ${more}
+  const top = html`<div class="topsw"><h1 class="page-title">Plans</h1></div>
+    <p class="small muted tab-intro" style="margin:2px 0 8px">Workouts and plans to start or follow.</p>
+    <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
+    <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
+    <${Tip} id="plans-lib" style="margin-top:10px">Follow a plan from its page and Train lines up the next day for you. A one-day plan is a single workout you can start any time.<//>`;
+  const term = q.trim().toLowerCase();
+  if (term) {
+    const hits = [...mine, ...lib].filter(r => (r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).toLowerCase().includes(term));
+    return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(card)}</div>
+      ${hits.length ? null : html`<p class="note">Try fewer letters, or clear the search to browse.</p>`}</div>`;
+  }
+  if (fl === 'type') return html`<div>${top}<${ByTypeList} rs=${[...mine, ...lib]}/><div class="stack" style="margin-top:18px">${actions}${bring}</div></div>`;
+  if (fl === 'ch') return html`<div>${top}<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/></div>`;
+  const sec = ([k, t, rs]) => {
+    if (fl !== 'all' && fl !== k) return null;
+    const extra = k === 'run' ? 1 : 0; if (!rs.length && !extra && k !== 'mine') return null;
+    const cap = fl === 'all' && !PLAN_MORE[k] ? 3 : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
+    return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > 3 ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
+      ${k === 'care' ? html`<${CareFinder}/>` : null}
+      <div class="stack">${k === 'mine' && !rs.length ? html`<p class="note">Plans you build, copy or import show here.</p>` : null}${k === 'run' ? runRow : null}${list.map(card)}${k === 'mine' ? actions : null}</div></div>`; };
+  return html`<div>${top}${SECS.map(sec)}
+    ${fl === 'all' ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${() => pickF('ch')}>Show all</button></div><${ChallengeFinder} where="routines"/>` : null}
     <div class="stack" style="margin-top:10px">${bring}</div></div>`;
+}
+/* Every workout sorted by its type, in sections you open and close */
+function ByTypeList({ rs }) {
+  const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const open = openSecs(); const groups = WTAGS.map(t => ({ t, rows: [] }));
-  for (const r of [...mine, ...lib]) for (const d of r.days) if (d.items.length) for (const t of dayTags(d, r)) (groups.find(g => g.t === t) || groups[groups.length - 1]).rows.push({ r, d });
+  for (const r of rs) for (const d of r.days) if (d.items.length) for (const t of dayTags(d, r)) (groups.find(g => g.t === t) || groups[groups.length - 1]).rows.push({ r, d });
   const shown = groups.filter(g => g.rows.length); const allOpen = shown.length && shown.every(g => open[g.t]);
   const setAll = v => { shown.forEach(g => { open[g.t] = v; }); lsSet('rtOpen', JSON.stringify(open)); re(); };
   const row = ({ r, d }) => html`<div key=${r.id + d.id} class="wk-row">
@@ -688,25 +712,23 @@ function RoutineList() {
       <span class="t">${r.days.length > 1 ? dayLabel(d) : r.name}</span>
       <span class="s">${r.days.length > 1 ? r.name + ' · ' : ''}${d.items.length} exercise${d.items.length === 1 ? '' : 's'}</span>${tagChips(dayTags(d, r))}</button>
     <button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>`;
-  return html`<div>${top}
-    <div class="row" style="margin:12px 0 2px"><div style="flex:1"><${Tip} id="bytype">Every workout, sorted by type. Set a workout's type in Edit.<//></div>
+  return html`<div id="by-type"><div class="row" style="margin:12px 0 2px"><p class="small muted" style="flex:1">Every workout, sorted by type. Set a workout's type in Edit.</p>
       ${shown.length ? html`<button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button>` : null}</div>
     ${shown.map(g => { const on = !!open[g.t]; return html`<section key=${g.t} class="wsec">
       <button class="wsec-h" aria-expanded=${on} onClick=${() => { open[g.t] = !on; lsSet('rtOpen', JSON.stringify(open)); re(); }}><h2>${g.t}</h2><span class="aside num">${g.rows.length}</span>${on ? I.up : I.down}</button>
-      ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}
-    <div class="stack" style="margin-top:18px">${actions}${bring}</div>${more}</div>`;
+      ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}</div>`;
 }
 function RoutineView({ id }) {
-  const r = getRoutine(id); if (!r) return html`<div class="empty"><h3>Routine not found</h3></div>`;
+  const r = getRoutine(id); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
   const lib = !!libBase(r.id); const builtin = r.source === 'builtin';
   const copy = () => { const c = clone(r); delete c.base; delete c.meta; delete c.shelf; c.id = uid('r'); c.source = 'mine'; c.name = r.name + ' (copy)'; c.createdAt = Date.now(); c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
     commit(st => { st.meta.routines[c.id] = c; }, 'meta'); UI.setView({ type: 'routine', id: c.id }); };
   const edit = () => UI.setView({ type: 'edit', draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
-  const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this routine are undone. Logged workouts stay in your history.', ok: 'Reset routine', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
-  const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Routines. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove routine' : 'Delete routine', danger: true,
+  const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this plan are undone. Logged workouts stay in your history.', ok: 'Reset plan', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
+  const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Plans. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove plan' : 'Delete plan', danger: true,
     onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
   return html`<div>
-    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'Routine')}</div>
+    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
     <h2 class="wo-title" style="margin:2px 0 6px">${r.name}</h2>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
@@ -730,10 +752,10 @@ function RoutineView({ id }) {
 function RoutineEditor({ view }) {
   const d = view.draft; const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; ssTop(arr); re(); };
-  const save = () => { if (!d.name.trim()) d.name = 'My routine'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
+  const save = () => { if (!d.name.trim()) d.name = 'My plan'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
     commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
   return html`<div class="stack" style="gap:14px;margin-top:6px">
-    <div><label class="lbl" for="rt-name">Routine name</label><input class="field" id="rt-name" value=${d.name} placeholder="e.g. Upper / Lower" onInput=${e => { d.name = e.target.value; }}/></div>
+    <div><label class="lbl" for="rt-name">Plan name</label><input class="field" id="rt-name" value=${d.name} placeholder="e.g. Upper / Lower" onInput=${e => { d.name = e.target.value; }}/></div>
     ${d.days.map((day, di) => html`<div key=${day.id} class="r-day">
       <div class="row"><input class="field" id=${'day-' + day.id} aria-label="Day name" value=${day.name} onInput=${e => { day.name = e.target.value; }}/>
         <button class="icon-btn" aria-label="Move day up" onClick=${() => move(d.days, di, -1)}>${I.up}</button>
@@ -756,7 +778,7 @@ function RoutineEditor({ view }) {
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}
     <button class="btn wide" onClick=${() => { d.days.push({ id: uid('d'), name: 'Day ' + (d.days.length + 1), items: [] }); re(); }}>${I.plus} Add day</button>
-    <div class="row"><button class="btn" style="flex:1" onClick=${() => UI.setView(view.isNew ? null : { type: 'routine', id: d.id })}>Cancel</button><button class="btn primary" style="flex:2" onClick=${save}>Save routine</button></div>
+    <div class="row"><button class="btn" style="flex:1" onClick=${() => UI.setView(view.isNew ? null : { type: 'routine', id: d.id })}>Cancel</button><button class="btn primary" style="flex:2" onClick=${save}>Save plan</button></div>
   </div>`;
 }
 
@@ -905,13 +927,14 @@ function StatsScreen({ view }) {
   if (view && view.type === 'category') return html`<${CategoryView} cat=${view.cat} mode=${view.mode}/>`;
   if (view && view.type === 'photoCap') return html`<${PhotoCapture} view=${view}/>`;
   if (view && view.type === 'photoCmp') return html`<${PhotoCompare}/>`;
-  const tab = lsGet('statsTab') || 'history';
+  /* Four tabs (Nov 10, audit P1-5): Numbers holds what were Overall and Categories. Old saved names still open it. */
+  const t0 = lsGet('statsTab') || 'history'; const tab = t0 === 'overall' || t0 === 'cats' ? 'numbers' : t0;
   const pick = t => { lsSet('statsTab', t); S.rerender(); };
   return html`<div>
-    <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['overall', 'Overall'], ['cats', 'Categories'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['numbers', 'Numbers'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
-    ${tab === 'overall' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
-    ${tab === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : tab === 'cats' ? html`<${StatsCategories}/>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<${StatsOverall}/>`}
+    ${tab === 'numbers' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
+    ${tab === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${StatsCategories}/></div>`}
   </div>`;
 }
 function StatsOverall() {
@@ -1113,7 +1136,7 @@ function StorageNote() {
   if (kept === false && isWeb) return html`<p class="small faint">The phone hasn’t promised to keep this app’s data under storage pressure, so keep a recent backup.</p>`;
   return null;
 }
-function ProfileScreen() {
+function ProfileScreen({ view }) {
   const st = S.meta.settings; const [msg, setMsg] = useState('');
   const set = (k, v) => commit(x => { x.meta.settings[k] = v; }, 'meta', 1200);
   const backup = backupJSON;
@@ -1131,39 +1154,18 @@ function ProfileScreen() {
   const field = (k, label) => html`<div><label class="lbl" for=${'set-' + k}>${label}</label><input class="field" id=${'set-' + k} inputmode="decimal" value=${st[k]} onChange=${e => set(k, Math.abs(num(e.target.value)) || DEFAULT_SETTINGS[k])}/></div>`;
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span>${sub ? html`<span class="d">${sub}</span>` : null}</span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${!!st[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   const exR = Object.entries(S.meta.exRest || {});
-  return html`<div class="stack" style="gap:12px">
-    <div class=${'sync ' + S.sync} style="margin-top:6px"><i></i><span>${SYNC_TEXT[S.sync] || ''}</span></div>
-    <div class="section-h"><h2>Backup</h2></div>
-    <div class="card stack">
-      <div class="row wrap"><button class="btn" id="backup-file" onClick=${exportFile}>Save backup file</button><button class="btn" onClick=${copyBackup}>Copy backup</button><button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>
-      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.count} photo${phb.count === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
-      <p class="note">The backup file has workouts, routines and settings. Progress photos are large, so they go in their own file.</p>
-      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
-      <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} routines · ${Object.keys(S.meta.exercises).length} custom exercises</p>
-      <p class="note" id="last-backup">${lastBackupText()}</p>
-      <${StorageNote}/>
-    </div>
-    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>
-    <${DisplayCard}/>
-    <div class="section-h"><h2>Training</h2><button class="btn text" id="profile-plan" onClick=${() => openSheet({ type: 'addons' })}>Your plan</button></div>
-    <div class="card stack" style="gap:14px">
-      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => switchMainUnit(u)}>${u}</button>`)}</div>
-        <p class="note" style="margin-top:6px">Any exercise can switch between lb and kg during a workout by tapping the unit above its sets. Stats convert everything to your main unit.</p></div>
-      <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
-      <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
-      <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
-      <${ProgressionSettings} set=${set}/>
-    </div>
+  /* Four groups and an Advanced page (Nov 10, audit P1-5): the everyday settings stay here; the rest is one tap away. */
+  if (view && view.type === 'advanced') return html`<div class="stack" style="gap:12px" id="profile-advanced">
+    <div class="section-h" style="margin-top:6px"><h2>Weight jumps</h2></div>
+    <div class="card stack" style="gap:14px"><${ProgressionSettings} set=${set}/></div>
     <div class="section-h"><h2>Rest timer</h2></div>
     <div class="card stack" style="gap:12px">
-      <div class="row" style="align-items:flex-start">${restField('rest', 'Single rest (sec)')}${restField('restSS', 'Superset rest (sec)')}</div>
       <div><span class="lbl">Superset rest starts</span><div class="seg wide">${[['each', 'After each exercise'], ['round', 'After the full round']].map(([k, l]) => html`<button key=${k} class=${st.ssMode === k ? 'on' : ''} onClick=${() => set('ssMode', k)}>${l}</button>`)}</div></div>
-      ${tog('autoRest', 'Start the timer when a set is logged')}
       ${tog('beep', 'Beep when time is up', 'Interval timers also beep at each change.')}
       ${tog('countdown', 'Beep the last 3 seconds')}
       ${tog('bgAudio', 'Beep with the phone locked (beta)', 'Plays a silent track carrying the beeps, so they sound with the screen off or in another app. The phone treats it as media, so it may pause music, and some apps block it.')}
       ${exR.length ? html`<div><span class="lbl">Per-exercise rest</span>${exR.map(([ex, v]) => html`<div key=${ex} class="row small" style="min-height:40px"><span style="flex:1">${exName(ex)}</span><b class="num">${v ? clock(v) : 'Off'}</b><button class="icon-btn" aria-label=${'Use defaults for ' + exName(ex)} onClick=${() => commit(x => { delete x.meta.exRest[ex]; }, 'meta', 600)}>${I.x}</button></div>`)}</div>` : null}
-      <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off. Tap the time on a running timer to pick another, or set one exercise's rest from its ⋯ menu. Without the beta setting, sounds play only while Ironwood is on screen.</p>
+      <p class="note">Tap the time on a running timer to pick another, or set one exercise's rest from its ⋯ menu. Without the beta setting, sounds play only while Ironwood is on screen.</p>
       <button class="btn wide" onClick=${() => { UI.setTab('train'); UI.setView({ type: 'timer' }); }}>${I.timer} Open the interval timer</button>
     </div>
     <div class="section-h"><h2>Personal records</h2></div>
@@ -1175,10 +1177,35 @@ function ProfileScreen() {
     </div>
     <div class="section-h"><h2>Rep ranges</h2></div>
     <div class="card note">Give an exercise a range like 5–8, 8–12, max reps or 1 rep max and that range keeps its own weights, prefills, chart and PRs. Curls done two ways never overwrite each other. Records still count across every range.</div>
+  </div>`;
+  return html`<div class="stack" style="gap:12px">
+    <div class=${'sync ' + S.sync} style="margin-top:6px"><i></i><span>${SYNC_TEXT[S.sync] || ''}</span></div>
+    <div class="section-h"><h2>Backup</h2></div>
+    <div class="card stack">
+      <div class="row wrap"><button class="btn" id="backup-file" onClick=${exportFile}>Save backup file</button><button class="btn" onClick=${copyBackup}>Copy backup</button><button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore</button></div>
+      <div class="row wrap">${phb ? html`<button class="btn primary" onClick=${savePhotos}>Save ${phb.count} photo${phb.count === 1 ? '' : 's'}</button>` : html`<button class="btn" onClick=${preparePhotos}>Prepare photos backup</button>`}</div>
+      <p class="note">The backup file has workouts, plans and settings. Progress photos are large, so they go in their own file.</p>
+      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
+      <p class="note">${Object.keys(S.sessions).length} workouts · ${Object.keys(S.meta.routines).length} plans · ${Object.keys(S.meta.exercises).length} custom exercises</p>
+      <p class="note" id="last-backup">${lastBackupText()}</p>
+      <${StorageNote}/>
+    </div>
+    <div class="section-h" style="margin-top:12px"><h2>Display & language</h2></div>
+    <${DisplayCard}/>
+    <div class="section-h"><h2>Training basics</h2><button class="btn text" id="profile-plan" onClick=${() => openSheet({ type: 'addons' })}>Your plan</button></div>
+    <div class="card stack" style="gap:14px">
+      <div><span class="lbl">Main unit</span><div class="seg">${['lb', 'kg'].map(u => html`<button key=${u} class=${st.unit === u ? 'on' : ''} onClick=${() => switchMainUnit(u)}>${u}</button>`)}</div>
+        <p class="note" style="margin-top:6px">Any exercise can switch between lb and kg during a workout by tapping the unit above its sets. Stats convert everything to your main unit.</p></div>
+      <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
+      <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
+      <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
+      <div class="row" style="align-items:flex-start">${restField('rest', 'Single rest (sec)')}${restField('restSS', 'Superset rest (sec)')}</div>
+      ${tog('autoRest', 'Start the timer when a set is logged')}
+      <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
+    </div>
+    <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
-    <div class="section-h"><h2>Nutrition</h2><span class="chip">Coming later</span></div>
-    <div class="card note">Meal logging will live here once lifting tracking is settled.</div>
   </div>`;
 }
 function PRCard() {
@@ -1808,7 +1835,7 @@ const ssTop = items => { if (items && items[0] && items[0].ss) items[0].ss = fal
 function SlotSheet({ it }) {
   const a = S.active; const rs = routineSlot(a, it); const idx = a.items.indexOf(it); const u = it.u || U();
   const alsoBox = rs ? html`<label class="toggle" style="margin:8px 0"><input type="checkbox" id="also-routine" checked=${ALSO.v} onChange=${e => { ALSO.v = e.target.checked; S.rerender(); }}/>Also change it in ${a.routineName}</label>`
-    : a.routineId && getRoutine(a.routineId) && getRoutine(a.routineId).source === 'builtin' ? html`<p class="note" style="margin:8px 0">This change applies to today. Edit the routine to make it permanent.</p>` : null;
+    : a.routineId && getRoutine(a.routineId) && getRoutine(a.routineId).source === 'builtin' ? html`<p class="note" style="margin:8px 0">This change applies to today. Edit the plan to make it permanent.</p>` : null;
   const persist = patch => { if (rs && ALSO.v) commit(x => { Object.assign(rs, patch); }, 'meta'); };
   const exR = S.meta.exRest[it.ex];
   return html`<${Sheet} label="Exercise options"><h2>${exName(it.ex)}</h2>
@@ -1924,17 +1951,17 @@ function ImportSheet() {
   const [text, setText] = useState(''); const [name, setName] = useState('');
   const days = useMemo(() => parseProgram(text), [text]);
   const onFile = e => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { setText(String(rd.result || '')); if (!name) setName(f.name.replace(/\.[^.]+$/, '')); }; rd.readAsText(f); };
-  const save = () => { const r = { id: uid('r'), name: name.trim() || 'Imported routine', source: 'imported', createdAt: Date.now(), days: [] };
+  const save = () => { const r = { id: uid('r'), name: name.trim() || 'Imported plan', source: 'imported', createdAt: Date.now(), days: [] };
     commit(st => { r.days = materialize(days); st.meta.routines[r.id] = r; }, 'meta'); closeSheet(); UI.setView({ type: 'routine', id: r.id }); };
-  return html`<${Sheet} label="Import routine"><h2>Import a routine</h2>
+  return html`<${Sheet} label="Import plan"><h2>Import a plan</h2>
     <p class="note" style="margin-bottom:10px">Paste a program from RepCount, a website, or a note. Day names go on their own line. Exercises look like <b>3x Squat</b>, <b>4x8-10 Lat Pulldown</b>, or <b>Squat 3x5</b>. Start a line with <b>x</b> to superset it with the line above.</p>
     <div class="stack">
-      <div><label class="lbl" for="imp-name">Routine name</label><input class="field" id="imp-name" value=${name} placeholder="e.g. PHUL" onInput=${e => setName(e.target.value)}/></div>
+      <div><label class="lbl" for="imp-name">Plan name</label><input class="field" id="imp-name" value=${name} placeholder="e.g. PHUL" onInput=${e => setName(e.target.value)}/></div>
       <textarea class="field" id="imp-text" placeholder=${'Day 1 - Push\n4x6-8 Bench Press\n3x10 Incline Dumbbell Press\n3x x Lateral Raise\n\nDay 2 - Pull\n...'} value=${text} onInput=${e => setText(e.target.value)}></textarea>
       <div class="row"><label class="btn" for="imp-file" style="flex:1">Choose a text file</label><input id="imp-file" type="file" accept=".txt,.md,.csv,text/plain" hidden onChange=${onFile}/></div>
       ${days.length ? html`<div class="stack">${days.map((d, i) => html`<div key=${i} class="preview-day"><b>${d.name}</b>${d.items.map((it, j) => html`<div key=${j}>${it.ss ? '↳ ' : ''}${it.sets}×${it.reps ? it.reps : ''} ${it.name}${findEx(it.name) ? '' : ' (new)'}</div>`)}</div>`)}</div>`
         : text.trim() ? html`<p class="note">No exercises found yet. Each exercise line needs a set count like 3x.</p>` : null}
-      <button class="btn primary wide" disabled=${!days.length} onClick=${save}>Save ${days.length} day${days.length === 1 ? '' : 's'} as a routine</button>
+      <button class="btn primary wide" disabled=${!days.length} onClick=${save}>Save ${days.length} day${days.length === 1 ? '' : 's'} as a plan</button>
     </div><//>`;
 }
 function RestoreSheet() {
@@ -2009,6 +2036,7 @@ function SheetHost({ sheet }) {
     case 'challenges': return html`<${ChallengeSheet}/>`;
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
+    case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
@@ -2116,7 +2144,7 @@ function App() {
   useEffect(() => { const k = e => { if (e.key === 'Escape') setSheet(null); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
   const vt = view && view.type;
   let title = { train: S.active ? 'Workout' : '', routines: '', stats: view ? 'Progress' : '', profile: '' }[tab];
-  if (tab === 'routines' && vt === 'routine') title = 'Routines';
+  if (tab === 'routines' && vt === 'routine') title = 'Plan';
   if (tab === 'meals' && vt === 'meal') title = 'Recipe';
   if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';
   if (tab === 'meals' && vt === 'foods') title = 'My foods';
@@ -2126,15 +2154,16 @@ function App() {
   if (tab === 'train' && vt === 'fight') title = 'Fight coach';
   if (tab === 'train' && vt === 'challenge') title = 'Challenge';
   if (tab === 'train' && vt === 'chEdit') title = view.isNew ? 'New challenge' : 'Edit challenge';
-  if (tab === 'routines' && vt === 'edit') title = view.isNew ? 'New routine' : 'Edit';
+  if (tab === 'routines' && vt === 'edit') title = view.isNew ? 'New plan' : 'Edit plan';
   if (tab === 'stats' && vt === 'photoCap') title = 'Check-in';
+  if (tab === 'profile' && vt === 'advanced') title = 'Training settings';
   if (tab === 'stats' && vt === 'photoCmp') title = 'Compare';
   let left = null, right = null;
   if (tab === 'train' && S.active && !view) left = html`<${HdrClock} since=${S.active.startedAt}/>`;
   if (view) left = html`<button class="pill-btn" onClick=${() => UI.setView(view.from ? view.from : vt === 'edit' && !view.isNew ? { type: 'routine', id: view.draft.id } : vt === 'chEdit' && !view.isNew ? { type: 'challenge', id: view.draft.id } : vt === 'mealEdit' && !view.isNew ? { type: 'meal', id: view.draft.id } : null)}>${I.back} Back</button>`;
   if (tab === 'train' && S.active && !view) right = html`<button class="pill-btn accent" onClick=${() => openSheet({ type: 'finish' })}>Finish</button>`;
   const trainBody = vt === 'timer' ? html`<${TimerScreen}/>` : vt === 'fight' ? html`<${FightRun}/>` : vt === 'challenge' ? html`<${ChallengeView} id=${view.id}/>` : vt === 'chEdit' ? html`<${ChallengeEditor} view=${view}/>` : S.active ? html`<${ActiveWorkout}/>` : html`<${TrainSwitch}/>`;
-  const body = tab === 'train' ? trainBody : tab === 'routines' ? html`<${RoutinesScreen} view=${view}/>` : tab === 'meals' ? html`<${MealsScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : html`<${ProfileScreen}/>`;
+  const body = tab === 'train' ? trainBody : tab === 'routines' ? html`<${RoutinesScreen} view=${view}/>` : tab === 'meals' ? html`<${MealsScreen} view=${view}/>` : tab === 'stats' ? html`<${StatsScreen} view=${view}/>` : html`<${ProfileScreen} view=${view}/>`;
   const showMini = !!S.itimer && !(tab === 'train' && vt === 'timer');
   const showFight = !showMini && fRunning() && !(tab === 'train' && vt === 'fight');
   return html`

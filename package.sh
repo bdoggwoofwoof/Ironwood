@@ -2,6 +2,7 @@
 # Rebuild, then refresh the zip and the git repo in site/ with a commit for any change.
 set -e
 cd "$(dirname "$0")"; ROOT="$(pwd)"
+python3 assemble.py
 python3 build.py
 # Never publish a build that fails its own tests (SKIP_TESTS=1 to bypass in a hurry)
 if [ "${SKIP_TESTS:-0}" != "1" ]; then

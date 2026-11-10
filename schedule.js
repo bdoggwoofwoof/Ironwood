@@ -28,7 +28,7 @@ function runPlanInfo() {
 /* Everything you follow, in order: main program, programs alongside, running plan */
 function planList() {
   const out = []; const main = programRoutine();
-  if (main) out.push({ key: main.id, r: main, name: main.name, tag: 'Lift', role: 'Main program', days: schedFor(main.id, main) });
+  if (main) out.push({ key: main.id, r: main, name: main.name, tag: 'Lift', role: 'Main plan', days: schedFor(main.id, main) });
   for (const id of addonIds()) { const r = getRoutine(id); out.push({ key: id, r, name: r.name, tag: progTag(r), role: 'Alongside', days: schedFor(id, r) }); }
   const run = runPlanInfo();
   if (run && !run.done) out.push({ key: 'run', run, name: 'Running plan', tag: 'Run', role: 'Week ' + run.wk + ' of ' + run.n + (run.w < 1 ? ', starts ' + shortDate(parseYmd(run.R.start)) : ''), days: run.days });
@@ -51,7 +51,7 @@ function PlanWeekCard() {
   const today = new Date().getDay(); const ws = startOfWeek(new Date());
   const doubled = WEEK_ORDER.filter(d => ps.filter(p => p.days.includes(d)).length > 1);
   return html`<div class="card plan-week" id="plan-week">
-    <div class="row" style="align-items:baseline"><span style="font-weight:700;flex:1">Your week</span><button class="btn text" id="plan-add" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Program</button><button class="btn text" id="plan-cal" onClick=${() => openSheet({ type: 'calendar' })}>${I.cal || I.timer} Calendar</button></div>
+    <div class="row" style="align-items:baseline"><span style="font-weight:700;flex:1">Your schedule</span><button class="btn text" id="plan-add" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Plan</button><button class="btn text" id="plan-cal" onClick=${() => openSheet({ type: 'calendar' })}>${I.cal || I.timer} Calendar</button></div>
     <div class="pw-grid" role="group" aria-label="Weekly schedule">
       <div class="pw-row pw-head" aria-hidden="true">${WEEK_ORDER.map(d => html`<span key=${d} class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
       ${ps.map(p => html`<div key=${p.key} class="pw-row" role="group" aria-label=${p.name} id=${'pw-' + p.key}>

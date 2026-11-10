@@ -106,7 +106,7 @@ function MonthCard() {
   return html`<div class="card month-card" id="month-card"><div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Month in review</div><div style="font-weight:700">${ymName(ym)}</div>
       <div class="small muted">${st.n} workout${st.n === 1 ? '' : 's'}${st.prs.length ? ' · ' + st.prs.length + ' PR' + (st.prs.length === 1 ? '' : 's') : ''}${st.imp ? ' · ' + exName(st.imp.ex) + ' up ' + Math.round(st.imp.gain * 100) + '%' : ''}</div></div>
       <button class="tip-x" aria-label="Hide" onClick=${() => { lsSet('monthSeen', ym); S.rerender(); }}>${I.x}</button></div>
-    <button class="btn primary wide" style="margin-top:10px" id="month-open" onClick=${() => { lsSet('monthSeen', ym); UI.setTab('stats'); UI.setView({ type: 'month', ym }); }}>See your month</button></div>`;
+    <button class="btn wide" style="margin-top:10px" id="month-open" onClick=${() => { lsSet('monthSeen', ym); UI.setTab('stats'); UI.setView({ type: 'month', ym }); }}>See your month</button></div>`;
 }
 function MonthView({ ym }) {
   const cur = ymOf(new Date()); ym = ym || ymAdd(cur, -1); const st = monthStats(ym); const u = U();

@@ -15,7 +15,7 @@ function recentFoods(n = 15) {
 const entrySub = e => (e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : '') + fmtNut('kcal', e.m.kcal) + ' kcal · ' + Math.round(e.m.p) + ' g protein';
 function logAgain(day, e) {
   const n = addLog(day, tmplOf(e)); closeSheet();
-  showToast({ kind: 'info', text: e.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, n.id) });
+  showToast({ kind: 'info', text: e.name + ' logged', action: 'Undo', ms: 7000, fn: () => dropLog(day, n.id), action2: 'Change amount', fn2: () => openSheet({ type: 'logEntry', day, id: n.id }) });
 }
 const savedKey = e => tmplKey(e);
 const savedFor = e => Object.values(ML().saved || {}).find(s => savedKey(s.e) === savedKey(e)) || null;

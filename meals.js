@@ -612,8 +612,10 @@ function MealsScreen({ view }) {
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
   if (vt === 'foods') return html`<${MyFoods}/>`;
+  if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
+    <p class="small muted tab-intro" style="margin:2px 0 8px">What you eat: logged, planned and shopped for.</p>
     ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
 }
 function keepNote(r, it) {
@@ -915,6 +917,7 @@ function FoodEditSheet({ id, name, then, bc }) {
   return html`<${Sheet} label=${id ? 'Edit food' : 'New food'}><h2>${id ? 'Edit food' : 'New food'}</h2>
     <p class="note">Copy the numbers from the nutrition label, per serving.${bc || (f0 && f0.bc) ? ' Barcode ' + (bc || f0.bc) + ' finds this food when you scan it.' : ''}</p>
     <div class="stack" style="margin-top:12px">
+      <${LabelReader} onFill=${r => { setD(x => ({ ...x, ...r })); setErr(''); }}/>
       <div><label class="lbl" for="fd-name">Name</label><input class="field" id="fd-name" value=${d.name} placeholder="e.g. Protein bar" onInput=${e => set('name', e.target.value)}/>
         <p class="small muted" style="margin-top:6px">Recipe ingredients and log entries with this name count as this food.</p></div>
       <div><label class="lbl" for="fd-q">Serving size</label><div class="row" style="gap:8px">
@@ -971,7 +974,7 @@ function LogPane() {
       ${gk.length ? html`<div class="stack" style="gap:14px">${gk.map(([k, l, u]) => html`<${GoalBar} key=${k} k=${k} label=${l} unit=${u} v=${tot[k]} goal=${G[k]}/>`)}</div>
         ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
       : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
-      <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button></div>
+      <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>
     <${TodayMenu} day=${day}/>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
@@ -1037,12 +1040,32 @@ function LogNumbers({ day, name0 }) {
     <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'ln-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'ln-' + k} inputmode="decimal" value=${d[k] || ''} onInput=${e => set(k, e.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
     <button class="btn primary wide" id="ln-save" disabled=${!ok} onClick=${save}>Log it</button></div>`;
 }
+function NumEdit({ day, e, done }) {
+  const [d, setD] = useState(() => ({ name: e.name, ...Object.fromEntries(NUT.map(([k]) => [k, e.m[k] ? String(Math.round(e.m[k] * 10) / 10) : ''])) }));
+  const set = (k, v) => setD({ ...d, [k]: v }); const ok = NUT.some(([k]) => +d[k] > 0);
+  const save = () => {
+    const old = clone(e); const sv = savedFor(e); const svE = sv ? clone(sv.e) : null; const svCat = sv ? sv.cat : ''; const m1 = roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))); const name = d.name.trim() || 'Quick add';
+    mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === e.id); if (!x) return; x.name = name; x.m = m1; if (x.m1) x.m1 = scaleNut(m1, 1 / (x.q || 1)); if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = tmplOf(x); });
+    done(); showToast({ kind: 'info', ms: 7000, text: sv ? 'Updated here and in ' + svCat : 'Updated', action: 'Undo', fn: () => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === e.id); if (x) { x.name = old.name; x.m = old.m; } if (sv && m.saved && m.saved[sv.id]) m.saved[sv.id].e = svE; }) });
+  };
+  return html`<div class="stack" id="le-edit-form" style="margin-top:12px"><div><label class="lbl" for="le-name">Name</label><input class="field" id="le-name" value=${d.name} onInput=${x => set('name', x.target.value)}/></div>
+    <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'le-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'le-' + k} inputmode="decimal" value=${d[k]} onInput=${x => set(k, x.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
+    ${savedFor(e) ? html`<p class="small muted">This food is saved in ${savedFor(e).cat}; the saved copy changes too.</p>` : null}
+    <div class="row" style="gap:8px"><button class="btn primary" style="flex:2" id="le-save" disabled=${!ok} onClick=${save}>Save changes</button><button class="btn" style="flex:1" onClick=${done}>Cancel</button></div></div>`;
+}
 function LogEntrySheet({ day, id }) {
+  const [editing, setEditing] = useState(false);
   const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;
+  if (editing) return html`<${Sheet} label=${'Edit ' + e.name}><h2>Edit ${e.name}</h2><p class="note">${logDayName(day)}</p><${NumEdit} day=${day} e=${e} done=${() => setEditing(false)}/><//>`;
   const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });
+  const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
+    if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
+    x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
+    ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
+    ${e.k === 'num' ? html`<button class="btn wide" id="le-edit" style="margin-top:12px" onClick=${() => setEditing(true)}>${I.edit} Edit name and numbers</button>` : null}
     <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in ' + savedFor(e).cat : 'Save to a category'}</span><${CatPick} e=${e}/></div>
     <div class="stack" style="margin-top:14px">${day !== ymd(new Date()) ? html`<button class="btn wide" id="le-again" onClick=${() => logAgain(ymd(new Date()), e)}>Log again today</button>` : html`<button class="btn wide" id="le-again" onClick=${() => logAgain(day, e)}>Log another</button>`}
       <button class="btn danger wide" id="le-del" onClick=${() => { closeSheet(); removeLog(day, id); }}>Remove</button><button class="btn wide" onClick=${closeSheet}>Done</button></div><//>`;
@@ -1067,7 +1090,8 @@ function NutritionStatsCard() {
     <div class="kpis kpis3">${kpi(fmtNut('kcal', avg('kcal')), 'Avg calories')}${kpi(Math.round(avg('p')) + ' g', 'Avg protein')}${kpi(had.length + ' of 7', 'Days logged')}</div>
     <div class="card" style="margin-top:8px"><div class="seg wide">${[['p', 'Protein'], ['kcal', 'Calories']].map(([k, l]) => html`<button key=${k} class=${met === k ? 'on' : ''} aria-pressed=${met === k} onClick=${() => { lsSet('statsNut', k); S.rerender(); }}>${l}</button>`)}</div>
       <${BarChart} data=${days.map(x => ({ t: x.t, v: x.s[met] }))} fmtV=${v => fmtNut(met, v)} unit=${met === 'p' ? 'g protein' : 'calories'} daily=${true}/>
-      <p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p></div></div>`;
+      <p class="small muted">${G[met] ? 'Your goal is ' + fmtNut(met, G[met]) + (met === 'p' ? ' g' : ' kcal') + ' a day. ' : ''}Averages count only days with something logged.</p>
+      <button class="btn text" id="stats-eat-review" style="padding-left:0" onClick=${() => { UI.setTab('meals'); UI.setView({ type: 'eatReview' }); }}>Review my eating</button></div></div>`;
 }
 
 /* ---------- Mix & match: one plain base, many flavors ---------- */

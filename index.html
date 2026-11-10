@@ -325,6 +325,11 @@ main .page-title{font-size:min(27px, 7.2vw)}
 .cam-lvl .lvl-plus i:last-child{top:0;bottom:0;left:50%;width:1px}
 .cam-lvl .lvl-plus.float i{background:#ffd60a}
 .cam-lvl.ok .lvl-seg,.cam-lvl.ok .lvl-plus i{background:#ffd60a}
+.set-row button.n{background:none;border:0;padding:0;min-height:44px;min-width:36px;color:var(--ink-2);font-family:var(--display);font-weight:700;font-size:calc(18 * var(--u));text-align:center}
+.set-row button.n.pr{background:var(--pr);color:var(--pr-ink);border-radius:8px;min-height:32px;padding:3px 0}
+.restbar button{background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
+.restbar .lbl2{opacity:1}
+span.chip.wtag{color:color-mix(in srgb, var(--accent) 78%, var(--ink))}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -2301,14 +2306,15 @@ const PALETTES = {
   classic: ['Classic', '', { a: '#4c8dff', p: '#ffcf40', s: '#f0603f', g: '#39c98a', r: '#ff7d61', pi: '#1b1400' }, { a: '#1f5fd6', p: '#f5c22e', s: '#d2452a', g: '#1d9a62', r: '#b3341b', pi: '#2a1e00' }],
   forest: ['Forest', 'Pine, brass and iron', { a: '#6fbe8a', ai: '#0d1a12', p: '#d9ab4c', pi: '#1a1300', s: '#e0784f', si: '#200a02', g: '#7fb6d1', r: '#f08e66', bg: '#10130f', surface: '#181d17', raised: '#222921', line: '#2f392d', ink: '#eceee6', ink2: '#a8b1a1', ink3: '#929b8c' },
     { a: '#2e6b45', ai: '#ffffff', p: '#c48f2a', pi: '#1f1500', s: '#a8461f', si: '#ffffff', g: '#2f6f8f', r: '#9e3d19', bg: '#efeee7', surface: '#fbfaf5', raised: '#e5e3d8', line: '#d3d0c2', ink: '#1a1c17', ink2: '#555b50', ink3: '#5d6358' }],
-  rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#0072b2', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
-  by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#00838f', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
+  rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#00669f', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
+  by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#006e78', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
 };
 const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
 const lum = h => { const n = parseInt(h.slice(1), 16); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(n >> 16) + .7152 * f((n >> 8) & 255) + .0722 * f(n & 255); };
-const inkFor = h => lum(h) > .2 ? '#14171b' : '#ffffff';  /* white text needs a fairly dark fill to reach 4.5:1 */
+/* Text on a color: white or near-black, whichever contrasts more (white needs a fairly dark fill to reach 4.5:1) */
+const inkFor = h => (1.05 / (lum(h) + .05)) >= ((lum(h) + .05) / (lum('#14171b') + .05)) ? '#ffffff' : '#14171b';
 const palSurf = c => c.bg ? '--bg:' + c.bg + ';--surface:' + c.surface + ';--raised:' + c.raised + ';--line:' + c.line + ';--ink:' + c.ink + ';--ink-2:' + c.ink2 + ';--ink-3:' + c.ink3 + ';' : '';
-const palVars = (c, al) => palSurf(c) + '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || '#ffffff') + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+const palVars = (c, al) => palSurf(c) + '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || inkFor(c.a)) + ';--accent-btn:' + ((c.ai || inkFor(c.a)) === '#ffffff' ? 'color-mix(in srgb, ' + c.a + ' 72%, #000)' : hexA('#ffffff', .3)) + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
 /* ---- Custom colors: three colors picked on a hue/saturation wheel, all at one shared brightness (HSV value). ---- */
 const hsv2hex = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
   return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
@@ -2472,7 +2478,7 @@ function SetRow({ it, s, j, kind }) {
       <div class="ur" ref=${urR}>${act('del', I.trash, 'Delete', () => deleteSet(it, s))}</div>
     </div>
     <div ref=${ref} class=${'set-row' + (done ? ' done' : '')} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${cancel} onClickCapture=${clickCap}>
-      <span class=${'n' + (s.pr && done ? ' pr' : '')} >${j + 1}</span>
+      <button type="button" class=${'n' + (s.pr && done ? ' pr' : '')} id=${'sn-' + s.id} aria-label=${'Set ' + (j + 1) + (done ? ', logged' : '') + '. Actions'} onClick=${() => openSheet({ type: 'setActs', it, s })}>${j + 1}</button>
       <input id=${'w-' + s.id} type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value=${s.w} placeholder=${s.gw || (kind === 'bodyweight' ? '0' : '–')} aria-label=${'Set ' + (j + 1) + ' ' + wLbl}
         onFocus=${e => { selAll(e); setFoc('w'); }} onBlur=${() => setFoc(f => f === 'w' ? null : f)} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
@@ -3140,7 +3146,7 @@ function ProfileScreen() {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6862345</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a71fd3e</p></div>
     ${TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3945,6 +3951,7 @@ function SheetHost({ sheet }) {
     case 'import': return html`<${ImportSheet}/>`;
     case 'restore': return html`<${RestoreSheet}/>`;
     case 'confirm': return html`<${ConfirmSheet} ...${sheet}/>`;
+    case 'setActs': return html`<${SetActsSheet} ...${sheet}/>`;
     case 'day': return html`<${DaySheet} k=${sheet.k}/>`;
     case 'chday': return html`<${ChDaySheet} id=${sheet.id} k=${sheet.k}/>`;
     case 'restPick': return html`<${RestPickSheet}/>`;
@@ -7557,12 +7564,12 @@ function PlanWeekCard() {
   const doubled = WEEK_ORDER.filter(d => ps.filter(p => p.days.includes(d)).length > 1);
   return html`<div class="card plan-week" id="plan-week">
     <div class="row" style="align-items:baseline"><span style="font-weight:700;flex:1">Your schedule</span><button class="btn text" id="plan-add" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Plan</button><button class="btn text" id="plan-cal" onClick=${() => openSheet({ type: 'calendar' })}>${I.cal || I.timer} Calendar</button></div>
-    <div class="pw-grid" role="table" aria-label="Weekly schedule">
-      <div class="pw-row pw-head" role="row">${WEEK_ORDER.map(d => html`<span key=${d} role="columnheader" class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
-      ${ps.map(p => html`<div key=${p.key} class="pw-row" role="row" id=${'pw-' + p.key}>
-        <span class="pw-name" role="rowheader"><i style=${{ background: p.color }}></i><span><b>${p.name}</b><small>${p.role} · ${p.days.length}×</small></span></span>
+    <div class="pw-grid" role="group" aria-label="Weekly schedule">
+      <div class="pw-row pw-head" aria-hidden="true">${WEEK_ORDER.map(d => html`<span key=${d} class=${d === today ? 'today' : ''}>${'SMTWTFS'[d]}</span>`)}</div>
+      ${ps.map(p => html`<div key=${p.key} class="pw-row" role="group" aria-label=${p.name} id=${'pw-' + p.key}>
+        <span class="pw-name"><i style=${{ background: p.color }}></i><span><b>${p.name}</b><small>${p.role} · ${p.days.length}×</small></span></span>
         ${WEEK_ORDER.map(d => { const on = p.days.includes(d); const k = ymd(addDays(ws, (d + 6) % 7)); const done = on && progDoneOn(p, k);
-          return html`<button key=${d} role="cell" class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
+          return html`<button key=${d} class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
             aria-label=${p.name + ', ' + DOW_FULL[d] + (on ? ', planned' : ', not planned') + (done ? ', done' : '')} aria-pressed=${on}
             onClick=${() => p.key === 'run' ? openSheet({ type: 'runDay', dow: d }) : toggleSched(p.key, d)}>${on ? (done ? I.check : p.tag[0]) : ''}</button>`; })}</div>`)}
     </div>
@@ -9548,6 +9555,16 @@ function TiltToggle({ target }) {
     ${err ? html`<p class="small down-c" role="alert">${err}</p>` : null}`;
 }
 
+function SetActsSheet({ it, s }) {
+  const j = it.sets.indexOf(s); if (j < 0) return null; const done = isDone(s);
+  const go = fn => { closeSheet(); fn(); };
+  return html`<${Sheet} label=${'Set ' + (j + 1)}><h2>Set ${j + 1}</h2><p class="note">${exName(it.ex)}${done ? ' · logged' : ''}</p>
+    <div class="stack" style="margin-top:12px">
+      <button class="btn wide" id="sa-log" onClick=${() => go(() => { if (done) uncompleteSet(it, s, false); else completeSet(it, s, false); S.rerender(); })}>${done ? 'Clear this set' : 'Log this set'}</button>
+      <button class="btn wide" id="sa-copy" onClick=${() => go(() => copySet(it, s))}>Copy set</button>
+      <button class="btn wide danger" id="sa-del" onClick=${() => go(() => deleteSet(it, s))}>Delete set</button>
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
 /* ---------- APP ---------- */
 const TABS = [['train', 'Train'], ['routines', 'Plans'], ['meals', 'Meals'], ['stats', 'Progress'], ['profile', 'Profile']];
 function App() {

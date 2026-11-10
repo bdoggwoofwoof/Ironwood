@@ -827,15 +827,13 @@ main.with-mini{padding-top:64px}
 .field:focus-visible,input.field:focus,textarea.field:focus,select.field:focus,.set-row input:focus,.meas-row input:focus,.ed-reps:focus,.ex-note:focus{outline:2px solid var(--accent);outline-offset:1px}
 
 /* ---- Phase 5 look (Nov 10, audit P2-2, P3-1, 4.3, 5.3): needs Newt's OK ---- */
-/* Uppercase only for page titles and the workout/recipe title; section heads, plan names and sheet titles in sentence case */
-.section-h h2,.wsec-h h2,.r-card h3,.ch-card h3,.run-sess-h h3,.sheet h2,.tour-card h2,.empty h3,.month-h{text-transform:none;letter-spacing:0}
+/* Uppercase headings stay (Newt, Nov 10: keep the capitalized text) */
 /* One secondary button style */
 .btn.ghost{background:var(--raised);border:0;color:var(--ink)}
 /* The Plans library as list rows with dividers, not boxes */
 [id^="ps-"] .stack{gap:0}
 [id^="ps-"] .r-card{background:none;border-radius:0;padding:14px 2px;border-bottom:1px solid var(--line)}
 [id^="ps-"] .r-card:first-child{border-top:1px solid var(--line)}
-[id^="ps-"] .r-card h3{font-size:calc(20 * var(--u))}
 /* Plan editor checkboxes: 24 px, 44-point row */
 .toggle{min-height:44px}
 .toggle input{width:24px;height:24px}

@@ -102,7 +102,7 @@ async def main():
         check('warning is grouped with headers and bold words', await pg.locator('#plan-load .load-h').count() >= 3 and await pg.locator('#plan-load li b').count() >= 8)
         await ev("runCommit(r => { r.runs = 3; })"); await pg.wait_for_timeout(300)
         check('3 runs: no warning', await pg.locator('#plan-load').count() == 0)
-        check('labelled as estimates, not advice', 'not medical or coaching advice' in body)
+        check('labelled as estimates, not advice', 'not medical advice' in body)
         check('plan shows 8 weeks by default', await pg.locator('.weekbar button').count() == 8)
         await pg.click('#run-tab-times'); await pg.wait_for_timeout(200); await pg.click('#set-len-12'); await pg.wait_for_timeout(200)
         await pg.click('#run-tab-plan'); await pg.wait_for_timeout(200)

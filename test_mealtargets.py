@@ -33,7 +33,7 @@ async def main():
         await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '180'); await pg.fill('#tg-age', '30'); await pg.click('#tg-sex-m')
         await pg.click('#tg-goal-lose'); await pg.click('#tg-bmi'); await pg.wait_for_timeout(150)
         res = await pg.inner_text('#tg-result')
-        check('shows calories, macros, BMI and the estimate note', 'calories a day' in res and 'Protein' in res and 'BMI 25.8' in res and 'Not medical or diet advice' in res, res)
+        check('shows calories, macros, BMI and the estimate note', 'calories a day' in res and 'Protein' in res and 'BMI 25.8' in res and 'not medical advice' in res, res)
         await pg.click('#tg-save'); await pg.wait_for_timeout(400)
         g = await ev("ML().goals"); me = await ev("ML().me")
         check('daily goals set from the targets', g.get('kcal', 0) > 2000 and g.get('p') == 145 and g.get('na') == 2300, g)

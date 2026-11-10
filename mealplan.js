@@ -206,7 +206,7 @@ function TargetsSheet({ preset } = {}) {
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
-          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
+          <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
       <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
@@ -240,7 +240,7 @@ function MenuCard() {
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
-    <p class="small faint" style="margin-top:8px">Estimates for planning, not medical or diet advice.</p></div>`;
+    <p class="small faint" style="margin-top:8px">${NOT_ADVICE}</p></div>`;
 }
 function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;

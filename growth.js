@@ -40,7 +40,7 @@ function GoalsCard() {
           ${st.reached ? html`<span class="chip on">${I.check} Reached</span>` : html`<div style="text-align:right"><b class="num">${st.now == null ? '–' : fmt(r05(st.now))}</b><div class="small muted">now</div></div>`}</div>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(st.pct * 100)}><span style=${{ width: Math.round((st.reached ? 1 : st.pct) * 100) + '%' }}></span></div>
         <div class="small muted" style="text-align:left">${goalLine(g, st)}</div></button>`; })}</div>
-    <p class="small faint" style="margin-top:6px">Estimates from your logged sets, for planning. Not medical or coaching advice.</p></div>`;
+    <p class="small faint" style="margin-top:6px">From your logged sets. ${NOT_ADVICE}</p></div>`;
 }
 /* Lifts you've logged with weight, most recent first */
 function goalLifts() {

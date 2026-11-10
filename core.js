@@ -32,6 +32,8 @@ const ICONS = {
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
 /* One shared disclaimer line (Nov 10, audit P2-3) */
+/* Rep ranges read with an en dash (5–8) */
+const repTxt = r => String(r == null ? '' : r).replace(/(\d)\s*-\s*(\d)/g, '$1–$2');
 const NOT_ADVICE = 'Estimates and general guidance, not medical advice.';
 const UI = { setSheet: () => {}, setView: () => {}, setTab: () => {} };
 const ALSO = { v: true };
@@ -132,7 +134,9 @@ function bgTimer() {
 }
 /* Display settings live on this device. */
 const HOST_THEME = document.documentElement.getAttribute('data-theme');
-const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') == null ? (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })() : lsGet('rm') === '1', hc: lsGet('hc') === '1' };
+const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') == null ? (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })() : lsGet('rm') === '1', hc: lsGet('hc') == null ? (() => { try { return matchMedia('(prefers-contrast: more)').matches; } catch (e) { return false; } })() : lsGet('hc') === '1' };
+/* Follows iPhone Increase Contrast until you set High contrast yourself (Nov 10, audit P3-4) */
+try { matchMedia('(prefers-contrast: more)').addEventListener('change', e => { if (lsGet('hc') == null) { DISP.hc = e.matches; applyDisplay(); if (typeof S !== 'undefined' && S.rerender) S.rerender(); } }); } catch (e) {}
 function applyDisplay() {
   const r = document.documentElement;
   if (DISP.theme === 'system') { if (HOST_THEME) r.setAttribute('data-theme', HOST_THEME); else r.removeAttribute('data-theme'); } else r.setAttribute('data-theme', DISP.theme);
@@ -541,7 +545,7 @@ function LiftSlot({ it, nextSS }) {
   return html`<section class=${'slot' + (it.ss ? ' ss' : '') + (nextSS ? ' ss-next' : '')} aria-label=${exName(it.ex)}>
     ${it.ss ? html`<div class="ss-tag">${I.link} Superset with above</div>` : null}
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
-      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
+      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
     <${MachineRow} it=${it}/>
@@ -635,7 +639,7 @@ function autoTags(day, r) {
 }
 const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
-const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + it.reps + ' reps' : '');
+const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + repTxt(it.reps) + ' reps' : '');
 /* The weight used last time (heaviest set, or least assistance), with its unit. */
 const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; if (isMeasured(exKind(it.ex))) return ' · last ' + measBest(e.raw, exKind(it.ex)); const ws = e.raw.filter(x => +x.r > 0).map(x => +x.w || 0).filter(w => w > 0); if (!ws.length) return '';
   const asst = exKind(it.ex) === 'assisted'; return ' · last ' + fmt(asst ? Math.min(...ws) : Math.max(...ws)) + ' ' + e.u + (asst ? ' assist' : ''); };
@@ -1137,7 +1141,7 @@ function StorageNote() {
   const isWeb = !!(window.claude && window.claude.standalone);
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (isWeb && ios && !standalone) return html`<p class="small down-c" id="storage-warn">Open from the Home Screen to keep your data safe: in a Safari tab, iOS can delete it after 7 days without use. Share → Add to Home Screen.</p>`;
-  if (kept === false && isWeb) return html`<p class="small faint">The phone hasn’t promised to keep this app’s data under storage pressure, so keep a recent backup.</p>`;
+  if (kept === false && isWeb) return html`<p class="small faint">Your iPhone can clear app data when it’s low on space. Keep a recent backup.</p>`;
   return null;
 }
 function ProfileScreen({ view }) {
@@ -1164,7 +1168,7 @@ function ProfileScreen({ view }) {
     <div class="card stack" style="gap:14px"><${ProgressionSettings} set=${set}/></div>
     <div class="section-h"><h2>Rest timer</h2></div>
     <div class="card stack" style="gap:12px">
-      <div><span class="lbl">Superset rest starts</span><div class="seg wide">${[['each', 'After each exercise'], ['round', 'After the full round']].map(([k, l]) => html`<button key=${k} class=${st.ssMode === k ? 'on' : ''} onClick=${() => set('ssMode', k)}>${l}</button>`)}</div></div>
+      <div><span class="lbl">Superset rest starts after</span><div class="seg wide">${[['each', 'Each exercise'], ['round', 'The full round']].map(([k, l]) => html`<button key=${k} class=${st.ssMode === k ? 'on' : ''} onClick=${() => set('ssMode', k)}>${l}</button>`)}</div></div>
       ${tog('beep', 'Beep when time is up', 'Interval timers also beep at each change.')}
       ${tog('countdown', 'Beep the last 3 seconds')}
       ${tog('bgAudio', 'Beep with the phone locked (beta)', 'Plays a silent track carrying the beeps, so they sound with the screen off or in another app. The phone treats it as media, so it may pause music, and some apps block it.')}
@@ -1203,7 +1207,7 @@ function ProfileScreen({ view }) {
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
-      <div class="row" style="align-items:flex-start">${restField('rest', 'Single rest (sec)')}${restField('restSS', 'Superset rest (sec)')}</div>
+      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}${restField('restSS', 'Superset rest (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
       <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
     </div>
@@ -1220,7 +1224,7 @@ function PRCard() {
   const P = prOpts(); const set = (k, v) => commit(x => { x.meta.settings.pr = { ...prOpts(), [k]: v }; }, 'meta', 800);
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'pr-' + k}><span><span>${label}</span><span class="d">${sub}</span></span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${!!P[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   return html`<div class="card stack" style="gap:6px">
-    <p class="note">A PR shows right away: the set number turns yellow and a red line under the set says which record it beat and the old best. Finished workouts list them in the summary, the log and Stats. Estimated 1-rep max isn’t a PR type; it’s charted in each exercise’s stats.</p>
+    <p class="note">New records show on the set as you log it and in your history. Estimated 1-rep max is charted in each exercise’s stats, not counted as a record.</p>
     ${tog('weight', 'Heaviest weight', 'Most weight lifted for at least one rep. For assisted moves, the least assistance.')}
     ${tog('reps', 'Rep PRs', 'More reps than ever at this weight or heavier. For bodyweight moves, most reps in a set.')}
     ${tog('setvol', 'Best single set', 'Most weight × reps in one set.')}
@@ -1232,7 +1236,7 @@ function PRCard() {
   </div>`;
 }
 function DisplayCard() {
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(''); const [addLang, setAddLang] = useState(false);
   const customs = (() => { try { return JSON.parse(lsGet('customLangs') || '[]'); } catch (e) { return []; } })();
   const onFile = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; const rd = new FileReader();
     rd.onload = () => { const name = f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || 'My language'; const n = l10nImport(String(rd.result || ''), name);
@@ -1256,11 +1260,11 @@ function DisplayCard() {
       </select>
       ${L10N.status ? html`<p class="small muted" role="status" style="margin-top:6px">${L10N.status}</p>` : null}
       <p class="note" style="margin-top:6px">${window.claude && window.claude.standalone ? 'Add a language by uploading a translated phrase list below. Your notes are never translated.' : 'Claude translates each phrase the first time it appears and saves it on this device; the first time, it asks your permission. Your notes are never translated.'}</p></div>
-    <div><span class="lbl">Another language</span>
+    ${!addLang ? html`<button class="btn text" id="lang-add-open" style="align-self:flex-start;padding:0" onClick=${() => setAddLang(true)}>Add a language from a spreadsheet</button>` : html`<div id="lang-add"><span class="lbl">Another language</span>
       <div class="row wrap"><label class="btn" for="lang-file">Upload a spreadsheet (CSV)</label><input id="lang-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden onChange=${onFile}/>
         <button class="btn" onClick=${download}>Get the phrase list</button></div>
-      <p class="note" style="margin-top:6px">Two columns: English, then your translation. Get the phrase list, translate it in any spreadsheet, export it as CSV, and upload it. Numbers in phrases are written as {#}.</p>
-      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}</div>
+      <p class="note" style="margin-top:6px">Two columns: English, then your translation. Get the phrase list, translate it in any spreadsheet, export it as CSV, and upload it. Numbers in phrases are written as {#}.</p></div>`}
+      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
   </div>`;
 }
 /* ---------- INTERVAL TIMER ---------- */
@@ -1619,13 +1623,13 @@ function PhotosScreen() {
   const order = k => POSES.findIndex(x => x[0] === k);
   return html`<div>
     ${!dates.length ? html`<div class="card" style="margin-top:14px"><div class="ph-hero">${['front', 'side', 'abs'].map(k => html`<div key=${k} class="ph-hero-cell"><${PoseGuide} pose=${k} lines=${false}/><span>${POSE_NAME[k]}</span></div>`)}</div>
-      <p class="note" style="margin-top:10px">Take the same poses every few weeks. A body outline, level lines for head, hips and feet, and your last photo show over the camera, so every check-in lines up. No tripod? Pick “Holding the phone” for mirror and selfie poses.</p></div>` : null}
+      <p class="note" style="margin-top:10px">Take the same poses every few weeks. Your last photo shows in red over the camera so you can match it, and a level helps you hold the same angle. No tripod? Pick “Holding the phone” for mirror and selfie poses.</p></div>` : null}
     <div class="row" style="margin-top:14px"><button class="btn primary" style="flex:2" onClick=${() => openSheet({ type: 'checkin' })}>${I.camera} New check-in</button>
       ${dates.length > 1 ? html`<button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'photoCmp' })}>Compare</button>` : null}</div>
     ${PH.err ? html`<p class="small down-c" role="alert" style="margin-top:8px">${PH.err}</p>` : null}
     ${dates.map(d => html`<div key=${d}><div class="section-h"><h2 style="font-size:calc(17 * var(--u))">${shortDate(+parseYmd(d))}</h2><span class="aside">${by[d].length} photo${by[d].length === 1 ? '' : 's'}</span></div>
       <div class="ph-grid">${by[d].slice().sort((a, b) => order(a.pose) - order(b.pose)).map(p => html`<button key=${p.id} class="ph-thumb" onClick=${() => openSheet({ type: 'photo', id: p.id })}><img src=${phUrl(p)} alt=${(POSE_NAME[p.pose] || 'Photo') + ', ' + shortDate(p.t)}/><span>${POSE_NAME[p.pose] || 'Photo'}</span></button>`)}</div></div>`)}
-    <p class="note" style="margin-top:16px">Photos stay on this phone. They aren’t uploaded or synced to your account, and clearing this site’s data deletes them, so save the ones you want to keep to your Photos. In the iPhone app they’ll live in the app’s own storage.</p>
+    <p class="note" style="margin-top:16px">Photos stay on this phone. They aren’t uploaded or synced to your account, and deleting Ironwood deletes them, so save the ones you want to keep to your Photos. In the iPhone app they’ll live in the app’s own storage.</p>
   </div>`;
 }
 function CheckinSheet() {

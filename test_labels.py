@@ -25,10 +25,10 @@ async def main():
         # log Decline Chest Press at 100 lb
         await pg.locator('.r-card', has_text="Newt's").click(); await pg.wait_for_timeout(300)
         first = await pg.locator('.r-items li').first.inner_text()
-        check('line reads sets × reps', '3 sets × 5-8 reps' in first, first.replace('\n', ' | '))
+        check('line reads sets × reps', '3 sets × 5–8 reps' in first, first.replace('\n', ' | '))
         await pg.locator('.pill-btn', has_text='Start').first.click(); await pg.wait_for_timeout(500)
         meta = await pg.locator('.slot .meta').first.inner_text()
-        check('workout says reps', '3 sets × 5-8 reps' in meta, meta)
+        check('workout says reps', '3 sets × 5–8 reps' in meta, meta)
         await pg.locator('.set-row input[inputmode="decimal"]').nth(0).fill('100')
         await pg.locator('.set-row input[inputmode="numeric"]').nth(0).fill('8'); await pg.wait_for_timeout(200)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)

@@ -819,3 +819,10 @@ main.with-mini{padding-top:64px}
 .restbar .rest-save{flex-basis:auto;text-decoration:none;padding:7px 10px;background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
 /* Disabled main buttons read as off, not as a faded blue (Nov 10, audit) */
 .btn.primary:disabled{background:rgba(127,127,127,.22);color:var(--ink-3);opacity:1;box-shadow:none}
+/* 44-point tap areas around small controls; the controls keep their size (Nov 10, audit P2-5) */
+.icon-btn,.note-add,.unit-tog,.side-tog,.set-row button.n,.tip-x{position:relative}
+.icon-btn::after,.note-add::after,.set-row button.n::after,.tip-x::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+.unit-tog::after,.side-tog::after{content:'';position:absolute;left:-3px;right:-3px;top:50%;height:44px;transform:translateY(-50%)}
+/* A clear ring on the text box you're typing in (Nov 10, audit) */
+.field:focus-visible,input.field:focus,textarea.field:focus,select.field:focus,.set-row input:focus,.meas-row input:focus,.ed-reps:focus,.ex-note:focus{outline:2px solid var(--accent);outline-offset:1px}
+

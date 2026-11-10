@@ -945,6 +945,7 @@ const LIMITS = { sug: 1, na: 1 };
 const sumNut = list => { const t = {}; for (const [k] of NUT) t[k] = 0; for (const e of list || []) for (const [k] of NUT) t[k] += +(e.m && e.m[k]) || 0; return t; };
 const scaleNut = (m, f) => roundNut(Object.fromEntries(NUT.map(([k]) => [k, (+m[k] || 0) * f])));
 const logDayName = k => { if (k === ymd(new Date())) return 'Today'; if (k === ymd(addDays(new Date(), -1))) return 'Yesterday'; const d = parseYmd(k); return DOW_FULL[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate(); };
+const hhmm = t => { const d = new Date(t || Date.now()); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 function addLog(day, e) { const entry = { id: uid('l'), at: Date.now(), ...e }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
 const dropLog = (day, id) => mealCommit(m => { m.log[day] = (m.log[day] || []).filter(x => x.id !== id); if (!m.log[day].length) delete m.log[day]; });
 function removeLog(day, id) {
@@ -1059,12 +1060,17 @@ function LogEntrySheet({ day, id }) {
   const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;
   if (editing) return html`<${Sheet} label=${'Edit ' + e.name}><h2>Edit ${e.name}</h2><p class="note">${logDayName(day)}</p><${NumEdit} day=${day} e=${e} done=${() => setEditing(false)}/><//>`;
   const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });
+  /* When you ate it (Nov 10, audit P3-3): same day, the time you pick */
+  const setWhen = v => { const mm = /^(\d{1,2}):(\d{2})$/.exec(v || ''); if (!mm) return; const t = parseYmd(day); t.setHours(+mm[1], +mm[2], 0, 0);
+    mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (x) { x.at = +t; x.atSet = true; } }); };
   const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
     if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
     x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
     ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    <div class="row" style="margin-top:12px" id="le-when-row"><label for="le-when" style="flex:1;font-weight:600">When you ate it<span class="small muted" style="display:block;font-weight:400">Used by Review my eating. Starts as when you logged it.</span></label>
+      <input class="field" id="le-when" type="time" style="width:auto" value=${hhmm(e.at)} onChange=${ev => setWhen(ev.target.value)}/></div>
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
     ${e.k === 'num' ? html`<button class="btn wide" id="le-edit" style="margin-top:12px" onClick=${() => setEditing(true)}>${I.edit} Edit name and numbers</button>` : null}
     <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in ' + savedFor(e).cat : 'Save to a category'}</span><${CatPick} e=${e}/></div>
@@ -1077,7 +1083,7 @@ function GoalsSheet() {
   return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
     <button class="btn ghost wide" id="goal-calc" style="margin-top:10px" onClick=${() => openSheet({ type: 'mealTargets' })}>Work them out from my height, weight and goal</button>
     <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>
-    <p class="small faint" style="margin-top:10px">Your own targets, for planning. Not medical or diet advice.</p>
+    <p class="small faint" style="margin-top:10px">Your own targets, for planning. ${NOT_ADVICE}</p>
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="goal-save" onClick=${save}>Save goals</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 /* Stats → Overall: the last 7 days of logged food */

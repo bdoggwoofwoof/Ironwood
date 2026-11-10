@@ -95,6 +95,6 @@ function EatReview() {
     ${R.train ? html`<div class="section-h"><h2>Training days and rest days</h2></div>
       <div class="card prl" id="er-train"><div><div style="font-weight:600">Training days (${R.train.nT})</div><b class="num">${fmt(Math.round(R.train.kcalT))} cal · ${Math.round(R.train.pT)} g protein</b></div>
         <div><div style="font-weight:600">Rest days (${R.train.nR})</div><b class="num">${fmt(Math.round(R.train.kcalR))} cal · ${Math.round(R.train.pR)} g protein</b></div></div>` : null}
-    <p class="small faint" style="margin-top:12px">Estimates from what you logged, for planning. Ironwood counts calories, protein, carbs, fat, fiber, sugar and sodium; vitamins and minerals are only judged from food groups. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, talk with a doctor or dietitian.</p>
+    <p class="small faint" style="margin-top:12px">From what you logged. Ironwood counts calories, protein, carbs, fat, fiber, sugar and sodium; vitamins and minerals are only judged from food groups. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, talk with a doctor or dietitian.</p>
   </div>`;
 }

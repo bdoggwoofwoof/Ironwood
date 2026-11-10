@@ -707,7 +707,7 @@ ensureEx('Hard Efforts', 'timed', 'cardio');
 for (const n of ['Burpee Broad Jumps', 'Wall Ball', 'Kettlebell Swing', 'Sit-Ups', 'Push-Ups', 'Pull-Up', 'Air Squat']) { const e = findIn(BUILTIN_EX)(n); if (e && isMeasured(e.kind)) e.kind = 'bodyweight'; }
 
 /* ============ Run screen (Train → Run) ============ */
-const RUN_NOTE = 'Paces, targets and expected results are estimates for a healthy adult, not medical or coaching advice. Check with a doctor before starting hard interval training if you have heart, blood pressure or joint concerns.';
+const RUN_NOTE = 'Paces, targets and expected results assume a healthy adult. ' + NOT_ADVICE + ' Check with a doctor before starting hard interval training if you have heart, blood pressure or joint concerns.';
 const FOCUS_TXT = c => { const pct = Math.round((c.E - 1) * 100); return {
   endurance: ['Speed is ahead of endurance', 'Your 3 miles is ' + pct + '% slower than your mile predicts (' + rfmt(c.pred3) + '). Your easy runs are 5 minutes longer each week and the threshold work matters most. That gap usually closes fastest of anything here.'],
   speed: ['Endurance is ahead of speed', 'Your 3 miles is as fast as or faster than your mile predicts (' + rfmt(c.pred3) + '). The plan adds an extra sprint or acceleration to each speed day, because top speed is what is holding your mile back.'],
@@ -941,7 +941,7 @@ function CondInfo({ r }) {
     <div class="card" style="margin-top:8px"><span class="lbl">Strengths</span><ul class="run-ul">${P.strengths.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="card run-result" style="margin-top:8px"><span class="lbl">Likely results</span><p>${P.result}</p></div>
     <div class="card" style="margin-top:8px"><span class="lbl">Watch out for</span><ul class="run-ul">${P.watch.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
-    <p class="small faint" style="margin-top:8px">Likely results are estimates for a healthy adult, not medical or coaching advice. Lifting days stay as they are; these days fit around them.</p></div>`;
+    <p class="small faint" style="margin-top:8px">Likely results assume a healthy adult. ${NOT_ADVICE} Lifting days stay as they are; these days fit around them.</p></div>`;
 }
 /* Stats → Overall: running */
 function runMinutes(s) {

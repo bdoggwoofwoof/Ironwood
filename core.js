@@ -744,12 +744,13 @@ function RoutineView({ id }) {
     <div class="row wrap" style="margin:14px 0 4px">
       ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
-      ${programId() === r.id || addonIds().includes(r.id) ? html`<button class="btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>Restart from day 1</button>` : null}
-      ${programId() === r.id ? html`<button class="btn text" id="plan-stop" onClick=${() => stopPlan(r.id)}>Stop following</button>` : null}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
-      ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
-      <button class="btn text danger" onClick=${del}>${lib ? 'Remove' : 'Delete'}</button>
+      <button class="btn" id="plan-more" aria-label=${'More for ' + r.name} onClick=${() => openSheet({ type: 'planMore', title: r.name, acts: [
+        programId() === r.id || addonIds().includes(r.id) ? ['plan-restart', 'Restart from day 1', '', () => { closeSheet(); restartProgram(r.id); }] : null,
+        programId() === r.id ? ['plan-stop', 'Stop following', 'Train goes back to asking what you follow.', () => { closeSheet(); stopPlan(r.id); }] : null,
+        r.base ? ['plan-reset', 'Reset', 'Undo your changes to this plan.', reset] : null,
+        ['plan-del', lib ? 'Remove from Plans' : 'Delete plan', lib ? 'You can bring it back at the bottom of Plans.' : 'Logged workouts stay in your history.', del, true]].filter(Boolean) })}>${I.more}</button>
     </div>
     <${PrefillRow} r=${r}/>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
@@ -2049,6 +2050,7 @@ function SheetHost({ sheet }) {
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
     case 'aboutYou': return html`<${AboutYouSheet}/>`;
+    case 'planMore': return html`<${Sheet} label=${sheet.title}><h2>${sheet.title}</h2><div class="stack" style="margin-top:10px">${sheet.acts.map(([id, l, d, fn, danger]) => html`<button key=${id} id=${id} class=${'opt' + (danger ? ' danger' : '')} onClick=${fn}><div style="flex:1"><div>${l}</div>${d ? html`<div class="d">${d}</div>` : null}</div></button>`)}<button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
     case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;

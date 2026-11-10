@@ -47,7 +47,7 @@ async def main():
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role('button', name='Reset').click(); await pg.wait_for_timeout(200)
+        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-reset'); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Reset plan').click(); await pg.wait_for_timeout(300)
         check('reset restores original', 'Bench Press' in await pg.locator('.r-items li').first.inner_text())
 
@@ -58,7 +58,7 @@ async def main():
         # Remove a library routine, then bring it back
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Full Body 5×5').click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
+        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-del'); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove plan').click(); await pg.wait_for_timeout(300)
         check('removed from library', await pg.locator('.r-card', has_text='Full Body 5×5').count() == 0)
         await pg.get_by_role('button', name='Bring back').click(); await pg.wait_for_timeout(300)
@@ -66,7 +66,7 @@ async def main():
 
         # Survives reload
         await pg.locator('.r-card', has_text="Newt's").click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role('button', name='Remove').click(); await pg.wait_for_timeout(200)
+        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-del'); await pg.wait_for_timeout(200)
         await pg.get_by_role('button', name='Remove plan').click(); await pg.wait_for_timeout(800)
         await pg.reload(); await pg.wait_for_timeout(1500)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)

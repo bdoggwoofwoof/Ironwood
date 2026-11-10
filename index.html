@@ -837,7 +837,29 @@ main.with-mini{padding-top:64px}
 .restbar .t{min-width:0;font-size:calc(24 * var(--u))}
 .restbar .rest-save{flex-basis:auto;text-decoration:none;padding:7px 10px;background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
 /* Disabled main buttons read as off, not as a faded blue (Nov 10, audit) */
-.btn.primary:disabled{background:rgba(127,127,127,.22);color:var(--ink-3);opacity:1;box-shadow:none}</style>
+.btn.primary:disabled{background:rgba(127,127,127,.22);color:var(--ink-3);opacity:1;box-shadow:none}
+/* 44-point tap areas around small controls; the controls keep their size (Nov 10, audit P2-5) */
+.icon-btn,.note-add,.unit-tog,.side-tog,.set-row button.n,.tip-x{position:relative}
+.icon-btn::after,.note-add::after,.set-row button.n::after,.tip-x::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+.unit-tog::after,.side-tog::after{content:'';position:absolute;left:-3px;right:-3px;top:50%;height:44px;transform:translateY(-50%)}
+/* A clear ring on the text box you're typing in (Nov 10, audit) */
+.field:focus-visible,input.field:focus,textarea.field:focus,select.field:focus,.set-row input:focus,.meas-row input:focus,.ed-reps:focus,.ex-note:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---- Phase 5 look (Nov 10, audit P2-2, P3-1, 4.3, 5.3): needs Newt's OK ---- */
+/* Uppercase headings stay (Newt, Nov 10: keep the capitalized text) */
+/* One secondary button style */
+.btn.ghost{background:var(--raised);border:0;color:var(--ink)}
+/* The Plans library as list rows with dividers, not boxes */
+[id^="ps-"] .stack{gap:0}
+[id^="ps-"] .r-card{background:none;border-radius:0;padding:14px 2px;border-bottom:1px solid var(--line)}
+[id^="ps-"] .r-card:first-child{border-top:1px solid var(--line)}
+/* Plan editor checkboxes: 24 px, 44-point row */
+.toggle{min-height:44px}
+.toggle input{width:24px;height:24px}
+.opt.danger{color:var(--stop)}
+
+[id^="ps-"] .stack > .row,[id^="ps-"] .stack > .note{margin:10px 0}
+</style>
 
 <div id="app"></div>
 
@@ -1644,6 +1666,8 @@ const ICONS = {
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
 /* One shared disclaimer line (Nov 10, audit P2-3) */
+/* Rep ranges read with an en dash (5–8) */
+const repTxt = r => String(r == null ? '' : r).replace(/(\d)\s*-\s*(\d)/g, '$1–$2');
 const NOT_ADVICE = 'Estimates and general guidance, not medical advice.';
 const UI = { setSheet: () => {}, setView: () => {}, setTab: () => {} };
 const ALSO = { v: true };
@@ -1744,7 +1768,9 @@ function bgTimer() {
 }
 /* Display settings live on this device. */
 const HOST_THEME = document.documentElement.getAttribute('data-theme');
-const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') == null ? (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })() : lsGet('rm') === '1', hc: lsGet('hc') === '1' };
+const DISP = { palette: lsGet('palette') || 'classic', theme: lsGet('theme') || 'system', size: lsGet('size') || '100', rm: lsGet('rm') == null ? (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })() : lsGet('rm') === '1', hc: lsGet('hc') == null ? (() => { try { return matchMedia('(prefers-contrast: more)').matches; } catch (e) { return false; } })() : lsGet('hc') === '1' };
+/* Follows iPhone Increase Contrast until you set High contrast yourself (Nov 10, audit P3-4) */
+try { matchMedia('(prefers-contrast: more)').addEventListener('change', e => { if (lsGet('hc') == null) { DISP.hc = e.matches; applyDisplay(); if (typeof S !== 'undefined' && S.rerender) S.rerender(); } }); } catch (e) {}
 function applyDisplay() {
   const r = document.documentElement;
   if (DISP.theme === 'system') { if (HOST_THEME) r.setAttribute('data-theme', HOST_THEME); else r.removeAttribute('data-theme'); } else r.setAttribute('data-theme', DISP.theme);
@@ -2098,7 +2124,7 @@ function TrainHome() {
       <div class="section-h" style="margin-top:10px"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'Next in your plan'}</span></div>
       <div class="next-card">
         <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Change</button></div><h2>${nx.day.name}</h2></div>
-        <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
+        <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${repTxt(it.reps)}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
       <${AlsoToday} nx=${nx}/>
@@ -2515,7 +2541,7 @@ function LiftSlot({ it, nextSS }) {
   return html`<section class=${'slot' + (it.ss ? ' ss' : '') + (nextSS ? ' ss-next' : '')} aria-label=${exName(it.ex)}>
     ${it.ss ? html`<div class="ss-tag">${I.link} Superset with above</div>` : null}
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
-      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + it.target.reps + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
+      <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
     <${MachineRow} it=${it}/>
@@ -2609,7 +2635,7 @@ function autoTags(day, r) {
 }
 const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
-const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + it.reps + ' reps' : '');
+const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + repTxt(it.reps) + ' reps' : '');
 /* The weight used last time (heaviest set, or least assistance), with its unit. */
 const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; if (isMeasured(exKind(it.ex))) return ' · last ' + measBest(e.raw, exKind(it.ex)); const ws = e.raw.filter(x => +x.r > 0).map(x => +x.w || 0).filter(w => w > 0); if (!ws.length) return '';
   const asst = exKind(it.ex) === 'assisted'; return ' · last ' + fmt(asst ? Math.min(...ws) : Math.max(...ws)) + ' ' + e.u + (asst ? ' assist' : ''); };
@@ -2714,12 +2740,13 @@ function RoutineView({ id }) {
     <div class="row wrap" style="margin:14px 0 4px">
       ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
-      ${programId() === r.id || addonIds().includes(r.id) ? html`<button class="btn" id="plan-restart" onClick=${() => restartProgram(r.id)}>Restart from day 1</button>` : null}
-      ${programId() === r.id ? html`<button class="btn text" id="plan-stop" onClick=${() => stopPlan(r.id)}>Stop following</button>` : null}
       <button class="btn" onClick=${edit}>${I.edit} Edit</button>
       <button class="btn" onClick=${copy}>${I.copy} Copy</button>
-      ${r.base ? html`<button class="btn text" onClick=${reset}>Reset</button>` : null}
-      <button class="btn text danger" onClick=${del}>${lib ? 'Remove' : 'Delete'}</button>
+      <button class="btn" id="plan-more" aria-label=${'More for ' + r.name} onClick=${() => openSheet({ type: 'planMore', title: r.name, acts: [
+        programId() === r.id || addonIds().includes(r.id) ? ['plan-restart', 'Restart from day 1', '', () => { closeSheet(); restartProgram(r.id); }] : null,
+        programId() === r.id ? ['plan-stop', 'Stop following', 'Train goes back to asking what you follow.', () => { closeSheet(); stopPlan(r.id); }] : null,
+        r.base ? ['plan-reset', 'Reset', 'Undo your changes to this plan.', reset] : null,
+        ['plan-del', lib ? 'Remove from Plans' : 'Delete plan', lib ? 'You can bring it back at the bottom of Plans.' : 'Logged workouts stay in your history.', del, true]].filter(Boolean) })}>${I.more}</button>
     </div>
     <${PrefillRow} r=${r}/>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
@@ -3111,7 +3138,7 @@ function StorageNote() {
   const isWeb = !!(window.claude && window.claude.standalone);
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (isWeb && ios && !standalone) return html`<p class="small down-c" id="storage-warn">Open from the Home Screen to keep your data safe: in a Safari tab, iOS can delete it after 7 days without use. Share → Add to Home Screen.</p>`;
-  if (kept === false && isWeb) return html`<p class="small faint">The phone hasn’t promised to keep this app’s data under storage pressure, so keep a recent backup.</p>`;
+  if (kept === false && isWeb) return html`<p class="small faint">Your iPhone can clear app data when it’s low on space. Keep a recent backup.</p>`;
   return null;
 }
 function ProfileScreen({ view }) {
@@ -3138,7 +3165,7 @@ function ProfileScreen({ view }) {
     <div class="card stack" style="gap:14px"><${ProgressionSettings} set=${set}/></div>
     <div class="section-h"><h2>Rest timer</h2></div>
     <div class="card stack" style="gap:12px">
-      <div><span class="lbl">Superset rest starts</span><div class="seg wide">${[['each', 'After each exercise'], ['round', 'After the full round']].map(([k, l]) => html`<button key=${k} class=${st.ssMode === k ? 'on' : ''} onClick=${() => set('ssMode', k)}>${l}</button>`)}</div></div>
+      <div><span class="lbl">Superset rest starts after</span><div class="seg wide">${[['each', 'Each exercise'], ['round', 'The full round']].map(([k, l]) => html`<button key=${k} class=${st.ssMode === k ? 'on' : ''} onClick=${() => set('ssMode', k)}>${l}</button>`)}</div></div>
       ${tog('beep', 'Beep when time is up', 'Interval timers also beep at each change.')}
       ${tog('countdown', 'Beep the last 3 seconds')}
       ${tog('bgAudio', 'Beep with the phone locked (beta)', 'Plays a silent track carrying the beeps, so they sound with the screen off or in another app. The phone treats it as media, so it may pause music, and some apps block it.')}
@@ -3177,7 +3204,7 @@ function ProfileScreen({ view }) {
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
-      <div class="row" style="align-items:flex-start">${restField('rest', 'Single rest (sec)')}${restField('restSS', 'Superset rest (sec)')}</div>
+      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}${restField('restSS', 'Superset rest (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
       <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
     </div>
@@ -3186,7 +3213,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6b3ae37</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 7c0901e</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -3194,7 +3221,7 @@ function PRCard() {
   const P = prOpts(); const set = (k, v) => commit(x => { x.meta.settings.pr = { ...prOpts(), [k]: v }; }, 'meta', 800);
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'pr-' + k}><span><span>${label}</span><span class="d">${sub}</span></span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${!!P[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   return html`<div class="card stack" style="gap:6px">
-    <p class="note">A PR shows right away: the set number turns yellow and a red line under the set says which record it beat and the old best. Finished workouts list them in the summary, the log and Stats. Estimated 1-rep max isn’t a PR type; it’s charted in each exercise’s stats.</p>
+    <p class="note">New records show on the set as you log it and in your history. Estimated 1-rep max is charted in each exercise’s stats, not counted as a record.</p>
     ${tog('weight', 'Heaviest weight', 'Most weight lifted for at least one rep. For assisted moves, the least assistance.')}
     ${tog('reps', 'Rep PRs', 'More reps than ever at this weight or heavier. For bodyweight moves, most reps in a set.')}
     ${tog('setvol', 'Best single set', 'Most weight × reps in one set.')}
@@ -3206,7 +3233,7 @@ function PRCard() {
   </div>`;
 }
 function DisplayCard() {
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(''); const [addLang, setAddLang] = useState(false);
   const customs = (() => { try { return JSON.parse(lsGet('customLangs') || '[]'); } catch (e) { return []; } })();
   const onFile = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; const rd = new FileReader();
     rd.onload = () => { const name = f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || 'My language'; const n = l10nImport(String(rd.result || ''), name);
@@ -3230,11 +3257,11 @@ function DisplayCard() {
       </select>
       ${L10N.status ? html`<p class="small muted" role="status" style="margin-top:6px">${L10N.status}</p>` : null}
       <p class="note" style="margin-top:6px">${window.claude && window.claude.standalone ? 'Add a language by uploading a translated phrase list below. Your notes are never translated.' : 'Claude translates each phrase the first time it appears and saves it on this device; the first time, it asks your permission. Your notes are never translated.'}</p></div>
-    <div><span class="lbl">Another language</span>
+    ${!addLang ? html`<button class="btn text" id="lang-add-open" style="align-self:flex-start;padding:0" onClick=${() => setAddLang(true)}>Add a language from a spreadsheet</button>` : html`<div id="lang-add"><span class="lbl">Another language</span>
       <div class="row wrap"><label class="btn" for="lang-file">Upload a spreadsheet (CSV)</label><input id="lang-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden onChange=${onFile}/>
         <button class="btn" onClick=${download}>Get the phrase list</button></div>
-      <p class="note" style="margin-top:6px">Two columns: English, then your translation. Get the phrase list, translate it in any spreadsheet, export it as CSV, and upload it. Numbers in phrases are written as {#}.</p>
-      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}</div>
+      <p class="note" style="margin-top:6px">Two columns: English, then your translation. Get the phrase list, translate it in any spreadsheet, export it as CSV, and upload it. Numbers in phrases are written as {#}.</p></div>`}
+      ${msg ? html`<p class="small muted" role="status">${msg}</p>` : null}
   </div>`;
 }
 /* ---------- INTERVAL TIMER ---------- */
@@ -3593,13 +3620,13 @@ function PhotosScreen() {
   const order = k => POSES.findIndex(x => x[0] === k);
   return html`<div>
     ${!dates.length ? html`<div class="card" style="margin-top:14px"><div class="ph-hero">${['front', 'side', 'abs'].map(k => html`<div key=${k} class="ph-hero-cell"><${PoseGuide} pose=${k} lines=${false}/><span>${POSE_NAME[k]}</span></div>`)}</div>
-      <p class="note" style="margin-top:10px">Take the same poses every few weeks. A body outline, level lines for head, hips and feet, and your last photo show over the camera, so every check-in lines up. No tripod? Pick “Holding the phone” for mirror and selfie poses.</p></div>` : null}
+      <p class="note" style="margin-top:10px">Take the same poses every few weeks. Your last photo shows in red over the camera so you can match it, and a level helps you hold the same angle. No tripod? Pick “Holding the phone” for mirror and selfie poses.</p></div>` : null}
     <div class="row" style="margin-top:14px"><button class="btn primary" style="flex:2" onClick=${() => openSheet({ type: 'checkin' })}>${I.camera} New check-in</button>
       ${dates.length > 1 ? html`<button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'photoCmp' })}>Compare</button>` : null}</div>
     ${PH.err ? html`<p class="small down-c" role="alert" style="margin-top:8px">${PH.err}</p>` : null}
     ${dates.map(d => html`<div key=${d}><div class="section-h"><h2 style="font-size:calc(17 * var(--u))">${shortDate(+parseYmd(d))}</h2><span class="aside">${by[d].length} photo${by[d].length === 1 ? '' : 's'}</span></div>
       <div class="ph-grid">${by[d].slice().sort((a, b) => order(a.pose) - order(b.pose)).map(p => html`<button key=${p.id} class="ph-thumb" onClick=${() => openSheet({ type: 'photo', id: p.id })}><img src=${phUrl(p)} alt=${(POSE_NAME[p.pose] || 'Photo') + ', ' + shortDate(p.t)}/><span>${POSE_NAME[p.pose] || 'Photo'}</span></button>`)}</div></div>`)}
-    <p class="note" style="margin-top:16px">Photos stay on this phone. They aren’t uploaded or synced to your account, and clearing this site’s data deletes them, so save the ones you want to keep to your Photos. In the iPhone app they’ll live in the app’s own storage.</p>
+    <p class="note" style="margin-top:16px">Photos stay on this phone. They aren’t uploaded or synced to your account, and deleting Ironwood deletes them, so save the ones you want to keep to your Photos. In the iPhone app they’ll live in the app’s own storage.</p>
   </div>`;
 }
 function CheckinSheet() {
@@ -4019,6 +4046,7 @@ function SheetHost({ sheet }) {
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
     case 'aboutYou': return html`<${AboutYouSheet}/>`;
+    case 'planMore': return html`<${Sheet} label=${sheet.title}><h2>${sheet.title}</h2><div class="stack" style="margin-top:10px">${sheet.acts.map(([id, l, d, fn, danger]) => html`<button key=${id} id=${id} class=${'opt' + (danger ? ' danger' : '')} onClick=${fn}><div style="flex:1"><div>${l}</div>${d ? html`<div class="d">${d}</div>` : null}</div></button>`)}<button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
     case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
@@ -4977,6 +5005,7 @@ const LIMITS = { sug: 1, na: 1 };
 const sumNut = list => { const t = {}; for (const [k] of NUT) t[k] = 0; for (const e of list || []) for (const [k] of NUT) t[k] += +(e.m && e.m[k]) || 0; return t; };
 const scaleNut = (m, f) => roundNut(Object.fromEntries(NUT.map(([k]) => [k, (+m[k] || 0) * f])));
 const logDayName = k => { if (k === ymd(new Date())) return 'Today'; if (k === ymd(addDays(new Date(), -1))) return 'Yesterday'; const d = parseYmd(k); return DOW_FULL[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate(); };
+const hhmm = t => { const d = new Date(t || Date.now()); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 function addLog(day, e) { const entry = { id: uid('l'), at: Date.now(), ...e }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
 const dropLog = (day, id) => mealCommit(m => { m.log[day] = (m.log[day] || []).filter(x => x.id !== id); if (!m.log[day].length) delete m.log[day]; });
 function removeLog(day, id) {
@@ -5091,12 +5120,17 @@ function LogEntrySheet({ day, id }) {
   const e = (ML().log[day] || []).find(x => x.id === id); if (!e) return null;
   if (editing) return html`<${Sheet} label=${'Edit ' + e.name}><h2>Edit ${e.name}</h2><p class="note">${logDayName(day)}</p><${NumEdit} day=${day} e=${e} done=${() => setEditing(false)}/><//>`;
   const setSv = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return; x.m = x.m1 ? scaleNut(x.m1, v) : scaleNut(x.m, v / (x.sv || 1)); x.sv = v; });
+  /* When you ate it (Nov 10, audit P3-3): same day, the time you pick */
+  const setWhen = v => { const mm = /^(\d{1,2}):(\d{2})$/.exec(v || ''); if (!mm) return; const t = parseYmd(day); t.setHours(+mm[1], +mm[2], 0, 0);
+    mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (x) { x.at = +t; x.atSet = true; } }); };
   const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
     if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
     x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
     ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    <div class="row" style="margin-top:12px" id="le-when-row"><label for="le-when" style="flex:1;font-weight:600">When you ate it<span class="small muted" style="display:block;font-weight:400">Used by Review my eating. Starts as when you logged it.</span></label>
+      <input class="field" id="le-when" type="time" style="width:auto" value=${hhmm(e.at)} onChange=${ev => setWhen(ev.target.value)}/></div>
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
     ${e.k === 'num' ? html`<button class="btn wide" id="le-edit" style="margin-top:12px" onClick=${() => setEditing(true)}>${I.edit} Edit name and numbers</button>` : null}
     <div style="margin-top:14px"><span class="lbl">${savedFor(e) ? 'Saved in ' + savedFor(e).cat : 'Save to a category'}</span><${CatPick} e=${e}/></div>
@@ -5109,7 +5143,7 @@ function GoalsSheet() {
   return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
     <button class="btn ghost wide" id="goal-calc" style="margin-top:10px" onClick=${() => openSheet({ type: 'mealTargets' })}>Work them out from my height, weight and goal</button>
     <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>
-    <p class="small faint" style="margin-top:10px">Your own targets, for planning. Not medical or diet advice.</p>
+    <p class="small faint" style="margin-top:10px">Your own targets, for planning. ${NOT_ADVICE}</p>
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="goal-save" onClick=${save}>Save goals</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 /* Stats → Overall: the last 7 days of logged food */
@@ -6048,7 +6082,7 @@ ensureEx('Hard Efforts', 'timed', 'cardio');
 for (const n of ['Burpee Broad Jumps', 'Wall Ball', 'Kettlebell Swing', 'Sit-Ups', 'Push-Ups', 'Pull-Up', 'Air Squat']) { const e = findIn(BUILTIN_EX)(n); if (e && isMeasured(e.kind)) e.kind = 'bodyweight'; }
 
 /* ============ Run screen (Train → Run) ============ */
-const RUN_NOTE = 'Paces, targets and expected results are estimates for a healthy adult, not medical or coaching advice. Check with a doctor before starting hard interval training if you have heart, blood pressure or joint concerns.';
+const RUN_NOTE = 'Paces, targets and expected results assume a healthy adult. ' + NOT_ADVICE + ' Check with a doctor before starting hard interval training if you have heart, blood pressure or joint concerns.';
 const FOCUS_TXT = c => { const pct = Math.round((c.E - 1) * 100); return {
   endurance: ['Speed is ahead of endurance', 'Your 3 miles is ' + pct + '% slower than your mile predicts (' + rfmt(c.pred3) + '). Your easy runs are 5 minutes longer each week and the threshold work matters most. That gap usually closes fastest of anything here.'],
   speed: ['Endurance is ahead of speed', 'Your 3 miles is as fast as or faster than your mile predicts (' + rfmt(c.pred3) + '). The plan adds an extra sprint or acceleration to each speed day, because top speed is what is holding your mile back.'],
@@ -6282,7 +6316,7 @@ function CondInfo({ r }) {
     <div class="card" style="margin-top:8px"><span class="lbl">Strengths</span><ul class="run-ul">${P.strengths.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="card run-result" style="margin-top:8px"><span class="lbl">Likely results</span><p>${P.result}</p></div>
     <div class="card" style="margin-top:8px"><span class="lbl">Watch out for</span><ul class="run-ul">${P.watch.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
-    <p class="small faint" style="margin-top:8px">Likely results are estimates for a healthy adult, not medical or coaching advice. Lifting days stay as they are; these days fit around them.</p></div>`;
+    <p class="small faint" style="margin-top:8px">Likely results assume a healthy adult. ${NOT_ADVICE} Lifting days stay as they are; these days fit around them.</p></div>`;
 }
 /* Stats → Overall: running */
 function runMinutes(s) {
@@ -8037,7 +8071,7 @@ function GoalsCard() {
           ${st.reached ? html`<span class="chip on">${I.check} Reached</span>` : html`<div style="text-align:right"><b class="num">${st.now == null ? '–' : fmt(r05(st.now))}</b><div class="small muted">now</div></div>`}</div>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(st.pct * 100)}><span style=${{ width: Math.round((st.reached ? 1 : st.pct) * 100) + '%' }}></span></div>
         <div class="small muted" style="text-align:left">${goalLine(g, st)}</div></button>`; })}</div>
-    <p class="small faint" style="margin-top:6px">Estimates from your logged sets, for planning. Not medical or coaching advice.</p></div>`;
+    <p class="small faint" style="margin-top:6px">From your logged sets. ${NOT_ADVICE}</p></div>`;
 }
 /* Lifts you've logged with weight, most recent first */
 function goalLifts() {
@@ -8375,7 +8409,7 @@ function TargetsSheet({ preset } = {}) {
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
-          <p class="small faint" style="margin-top:6px">Estimates from a standard formula, for planning. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
+          <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
       <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
@@ -8409,7 +8443,7 @@ function MenuCard() {
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
-    <p class="small faint" style="margin-top:8px">Estimates for planning, not medical or diet advice.</p></div>`;
+    <p class="small faint" style="margin-top:8px">${NOT_ADVICE}</p></div>`;
 }
 function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;
@@ -9357,7 +9391,7 @@ function EatReview() {
     ${R.train ? html`<div class="section-h"><h2>Training days and rest days</h2></div>
       <div class="card prl" id="er-train"><div><div style="font-weight:600">Training days (${R.train.nT})</div><b class="num">${fmt(Math.round(R.train.kcalT))} cal · ${Math.round(R.train.pT)} g protein</b></div>
         <div><div style="font-weight:600">Rest days (${R.train.nR})</div><b class="num">${fmt(Math.round(R.train.kcalR))} cal · ${Math.round(R.train.pR)} g protein</b></div></div>` : null}
-    <p class="small faint" style="margin-top:12px">Estimates from what you logged, for planning. Ironwood counts calories, protein, carbs, fat, fiber, sugar and sodium; vitamins and minerals are only judged from food groups. Not medical or diet advice. If you have a health condition, are pregnant, or have a history of disordered eating, talk with a doctor or dietitian.</p>
+    <p class="small faint" style="margin-top:12px">From what you logged. Ironwood counts calories, protein, carbs, fat, fiber, sugar and sodium; vitamins and minerals are only judged from food groups. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, talk with a doctor or dietitian.</p>
   </div>`;
 }
 

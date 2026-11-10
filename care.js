@@ -1,10 +1,10 @@
 /* ============ Joint care programs ============ */
 /* Strengthening and mobility for common aches: clicky or pinchy shoulders, sore ankles and shins after runs, a cranky lower
-   back, front-of-knee pain, tight hips, elbows and wrists, a stiff neck. General exercise, not physical therapy: no
-   diagnosis or treatment claims, a pain rule, and clear signs to see a doctor or physical therapist. Each program has two
+   back, front-of-knee pain, tight hips, elbows and wrists, a stiff neck. General exercise: no
+   diagnosis or treatment claims, a pain rule, and clear signs to see a doctor. Each program has two
    days (A: strength, B: mobility and control) done three times a week, alternating, about 15–20 minutes, after a warm-up or
    at the end of a lifting day. Items: [exercise, sets, reps, note, target, kind for a new exercise]. */
-const CARE_NOTE = 'General strength and mobility exercise for common aches, not medical advice, diagnosis or treatment, and not a substitute for a doctor or physical therapist.';
+const CARE_NOTE = 'General strength and mobility exercise for common aches. It doesn’t diagnose or treat anything and doesn’t replace a doctor.';
 const CARE_PAIN = 'Pain rule: mild discomfort during an exercise (up to about 3 out of 10) that settles within 24 hours is okay. If it’s sharper, or worse the next morning, use less weight, fewer reps or a smaller range next time. Stop anything that causes sharp, catching or worsening pain.';
 const CARE_RED = ['Pain after a fall, a pop or a direct hit', 'Numbness, tingling or weakness', 'Swelling, redness or warmth around a joint', 'Pain at night or at rest that doesn’t ease with changing position', 'Pain that keeps getting worse over 2 weeks, or no better after 4–6 weeks of this program'];
 const CARE = [
@@ -150,8 +150,8 @@ function CareInfo({ r }) {
     <div class="card" style="margin-top:8px"><span class="lbl">What it trains</span><ul class="run-ul">${P.strengths.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="card run-result" style="margin-top:8px"><span class="lbl">What to expect</span><p>${P.result}</p></div>
     <div class="card" style="margin-top:8px"><span class="lbl">Watch out for</span><ul class="run-ul">${P.watch.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul><p class="small muted" style="margin-top:8px">${CARE_PAIN}</p></div>
-    <div class="card care-red" style="margin-top:8px" id="care-red"><span class="lbl">See a doctor or physical therapist if you have</span><ul class="run-ul">${P.red.concat(CARE_RED).map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
-    <p class="small faint" style="margin-top:8px">${CARE_NOTE} Expected results are estimates.</p></div>`;
+    <div class="card care-red" style="margin-top:8px" id="care-red"><span class="lbl">See a doctor if you have</span><ul class="run-ul">${P.red.concat(CARE_RED).map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
+    <p class="small faint" style="margin-top:8px">${CARE_NOTE} ${NOT_ADVICE}</p></div>`;
 }
 /* Routines → a quick way in: pick the area that bothers you */
 function CareFinder() {

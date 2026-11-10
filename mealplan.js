@@ -174,7 +174,7 @@ function TargetsSheet({ preset } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || 'keep', pace: (preset && preset.pace) || me0.pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;

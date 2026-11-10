@@ -20,7 +20,7 @@ function ironItems(v) {
   return out;
 }
 function IronSetupSheet({ ver: ver0 }) {
-  const [v, setV] = useState({ ver: ver0 || 'iron75', prios: ['habits'], habits: IRON_HABITS.filter(h => h[2]).map(h => h[0]).filter(k => (ver0 || 'iron75') === 'iron75' || !['outdoor', 'photo', 'alcohol'].includes(k)), water: (ver0 || 'iron75') === 'iron75' ? 'a gallon of water' : '3 liters of water', pages: 10 });
+  const [v, setV] = useState({ ver: ver0 || 'iron75', prios: ironPriosFromAbout(aboutYou().goal), habits: IRON_HABITS.filter(h => h[2]).map(h => h[0]).filter(k => (ver0 || 'iron75') === 'iron75' || !['outdoor', 'photo', 'alcohol'].includes(k)), water: (ver0 || 'iron75') === 'iron75' ? 'a gallon of water' : '3 liters of water', pages: 10 });
   const tog = (k, x) => setV({ ...v, [k]: v[k].includes(x) ? v[k].filter(y => y !== x) : v[k].concat(x) });
   const items = ironItems(v); const strict = v.ver === 'iron75';
   const G = typeof ML === 'function' ? ML().goals || {} : {}; const noGoals = (v.prios.includes('muscle') && !G.p) || (v.prios.includes('fat') && !G.kcal);
@@ -39,7 +39,7 @@ function IronSetupSheet({ ver: ver0 }) {
       <div class="card"><div style="font-weight:700">Your daily checklist</div><ul class="small" id="iron-preview" style="margin:6px 0 0 18px">${items.map(([n]) => html`<li key=${n}>${n}</li>`)}</ul></div>
       <button class="btn primary wide" id="iron-start" onClick=${startNow}>Start ${strict ? 'Iron 75' : 'Iron 75 Lite'}</button>
       <button class="btn wide" id="iron-go" onClick=${start}>Change the list first</button>
-      <p class="small faint">Strict challenges are hard on recovery. Take a light day if you feel run down, and skip anything that hurts. Not medical advice.</p></div><//>`;
+      <p class="small faint">Strict challenges are hard on recovery. Take a light day if you feel run down, and skip anything that hurts. ${NOT_ADVICE}</p></div><//>`;
 }
 /* ---- adaptive checks ---- */
 const chFoodDay = k => (typeof ML === 'function' && ML().log ? sumNut(ML().log[k] || []) : null);

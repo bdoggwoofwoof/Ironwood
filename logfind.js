@@ -48,7 +48,7 @@ function FindView({ day, go }) {
   const cats = foodCats().filter(c => saved.some(s => s.cat === c)).concat([...new Set(saved.map(s => s.cat))].filter(c => !foodCats().includes(c)));
   return html`<div class="stack" id="log-find">
     <input class="field" type="search" id="lf-find" autocomplete="off" placeholder="Search foods and recipes, or type “2 eggs”" value=${q} onInput=${x => setQ(x.target.value)} ref=${el => { if (el && !el.dataset.f) { el.dataset.f = 1; setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (_) {} }, 60); } }}/>
-    <div class="row" style="gap:8px"><button class="btn" style="flex:1" id="lf-scan-go" onClick=${() => go('scan')}>${I.camera} Scan</button><button class="btn" style="flex:1" id="lf-num-go" onClick=${() => go('num', { name0: q.trim() })}>Enter numbers</button></div>
+    <div class="row" style="gap:8px"><button class="btn" style="flex:1" id="lf-scan-go" onClick=${() => go('scan')}>${I.camera} Scan</button><button class="btn" style="flex:1" id="lf-num-go" onClick=${() => go('num', { name0: q.trim() })}>Quick add numbers</button></div>
     ${!term ? html`
       <div class="seg wide" role="tablist" aria-label="Your foods">${[['recent', 'Recent'], ['saved', 'Saved']].map(([k, l]) => html`<button key=${k} role="tab" id=${'lf-' + k + '-tab'} aria-selected=${view === k} class=${view === k ? 'on' : ''} onClick=${() => setView(k)}>${l}</button>`)}</div>
       ${view === 'recent' ? (rec.length ? html`<div class="find-list" id="lf-recent">${rec.map((e, i) => html`<${FoodRow} key=${tmplKey(e)} e=${e} day=${day} k=${'r' + i} picking=${picking} setPicking=${setPicking}/>`)}<p class="small muted">Tap to log the same amount again. ☆ saves it to a category.</p></div>`

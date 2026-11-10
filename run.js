@@ -1103,7 +1103,7 @@ function LoadGroups({ L, skipFirst }) {
 }
 function RunLoadWarn({ n, from, id, compact }) {
   const L = runLoad(n, from); if (!L || L.lvl === 'info') return null;
-  const cls = 'run-warn load ' + L.lvl; const foot = html`<p class="small muted">Your choice; the plan won't stop you. These are general guidelines, not medical advice.</p>`;
+  const cls = 'run-warn load ' + L.lvl; const foot = html`<p class="small muted">Your choice; the plan won't stop you. ${NOT_ADVICE}</p>`;
   const count = L.groups.reduce((a, g) => a + g.items.length, 0);
   if (compact) return html`<details class=${cls} id=${id}><summary><b class="load-title">${L.head}</b><span class="load-first">${rich(L.groups[0].items[0])}</span><span class="small muted load-more">Show all ${count} warnings</span></summary>
     <${LoadGroups} L=${L} skipFirst=${true}/>${foot}</details>`;

@@ -16,8 +16,12 @@ function nextUp() {
 const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); if (typeof applyFit === 'function' && runActive() && runSt().fit) applyFit(runSt().fit, true); };
 /* Dismissable explanations. Hidden ones come back from Help → Show tips again. */
 const tipOff = id => !!((S.meta.settings.tipsOff || {})[id]);
-function Tip({ id, children, style }) {
+/* One tip per screen (Nov 10, audit P2-3): the first unhidden tip in a render shows; later ones wait their turn. */
+const TIP_FRAME = {};
+function Tip({ id, children, style, slot }) {
   if (tipOff(id)) return null;
+  const k = slot || 'page'; if (!Object.keys(TIP_FRAME).length) queueMicrotask(() => { for (const x in TIP_FRAME) delete TIP_FRAME[x]; });
+  if (TIP_FRAME[k] && TIP_FRAME[k] !== id) return null; TIP_FRAME[k] = id;
   return html`<div class="tip-card" style=${style}><div style="flex:1;min-width:0">${children}</div><button class="tip-x" aria-label="Hide this tip" onClick=${() => commit(st => { st.meta.settings.tipsOff = { ...(st.meta.settings.tipsOff || {}), [id]: 1 }; }, 'meta')}>${I.x}</button></div>`;
 }
 function TopSwitch({ value, options, onChange }) {
@@ -120,29 +124,14 @@ function HelpSheet() {
 /* Walkthrough. Runs once on a fresh install (skippable), and again from Help or Profile. While it runs, the app
    shows sample workouts so Stats has something to show; they live only in memory and vanish when it ends. */
 /* Each step: [tab, train mode, element(s) to highlight, title, text, extra settings]. No selector = centered card. */
+/* Six stops (Nov 10, audit P1-4). Each tab teaches the rest itself with one tip on its first visit. */
 const TOUR = [
-  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
-  ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
-  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
-  ['train', 'train', '#plan-sched, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
-  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
-  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
-  ['train', 'train', '#ch-finder-train, #plan-sched, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
-  ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
-  ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
-  ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
-  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: yours, lifting, one-day plans, goal plans, running, fight, joint care and challenges. Search or tap a filter. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtFilter: 'all' } }],
-  ['routines', null, '#ps-care', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
-  ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a plan or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
-  ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
-  ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
-  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
-  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
-  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
-  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
-  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
-  ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
-  ['train', 'train', null, 'You’re set', 'Time to train.'],
+  ['train', 'train', null, 'Welcome to Ironwood', 'Six quick stops, one for each tab. Skip any time; Help at the bottom of every page brings it back.'],
+  ['train', 'train', '#get-started, .next-card', 'Train', 'Your next workout and its Start button sit at the top. During a workout, swipe a set right to log it, or tap its number. Hit the top of the rep range on every set and the next workout adds weight. Run and Fight live in the switch above.'],
+  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: lifting, one-day plans, goal plans, running, fight and joint care. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
+  ['stats', null, '.lift-row', 'Progress', 'Your history, numbers, each lift’s chart and records, and progress photos. These are sample numbers for the tour; they go away when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
+  ['profile', null, '#backup-file', 'Profile', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
 ];
 function demoSessions() {
   if (DEMO.list) return DEMO.list;

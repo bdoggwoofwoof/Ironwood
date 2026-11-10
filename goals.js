@@ -182,7 +182,7 @@ function keepPlanFor(a) {
 function applyGoal(a, d) {
   const prevProg = programId(); const prevMine = S.meta.routines['gp-mine'] ? clone(S.meta.routines['gp-mine']) : null;
   if (seasonOn(a)) a = { ...a, season: { ...a.season, cur: phaseByDate(a.season) } };
-  commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
+  commit(st => { st.meta.settings.plan = { ...a, at: Date.now() }; st.meta.settings.about = { ...(st.meta.settings.about || {}), goal: a.goal, days: +a.days || 0 }; if (+a.days) st.meta.settings.goal = +a.days; }, 'meta');
   if (a.keep && prevProg && prevProg !== 'self') {
     const k = keepPlanFor(a);
     if (k.addon && !(S.meta.settings.addons || []).includes(k.addon)) { setAddon(k.addon, true); if (typeof openSheet === 'function') setTimeout(() => openSheet({ type: 'addonFit', id: k.addon }), 50); }
@@ -206,7 +206,8 @@ function nextDate(month, day, after) { const a = after || new Date(); let d = ne
 function defaultSeason() { const cutFrom = nextDate(2, 15); return { on: false, bulkFrom: ymd(new Date()), cutFrom, cutTo: nextDate(5, 25, parseYmd(cutFrom)), asked: {} }; }
 function GoalSetupSheet({ welcome } = {}) {
   const saved = S.meta.settings.plan || {}; const pid = programId(); const hasProg = pid && pid !== 'self' && pid !== 'gp-mine' && getRoutine(pid);
-  const [a, setA] = useState(() => ({ goal: saved.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || 3, mins: saved.mins || 60,
+  const ay = aboutYou(); const fromAbout = !saved.goal && !!(ay.goal || ay.days);
+  const [a, setA] = useState(() => ({ goal: saved.goal || ay.goal || 'recomp', sport: saved.sport || 'box', keep: saved.keep != null ? saved.keep && !!hasProg : !!hasProg, days: saved.days || ay.days || 3, mins: saved.mins || 60,
     gear: saved.gear || 'gym', cardio: saved.cardio || ['road'], joints: saved.joints || [], season: { ...defaultSeason(), ...(saved.season || {}) } }));
   const [step, setStep] = useState(0);
   const set = (k, v) => setA({ ...a, [k]: v }); const tog = (k, x) => set(k, a[k].includes(x) ? a[k].filter(y => y !== x) : a[k].concat(x));
@@ -222,6 +223,7 @@ function GoalSetupSheet({ welcome } = {}) {
   return html`<${Sheet} label="Build my plan"><h2>${welcome ? 'Let’s set you up' : 'Build my plan'}</h2>
     ${welcome && step === 0 ? html`<p class="note" id="gs-welcome">A few quick questions and Ironwood builds a training plan and, if you like, your meals. Skip anything: you can do this later from Train.</p>` : null}
     <div class="gs-steps" aria-label=${'Step ' + (step + 1) + ' of 4'}>${steps.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
+    ${fromAbout && step === 0 ? html`<p class="small muted" id="gs-from-about">Filled in from About you. Change anything here.</p>` : null}
     <div class="stack" style="gap:14px;margin-top:10px" id=${'gs-step' + step}>
     ${step === 0 ? html`
       <div><span class="lbl">What do you want most?</span>${chips('goal', GP_GOALS)}</div>
@@ -244,7 +246,7 @@ function GoalSetupSheet({ welcome } = {}) {
         <div class="stack" style="gap:4px" id="gs-days">${plan.days.map(dd => html`<div key=${dd.id} class="small"><b>${dd.name}</b><span class="muted"> · ${dd.items.map(it => exName(it.ex)).join(', ')}</span></div>`)}</div>`}
       ${a.season.on && bulky ? html`<p class="small" style="margin-top:8px">Season: bulk until ${shortDate(parseYmd(a.season.cutFrom))}, then cut until ${shortDate(parseYmd(a.season.cutTo))}. Ironwood asks before each switch.</p>` : null}
       ${!keep && mine0 ? html`<p class="small" id="gs-replaces" style="margin-top:8px">This replaces your current ${mine0.name}${mine0.updatedAt || mine0.edited ? ', including your changes to it' : ''}. You can undo right after.</p>` : null}
-      <p class="small faint" style="margin-top:8px">A starting point, not coaching or medical advice. Change any exercise, day or number later.</p></div>
+      <p class="small faint" style="margin-top:8px">A starting point; change any exercise, day or number later. ${NOT_ADVICE}</p></div>
       <button class="btn primary wide" id="gs-meals" onClick=${() => finish(true)}>Use this, then set my meals</button>
       <button class="btn wide" id="gs-go" onClick=${() => finish(false)}>Use this plan</button>`}
     <div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="gs-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" id="gs-cancel" onClick=${closeSheet}>${welcome ? 'Skip for now' : 'Cancel'}</button>`}

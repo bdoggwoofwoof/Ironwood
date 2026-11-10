@@ -15,7 +15,7 @@ async def main():
         k = await ev("ymd(new Date())")
         await ev("UI.setTab('meals'); setMealsMode('log'); openSheet({ type: 'mealLog', day: ymd(new Date()), view: 'num' })"); await pg.wait_for_timeout(300)
         if not await pg.locator('#ln-name').count():
-            await pg.get_by_role('button', name='Enter numbers').click(); await pg.wait_for_timeout(200)
+            await pg.get_by_role('button', name='Quick add numbers').click(); await pg.wait_for_timeout(200)
         await pg.fill('#ln-name', 'Burrito bowl'); await pg.fill('#ln-kcal', '700'); await pg.fill('#ln-p', '35'); await pg.click('#ln-save'); await pg.wait_for_timeout(300)
         e = await ev(f"ML().log['{k}'][0]")
         check('entered by hand', e['k'] == 'num' and e['m']['kcal'] == 700)

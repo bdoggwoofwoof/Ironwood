@@ -933,7 +933,7 @@ function FoodEditSheet({ id, name, then, bc }) {
 function MyFoods() {
   const list = myFoods().slice().sort((a, b) => a.label.localeCompare(b.label));
   return html`<div>
-    <p class="note" style="margin-top:6px">Foods you add from a nutrition label, like a protein bar or a shake. Recipes and the log count them whenever an ingredient’s name matches, or when you pick them.</p>
+    <p class="note" style="margin-top:6px">Foods you eat often, saved from their nutrition label, like a protein bar or a shake. Search a name in the food log to log one; recipes count them when an ingredient’s name matches. For a one-time meal, use Quick add numbers in the food log instead.</p>
     <button class="btn primary wide" id="food-add" style="margin-top:12px" onClick=${() => openSheet({ type: 'foodEdit' })}>${I.plus} New food</button>
     ${list.length ? html`<div class="card shop-card" style="margin-top:12px">${list.map(f => html`<button key=${f.id} class="opt" onClick=${() => openSheet({ type: 'foodEdit', id: f.id })}><div style="flex:1;min-width:0"><div>${f.label}</div><div class="d">${per100(f)}</div></div>${I.edit}</button>`)}</div>`
       : html`<div class="card note" style="margin-top:12px">No foods of your own yet.</div>`}
@@ -984,7 +984,7 @@ function LogPane() {
     ${list.length ? html`<div class="card shop-card">${list.map(e => html`<button key=${e.id} class="opt log-row" onClick=${() => openSheet({ type: 'logEntry', day, id: e.id })}><div style="flex:1;min-width:0"><div>${e.name}</div>
         <div class="d num">${e.k === 'recipe' ? fracStr(e.sv) + ' serving' + (e.sv > 1 ? 's' : '') + ' · ' : e.txt ? e.txt + ' · ' : ''}${fmtNut('kcal', e.m.kcal)} kcal · ${Math.round(e.m.p)} g protein</div></div></button>`)}</div>`
       : html`<div class="card note">Nothing logged ${day === today ? 'yet today' : 'on this day'}. ${prep.length ? 'Tap a prepped meal above to log a serving, or use Log food for anything else.' : 'Use Log food to add a meal or snack, or Scan a barcode.'}</div>`}
-    <p class="small faint" style="margin-top:14px">Numbers are estimates from typical nutrition values, for planning. Not medical or diet advice.</p>
+    <p class="small faint" style="margin-top:14px">Numbers come from typical nutrition values, for planning. ${NOT_ADVICE}</p>
   </div>`;
 }
 function MealLogSheet({ day, tab: tab0, txt, fk, fid, only, q0 }) {
@@ -1038,7 +1038,8 @@ function LogNumbers({ day, name0 }) {
   const save = () => { addLog(day, { k: 'num', name: d.name.trim() || 'Quick add', m: roundNut(Object.fromEntries(NUT.map(([k]) => [k, +d[k] || 0]))) }); closeSheet(); showToast({ kind: 'info', text: 'Logged' }); };
   return html`<div class="stack"><div><label class="lbl" for="ln-name">Name</label><input class="field" id="ln-name" placeholder="e.g. Lunch out" value=${d.name} onInput=${e => set('name', e.target.value)}/></div>
     <div class="me-mac">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'ln-' + k}>${l}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'ln-' + k} inputmode="decimal" value=${d[k] || ''} onInput=${e => set(k, e.target.value.replace(/[^\d.]/g, ''))}/></div>`)}</div>
-    <button class="btn primary wide" id="ln-save" disabled=${!ok} onClick=${save}>Log it</button></div>`;
+    <button class="btn primary wide" id="ln-save" disabled=${!ok} onClick=${save}>Log it</button>
+    <p class="small muted" id="ln-food-hint">For a one-time log. Eat it often? <button class="btn text" id="ln-as-food" style="padding:0;min-height:0;display:inline" onClick=${() => openSheet({ type: 'foodEdit', name: d.name, then: () => showToast({ kind: 'info', text: 'Saved to My foods. Search its name to log it.' }) })}>Save it as a food</button> from its label instead, and it’s one search away next time.</p></div>`;
 }
 function NumEdit({ day, e, done }) {
   const [d, setD] = useState(() => ({ name: e.name, ...Object.fromEntries(NUT.map(([k]) => [k, e.m[k] ? String(Math.round(e.m[k] * 10) / 10) : ''])) }));

@@ -217,9 +217,9 @@ label.lbl{display:block;font-size:calc(13 * var(--u));font-weight:600;color:var(
 .fc-num{font-family:var(--display);font-size:calc(20 * var(--u));font-weight:700;letter-spacing:.01em}
 .fc-star{font-size:calc(22 * var(--u));width:36px;height:36px;color:var(--ink-3)}.fc-star.on{color:var(--pr)}
 .wd{position:relative}
-.wd-dots{position:absolute;left:0;right:0;bottom:3px;display:flex;justify-content:center;gap:3px;pointer-events:none}
-.wd-dot{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--c);background:transparent}
-.wd-dot.done{background:var(--c)}
+.wd-dots{position:absolute;left:0;right:0;bottom:2px;display:flex;justify-content:center;gap:2px;pointer-events:none}
+.wd-dot{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 0 0 1.25px var(--c);background:transparent;color:var(--c);font:800 7.5px/11px var(--body);text-align:center;letter-spacing:0}
+.wd-dot.done{background:var(--c);color:var(--bg)}
 .plan-week{margin-top:12px}
 .pw-grid{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .pw-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:center}
@@ -310,7 +310,7 @@ main .page-title{font-size:min(27px, 7.2vw)}
 .set-row button.n.pr{background:var(--pr);color:var(--pr-ink);border-radius:8px;min-height:32px;padding:3px 0}
 .restbar button{background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
 .restbar .lbl2{opacity:1}
-span.chip.wtag{color:color-mix(in srgb, var(--accent) 78%, var(--ink))}
+span.chip.wtag{color:var(--ink-2);background:rgba(127,127,127,.16)}
 .sess-acts{gap:8px}.sess-acts .btn{flex:1 1 auto}
 .weekbar.many{gap:3px}.weekbar.many span{display:none}.weekbar.many button{min-height:42px;justify-content:center}
 /* Timed and distance sets */
@@ -811,3 +811,11 @@ main.with-mini{padding-top:64px}
 .plan-chips::-webkit-scrollbar{display:none}
 .plan-chips .chip{flex:none}
 
+/* One-row rest bar (Nov 10, audit P1-7) */
+.restbar-in{padding:6px 8px 6px 12px;gap:6px}
+.restbar .rest-time{display:flex;align-items:baseline;gap:8px;min-width:0}
+.restbar .rest-time .lbl2{max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.restbar .t{min-width:0;font-size:calc(24 * var(--u))}
+.restbar .rest-save{flex-basis:auto;text-decoration:none;padding:7px 10px;background:var(--accent-btn, color-mix(in srgb, var(--accent-bg) 72%, #000))}
+/* Disabled main buttons read as off, not as a faded blue (Nov 10, audit) */
+.btn.primary:disabled{background:rgba(127,127,127,.22);color:var(--ink-3);opacity:1;box-shadow:none}

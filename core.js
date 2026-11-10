@@ -31,6 +31,8 @@ const ICONS = {
   globe: ic(() => html`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>`),
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
+/* One shared disclaimer line (Nov 10, audit P2-3) */
+const NOT_ADVICE = 'Estimates and general guidance, not medical advice.';
 const UI = { setSheet: () => {}, setView: () => {}, setTab: () => {} };
 const ALSO = { v: true };
 /* The phone's back gesture closes an open sheet instead of leaving the app: opening a sheet adds one history entry,
@@ -436,7 +438,7 @@ function ActiveWorkout() {
     <div class="small muted num" style="margin-top:6px">${done} of ${total} sets done</div>
     <${WorkoutExtras} a=${a}/>
     <${FightWorkoutBtn} a=${a}/>
-    ${lsGet('swiped') !== '1' ? html`<p class="swipe-hint">Swipe a set right to log it as shown. Swipe part way for Complete or Copy, or left to delete. Typing the reps logs it too.</p>` : null}
+    ${lsGet('swiped') !== '1' && Object.values(S.sessions).filter(x => x.kind !== 'activity').length < 2 ? html`<p class="swipe-hint">Swipe a set right to log it as shown, or tap its number for Log, Copy and Delete. Typing the reps logs it too.</p>` : null}
     ${a.items.map((it, i) => html`<${SlotCard} key=${it.id} it=${it} i=${i} nextSS=${!!(a.items[i + 1] && a.items[i + 1].ss)}/>`)}
     ${!a.items.length ? html`<div class="empty"><h3>Empty workout</h3><p>Add the first exercise below.</p></div>` : null}
     <div class="stack" style="margin-top:16px">
@@ -565,13 +567,13 @@ function RestBar() {
   const label = left > 0 ? (r.kind === 'ss' ? 'Superset rest' : r.kind === 'ex' ? exName(r.ex) + ' rest' : 'Rest') : 'Go';
   const saveTxt = r.kind === 'ss' ? 'supersets' : r.kind === 'ex' ? exName(r.ex) : 'single exercises';
   return html`<div class="restbar" role="timer"><div class="restbar-in">
-    <button class="rest-time" aria-label="Change rest time" onClick=${() => openSheet({ type: 'restPick' })}><div class="lbl2">${label}</div><div class="t">${clock(Math.max(0, left))}</div></button>
+    <button class="rest-time" aria-label=${label + ' ' + clock(Math.max(0, left)) + '. Change rest time'} onClick=${() => openSheet({ type: 'restPick' })}><span class="lbl2">${label}</span><span class="t">${clock(Math.max(0, left))}</span></button>
     <div class="spacer"></div>
     <button aria-label="15 seconds less" onClick=${() => adjust(-15)}>−15</button>
     <button aria-label="15 seconds more" onClick=${() => adjust(15)}>+15</button>
     <button onClick=${() => { S.rest = null; bgStop(); S.rerender(); }}>Skip</button>
     ${r.offerBg ? html`<div class="rest-offer" id="bg-offer"><span>Hear the beep with the phone locked?</span><button id="bg-yes" onClick=${bgOfferYes}>Turn on</button><button id="bg-no" onClick=${bgOfferNo}>No</button></div>` : null}
-    ${r.total !== def ? html`<button class="rest-save" onClick=${() => commit(m => { if (r.kind === 'ex') m.meta.exRest[r.ex] = r.total; else m.meta.settings[key] = r.total; }, 'meta', 800)}>Make ${clock(r.total)} the default for ${saveTxt}</button>` : null}
+    ${r.total !== def ? html`<button class="rest-save" aria-label=${'Make ' + clock(r.total) + ' the default for ' + saveTxt} onClick=${() => { commit(m => { if (r.kind === 'ex') m.meta.exRest[r.ex] = r.total; else m.meta.settings[key] = r.total; }, 'meta', 800); showToast({ kind: 'info', text: clock(r.total) + ' is now the default for ' + saveTxt + '.' }); }}>Keep</button>` : null}
   </div></div>`;
 }
 function IntervalMini() {
@@ -638,7 +640,9 @@ const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' se
 const lastTop = it => { const e = lastEntry(it.ex, it.group || ''); if (!e) return ''; if (isMeasured(exKind(it.ex))) return ' · last ' + measBest(e.raw, exKind(it.ex)); const ws = e.raw.filter(x => +x.r > 0).map(x => +x.w || 0).filter(w => w > 0); if (!ws.length) return '';
   const asst = exKind(it.ex) === 'assisted'; return ' · last ' + fmt(asst ? Math.min(...ws) : Math.max(...ws)) + ' ' + e.u + (asst ? ' assist' : ''); };
 const dayLabel = d => String(d.name || '').replace(/\s*\(.*\)$/, '').replace(/^Day\s*\d+\s*[-–]\s*/i, '');
-const tagChips = tags => html`<span class="tag-row">${tags.map(t => html`<span key=${t} class="chip wtag">${t}</span>`)}</span>`;
+/* Type chips (Nov 10, audit P2-1): gray, at most 3 on a card with "+N" for the rest; the plan's page shows them all */
+const tagChips = (tags, max) => { const n = max || tags.length; const shown = tags.slice(0, n);
+  return html`<span class="tag-row">${shown.map(t => html`<span key=${t} class="chip wtag">${t}</span>`)}${tags.length > n ? html`<span class="chip wtag more" aria-label=${(tags.length - n) + ' more types: ' + tags.slice(n).join(', ')}>+${tags.length - n}</span>` : null}</span>`; };
 
 function RoutinesScreen({ view }) {
   if (view && view.type === 'routine') return html`<${RoutineView} id=${view.id}/>`;
@@ -661,7 +665,7 @@ function RoutineList() {
   const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
     return html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
     ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
-    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r))}</button>`; };
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r), 3)}</button>`; };
   const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] });
   const actions = html`<div class="row"><button class="btn primary" style="flex:1" id="plan-new" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} New plan</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
@@ -710,7 +714,7 @@ function ByTypeList({ rs }) {
   const row = ({ r, d }) => html`<div key=${r.id + d.id} class="wk-row">
     <button class="wk-main" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
       <span class="t">${r.days.length > 1 ? dayLabel(d) : r.name}</span>
-      <span class="s">${r.days.length > 1 ? r.name + ' · ' : ''}${d.items.length} exercise${d.items.length === 1 ? '' : 's'}</span>${tagChips(dayTags(d, r))}</button>
+      <span class="s">${r.days.length > 1 ? r.name + ' · ' : ''}${d.items.length} exercise${d.items.length === 1 ? '' : 's'}</span>${tagChips(dayTags(d, r), 3)}</button>
     <button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>`;
   return html`<div id="by-type"><div class="row" style="margin:12px 0 2px"><p class="small muted" style="flex:1">Every workout, sorted by type. Set a workout's type in Edit.</p>
       ${shown.length ? html`<button class="btn text" onClick=${() => setAll(!allOpen)}>${allOpen ? 'Close all' : 'Open all'}</button>` : null}</div>
@@ -1203,6 +1207,7 @@ function ProfileScreen({ view }) {
       ${tog('autoRest', 'Start the timer when a set is logged')}
       <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
     </div>
+    <${AboutYouCard}/>
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
@@ -1908,7 +1913,7 @@ function ActivitySheet({ id, day }) {
   const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
     showToast({ kind: 'info', ms: 8000, text: 'Activity deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label=${s0 ? 'Edit activity' : 'Log an activity'}><h2>${s0 ? 'Edit activity' : 'Log an activity'}</h2>
-    <${Tip} id="activity" style="margin-top:4px">Counts toward your week streak and workouts per week, like a lifting workout.<//>
+    <${Tip} id="activity" slot="sheet" style="margin-top:4px">Counts toward your week streak and workouts per week, like a lifting workout.<//>
     <div class="range-grid" role="group" aria-label="Activity">${ACTS.map(([k, l]) => html`<button key=${k} class=${'chip' + (act === k ? ' on' : '')} aria-pressed=${act === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
     <div class="stack" style="margin-top:14px">
       ${act === 'other' ? html`<div><label class="lbl" for="ac-name">What did you do?</label><input class="field" id="ac-name" placeholder="e.g. Climbing" value=${name} onInput=${e => setName(e.target.value)}/></div>` : null}
@@ -2039,6 +2044,7 @@ function SheetHost({ sheet }) {
     case 'challenges': return html`<${ChallengeSheet}/>`;
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
+    case 'aboutYou': return html`<${AboutYouSheet}/>`;
     case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
@@ -2122,6 +2128,8 @@ function kbFit(h, top) {
 }
 if (window.visualViewport) { const vv = window.visualViewport; const on = () => kbFit(vv.height, vv.offsetTop); vv.addEventListener('resize', on); vv.addEventListener('scroll', on); }
 /*@include tilt.js*/
+
+/*@include about.js*/
 
 function SetActsSheet({ it, s }) {
   const j = it.sets.indexOf(s); if (j < 0) return null; const done = isDone(s);

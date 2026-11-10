@@ -7,6 +7,8 @@
 const PLAN_COLORS = ['var(--accent)', '#e8833a', '#2fa36b', '#9b6bd6', '#d6577a', '#3a9fd6', '#c9a227'];
 const DEF_DAYS = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: [0, 1, 2, 3, 4, 5, 6] };
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+/* One letter per kind of plan, shown in the week strip's dots and the schedule grid (Nov 10, audit P2-7: not color alone) */
+const PLAN_LETTER = { Lift: 'L', Run: 'R', Fight: 'F', Care: 'J', Cond: 'C' };
 function progTag(r) { return r.info && r.info.care ? 'Care' : r.info && r.info.fight ? 'Fight' : r.info ? 'Cond' : 'Lift'; }
 function progDaysPerWeek(r) { const m = String(r.meta || '').match(/(\d)(?:\s*[–-]\s*\d)?\s*(?:days|times) a week/); return m ? +m[1] : Math.min(7, r.days.length > 1 ? r.days.length : 3); }
 function schedFor(id, r) {
@@ -32,7 +34,7 @@ function planList() {
   for (const id of addonIds()) { const r = getRoutine(id); out.push({ key: id, r, name: r.name, tag: progTag(r), role: 'Alongside', days: schedFor(id, r) }); }
   const run = runPlanInfo();
   if (run && !run.done) out.push({ key: 'run', run, name: 'Running plan', tag: 'Run', role: 'Week ' + run.wk + ' of ' + run.n + (run.w < 1 ? ', starts ' + shortDate(parseYmd(run.R.start)) : ''), days: run.days });
-  out.forEach((p, i) => { p.color = PLAN_COLORS[i % PLAN_COLORS.length]; });
+  out.forEach((p, i) => { p.color = PLAN_COLORS[i % PLAN_COLORS.length]; p.letter = PLAN_LETTER[p.tag] || p.tag[0]; });
   return out;
 }
 /* Did this program get trained on date k? */
@@ -42,7 +44,7 @@ function progDoneOn(p, k) {
 /* Dots under a day in the week strip: one per program planned that weekday, filled when done */
 function DayDots({ dow, k }) {
   const ps = planList().filter(p => p.days.includes(dow)); if (!ps.length) return null;
-  return html`<span class="wd-dots" aria-hidden="true">${ps.slice(0, 4).map(p => html`<span key=${p.key} class=${'wd-dot' + (progDoneOn(p, k) ? ' done' : '')} style=${{ '--c': p.color }}></span>`)}</span>`;
+  return html`<span class="wd-dots" aria-hidden="true">${ps.slice(0, 3).map(p => html`<span key=${p.key} class=${'wd-dot' + (progDoneOn(p, k) ? ' done' : '')} style=${{ '--c': p.color }}>${p.letter}</span>`)}</span>`;
 }
 const dotsLabel = dow => { const ps = planList().filter(p => p.days.includes(dow)); return ps.length ? ', planned: ' + ps.map(p => p.tag).join(' and ') : ''; };
 /* Train: the week at a glance, editable */
@@ -59,7 +61,7 @@ function PlanWeekCard() {
         ${WEEK_ORDER.map(d => { const on = p.days.includes(d); const k = ymd(addDays(ws, (d + 6) % 7)); const done = on && progDoneOn(p, k);
           return html`<button key=${d} class=${'pw-cell' + (on ? ' on' : '') + (done ? ' done' : '') + (d === today ? ' today' : '')} style=${{ '--c': p.color }} id=${'pw-' + p.key + '-' + d}
             aria-label=${p.name + ', ' + DOW_FULL[d] + (on ? ', planned' : ', not planned') + (done ? ', done' : '')} aria-pressed=${on}
-            onClick=${() => p.key === 'run' ? openSheet({ type: 'runDay', dow: d }) : toggleSched(p.key, d)}>${on ? (done ? I.check : p.tag[0]) : ''}</button>`; })}</div>`)}
+            onClick=${() => p.key === 'run' ? openSheet({ type: 'runDay', dow: d }) : toggleSched(p.key, d)}>${on ? (done ? I.check : p.letter) : ''}</button>`; })}</div>`)}
     </div>
     <p class="small muted" style="margin-top:8px">${doubled.length ? html`<b>Doubled up:</b> ${doubled.map(d => DOW[d] + ' (' + ps.filter(p => p.days.includes(d)).map(p => p.tag).join(' + ') + ')').join(', ')}. ` : ''}Tap a day to plan it or clear it.${ps.some(p => p.key === 'run') ? ' Run days come from the running plan; tapping one opens it.' : ''}</p></div>`;
 }

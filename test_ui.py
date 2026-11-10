@@ -23,7 +23,7 @@ async def main():
         await pg.locator('#pick-self').click(); await pg.wait_for_timeout(300)
         check('Self-log card', await pg.locator('.next-card', has_text='Log your own workout').count() == 1)
         # Follow a plan from its page
-        await pg.locator('.tabs button', has_text='Plans').click(); await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.locator('.r-card', has_text='Efficient Push/Pull/Legs').click(); await pg.wait_for_timeout(300)
         await pg.locator('#follow').click(); await pg.wait_for_timeout(300)
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(300)
@@ -60,10 +60,10 @@ async def main():
         # Tour visits every page
         await pg.locator('#help-btn').click(); await pg.locator('#help-tour').click(); await pg.wait_for_timeout(300)
         seen = []
-        for _ in range(23):
+        for _ in range(22):
             await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train'] * 10 + ['Plans'] * 3 + ['Progress'] * 3 + ['Meals'] * 3 + ['Profile'] * 2 + ['Train'] * 2, seen)
+        check('tour walks through each page', seen == ['Train'] * 10 + ['Plans'] * 2 + ['Progress'] * 3 + ['Meals'] * 3 + ['Profile'] * 2 + ['Train'] * 2, seen)
         check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
@@ -116,7 +116,7 @@ async def main():
         check('tour opens on first launch', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         holes = []
         early = []
-        for _ in range(14):
+        for _ in range(13):
             await q.locator('#tour-next').click(); await q.wait_for_timeout(450); holes.append(await q.locator('.tour-hole').count())
             st = await q.evaluate("(() => { const t = TOUR[S.tour.step]; return [t[3], !t[2] || [...document.querySelectorAll(t[2])].some(e => e.getBoundingClientRect().width > 0)]; })()")
             if not st[1]: early.append(st[0])
@@ -138,7 +138,7 @@ async def main():
         await q.locator('#profile-tour').click(); await q.wait_for_timeout(300)
         check('tour can be redone from Profile', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         await q.screenshot(path='shot-tour.png')
-        for _ in range(23): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
+        for _ in range(22): await q.locator('#tour-next').click(); await q.wait_for_timeout(250)
         check('finishing the tour clears sample data too', await q.evaluate("sessionList().length") == 0 and await q.locator('.tour').count() == 0)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())

@@ -90,7 +90,7 @@ async def main():
         check('cleared localStorage: everything comes back from IndexedDB', await ev("S.meta.settings.goal") == 5 and await ev("!!S.sessions.old"))
         # ---- weekly goal from the program ----
         await ev("commit(st => { st.meta.settings.goal = 4; st.meta.settings.program = null; }, 'meta')")
-        await pg.locator('.tabs button', has_text='Plans').click(); await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.tabs button', has_text='Plans').click(); await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
         await pg.locator('.r-card', has_text='Full Body 5×5').click(); await pg.click('#follow'); await pg.wait_for_timeout(300)
         t = await pg.locator('.toast').inner_text()
         check('following a 3-day plan offers a goal of 3', '3 days a week' in t and 'Make it 3' in t, t)

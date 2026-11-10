@@ -20,10 +20,12 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         lib = pg.locator('.r-card:not(#lib-run)')
+        await pg.evaluate("lsSet('rtFilter', 'one'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        pnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        check('12 routines and 36 plans (10 + 6 conditioning + 7 joint care + 7 fight + 6 goal plans)', len(names) == 12 and len(pnames) == 36, (len(names), len(pnames)))
+        await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
+        allnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
+        pnames = [n for n in allnames if n not in names]
+        check('12 one-day plans and 36 longer plans (10 + 6 conditioning + 7 joint care + 7 fight + 6 goal plans)', len(names) == 12 and len(pnames) == 36, (len(names), len(pnames)))
         check("4-Day Split first among plans; Efficient PPL is one plan", pnames[0].upper() == "NEWT'S 4-DAY SPLIT" and pnames[1].upper() == 'EFFICIENT PUSH/PULL/LEGS', pnames[:3])
         page = await pg.inner_text('body')
         hits = [w for w in ('From RepCount', 'Ready to run', 'Your plan') if w in page]; check('no source labels', not hits, [page[max(0, page.find(w) - 120):page.find(w) + 40] for w in hits])
@@ -84,7 +86,7 @@ async def main():
         await pg.locator('.r-card', has_text='Efficient Push/Pull/Legs').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         check('exercise note shows in routine', await pg.locator('.r-items .cue', has_text='elbows out').count() == 1)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.topsw button', has_text='Routines').click(); await pg.wait_for_timeout(200)
+        await pg.evaluate("lsSet('rtFilter', 'one'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
         await pg.locator('.r-card', has_text='Core 2').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
         check('exercise note shows during workout', await pg.locator('.slot', has_text='Plank Twists').locator('p', has_text='Each side').count() == 1)
@@ -92,12 +94,9 @@ async def main():
 
         # By type view
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role('tab', name='By type').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("lsSet('rtFilter', 'type'); S.rerender()"); await pg.wait_for_timeout(300)
         secs = await pg.locator('.wsec-h h2').all_inner_texts()
-        check('routine type sections', [s.title() for s in secs] == ['Full Body', 'Core', 'Mobility', 'Conditioning'], secs)
-        await pg.locator('.topsw button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        secs = await pg.locator('.wsec-h h2').all_inner_texts()
-        check('plan type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Conditioning', 'Joint Care', 'Fight Training'], secs)
+        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Mobility', 'Conditioning', 'Joint Care', 'Fight Training'], secs)
         check('sections start closed', await pg.locator('.wk-row').count() == 0)
         await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
         push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()
@@ -112,10 +111,9 @@ async def main():
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         check('view and open sections remembered', await pg.locator('.wk-row').count() == n_all)
         await pg.get_by_role('button', name='Close all').click(); await pg.wait_for_timeout(200)
-        await pg.locator('.topsw button', has_text='Routines').click(); await pg.wait_for_timeout(300)
         await pg.locator('.wsec-h', has_text='Conditioning').click(); await pg.wait_for_timeout(200)
         cond = await pg.locator('.wk-row .t').all_inner_texts()
-        check('Conditioning holds the six conditioning workouts', len(cond) == 6 and set(cond) == {'Calisthenics Pyramid', 'Run & Swing Circuit', '400m Repeats + Calisthenics', 'Swim AMRAP', 'Burpee Grinder', '4-Mile Ruck + Calisthenics'}, cond)
+        check('Conditioning holds the six conditioning workouts', {'Calisthenics Pyramid', 'Run & Swing Circuit', '400m Repeats + Calisthenics', 'Swim AMRAP', 'Burpee Grinder', '4-Mile Ruck + Calisthenics'} <= set(cond), cond)
 
         # Set a type by hand in the editor
         await pg.locator('.wk-row', has_text='Burpee Grinder').locator('.wk-main').click(); await pg.wait_for_timeout(300)

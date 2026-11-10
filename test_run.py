@@ -150,7 +150,7 @@ async def main():
         await ev("(() => { const it = S.active.items.find(i => i.target.test); const s = it.sets[0]; s.t = 520; s.d = s.gd; completeMeasured(it, s); finishWorkout(); })()"); await pg.wait_for_timeout(500); await ev("closeSheet()")
         check('fastest mile PR', 'mile' in await ev("sessionList().slice(-1)[0].prs.map(p => p.type)"))
         await pg.locator('.tabs button', has_text='Progress').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.seg button', has_text='Overall').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.seg button', has_text='Numbers').click(); await pg.wait_for_timeout(300)
         rs = await pg.locator('#run-stats').inner_text()
         check('Stats → Running: best times, chart, minutes', '8:40' in rs and await pg.locator('#run-stats .run-svg circle').count() >= 3 and 'minutes a week' in rs.lower(), rs[:120])
         await pg.locator('.seg button', has_text='Exercises').click(); await pg.wait_for_timeout(300)

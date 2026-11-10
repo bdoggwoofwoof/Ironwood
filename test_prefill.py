@@ -38,6 +38,7 @@ async def main():
         await ev("setPrefill('all')")
         # Settings UI
         await pg.locator('.tabs button', has_text='Profile').click(); await pg.wait_for_timeout(250)
+        await pg.click('#profile-more'); await pg.wait_for_timeout(250)
         check('Profile has the choice', await pg.locator('#prefill-all').count() == 1)
         await ev("UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-5x5' })"); await pg.wait_for_timeout(250)
         check('plan page has its own choice', await pg.locator('#prefill-row #prefill-plan').count() == 1)

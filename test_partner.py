@@ -26,7 +26,7 @@ async def main():
         check('push-ups between rounds and leg throw-downs, like tonight’s session', sum('Leg Throw-Downs' in e for e in d['each']) >= 5 and sum('Push-Ups' in e for e in d['each']) >= 4)
         check('sparring builds from 2 rounds to 5, easing off only when kicks (week 5) and the clinch (week 9) start', d['spar'][0] == 2 and d['spar'][11] == 5 and all(d['spar'][i] <= d['spar'][i + 1] or i + 1 in (4, 8) for i in range(11)), d['spar'])
         check('rounds go 2 min (boxing basics), 3 min (kickboxing), then 3 on / 2 off (Muay Thai)', d['timers'][0] == 120 and d['timers'][5] == 180 and await ev("getRoutine('bi-fight-partner').days[10].timer.rest") == 120, d['timers'])
-        await ev("UI.setTab('routines'); lsSet('rtKind', 'plans'); S.rerender()"); await pg.wait_for_timeout(300)
+        await ev("UI.setTab('routines'); lsSet('rtFilter', 'fight'); S.rerender()"); await pg.wait_for_timeout(300)
         check('listed under Fight in Plans', await pg.locator('.r-card', has_text='Partner Striking').count() == 1)
         await ev("UI.setView({ type: 'routine', id: 'bi-fight-partner' })"); await pg.wait_for_timeout(300)
         t = await pg.locator('#fight-info').inner_text()

@@ -17,6 +17,7 @@ async def main():
         await ev("setProgram('bi-5x5'); setAddon('bi-care-back', true)"); await pg.wait_for_timeout(300)
         rows = await ev("planList().map(p => [p.key, p.days])")
         check('defaults: 3-day main Mon/Wed/Fri, joint care Mon/Wed/Fri', rows == [['bi-5x5', [1, 3, 5]], ['bi-care-back', [1, 3, 5]]], rows)
+        await ev("openSheet({ type: 'schedule' })"); await pg.wait_for_timeout(300)
         check('schedule card shows both', await pg.locator('#pw-bi-5x5').count() == 1 and await pg.locator('#pw-bi-care-back').count() == 1)
         check('doubled days listed', 'Doubled up: Mon (Lift + Care)' in await pg.locator('#plan-week').inner_text())
         mon_dots = await pg.locator('.week .wd').nth(0).locator('.wd-dot').count(); tue_dots = await pg.locator('.week .wd').nth(1).locator('.wd-dot').count()

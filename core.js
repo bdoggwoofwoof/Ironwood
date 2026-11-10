@@ -681,9 +681,9 @@ function RoutineList() {
     <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
     <${Tip} id="plans-lib" style="margin-top:10px">Follow a plan from its page and Train lines up the next day for you. A one-day plan is a single workout you can start any time.<//>`;
-  const term = q.trim().toLowerCase();
+  const norm = t => String(t).toLowerCase().replace(/×/g, 'x'); const term = norm(q.trim());
   if (term) {
-    const hits = [...mine, ...lib].filter(r => (r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).toLowerCase().includes(term));
+    const hits = [...mine, ...lib].filter(r => norm(r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).includes(term));
     return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(card)}</div>
       ${hits.length ? null : html`<p class="note">Try fewer letters, or clear the search to browse.</p>`}</div>`;
   }
@@ -1206,6 +1206,9 @@ function ProfileScreen({ view }) {
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
+    <div class="section-h"><h2>About</h2></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>
+    ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
 function PRCard() {

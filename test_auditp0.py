@@ -55,7 +55,7 @@ async def main():
         await pg.click('#sa-log'); await pg.wait_for_timeout(250)
         check('Log this set logs it with the planned reps', 'Log this set' in dbg and await ev("!!S.active.items[0].sets[0].c && S.active.items[0].sets[0].r === '5'"), dbg[:60])
         check('the set number still reads as the number', await pg.inner_text('#sn-' + ids[0]) == '1')
-        await ev("finishWorkout ? 0 : 0"); await ev("S.active = null; UI.setTab('train'); commit(st => { st.meta.settings.program = 'bi-5x5'; }, 'meta')"); await pg.wait_for_timeout(300)
+        await ev("finishWorkout ? 0 : 0"); await ev("S.active = null; UI.setTab('train'); commit(st => { st.meta.settings.program = 'bi-5x5'; }, 'meta'); setTimeout(() => openSheet({ type: 'schedule' }), 50)"); await pg.wait_for_timeout(300)
         check('schedule cells no longer use table roles', await ev("document.querySelectorAll('[role=cell],[role=table],[role=columnheader],[role=rowheader]').length") == 0 and await ev("document.querySelectorAll('.pw-cell[aria-label]').length") > 0)
         check('no page errors', not errs, errs[:2])
         await b.close()

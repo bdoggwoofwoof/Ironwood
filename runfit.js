@@ -88,6 +88,7 @@ function RunStart() {
     <p class="note" style="margin-bottom:12px">The plan sets every pace from your current speed and fits around your lifting. Don’t know your times? That’s fine.</p>
     <div class="stack"><button class="opt" id="rs-know" onClick=${() => setMode('times')}><div style="flex:1"><div>I know my times</div><div class="d">100 m, 1 mile and 3 miles</div></div></button>
       <button class="opt" id="rs-guess" onClick=${() => setMode('level')}><div style="flex:1"><div>I don’t know my times</div><div class="d">Answer one question and start from estimates</div></div></button></div>
+    <button class="btn text" id="run-whole" style="padding-left:0;margin-top:6px" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a whole plan: lifting, running and meals</button>
     <p class="small faint" style="margin-top:14px">${RUN_NOTE}</p></div>`;
   const common = html`<div><span class="lbl">How should runs fit your lifting?</span><div style="margin-top:6px"><${FitPicker} value=${fit} set=${setFit} pre="rsfit-"/></div></div>`;
   if (mode === 'times') return html`<div id="run-begin"><button class="btn text" style="padding-left:0;margin-top:10px" onClick=${() => setMode('')}>${I.back} Back</button>

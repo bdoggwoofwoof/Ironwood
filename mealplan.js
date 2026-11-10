@@ -223,7 +223,8 @@ function MenuCard() {
   const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
   if (!mn || !mn.days || !mn.days.length) return html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Make me a meal plan</div>
     <p class="small muted" style="margin:2px 0 10px">Enter your height, weight and goal. Ironwood sets your calories and protein, picks a week of meals with portions, and fills your prep and shopping list.</p>
-    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button></div>`;
+    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button>
+    <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`;
   const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
   const reroll = () => mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); });
   const usePlan = () => usePlanForPrep(false);

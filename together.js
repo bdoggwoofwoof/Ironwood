@@ -23,6 +23,7 @@ function addDayToWorkout(r, day) {
   day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (i === 0) it.ss = false; a.items.push(it); });
   a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
   if (day.timer && !a.timer) a.timer = clone(day.timer);
+  if (day.fight && !a.fight) a.fight = clone(day.fight);
   touch(); showToast({ kind: 'info', text: r.name + ' · ' + day.name + ' added' });
   setTimeout(() => { const el = document.querySelectorAll('.slot')[base]; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
 }
@@ -66,11 +67,17 @@ function WorkoutAddons({ a }) {
 function AddonsSheet() {
   const pid = programId(); const on = new Set(addonIds()); const R = typeof runSt === 'function' ? runSt() : null; const [just, setJust] = useState(null);
   const all = [...myRoutines(), ...libRoutines()].filter(r => r.id !== pid && r.days.length);
-  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]];
+  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);
   const row = r => html`<div key=${r.id}><button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => { const v = !on.has(r.id); setAddon(r.id, v); setJust(v ? r.id : null); }}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>${just === r.id && on.has(r.id) ? html`<${AddonFit} id=${r.id} onDone=${() => setJust(null)}/>` : null}</div>`;
-  return html`<${Sheet} label="Programs alongside"><h2>Programs alongside</h2>
-    <p class="note">${pid && pid !== 'self' ? 'Your main program stays ' + (getRoutine(pid) || {}).name + '. ' : ''}Add others and Train shows what each has next. Add a day to your main workout or do it on its own.</p>
-    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run with your 100 m, mile and 3 mile times.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
-    ${groups.map(([t, rs]) => [t, rs.filter(r => !on.has(r.id))]).filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">${t}</div>${rs.map(row)}</div>`)}
+  const chs = Object.values(S.meta.challenges || {});
+  return html`<${Sheet} label="Your plan"><h2>Your plan</h2>
+    <p class="note">Everything you follow, in one place. Your main plan sets your lifting days; plans alongside it show in Train on their own days.</p>
+    <div class="eyebrow" style="margin:14px 0 2px">Main plan</div>
+    <div class="opt" style="cursor:default" id="yp-main"><div style="flex:1;min-width:0"><div>${pid && pid !== 'self' && getRoutine(pid) ? getRoutine(pid).name : pid === 'self' ? 'Self-log (no plan)' : 'None yet'}</div><div class="d">${pid && pid !== 'self' && getRoutine(pid) ? getRoutine(pid).days.length + ' days a week' : 'Pick one and Train lines up the next day'}</div></div><button class="btn text" id="yp-change" onClick=${() => openSheet({ type: 'program' })}>${pid ? 'Change' : 'Choose'}</button></div>
+    ${chs.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Challenges</div>${chs.map(c => html`<div key=${c.id} class="opt" style="cursor:default"><div style="flex:1;min-width:0"><div>${c.name}</div><div class="d">${c.days} days</div></div><button class="btn text" onClick=${() => { closeSheet(); UI.setTab('train'); UI.setView({ type: 'challenge', id: c.id }); }}>Open</button></div>`)}` : null}
+    <div class="eyebrow" style="margin:16px 0 2px">Alongside</div>
+    ${[...on].map(id => getRoutine(id)).filter(Boolean).map(row)}
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run; your times are optional.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    ${groups.map(([t, rs]) => [t, rs.filter(r => !on.has(r.id))]).filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">Add alongside: ${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
 }

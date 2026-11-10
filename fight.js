@@ -218,7 +218,7 @@ function FightScreen() {
   const tab = ['coach', 'combos', 'drills', 'programs'].includes(lsGet('fightTab')) ? lsGet('fightTab') : 'coach';
   const pick = k => { lsSet('fightTab', k); S.rerender(); scrollTo(0, 0); };
   return html`<div id="fight-screen">
-    <div class="seg wide fight-seg" role="tablist" style="margin-top:12px">${[['coach', 'Coach'], ['combos', 'Combos'], ['drills', 'Drills'], ['programs', 'Programs']].map(([k, l]) => html`<button key=${k} role="tab" id=${'fight-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="seg wide fight-seg" role="tablist" style="margin-top:12px">${[['coach', 'Coach'], ['combos', 'Combos'], ['drills', 'Drills'], ['programs', 'Plans']].map(([k, l]) => html`<button key=${k} role="tab" id=${'fight-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${tab === 'combos' ? html`<${FightCombos}/>` : tab === 'drills' ? html`<${FightDrills}/>` : tab === 'programs' ? html`<${FightPrograms}/>` : html`<${FightCoach}/>`}
     <p class="small faint" style="margin-top:18px">${FIGHT_NOTE}</p></div>`;
 }
@@ -262,7 +262,7 @@ function FightCoach() {
       ${tog('voice', 'Call out loud', canSpeak() ? 'Uses the phone’s voice. Off: a beep and the combo on screen.' : 'Voice isn’t available here; you’ll get a beep and the combo on screen.')}
       ${bjj ? null : tog('nums', 'Call punches as numbers', '1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 · 6 uppercuts')}
       ${tog('burn', 'Burnout in the last 10 s', 'Ends each round with all-out work')}</div>
-    ${T ? null : html`<button class="btn primary wide" id="fight-start" style="margin-top:14px;min-height:56px;font-size:18px" onClick=${go}>Start ${c.rounds} × ${clock(c.round)}</button>`}
+    ${T ? null : html`<button class="btn primary wide" id="fight-start" style="margin-top:14px;min-height:56px;font-size:calc(18 * var(--u))" onClick=${go}>Start ${c.rounds} × ${clock(c.round)}</button>`}
     ${bjj ? html`<p class="small muted" style="margin-top:8px">Rolls and breakfalls only come up at Intermediate and Advanced, and only belong on mats you know.</p>` : null}
     <${FightRecent}/></div>`;
 }

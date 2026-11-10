@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-time setup on a new machine, then: python3 features.py && ./package.sh
+# One-time setup on a new machine, then: ./package.sh
 set -e
 cd "$(dirname "$0")"
 [ -f package.json ] || npm init -y >/dev/null
@@ -11,4 +11,4 @@ for w in 600 700; do cp node_modules/@fontsource/barlow-condensed/files/barlow-c
 pip install -q playwright pillow 2>/dev/null || pip install -q --break-system-packages playwright pillow
 python3 -m playwright install chromium >/dev/null 2>&1 || true
 python3 render_icon.py
-echo "Ready. Build with: python3 features.py && python3 build.py   (tests: python3 test_pwa.py)"
+echo "Ready. Build with: python3 assemble.py && python3 build.py   (tests: python3 test_pwa.py)"

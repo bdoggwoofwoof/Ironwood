@@ -266,7 +266,7 @@ function MeasRow({ it, s, j, kind }) {
   const fields = kind === 'timed' ? [tIn, wIn] : kind === 'carry' ? [wIn, dIn, tIn] : [dIn, tIn];
   const pace = kind === 'distance' && num(s.t) > 0 && num(s.d) >= 200 ? paceTxt(num(s.t) / (num(s.d) / MILE)) : '';
   const toggle = () => { if (done) uncompleteMeasured(it, s); else completeMeasured(it, s); };
-  return html`<div class="setwrap"><div class=${'meas-row k-' + kind + (done ? ' done' : '')}>
+  return html`<div class="setwrap"><div class=${'meas-row k-' + kind + (done ? ' done' : '') + (getEx(it.ex).nol ? ' nol' : '')}>
       <span class=${'n' + (s.pr && done ? ' pr' : '')}>${j + 1}</span>${fields}
       <button class=${'meas-ok' + (done ? ' on' : '')} aria-pressed=${done} aria-label=${(done ? 'Clear set ' : 'Log set ') + (j + 1)} onClick=${toggle}>${I.check}</button>
     </div>
@@ -292,7 +292,7 @@ function MeasSlot({ it, nextSS }) {
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     <${ExNote} it=${it}/>
     <div class="sets">
-      <div class=${'meas-row th k-' + kind}><span>Set</span>${heads.map(h => html`<span key=${h}>${h}</span>`)}<span></span></div>
+      <div class=${'meas-row th k-' + kind + (getEx(it.ex).nol ? ' nol' : '')}><span>Set</span>${heads.map(h => html`<span key=${h}>${h}</span>`)}<span></span></div>
       ${it.sets.map((x, j) => html`<${MeasRow} key=${x.id || j} it=${it} s=${x} j=${j} kind=${kind}/>`)}
     </div>
     ${hint ? html`<div class="hint warn" role="note">${hint}</div>` : null}
@@ -747,7 +747,7 @@ function RunScreen() {
   const pick = k => { lsSet('runTab', k); S.rerender(); };
   return html`<div id="run-screen">
     ${R.off ? html`<${RunControls}/>` : null}
-    <div class="seg wide run-seg" role="tablist" style="margin-top:12px">${[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Programs'], ['times', 'Times']].map(([k, l]) => html`<button key=${k} role="tab" id=${'run-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="seg wide run-seg" role="tablist" style="margin-top:12px">${[['plan', 'Plan'], ['paces', 'Paces'], ['programs', 'Conditioning'], ['times', 'Times']].map(([k, l]) => html`<button key=${k} role="tab" id=${'run-tab-' + k} aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${tab === 'paces' ? html`<${RunPaces} c=${c}/>` : tab === 'programs' ? html`<${RunPrograms}/>` : tab === 'times' ? html`<${RunTimes}/>` : html`<${RunPlan} R=${R} c=${c}/>`}
     <p class="small faint" style="margin-top:18px">${RUN_NOTE}</p></div>`;
 }
@@ -770,6 +770,7 @@ function RunPlan({ R, c }) {
     <div class="small muted" style="margin:8px 0 2px">Week ${w} · ${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}</div>
     <${RunWeekGrid} R=${R} w=${w} ws=${ws}/>
     <${RunAdapt} R=${R} w=${w} cur=${cur}/>
+    ${R.off ? null : html`<${RunControls}/>`}
     ${clashes.length ? html`<div class="run-warn" role="alert" id="legs-warn">${clashes.map(({ x, c: k }) => html`<p key=${x.key}><b>${x.name} (${DOW[x.dow]})</b> is a ${x.s.hard === 'sprint' ? 'sprint' : 'hard interval'} session ${k === 'after' ? 'the day after Legs' : 'on a Legs day'}. Move it to another day, or swap it for cross-training.</p>`)}</div>` : null}
     ${T8 === 4 ? html`<p class="note" style="margin-top:12px">Lighter week: less volume so you absorb the weeks before it, plus a mile check. If you beat your mile by more than 5 seconds, your mile updates and the rest of the plan uses the new paces.</p>` : null}
     ${T8 === 8 ? html`<p class="note" style="margin-top:12px">Test week. Space the tests at least 2 days apart${R.runs <= 2 ? '; do the 100 m test at the start of a lifting day, before you lift' : ''}. Each test updates that time, and the paces recalculate.</p>` : null}
@@ -825,9 +826,10 @@ function RunPaces({ c: c0 }) {
 }
 function RunPrograms() {
   return html`<div>
-    <p class="note" style="margin-top:14px">Six conditioning programs. Run one at a time for 6–8 weeks, in place of the running plan or replacing one of its runs. Each is a plan in Routines you can start, edit or follow.</p>
+    <p class="note" style="margin-top:14px">Six conditioning programs. Run one at a time for 6–8 weeks, in place of the running plan or replacing one of its runs. Each is a plan in the Plans tab you can start, edit, follow or add alongside.</p>
     <div class="stack" style="margin-top:10px">${COND.map(P => html`<button key=${P.id} class="r-card cond-card" id=${'cond-' + P.id} onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: P.id }); }}>
       <span class="tag">${P.cost} recovery cost · ${P.week} a week</span><h3>${P.name}</h3><span class="days">Builds: ${P.builds} · ${P.equip}</span></button>`)}</div>
+    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-ankle' }); }}>Ankle & Foot Care</button> builds them up. Other joint care programs are in Routines.</p>
     <div class="section-h"><h2>Fitting them in</h2></div>
     <div class="card"><ul class="run-ul">${COND_FIT.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="section-h"><h2>Cross-training swaps</h2></div>
@@ -1023,7 +1025,7 @@ function RunGoalCard() {
   const R = runSt(); const G = goalInfo(R);
   return html`<div class="card stack" id="run-goal" style="gap:8px;margin-top:14px"><div class="row"><span class="lbl" style="flex:1">Goal race</span><button class="btn text" id="goal-edit" onClick=${() => openSheet({ type: 'runGoal' })}>${R.goal ? 'Change' : 'Set a goal'}</button></div>
     ${!G ? html`<p class="note">Optional. Set a race and a time, and each week's paces step from where you are toward it.</p>`
-      : html`<div><b style="font-size:19px">${raceName(R.goal.d)} in ${rfmt(R.goal.t)}</b><p class="note" style="margin-top:4px">Your times predict about ${rfmt(G.now)} now (estimate). ${G.slower ? 'You are already there; paces stay at your current times.' : G.reach ? 'Within reach in ' + planLen(R) + ' weeks. Paces step toward it each week.' : 'Further than ' + planLen(R) + ' weeks usually brings. This block aims for ' + rfmt(G.aim1) + ' mile and ' + rfmt(G.aim3) + ' 3 miles; keep the goal for the next block.'}</p></div>`}</div>`;
+      : html`<div><b style="font-size:calc(19 * var(--u))">${raceName(R.goal.d)} in ${rfmt(R.goal.t)}</b><p class="note" style="margin-top:4px">Your times predict about ${rfmt(G.now)} now (estimate). ${G.slower ? 'You are already there; paces stay at your current times.' : G.reach ? 'Within reach in ' + planLen(R) + ' weeks. Paces step toward it each week.' : 'Further than ' + planLen(R) + ' weeks usually brings. This block aims for ' + rfmt(G.aim1) + ' mile and ' + rfmt(G.aim3) + ' 3 miles; keep the goal for the next block.'}</p></div>`}</div>`;
 }
 function RunGoalSheet() {
   const R = runSt(); const [d, setD] = useState(R.goal ? R.goal.d : 5000); const [t, setT] = useState(R.goal ? rfmt(R.goal.t) : '');

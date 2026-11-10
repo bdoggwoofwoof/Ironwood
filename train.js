@@ -10,10 +10,10 @@ const programRoutine = () => { const p = programId(); return p && p !== 'self' ?
 function nextUp() {
   const r = programRoutine(); if (!r || !r.days.length) return null;
   const list = sessionList();
-  for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
+  for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id || s.startedAt < progStartOf(r.id)) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
   return { routine: r, day: r.days[0], last: null };
 }
-const setProgram = id => { commit(st => { st.meta.settings.program = id; }, 'meta'); };
+const setProgram = id => { commit(st => { st.meta.settings.program = id; if (id && id !== 'self' && typeof markSince === 'function') markSince(st, id); }, 'meta'); if (typeof applyFit === 'function' && runActive() && runSt().fit) applyFit(runSt().fit, true); };
 /* Dismissable explanations. Hidden ones come back from Help → Show tips again. */
 const tipOff = id => !!((S.meta.settings.tipsOff || {})[id]);
 function Tip({ id, children, style }) {
@@ -21,13 +21,15 @@ function Tip({ id, children, style }) {
   return html`<div class="tip-card" style=${style}><div style="flex:1;min-width:0">${children}</div><button class="tip-x" aria-label="Hide this tip" onClick=${() => commit(st => { st.meta.settings.tipsOff = { ...(st.meta.settings.tipsOff || {}), [id]: 1 }; }, 'meta')}>${I.x}</button></div>`;
 }
 function TopSwitch({ value, options, onChange }) {
-  return html`<div class="topsw" role="tablist">${options.map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${value === k} class=${value === k ? 'on' : ''} onClick=${() => onChange(k)}>${l}</button>`)}</div>`;
+  return html`<div class=${'topsw' + (options.length > 3 ? ' four' : '')} role="tablist">${options.map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${value === k} class=${value === k ? 'on' : ''} onClick=${() => onChange(k)}>${l}</button>`)}</div>`;
 }
-const TRAIN = { mode: lsGet('trainMode') === 'history' ? 'history' : 'train' };
+const TRAIN = { mode: ['run', 'fight'].includes(lsGet('trainMode')) ? lsGet('trainMode') : 'train' };
 function TrainSwitch() {
   const pick = m => { TRAIN.mode = m; lsSet('trainMode', m); S.rerender(); scrollTo(0, 0); };
-  return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['history', 'History']]} onChange=${pick}/>
-    ${TRAIN.mode === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : html`<${TrainHome}/>`}</div>`;
+  if (TRAIN.mode === 'history') { TRAIN.mode = 'train'; lsSet('trainMode', 'train'); }
+  return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['run', 'Run'], ['fight', 'Fight']]} onChange=${pick}/>
+    <p class="small muted tab-intro" style="margin:2px 0 8px">${TRAIN.mode === 'run' ? 'Your running plan, paces and conditioning.' : TRAIN.mode === 'fight' ? 'Coached rounds, combos and drills.' : 'Today’s training: what’s next and your week.'}</p>
+    ${TRAIN.mode === 'run' ? html`<${RunScreen}/>` : TRAIN.mode === 'fight' ? html`<${FightScreen}/>` : html`<${TrainHome}/>`}</div>`;
 }
 function TrainHome() {
   const nx = nextUp(); const ws = weekStats(); const routine = nx && nx.routine; const now = new Date(); const pid = programId();
@@ -41,13 +43,10 @@ function TrainHome() {
     <div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     <${Tip} id="week" style="margin-top:10px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
-    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
-      <div style="font-weight:700">Moving from another phone?</div>
-      <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
-      <div class="row"><button class="btn primary" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}
-    ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}
-    ${chs.length ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${newCh}>New</button></div>
-      <div class="stack">${chs.map(ch => html`<${ChallengeCard} key=${ch.id} ch=${ch}/>`)}</div>` : null}
+    <${PhaseCheck}/>
+    <${PlanCheckIn}/>
+    <${PlanWeekCard}/>
+    ${!nx ? html`<${AlsoToday} nx=${null} quiet=${!pid}/>` : null}
     ${nx ? html`
       <div class="section-h"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'First workout'}</span></div>
       <div class="next-card">
@@ -55,36 +54,47 @@ function TrainHome() {
         <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${it.reps || ''}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
+      <${AlsoToday} nx=${nx}/>
       ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All routines</button></div>` : html`<div style="height:12px"></div>`}
       <div class="stack">${routine.days.filter(d => d.id !== nx.day.id).map(d => html`<button key=${d.id} class="day-btn" onClick=${() => startWorkout(routine, d)}>
         <div><div class="t">${d.name}</div><div class="s">${d.items.length} exercises</div></div><span class="go">Start</span></button>`)}
-        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>${actBtn}</div>`
+        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button></div>`
     : pid === 'self' ? html`
-      <div class="section-h"><h2>Self-log</h2><button class="btn text" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Follow a program</button></div>
+      <div class="section-h"><h2>Self-log</h2><button class="btn text" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Follow a plan</button></div>
       <div class="next-card"><h2>Log your own workout</h2><p class="note">Start an empty workout and add exercises as you go. Weights carry over from last time.</p>
         <button class="btn primary wide" onClick=${() => startWorkout(null, null)}>${I.plus} Start a workout</button></div>
-      <div class="stack" style="margin-top:10px"><button class="btn wide" onClick=${() => UI.setTab('routines')}>Start a saved routine</button>${actBtn}</div>`
+      <div class="stack" style="margin-top:10px"><button class="btn wide" onClick=${() => UI.setTab('routines')}>Start a saved routine</button></div>`
     : html`
       <div class="section-h"><h2>Get started</h2></div>
-      <div class="next-card" id="get-started"><h2>Pick how you train</h2><p class="note">Follow a program and Ironwood lines up the next day for you, or self-log whatever you do.</p>
-        ${pickBtn('Create or select a program')}</div>
-      <div class="stack" style="margin-top:10px">${actBtn}</div>`}
+      <div class="next-card" id="get-started"><h2>Pick how you train</h2><p class="note">Follow a plan and Ironwood lines up the next day for you, or self-log whatever you do.</p>
+        <button class="btn primary wide" id="gs-start" style="margin-bottom:8px" onClick=${() => openSheet({ type: 'goalSetup' })}>Build my plan (a few questions)</button>
+        ${pickBtn('Choose a plan', 'btn wide')}</div>`}
     <div class="row" style="margin-top:12px">
       <button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
-      ${chs.length ? null : html`<button class="btn" style="flex:1" onClick=${newCh}>${I.check} Start a challenge</button>`}
     </div>
+    <${GoalsCard}/>
+    <${MonthCard}/>
+    ${window.claude && window.claude.standalone && !Object.keys(S.sessions).length && !Object.keys(S.meta.routines).length && lsGet('restoreHint') !== 'off' ? html`<div class="card stack" style="margin-top:14px" id="restore-hint">
+      <div style="font-weight:700">Moving from another phone?</div>
+      <p class="note">Restore your backup file to bring back your workouts, routines and settings. Restore a photos backup the same way.</p>
+      <div class="row"><button class="btn" onClick=${() => openSheet({ type: 'restore' })}>Restore a backup</button><button class="btn text" onClick=${() => { lsSet('restoreHint', 'off'); S.rerender(); }}>Not now</button></div></div>` : null}
+    <${LegacyTimedCard}/>
+    ${window.claude && window.claude.standalone ? html`<${BackupNudge}/>` : null}
+    ${chs.length ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${newCh}>New</button></div>
+      <div class="stack">${chs.map(ch => html`<${ChallengeCard} key=${ch.id} ch=${ch}/>`)}</div>` : null}
   </div>`;
 }
 function ProgramSheet() {
   const cur = programId(); const all = allRoutines();
   const plans = all.filter(r => r.days.length > 1), singles = all.filter(r => r.days.length === 1);
-  const choose = id => { setProgram(id); closeSheet(); TRAIN.mode = 'train'; UI.setTab('train'); showToast({ kind: 'info', text: id === 'self' ? 'Self-log it is' : 'Following ' + getRoutine(id).name }); };
+  const choose = id => { setProgram(id); closeSheet(); TRAIN.mode = 'train'; UI.setTab('train'); showToast(followToast(id)); };
   const row = r => html`<button key=${r.id} class=${'opt' + (cur === r.id ? ' on' : '')} onClick=${() => choose(r.id)}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' + r.days.map(dayLabel).join(', ') : r.days[0].items.length + ' exercises'}</div></div>${cur === r.id ? I.check : null}</button>`;
   const create = () => { closeSheet(); UI.setTab('routines'); UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] }, isNew: true, follow: true }); };
-  return html`<${Sheet} label="Choose a program"><h2>Choose a program</h2>
-    <p class="note" style="margin-bottom:6px">Train shows the next day of the program you pick. You can change it any time.</p>
-    <button class=${'opt' + (cur === 'self' ? ' on' : '')} id="pick-self" onClick=${() => choose('self')}><div style="flex:1"><div>Self-log</div><div class="d">No program. Start an empty workout and add exercises as you go.</div></div>${cur === 'self' ? I.check : null}</button>
-    <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new program</div><div class="d">Build your own days and exercises.</div></div></button>
+  return html`<${Sheet} label="Choose a plan"><h2>Choose a plan</h2>
+    <p class="note" style="margin-bottom:6px">Train shows the next day of the plan you pick. You can change it any time.</p>
+    <button class=${'opt' + (cur === 'self' ? ' on' : '')} id="pick-self" onClick=${() => choose('self')}><div style="flex:1"><div>Self-log</div><div class="d">No plan. Start an empty workout and add exercises as you go.</div></div>${cur === 'self' ? I.check : null}</button>
+    <button class="opt" id="pick-goal" onClick=${() => openSheet({ type: 'goalSetup' })}><div style="flex:1"><div>Build my plan</div><div class="d">A few questions about your goal, time and gear, and Ironwood fits a plan to you.</div></div></button>
+    <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new plan</div><div class="d">Build your own days and exercises.</div></div></button>
     <div class="eyebrow" style="margin:16px 0 2px">Plans</div>${plans.map(row)}
     ${singles.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Single workouts</div>${singles.map(row)}` : null}<//>`;
 }
@@ -104,15 +114,27 @@ function HelpSheet() {
    shows sample workouts so Stats has something to show; they live only in memory and vanish when it ends. */
 /* Each step: [tab, train mode, element(s) to highlight, title, text, extra settings]. No selector = centered card. */
 const TOUR = [
-  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about a minute, and you can skip it any time.'],
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
-  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Follow a program and Ironwood lines up the next day for you, or choose Self-log and add exercises as you go.'],
-  ['train', 'train', '#log-activity', 'Not just lifting', 'Log runs, swims, yoga, BJJ and more. They count toward your streak too.'],
-  ['train', 'history', '.log-item', 'History', 'Every workout you’ve logged, newest first. Tap one to see the sets or fix a typo.', { max: 3 }],
-  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here.', { ls: { rtKind: 'routines', rtView: 'list' } }],
-  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core and more, in sections you can open and close.'],
-  ['stats', null, '.lift-row', 'Stats', 'Each lift gets a chart and an 8-week projection, plus records and streaks. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
-  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size, units and rest timer.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
+  ['train', 'train', '#plan-week, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#ch-finder-train, #plan-week, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
+  ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
+  ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
+  ['routines', null, '.topsw', 'Routines and plans', 'Routines are single workouts; plans have several days. Flip between them here. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtKind: 'routines', rtView: 'list' } }],
+  ['routines', null, '#care-finder', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.'],
+  ['routines', null, '.seg[aria-label="Routine view"]', 'By type', 'Sort every workout into Push, Pull, Legs, Core, Conditioning, Joint care and more, in sections you can open and close.'],
+  ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a routine or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
+  ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Overall tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
+  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
   ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
   ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
@@ -133,7 +155,7 @@ function demoSessions() {
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
 function startTour() { if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
-function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); }
+function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
 const tourGo = n => { S.tour = { step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
    transitions to restart mid-motion). Moving to another screen fades the page out, swaps it while it is invisible,
@@ -196,13 +218,14 @@ function TourOverlay() {
     (async () => {
       if (rm && T.show) { T.show = false; await tourWait(220); if (!alive) return; }
       setVis(step);
-      const needTab = lsGet('tab') !== tab, needMode = !!mode && TRAIN.mode !== mode;
       const ls = (extra && extra.ls) || {};
+      const needTab = lsGet('tab') !== tab || Object.keys(ls).some(k => lsGet(k) !== ls[k]), needMode = !!mode && TRAIN.mode !== mode;
+      if (extra && extra.meals && typeof MEALS !== 'undefined' && MEALS.mode !== extra.meals) { MEALS.mode = extra.meals; lsSet('mealsMode', extra.meals); if (!needTab && !needMode) S.rerender(); }
       if (needTab || needMode) {
         document.body.classList.add('tour-fading'); await tourWait(200); if (!alive) return;
         for (const k in ls) lsSet(k, ls[k]);
         if (mode) { TRAIN.mode = mode; lsSet('trainMode', mode); }
-        if (needTab) UI.setTab(tab); else S.rerender();
+        if (needTab) { UI.setTab(tab); S.rerender(); } else S.rerender();
         await tourFrame(); await tourFrame();
       } else for (const k in ls) lsSet(k, ls[k]);
       let els = [];
@@ -242,7 +265,7 @@ function FeedbackSheet() {
   const copy = async () => { try { await navigator.clipboard.writeText(body()); setMsg('Copied. Paste it wherever you like.'); } catch (e) { setMsg('Copy is blocked here. Use the button above.'); } };
   return html`<${Sheet} label="Send feedback"><h2>Send feedback</h2>
     <p class="note" style="margin-bottom:10px">Tell us what happened or what you’d like. It posts as a public issue on the Ironwood support page; no workouts or personal data are included.</p>
-    <div class="stack"><textarea class="field" id="fb-text" style="min-height:120px;font-family:var(--body);font-size:16px" placeholder="What happened? What did you expect?" value=${text} onInput=${e => setText(e.target.value)}></textarea>
+    <div class="stack"><textarea class="field" id="fb-text" style="min-height:120px;font-family:var(--body);font-size:calc(16 * var(--u))" placeholder="What happened? What did you expect?" value=${text} onInput=${e => setText(e.target.value)}></textarea>
       <label class="toggle" for="fb-tech"><input type="checkbox" id="fb-tech" checked=${tech} onChange=${e => setTech(e.target.checked)}/>Include app version, device model and recent error messages (helps with bugs; visible on the public issue)</label>
       ${tech ? html`<pre class="fb-details">${details()}</pre>` : null}
       <a class=${'btn primary wide' + (text.trim() ? '' : ' disabled')} id="fb-send" href=${text.trim() ? url() : null} target="_blank" rel="noopener" aria-disabled=${!text.trim()}>Send on the support page</a>
@@ -253,9 +276,8 @@ function FeedbackSheet() {
 /* ---------- Color themes ---------- */
 const PALETTES = {
   classic: ['Classic', '', { a: '#4c8dff', p: '#ffcf40', s: '#f0603f', g: '#39c98a', r: '#ff7d61', pi: '#1b1400' }, { a: '#1f5fd6', p: '#f5c22e', s: '#d2452a', g: '#1d9a62', r: '#b3341b', pi: '#2a1e00' }],
-  forest: ['Forest', '', { a: '#3fbf73', p: '#ffcf40', s: '#f0603f', g: '#2ec4c4', r: '#ff7d61', pi: '#1b1400' }, { a: '#1e8a4c', p: '#f5c22e', s: '#d2452a', g: '#12898c', r: '#b3341b', pi: '#2a1e00' }],
-  grape: ['Lavender', '', { a: '#9b7bff', p: '#ffcf40', s: '#ff5c7a', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#6d4fd6', p: '#f5c22e', s: '#d0304f', g: '#1d9a62', r: '#b0243f', pi: '#2a1e00' }],
-  ember: ['Ember', '', { a: '#ff7a3d', p: '#ffd84d', s: '#ff4d6d', g: '#39c98a', r: '#ff7d93', pi: '#1b1400' }, { a: '#d65314', p: '#e6b400', s: '#c9184a', g: '#1d9a62', r: '#b0243f', pi: '#241a00' }],
+  forest: ['Forest', 'Pine, brass and iron', { a: '#6fbe8a', ai: '#0d1a12', p: '#d9ab4c', pi: '#1a1300', s: '#e0784f', si: '#200a02', g: '#7fb6d1', r: '#f08e66', bg: '#10130f', surface: '#181d17', raised: '#222921', line: '#2f392d', ink: '#eceee6', ink2: '#a8b1a1', ink3: '#929b8c' },
+    { a: '#2e6b45', ai: '#ffffff', p: '#c48f2a', pi: '#1f1500', s: '#a8461f', si: '#ffffff', g: '#2f6f8f', r: '#9e3d19', bg: '#efeee7', surface: '#fbfaf5', raised: '#e5e3d8', line: '#d3d0c2', ink: '#1a1c17', ink2: '#555b50', ink3: '#5d6358' }],
   rg: ['Red-green friendly', 'For protanopia and deuteranopia', { a: '#56b4e9', p: '#f0c000', s: '#e07bb4', g: '#00b386', r: '#e98bc0', pi: '#1b1400' }, { a: '#00669f', p: '#e6b400', s: '#b0457f', g: '#007a5e', r: '#9c3a6f', pi: '#241a00' }],
   by: ['Blue-yellow friendly', 'For tritanopia', { a: '#26c6da', p: '#ff8fb1', s: '#ff5252', g: '#b39ddb', r: '#ff8fb1', pi: '#2a0010' }, { a: '#006e78', p: '#f06292', s: '#c62828', g: '#5e35b1', r: '#ad1457', pi: '#ffffff' }],
 };
@@ -263,7 +285,8 @@ const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n
 const lum = h => { const n = parseInt(h.slice(1), 16); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(n >> 16) + .7152 * f((n >> 8) & 255) + .0722 * f(n & 255); };
 /* Text on a color: white or near-black, whichever contrasts more (white needs a fairly dark fill to reach 4.5:1) */
 const inkFor = h => (1.05 / (lum(h) + .05)) >= ((lum(h) + .05) / (lum('#14171b') + .05)) ? '#ffffff' : '#14171b';
-const palVars = (c, al) => '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || inkFor(c.a)) + ';--accent-btn:' + ((c.ai || inkFor(c.a)) === '#ffffff' ? 'color-mix(in srgb, ' + c.a + ' 72%, #000)' : hexA('#ffffff', .3)) + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
+const palSurf = c => c.bg ? '--bg:' + c.bg + ';--surface:' + c.surface + ';--raised:' + c.raised + ';--line:' + c.line + ';--ink:' + c.ink + ';--ink-2:' + c.ink2 + ';--ink-3:' + c.ink3 + ';' : '';
+const palVars = (c, al) => palSurf(c) + '--accent:' + c.a + ';--accent-bg:' + c.a + ';--accent-ink:' + (c.ai || inkFor(c.a)) + ';--accent-btn:' + ((c.ai || inkFor(c.a)) === '#ffffff' ? 'color-mix(in srgb, ' + c.a + ' 72%, #000)' : hexA('#ffffff', .3)) + ';--accent-soft:' + hexA(c.a, al) + ';--pr:' + c.p + ';--pr-ink:' + c.pi + ';--stop:' + c.s + ';--stop-ink:' + (c.si || (al > .12 ? '#240800' : '#ffffff')) + ';--good:' + c.g + ';--red-text:' + c.r + ';';
 /* ---- Custom colors: three colors picked on a hue/saturation wheel, all at one shared brightness (HSV value). ---- */
 const hsv2hex = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
   return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
@@ -287,10 +310,14 @@ function applyPalette() {
 }
 function PaletteChooser() {
   const cur = DISP.palette === 'custom' || PALETTES[DISP.palette] ? DISP.palette : 'classic'; const cp = customPal()[2];
-  return html`<div><span class="lbl">Colors</span><div class="pal-grid">${Object.entries(PALETTES).map(([k, [n, sub, d]]) => html`<button key=${k} class=${'pal' + (cur === k ? ' on' : '')} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>
-    <span class="sw" aria-hidden="true">${[d.a, d.p, d.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`)}
+  const cb = cur === 'rg' || cur === 'by'; const tiles = [['classic'], ['forest'], ['cb']];
+  return html`<div><span class="lbl">Colors</span><div class="pal-grid">${tiles.map(([k]) => { const isCb = k === 'cb'; const P = PALETTES[isCb ? (cb ? cur : 'rg') : k]; const [n0, sub0, d] = P; const n = isCb ? 'Color-blind friendly' : n0; const sub = isCb ? 'Two kinds to choose from' : sub0; const on = isCb ? cb : cur === k;
+    return html`<button key=${k} class=${'pal' + (on ? ' on' : '')} id=${'pal-' + k} aria-pressed=${on} onClick=${() => setDisp('palette', isCb ? (cb ? cur : 'rg') : k)}>
+    <span class="sw" aria-hidden="true">${[d.a, d.p, d.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">${n}</span>${sub ? html`<span class="pd">${sub}</span>` : null}</button>`; })}
     <button class=${'pal' + (cur === 'custom' ? ' on' : '')} id="pal-custom" aria-pressed=${cur === 'custom'} onClick=${() => openSheet({ type: 'colors' })}>
-      <span class="sw" aria-hidden="true">${[cp.a, cp.p, cp.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">Custom</span><span class="pd">${customGet() ? 'Tap to edit' : 'Pick your own three'}</span></button></div></div>`;
+      <span class="sw" aria-hidden="true">${[cp.a, cp.p, cp.s].map((c, i) => html`<i key=${i} style=${{ background: c }}></i>`)}</span><span class="pn">Custom</span><span class="pd">${customGet() ? 'Tap to edit' : 'Pick your own three'}</span></button></div>
+    ${cb ? html`<div class="seg wide" role="group" aria-label="Kind of color blindness" id="pal-cb" style="margin-top:8px">${[['rg', 'Red-green'], ['by', 'Blue-yellow']].map(([k, l]) => html`<button key=${k} id=${'pal-' + k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} onClick=${() => setDisp('palette', k)}>${l}</button>`)}</div>
+      <p class="small muted" style="margin-top:4px">${cur === 'rg' ? 'For protanopia and deuteranopia.' : 'For tritanopia.'}</p>` : null}</div>`;
 }
 const HARMONY = [['complementary', 'Complementary', [180]], ['split', 'Split', [150, 210]], ['triadic', 'Triadic', [120, 240]], ['square', 'Square', [90, 180, 270]], ['analogous', 'Analogous', [-30, 30]]];
 const SLOTS = [['Main', 'Buttons, links and highlights'], ['Records', 'PR badges and records'], ['Warnings', 'Stop, delete and missed days']];

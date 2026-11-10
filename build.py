@@ -1,10 +1,10 @@
-"""Turn the Ironwood (formerly Liftbook) artifact page (source.html) into a standalone, installable web app in dist/.
+"""Turn the Ironwood app page (app.html, assembled by assemble.py) into a standalone, installable web app in dist/.
 
-Run: python3 build.py   (re-run whenever source.html is replaced with a newer version of the app)
+Run: python3 assemble.py && python3 build.py   (package.sh does both)
 """
 import hashlib, json, os, re
 
-SRC = 'app.html'  # made from the artifact's source.html by features.py
+SRC = 'app.html'  # assembled from index.src.html and the source files by assemble.py
 OUT = 'dist'
 html = open(SRC, encoding='utf8').read()
 
@@ -19,7 +19,7 @@ def swap(old, new, count=1):
 
 # 0. App name: Ironwood. Only what people see changes. Storage keys and the backup's internal
 #    "app" label stay "liftbook" so backups from the Liftbook version restore here (and back).
-html = html.replace('Liftbook', 'Ironwood')  # already done by features.py; kept as a safety net
+html = html.replace('Liftbook', 'Ironwood')  # already done in the source; kept as a safety net
 
 
 # 1. Home-screen app tags in <head>

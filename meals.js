@@ -1208,9 +1208,19 @@ function LogEntrySheet({ day, id }) {
   const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
     if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
     x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
+  /* Amount as the real count (Nov 11, Newt logged 3 eggs and couldn't go below 1½): a food logged as "3" or "150 g"
+     steps in its own unit down to half of one (or 10 g), instead of a times-what-you-logged multiplier. */
+  const g0 = e.k === 'food' ? parseIng(String(e.txt1 != null ? e.txt1 : e.txt || '') + ' x') : null;
+  const q0 = g0 && g0.q > 0 ? g0.q : 0; const u0 = q0 ? g0.u || '' : '';
+  const noun0 = q0 && !u0 ? String(e.txt1 != null ? e.txt1 : e.txt || '').replace(/^[\d\s.\/½¼¾⅓⅔⅛]+(×\s*)?/, '').trim() : '';
+  const stepU = /^(g|ml)$/.test(u0) ? 10 : /^(cup|tbsp|tsp)$/.test(u0) ? 0.25 : 0.5;
+  const setCount = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
+    if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
+    v = Math.round(v * 100) / 100; x.q = v / q0; x.m = scaleNut(x.m1, x.q); x.txt = u0 ? qtyText(v, u0) : fracStr(v) + (noun0 ? ' ' + (v > 1 && !/s$/.test(noun0) ? noun0 + 's' : v <= 1 ? noun0.replace(/s$/, '') : noun0) : ''); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
-    ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    ${q0 ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${u0 ? 'In ' + (UNIT_PL[u0] || u0) : 'How many'}</div></div><${MStep} label=${'amount of ' + e.name} value=${Math.round(q0 * (e.q || 1) * 100) / 100} min=${stepU} max=${u0 === 'g' || u0 === 'ml' ? 2000 : 50} step=${stepU} unit=${u0 ? ' ' + u0 : ''} onChange=${setCount}/></div>`
+    : e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.25} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
     <div class="row" style="margin-top:12px" id="le-when-row"><label for="le-when" style="flex:1;font-weight:600">When you ate it<span class="small muted" style="display:block;font-weight:400">Used by Review my eating. Starts as when you logged it.</span></label>
       <input class="field" id="le-when" type="time" style="width:auto" value=${hhmm(e.at)} onChange=${ev => setWhen(ev.target.value)}/></div>
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>

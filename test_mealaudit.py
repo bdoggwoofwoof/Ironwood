@@ -1,4 +1,5 @@
-"""Meal plan audit (Nov 10): making a plan fills the prep and shopping list (M1), an empty List points to the plan (M10),
+"""Meal plan audit (Nov 10). Second pass: Today / Week / Recipes / Shopping, one way into an empty week (M2, M3, M5),
+three-step setup (M4, M12), Recipes groups of 3 with Mix & match last (M8, M9). First pass: making a plan fills the prep and shopping list (M1), an empty List points to the plan (M10),
 no repeated subtitle (M11), two amount options (M6), the day total says how it compares with the protein target (M7)."""
 import asyncio, subprocess, sys, time
 from playwright.async_api import async_playwright
@@ -17,7 +18,33 @@ async def main():
         await ev("UI.setTab('meals'); setMealsMode('list'); S.rerender()"); await pg.wait_for_timeout(300)
         check('M11: no shared subtitle', 'logged, planned and shopped for' not in await pg.inner_text('body'))
         check('M10: empty List offers Plan my week', await pg.locator('#list-plan').count() == 1)
+        check('switch reads Today, Week, Recipes, Shopping', await ev("[...document.querySelectorAll('.topsw button')].map(b => b.textContent)") == ['Today', 'Week', 'Recipes', 'Shopping'])
+        await ev("setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
+        check('M5: an empty week has one main way in and two others', await pg.locator('#plan-start').count() == 1 and await pg.locator('#week-ready').count() == 1 and await pg.locator('#week-pick').count() == 1)
+        check('M3: no people or weeks before there is anything to cook', await pg.locator('.mp-who').count() == 0)
+        check('ready-made preps wait behind their button', await pg.locator('#ready-preps').count() == 0)
+        await pg.click('#week-ready'); await pg.wait_for_timeout(200)
+        check('...and open when asked', await pg.locator('#ready-preps .prep-card').count() >= 5)
+        await pg.click('#week-ready'); await pg.wait_for_timeout(200)
+        # Recipes
+        await ev("setMealsMode('recipes'); S.rerender()"); await pg.wait_for_timeout(300)
+        caps = await ev("[...document.querySelectorAll('[id^=rg-]:not(#rg-mix)')].map(g => g.querySelectorAll('.meal-row').length)")
+        check('M8: each recipe group shows 3 at first', caps and max(caps) <= 3, caps)
+        await pg.click('#rmore-main' if await pg.locator('#rmore-main').count() else '[id^=rmore-]'); await pg.wait_for_timeout(200)
+        check('M8: Show all opens a group', max(await ev("[...document.querySelectorAll('[id^=rg-]:not(#rg-mix)')].map(g => g.querySelectorAll('.meal-row').length)")) > 3)
+        order = await ev("[...document.querySelectorAll('[id^=rg-]')].map(g => g.id)")
+        check('M9: Mix & match comes after the plain recipes', order and order[-1] == 'rg-mix', order)
+        await ev("setMealsMode('list'); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.click('#list-plan'); await pg.wait_for_timeout(300)
+        check('M4: setup is three steps', await ev("[...document.querySelectorAll('#tg-steps span')].map(s => s.textContent)") == ['About you', 'Food', 'How you eat'])
+        check('Next waits for the numbers', await pg.locator('#tg-next[disabled]').count() == 1)
+        await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '180'); await pg.fill('#tg-age', '30')
+        await pg.click('#tg-next'); await pg.wait_for_timeout(200)
+        check('M12: step 2 is the Food preferences form', await pg.locator('#tg-step1 #prefs-fields').count() == 1)
+        await pg.click('#tg-next'); await pg.wait_for_timeout(200)
+        check('step 3 has how you eat and the numbers', await pg.locator('#tg-step2 #tg-result').count() == 1)
+        await pg.click('#tg-back'); await pg.click('#tg-back'); await pg.wait_for_timeout(200)
+        check('Back returns to About you with answers kept', await pg.input_value('#tg-w') == '180')
         await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '180'); await pg.fill('#tg-age', '30')
         await pg.click('#tg-save'); await pg.wait_for_timeout(600)
         n = await ev("ML().plan.items.length"); lst = await ev("shoppingList().length")

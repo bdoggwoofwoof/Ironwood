@@ -39,9 +39,9 @@ async def main():
         await pg.locator('.topsw button', has_text='Week').click(); await pg.evaluate("PREP_UI.ready = true; S.rerender()"); await pg.locator('button[aria-label="More people"]').click(); await pg.wait_for_timeout(200)
         two = await pg.evaluate("shoppingList().find(x => x.key === 'boneless skinless chicken breast').qty")
         check('2 people doubles the chicken (rounded up to ¼ lb)', one == '2 lb' and two == '3¾ lb', (one, two))
-        await pg.locator('button[aria-label="More weeks"]').click(); await pg.wait_for_timeout(200)
-        check('more weeks warns about the fridge', await pg.locator('.mp-warn').count() >= 4)
-        await pg.locator('button[aria-label="Fewer weeks"]').click(); await pg.locator('button[aria-label="Fewer people"]').click(); await pg.wait_for_timeout(200)
+        await pg.evaluate("setPlanDates(null, 14)"); await pg.wait_for_timeout(200)
+        check('two weeks of days warns about the fridge', await pg.locator('.mp-warn').count() >= 4)
+        await pg.evaluate("setPlanDates(null, 7)"); await pg.locator('button[aria-label="Fewer people"]').click(); await pg.wait_for_timeout(200)
         check('eggs scale to 5 servings of 2', await pg.evaluate("(() => { const e = shoppingList().find(x => x.key === 'egg'); return e && e.qty === '10' && e.from.length === 1; })()"))
         # shopping list ticks and extras
         await pg.locator('.topsw button', has_text='Shopping').click(); await pg.wait_for_timeout(300)

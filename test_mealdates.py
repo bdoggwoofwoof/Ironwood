@@ -1,0 +1,110 @@
+"""Meals dates, swaps, planning ahead, stars and the Meals tour (Nov 11, Newt)."""
+import asyncio, subprocess, sys, time
+from playwright.async_api import async_playwright
+PORT = 8811
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+results = []
+def check(name, ok, info=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + ('' if ok else '  ' + str(info)))
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await b.new_page(viewport={'width': 390, 'height': 844}); errs = []
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.add_init_script("try{localStorage.setItem('liftbook.tourDone','1');localStorage.setItem('liftbook.setupOffered','1')}catch(e){}")
+        await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1200)
+        ev = pg.evaluate
+        await ev("UI.setTab('meals'); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
+        check('Week shows the dates bar and the tour button', await pg.locator('#plan-dates').count() == 1 and await pg.locator('#meals-tour-btn').count() == 1)
+        check('prep day is Sunday by default', await ev("prepDow()") == 0)
+        # a Wednesday start runs to Saturday
+        check('Wednesday until Sunday is 4 days', await ev("untilPrepDay(new Date(2026, 10, 11))") == 4 and await ev("untilPrepDay(new Date(2026, 10, 15))") == 7)
+        await pg.click('#plan-dates-btn'); await pg.wait_for_timeout(300)
+        check('the dates sheet shows a calendar and the prep day', await pg.locator('.rcal-d').count() >= 28 and await pg.locator('#prep-day').count() == 1)
+        await pg.click('#cal-2026-11-18'); await pg.wait_for_timeout(100); await pg.click('#cal-2026-11-21'); await pg.wait_for_timeout(100)
+        check('tap first then last day', 'Wed Nov 18 – Sat Nov 21 · 4 days' in await pg.inner_text('#pd-sum'), await pg.inner_text('#pd-sum'))
+        await pg.click('#pd-save'); await pg.wait_for_timeout(200)
+        check('dates saved', await ev("[ML().plan.start, ML().plan.days]") == ['2026-11-18', 4])
+        # servings scale to the days
+        await ev("mealCommit(m => { m.plan.items = [{ id: 'a', r: 'm-sheet-pan', n: 7 }, { id: 'b', r: 'm-overnight-oats', n: 3 }]; })"); await pg.wait_for_timeout(200)
+        check('4 days of a 7-a-week meal is 4 servings, 3-a-week rounds up to 2', await ev("ML().plan.items.map(servingsFor)") == [4, 2])
+        check('short plans count times in these days', 'Times in these 4 days' in await pg.inner_text('main'))
+        await pg.locator('button[aria-label="More times in these days for ' + await ev("getRecipe('m-overnight-oats').name") + '"]').click(); await pg.wait_for_timeout(150)
+        check('stepping the count for these days', await ev("servingsFor(ML().plan.items[1])") == 3)
+        check('stored rates survive a reload', await ev("normMeals(JSON.parse(JSON.stringify(ML()))).plan.items.map(i => i.n)") == await ev("ML().plan.items.map(i => i.n)") and await ev("normMeals(JSON.parse(JSON.stringify(ML()))).plan.start") == '2026-11-18')
+        check('shopping list header names the dates', 'Wed Nov 18 – Sat Nov 21' in await ev("listText()"))
+        # swap a recipe in what you'll cook
+        await pg.click('#mp-swap-m-sheet-pan'); await pg.wait_for_timeout(300)
+        check('swap opens a recipe picker of the same kind', await pg.locator('.rp-list .opt').count() > 5 and await pg.locator('#rp-m-sheet-pan').count() == 0)
+        pick = await ev("document.querySelector('.rp-list .opt').id.slice(3)")
+        await pg.locator('.rp-list .opt').first.click(); await pg.wait_for_timeout(200)
+        check('swap keeps the count and changes the recipe', await ev("ML().plan.items[0].r") == pick and await ev("ML().plan.items[0].n") == 7, pick)
+        # swap inside a ready-made prep before using it
+        await ev("PREP_UI.open = 'p-reels-faves'; S.rerender()"); await pg.wait_for_timeout(200)
+        await pg.click('#ready-swap-p-reels-faves'); await pg.wait_for_timeout(300)
+        n0 = await pg.locator('#up-items .up-row').count()
+        await pg.click('#up-swap-0'); await pg.wait_for_timeout(300)
+        await pg.click('#rp-m-reel-green-curry'); await pg.wait_for_timeout(300)
+        check('back on the prep after picking, with the swap marked', await pg.locator('#up-items').count() == 1 and 'swapped in' in await pg.inner_text('#up-items'))
+        await pg.locator('#up-items .tip-x').last.click(); await pg.wait_for_timeout(150)
+        check('take a recipe out', await pg.locator('#up-items .up-row').count() == n0 - 1)
+        await pg.click('#up-replace'); await pg.click('#up-apply'); await pg.wait_for_timeout(300)
+        its = await ev("ML().plan.items.map(i => i.r)")
+        check('the prep loads with the swap and without the removed one', 'm-reel-green-curry' in its and 'm-reel-sc-teriyaki' not in its and 'm-reel-mayak-eggs' not in its and len(its) == n0 - 1, its)
+        check('the prep itself is unchanged', await ev("MEAL_PREPS.find(p => p.id === 'p-reels-faves').items[0][0]") == 'm-reel-sc-teriyaki')
+        # plan ahead
+        await pg.click('#plan-ahead-btn'); await pg.wait_for_timeout(300)
+        await pg.click('#pa-p-reels-freezer'); await pg.wait_for_timeout(300)
+        check('plan ahead starts the day after this plan, through Saturday', 'Sun Nov 22 – Sat Nov 28 · 7 days' in await pg.inner_text('#up-sum'), await pg.inner_text('#up-sum'))
+        await pg.click('#up-apply'); await pg.wait_for_timeout(300)
+        check('it waits in Plan ahead', await ev("ML().next.map(x => [x.name, x.start, x.days])") == [['Reel Freezer Stock-Up', '2026-11-22', 7]] and 'Reel Freezer Stock-Up' in await pg.inner_text('#plan-ahead'))
+        check('nothing loads before its day', await ev("nextCheck()") is False)
+        await ev("mealCommit(m => { m.next[0].start = ymd(new Date()); m.checks = { x: 1 }; })")
+        check('it loads on its first day', await ev("nextCheck()") is True and await ev("[ML().plan.start === ymd(new Date()), ML().plan.days, ML().plan.src, (ML().next || []).length, Object.keys(ML().checks).length]") == [True, 7, 'next', 0, 0])
+        check('a rotation does not replace it while it runs', await ev("(mealCommit(m => { m.rot = { ids: ['p-reels-faves', 'p-reels-onepot'], start: thisMonday(), applied: null }; }), rotCheck())") is False)
+        await ev("mealCommit(m => { delete m.rot; })")
+        # rotation weeks follow the prep day
+        check('weeks start on the prep day', await ev("ymd(prepWeekStart(new Date(2026, 10, 11)))") == '2026-11-08' and await ev("(mealCommit(m => { m.prepDay = 1; }), ymd(prepWeekStart(new Date(2026, 10, 11))))") == '2026-11-09')
+        await ev("mealCommit(m => { m.prepDay = 0; })")
+        # the meal plan counts only the planned days
+        await ev("mealCommit(m => { m.me = { h: 178, w: 80, age: 30, sex: 'm', act: 2, goal: 'keep', pace: 'gentle' }; m.menu = buildMenu(targetsFor(m.me), 42); m.plan.start = '2026-11-11'; m.plan.days = 4; delete m.plan.src; })")
+        await ev("usePlanForPrep(true, true)"); await pg.wait_for_timeout(200)
+        want = await ev("(() => { const w = {}; for (let k = 0; k < 4; k++) { const di = menuDayIdx(addDays(new Date(2026, 10, 11), k)); for (const x of ML().menu.days[di]) w[x.r] = (w[x.r] || 0) + x.sv; } return Object.fromEntries(Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)])); })()")
+        got = await ev("Object.fromEntries(ML().plan.items.map(i => [i.r, servingsFor(i)]))")
+        check('a 4-day meal plan cooks 4 days of food', got == want, (got, want))
+        check('the plan tabs show the dated days', await pg.locator('.menu-days.dated .chip').count() == 4)
+        # stars
+        await ev("setMealsMode('recipes')"); await pg.wait_for_timeout(250)
+        check('no From a post button', await pg.locator('#from-post').count() == 0)
+        await pg.click('#rchip-starred'); await pg.wait_for_timeout(200)
+        check('Starred starts empty with a hint', await pg.locator('#starred-empty').count() == 1)
+        await ev("toggleStar('m-reel-chana'); toggleStar('m-sheet-pan')"); await pg.wait_for_timeout(200)
+        check('Starred lists starred recipes', await pg.locator('#starred-list .meal-row').count() == 2)
+        await ev("UI.setView({ type: 'meal', id: 'm-reel-chana' })"); await pg.wait_for_timeout(200)
+        await pg.click('#rec-star'); await pg.wait_for_timeout(150)
+        check('the star on a recipe unstars it', await ev("isStarred('m-reel-chana')") is False and await ev("normMeals(JSON.parse(JSON.stringify(ML()))).stars") == {'m-sheet-pan': True})
+        await ev("UI.setView(null)"); await pg.wait_for_timeout(150)
+        await pg.click('#new-recipe'); await pg.wait_for_timeout(200)
+        check('New recipe still fills in from a post', await pg.locator('#paste-open').count() == 1)
+        await pg.click('#paste-open'); await pg.wait_for_timeout(150)
+        check('...when you tap it', await pg.locator('#paste-text').count() == 1)
+        await ev("UI.setView(null); setMealsMode('plan')"); await pg.wait_for_timeout(200)
+        # the tour
+        await pg.click('#meals-tour-btn'); await pg.wait_for_timeout(900)
+        n = await ev("tourSteps().length")
+        check('the Meals tour has its own stops', n == len(await ev("MEALS_TOUR")) and n >= 12, n)
+        missed = []
+        for i in range(n - 1):
+            await pg.click('#tour-next'); await pg.wait_for_timeout(800)
+            st = await ev("tourSteps()[S.tour.step]")
+            if st[2] and not await ev("[...document.querySelectorAll(%r)].some(e => e.getBoundingClientRect().width > 0)" % st[2]): missed.append(st[3])
+        check('every tour stop finds what it points at', not missed, missed)
+        await pg.click('#tour-next'); await pg.wait_for_timeout(400)
+        check('the tour ends back on Meals', await ev("S.tour") is None and await ev("lsGet('tab')") == 'meals')
+        await ev("UI.setTab('meals'); openSheet({ type: 'help' })"); await pg.wait_for_timeout(200)
+        await pg.click('#help-page-tour'); await pg.wait_for_timeout(500)
+        check('Help → Tour this page on Meals runs the Meals tour', await ev("S.tour.steps === MEALS_TOUR"))
+        await ev("endTour()")
+        check('no page errors', not errs, errs[:3]); await b.close()
+try: asyncio.run(main())
+finally: srv.terminate()
+print(f'{sum(results)}/{len(results)} passed'); sys.exit(0 if all(results) else 1)

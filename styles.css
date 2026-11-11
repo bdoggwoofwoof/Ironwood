@@ -426,7 +426,7 @@ span.chip.wtag{color:var(--ink-2);background:rgba(127,127,127,.16)}
 .meal-add{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--accent);flex:none;box-shadow:inset 0 0 0 1.5px var(--line)}
 .meal-add.on{background:var(--accent-bg);color:var(--accent-ink);box-shadow:none}
 .meal-add svg{width:20px;height:20px}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:calc(-1 * var(--gut));padding-inline:var(--gut)}
+.chips{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-block:4px;scrollbar-width:none;margin-inline:calc(-1 * var(--gut));padding-inline:var(--gut)}
 .chips::-webkit-scrollbar{display:none}
 .chips .chip{font-size:calc(14 * var(--u));padding:8px 13px;min-height:36px}
 .meal-title{font-family:var(--display);font-size:calc(30 * var(--u));font-weight:700;text-transform:uppercase;line-height:1.02;margin-top:4px}
@@ -867,3 +867,5 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 
 
 .fab[hidden]{display:none}
+.reel-tag{display:inline-block;font-size:calc(12 * var(--u));font-weight:600;color:var(--accent);margin:2px 0 1px}
+.chips button.chip::after{inset:-4px -3px}

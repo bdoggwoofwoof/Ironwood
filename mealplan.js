@@ -168,7 +168,7 @@ function UnitsSeg({ small }) {
 }
 
 /* ---- setup sheet ---- */
-function TargetsSheet({ preset } = {}) {
+function TargetsSheet({ preset, step0 } = {}) {
   const me0 = ML().me || {}; const lastBw = (S.meta.bw || []).slice().sort((a, b) => a.d < b.d ? -1 : 1).pop();
   const us0 = me0.us != null ? me0.us : !isMetric();
   const [d, setD] = useState(() => {
@@ -179,7 +179,7 @@ function TargetsSheet({ preset } = {}) {
   const set = (k, v) => setD({ ...d, [k]: v });
   /* Three short steps (Nov 10, meal audit M4, M12): About you, Food, How you eat. The food step is the same Food
      preferences form as everywhere else, saved to the same place. Make my plan works from any step once the numbers are in. */
-  const [step, setStep] = useState(0); const STEPS = ['About you', 'Food', 'How you eat'];
+  const [step, setStep] = useState(+step0 || 0); const STEPS = ['About you', 'Food', 'How you eat'];
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
   const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, bmi: d.bmi, us: d.us };
   const t = targetsFor(me); const bmi = bmiOf(me);

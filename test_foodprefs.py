@@ -53,7 +53,7 @@ async def main():
         await ev("openSheet({ type: 'mealPrefs' })"); await pg.wait_for_timeout(150)
         await pg.click('#al-shellfish'); await pg.click('#diet-halal'); await pg.fill('#pf-dislikes', 'olives'); await pg.click('#pf-save'); await pg.wait_for_timeout(200)
         check('questionnaire saves', await ev("(() => { const p = ML().prefs; return JSON.stringify([p.allergies, p.diets, p.diet, p.dislikes]); })()") == '[["shellfish"],["halal"],"halal","olives"]')
-        await ev("openSheet({ type: 'mealTargets' })"); await pg.wait_for_timeout(150)
+        await ev("openSheet({ type: 'mealTargets', step: 1 })"); await pg.wait_for_timeout(150)
         check('meal plan setup asks the food questions too', await pg.locator('.sheet #prefs-fields').count() == 1 and await pg.locator('.sheet #al-shellfish.on').count() == 1)
         await ev("closeSheet()")
         # from a post

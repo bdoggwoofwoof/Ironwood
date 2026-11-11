@@ -39,6 +39,7 @@ async def main():
         # the setup sheet asks and saves
         await ev("mealCommit(m => { delete m.habits; })"); await ev("openSheet({ type: 'mealTargets' })"); await pg.wait_for_timeout(200)
         await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '170'); await pg.fill('#tg-age', '28')
+        await pg.click('#tg-next'); await pg.click('#tg-next'); await pg.wait_for_timeout(150)
         await pg.click('#hb-meals-3'); await pg.click('#hb-prep-once'); await pg.click('#hb-cheap'); await pg.wait_for_timeout(100)
         await pg.click('#tg-save'); await pg.wait_for_timeout(300)
         h = await ev("ML().habits"); mn = await ev("ML().menu && ML().menu.days.every(d => d.filter(x => x.slot !== 's').length === 3)")

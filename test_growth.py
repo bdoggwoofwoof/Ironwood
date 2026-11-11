@@ -83,7 +83,7 @@ async def main():
           window.Date = Fake; try { lsSet('monthSeen', ''); const lm = ymAdd(ymOf(new Date()), -1); return [!!MonthCard(), lm]; } finally { window.Date = RealDate; } })()""")
         check('on the 3rd, the card offers last month', shown[0] is True, shown)
         # ---- Prep rotation
-        await ev("UI.setTab('meals'); setMealsMode('plan')"); await pg.wait_for_timeout(250)
+        await ev("UI.setTab('meals'); setMealsMode('plan'); PREP_UI.ready = true; S.rerender()"); await pg.wait_for_timeout(250)
         check('rotation card offers setup', await pg.locator('#rot-setup').count() == 1)
         ids = await ev("MEAL_PREPS.slice(0, 3).map(p => p.id)")
         await pg.click('#rot-setup'); await pg.wait_for_timeout(200)

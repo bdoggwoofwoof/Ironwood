@@ -32,6 +32,7 @@ async def main():
         check('Make my plan waits for numbers', await pg.locator('#tg-save[disabled]').count() == 1)
         await pg.fill('#tg-ft', '5'); await pg.fill('#tg-in', '10'); await pg.fill('#tg-w', '180'); await pg.fill('#tg-age', '30'); await pg.click('#tg-sex-m')
         await pg.click('#tg-goal-lose'); await pg.click('#tg-bmi'); await pg.wait_for_timeout(150)
+        await pg.click('#tg-next'); await pg.click('#tg-next'); await pg.wait_for_timeout(150)
         res = await pg.inner_text('#tg-result')
         check('shows calories, macros, BMI and the estimate note', 'calories a day' in res and 'Protein' in res and 'BMI 25.8' in res and 'not medical advice' in res, res)
         await pg.click('#tg-save'); await pg.wait_for_timeout(400)

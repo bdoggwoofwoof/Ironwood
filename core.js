@@ -2042,7 +2042,7 @@ function SheetHost({ sheet }) {
     case 'addonFit': return html`<${AddonFitSheet} ...${sheet}/>`;
     case 'runRestart': return html`<${RunRestartSheet}/>`;
     case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;
-    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset}/>`;
+    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset} step0=${sheet.step}/>`;
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
     case 'rotation': return html`<${RotationSheet}/>`;

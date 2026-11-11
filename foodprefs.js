@@ -19,10 +19,11 @@ const ALLERGENS = [
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
-  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/],
+  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|pepperoni|salami|chorizo|\bwine\b|\bbeer\b|\brum\b|bourbon|gelatin/, /(turkey|chicken|beef|veggie|plant[- ]based) (bacon|ham|pepperoni|sausage)|wine vinegar/g],
   ['lactose', 'Lactose intolerant', null]];
 /* Lactose intolerant (Nov 10, Newt): pick which dairy foods to leave out. Low-lactose ones start allowed. */
 const DAIRY_SAFE = ALLERGENS[0][3];
+const LACTOSE_SAFE = new RegExp(DAIRY_SAFE.source + '|lactose-free [a-z]+( [a-z]+)?', 'g');
 const LACTOSE_FOODS = [
   ['milk', 'Milk', /\bmilk\b|half[- ]and[- ]half|buttermilk|evaporated|condensed milk/, true],
   ['cream', 'Cream and sour cream', /(?<!ice )\bcream\b|creamer|sour cream|whipped/, true],
@@ -38,13 +39,14 @@ const lactoseDefault = () => LACTOSE_FOODS.filter(x => x[3]).map(x => x[0]);
 /* Several diets can be on at once; older saves had one diet string */
 const prefsOf = () => { const p = ML().prefs || {};
   const diets = Array.isArray(p.diets) ? p.diets.filter(k => k !== 'none') : p.diet && p.diet !== 'none' ? [p.diet] : [];
-  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || '') }; };
-const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim() });
+  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || ''),
+    swap: p.swap && typeof p.swap === 'object' ? p.swap : {} }; };
+const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim(), swap: { ...(v.swap || {}) } });
 /* Foods you don't like (Nov 10, Newt asked how "cheese beef" reads): commas, "and", or plain spaces all separate foods.
    A two-word food like "sour cream" stays together when a recipe here uses it. Plurals match singulars. */
 const DISLIKE_FILLER = /^(no|not|any|i|dont|don’t|don't|like|eat|the|a|an|much|too|really|please|without)$/;
 let DIS_VOCAB = null;
-const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof allRecipes === 'function' ? allRecipes().flatMap(ingNames).join(' | ') : '');
+const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof MEAL_BUILTIN === 'object' ? Object.values(MEAL_BUILTIN).flatMap(ingNames).join(' | ') : '');
 function parseDislikes(text) {
   const out = [];
   for (const chunk of String(text || '').toLowerCase().split(/[,;\n/&+]|\band\b|\bor\b/)) {
@@ -59,15 +61,95 @@ const dislikeRe = t => { const root = t.replace(/ies$/, 'y').replace(/oes$/, 'o'
 const dislikeTerms = () => parseDislikes(prefsOf().dislikes);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
-function recipeIssues(r) {
-  const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
+function recipeIssues(r, P = prefsOf()) {
+  const names = ingNames(r).concat(String(r.name || '').toLowerCase());
   const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
   const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
   for (const k of P.diets) { const d = DIETS.find(x => x[0] === k); const lbl = d && 'Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''); if (d && d[2] && has(d[2], d[3]) && !block.includes(lbl)) block.push(lbl); }
-  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, DAIRY_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
-  const dislike = dislikeTerms().filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
+  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, LACTOSE_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
+  const dislike = parseDislikes(P.dislikes).filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
   return { block, dislike };
 }
+/* ---- Swaps (Nov 11, Newt): instead of dropping a recipe, trade what you can't or won't eat for something you can ----
+   Each ingredient that goes against your answers is tried against a short list of stand-ins, in order; the first one
+   that passes your answers is used. Beef and pork can also be traded on purpose (meals.prefs.swap = { beef: 'turkey' |
+   'chicken' | 'keep', pork: … }), even when you'd eat them. Cheese with nothing that fits is left out. Recipes keep their
+   original text underneath (r.raw), so editing a recipe edits the real one. */
+const PROT = (k, P, turkey, chicken) => (P.swap[k] === 'chicken' ? [chicken, turkey] : [turkey, chicken]);
+/* [what it matches, which protein choice it follows, (P) => stand-ins in order ('' = leave it out)] */
+const SWAP_RULES = [
+  [/\bbeef (broth|stock)\b/, null, () => ['chicken broth', 'vegetable broth']],
+  [/\bground (?:beef|pork|lamb)\b/, n => /beef/.test(n) ? 'beef' : 'pork', (P, n) => PROT(/beef/.test(n) ? 'beef' : 'pork', P, 'ground turkey', 'ground chicken').concat('cooked lentils')],
+  [/\bbacon\b/, () => 'pork', () => ['turkey bacon']],
+  [/\b(?:pork |italian )?sausage\b/, () => 'pork', P => PROT('pork', P, 'turkey sausage', 'chicken sausage')],
+  [/\bham\b|\bprosciutto\b/, () => 'pork', P => PROT('pork', P, 'sliced turkey', 'sliced chicken')],
+  [/\bpepperoni\b|\bsalami\b|\bchorizo\b/, () => 'pork', () => ['turkey pepperoni', 'chicken sausage']],
+  [/\bpork(?: chops?| tenderloin| loin| shoulder)?\b/, () => 'pork', P => PROT('pork', P, 'turkey breast', 'chicken breast').concat('extra-firm tofu')],
+  [/\b(?:sirloin|ribeye|flank|skirt) steak\b|\bsirloin\b|\bbeef\b|\bsteak\b/, () => 'beef', P => PROT('beef', P, 'turkey breast', 'chicken breast').concat('extra-firm tofu')],
+  [/\blamb\b/, null, () => ['chicken thighs', 'turkey breast']],
+  [/\b(?:red |white )?wine\b|\bbeer\b/, null, () => ['chicken broth', 'vegetable broth']],
+  [/\brum\b|\bbourbon\b/, null, () => ['']],
+  [/\bsour cream\b|\bcream cheese\b|\bricotta\b|\bcottage cheese\b/, null, () => ['plain Greek yogurt', 'lactose-free Greek yogurt', 'coconut yogurt', '']],
+  [/\bice cream\b/, null, () => ['']],
+  [/\b(?:heavy |whipping |light )?cream\b|\bhalf[- ]and[- ]half\b|\bcreamer\b/, null, () => ['lactose-free half-and-half', 'coconut cream']],
+  [/\b(?:whole |2% |1% |skim |low-fat |nonfat )?milk\b|\bbuttermilk\b/, null, () => ['lactose-free milk', 'unsweetened almond milk', 'oat milk']],
+  [/\bgreek yogh?urt\b|\bskyr\b/, null, () => ['lactose-free Greek yogurt', 'coconut yogurt']],
+  [/\byogh?urt\b/, null, () => ['lactose-free yogurt', 'coconut yogurt']],
+  [/\bkefir\b/, null, () => ['lactose-free milk', 'oat milk']],
+  [/\b(?:unsalted |salted )?butter\b|\bghee\b/, null, () => ['olive oil']],
+  [/\bwhey(?: protein)?(?: powder)?\b|\bcasein\b|\bprotein powder\b/, null, () => ['pea protein powder']],
+  [/\b(?:[a-z-]+ )?cheese\b|\bcheddar\b|\bmozzarella\b|\bparmesan\b|\bparm\b|\bfeta\b|\bqueso\b|\bgouda\b|\bprovolone\b|\bswiss\b|\bpecorino\b|\bpaneer\b/, () => 'cheese', P => P.swap.cheese === 'dairyfree' ? ['dairy-free cheese', ''] : ['']],
+];
+let SWAP_KEY = '', SWAP_CACHE = new WeakMap(), ING_OK = new Map();
+const ingBad = n => { if (!ING_OK.has(n)) { const x = recipeIssues({ name: '', ing: [{ n }] }); ING_OK.set(n, x.block.length + x.dislike.length > 0); } return ING_OK.get(n); };
+const swEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* One ingredient name → { to: new name ('' = left out), from: the words replaced, by: the words used } or null */
+function swapIng(n, P) {
+  const low = String(n || '').toLowerCase(); if (!low) return null;
+  const bad = ingBad(low);
+  for (const [re, keyOf, cands] of SWAP_RULES) {
+    const m = low.match(re); if (!m || !m[0].trim()) continue;
+    const key = keyOf && keyOf(low); const want = key && P.swap[key] && P.swap[key] !== 'keep' && (key !== 'cheese');
+    if (!bad && !want) return null;
+    for (const c of cands(P, low)) {
+      if (c === '') return { to: '', from: m[0].trim(), by: '' };
+      const to = low.replace(re, c).replace(/\s+/g, ' ').trim();
+      if (!ingBad(to)) return { to, from: m[0].trim(), by: c };
+    }
+    return null;
+  }
+  return null;
+}
+function swapRecipe(r) {
+  if (!r || !Array.isArray(r.ing)) return r;
+  const key = JSON.stringify(ML().prefs || {}); if (key !== SWAP_KEY) { SWAP_KEY = key; SWAP_CACHE = new WeakMap(); ING_OK = new Map(); }
+  const hit = SWAP_CACHE.get(r); if (hit) return hit;
+  const P = prefsOf(); const swaps = []; const ing = []; let split = r.mix ? r.mix.split : null;
+  r.ing.forEach((g, i) => {
+    const s = g && swapIng(g.n, P);
+    if (!s) { ing.push(g); return; }
+    swaps.push({ from: g.n, to: s.to, w: s.from, by: s.by });
+    if (s.to) ing.push({ ...g, n: s.to }); else if (split != null && i < r.mix.split) split--;
+  });
+  let out = r;
+  if (swaps.length) {
+    const PW = /\b(beef|pork|steak|lamb|bacon|sausage|ham)\b/, NW = /\b(turkey|chicken|tofu|lentils)\b/;
+    const words = swaps.filter(s => s.by && s.w !== s.by).flatMap(s => { const a = s.w.match(PW), b = s.by.match(NW); return a && b && a[1] !== s.w ? [s, { w: a[1], by: b[1] }] : [s]; }).sort((a, b) => b.w.length - a.w.length);
+    const gone = [...new Set(swaps.filter(s => !s.to).map(s => s.w.split(' ').pop()))];
+    const txt = t => { let x = String(t || ''); for (const w of gone) x = x.replace(new RegExp('(,? (?:and |or )?)?\\b(?:shredded |grated |crumbled )?' + swEsc(w) + '\\b', 'gi'), ''); for (const s of words) x = x.replace(new RegExp('\\b' + swEsc(s.w) + '\\b', 'gi'), mm => mm[0] === mm[0].toUpperCase() ? s.by.replace(/^./, c => c.toUpperCase()) : s.by); return x; };
+    out = { ...r, raw: r, swaps, ing, name: txt(r.name), steps: (r.steps || []).map(txt), ...(r.mix ? { mix: { ...r.mix, split } } : {}) };
+  }
+  SWAP_CACHE.set(r, out); return out;
+}
+/* "Swapped for you" on a recipe */
+function SwapLine({ r }) {
+  if (!r.swaps || !r.swaps.length) return null;
+  return html`<div class="swap-line card" id="recipe-swaps" role="note"><div style="font-weight:700">Swapped for your food preferences</div>
+    <ul>${r.swaps.map((s, i) => html`<li key=${i}>${s.from} → ${s.to ? html`<b>${s.to}</b>` : html`<b>left out</b>`}</li>`)}</ul>
+    ${r.swaps.some(s => !s.to) ? html`<p class="small muted">Skip anything left out where the steps mention it.</p>` : null}
+    <button class="btn text" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Change swaps</button></div>`;
+}
+const prepSwaps = pr => { const out = new Set(); for (const [id] of pr.items || []) { const r = getRecipe(id); for (const s of (r && r.swaps) || []) out.add(s.w + ' → ' + (s.by || 'left out')); } return [...out]; };
 const avoidRecipe = r => { const x = recipeIssues(r); return x.block.length > 0 || x.dislike.length > 0; };
 const prepIssues = pr => { const out = new Set(); for (const [id] of pr.items || []) { const r = getRecipe(id); if (!r) continue; const x = recipeIssues(r); x.block.concat(x.dislike).forEach(t => out.add(t)); } return [...out]; };
 function IssueLine({ r }) {
@@ -87,7 +169,20 @@ function PrefsFields({ v, set }) {
         <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
       ${parseDislikes(v.dislikes).length ? html`<p class="small" id="pf-dislikes-read" style="margin-top:6px">Leaving out: ${parseDislikes(v.dislikes).join(' · ')}</p>` : null}
-      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div></div>`;
+      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div>
+    <${SwapFields} v=${v} set=${set}/></div>`;
+}
+/* Trade out proteins (Nov 11): beef and pork can always be traded; when your answers rule one out, Keep isn't offered */
+function SwapFields({ v, set }) {
+  const sw = v.swap || {}; const save = (k, x) => set({ ...v, swap: { ...sw, [k]: x } });
+  const bad = n => { const x = recipeIssues({ name: '', ing: [{ n }] }, v); return x.block.length + x.dislike.length > 0; };
+  const rules = { beef: bad('ground beef'), pork: bad('pork chops') || bad('bacon'), cheese: bad('cheddar cheese') };
+  const row = (k, label, opts) => { const cur = sw[k] && !(sw[k] === 'keep' && rules[k]) ? sw[k] : rules[k] ? opts.find(o => o[0] !== 'keep')[0] : 'keep';
+    return html`<div key=${k}><span class="small" style="font-weight:600">${label}</span><div class="seg wide" role="group" style="margin-top:4px">${opts.filter(o => !(o[0] === 'keep' && rules[k])).map(([x, l]) => html`<button key=${x} id=${'sw-' + k + '-' + x} class=${cur === x ? 'on' : ''} aria-pressed=${cur === x} onClick=${() => save(k, x)}>${l}</button>`)}</div></div>`; };
+  return html`<div id="swap-fields"><span class="lbl">Trade out proteins</span>
+    <div class="stack" style="gap:10px">${row('beef', 'Beef', [['keep', 'Keep beef'], ['turkey', 'Turkey'], ['chicken', 'Chicken']])}${row('pork', 'Pork, bacon and sausage', [['keep', 'Keep pork'], ['turkey', 'Turkey'], ['chicken', 'Chicken']])}
+      ${rules.cheese ? row('cheese', 'Cheese', [['omit', 'Leave it out'], ['dairyfree', 'Dairy-free cheese']]) : null}</div>
+    <p class="small muted" style="margin-top:6px">Recipes swap instead of disappearing: ground beef becomes ground turkey, bacon becomes turkey bacon, milk becomes lactose-free or dairy-free milk, butter becomes olive oil. Each recipe lists what changed.</p></div>`;
 }
 function PrefsSheet() {
   const [v, setV] = useState(prefsOf());

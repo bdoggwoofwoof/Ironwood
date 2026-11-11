@@ -198,6 +198,22 @@ MEAL_PREPS.push(
   { id: 'p-bowls-southern', name: 'Bowl Rotation 4: Southern', d: 'Hoppin’ John, collards and crumble, and hot-honey chicken bowls. ' + WF_BOWL + ' Ferment: sauerkraut or fermented hot peppers. Then start again at week 1.',
     items: [['m-thighs-paprika', 4], ['m-crumble-sage', 3], ['m-farro', 4], ['m-bep', 3], ['m-collards', 4], ['m-butternut', 3], ['m-sauce-ranch', 4], ['m-sauce-hothoney', 3], ['m-egg-muffins', 5]] },
 );
+/* Preps built around food preferences (Nov 11, Newt): halal, lactose intolerant, no beef, pork or cheese. They come
+   first, marked "Picked for your food preferences", for anyone whose answers overlap (fits). Swaps fill in the rest:
+   milk becomes lactose-free, the burger bowls use turkey and skip the cheese. */
+MEAL_PREPS.push(
+  { id: 'p-halal-light', name: 'Halal, Dairy-Light Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
+    d: 'Chicken and turkey only, no cheese, and lactose-free milk where a recipe calls for milk. Za’atar chicken thighs and turkey chili for lunches and dinners, rice cooked in broth, a tray of roasted vegetables, egg muffins and Greek yogurt jars for breakfast, and hard-boiled eggs to grab.',
+    items: [['m-thighs-zaatar', 4], ['m-turkey-chili', 4], ['m-broth-rice', 5], ['m-roast-veg', 5], ['m-egg-muffins', 5], ['m-yogurt-jars', 5], ['m-hb-eggs', 4]] },
+  { id: 'p-turkey-bowls', name: 'Turkey Burger Bowl Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
+    d: 'The burger bowls made with lean ground turkey and no cheese, turkey egg roll bowls, sheet-pan chicken, overnight oats with lactose-free milk, and hard-boiled eggs. High protein, nothing fried.',
+    items: [['m-reel-burger-bowls', 3], ['m-egg-roll-bowl', 3], ['m-sheet-pan', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] });
+/* Does this prep line up with your answers? */
+function prepFits(pr) {
+  const f = pr.fits; if (!f) return false; const P = prefsOf(); const dis = parseDislikes(P.dislikes);
+  return (f.diets || []).some(d => P.diets.includes(d)) || (f.foods || []).some(x => dis.some(t => dislikeRe(t).test(x)) || (P.swap[x] && P.swap[x] !== 'keep'));
+}
+const readyPreps = () => MEAL_PREPS.map((pr, i) => ({ pr, s: prepFits(pr) ? 0 : pr.fits ? 2 : prepIssues(pr).length ? 3 : 1, i })).sort((a, b) => a.s - b.s || a.i - b.i).map(x => x.pr);
 
 /* ---- quantities ---- */
 const UFRAC = { '½': 1 / 2, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 1 / 4, '¾': 3 / 4, '⅛': 1 / 8 };
@@ -545,11 +561,14 @@ MEAL_LIB.push(
     src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
 const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normMeals(S.meta.meals); return S.meta.meals; };
-function getRecipe(id) {
+/* Recipes as written; getRecipe gives them with your food-preference swaps (foodprefs.js) */
+const _ownRec = new Map();
+function getRecipeRaw(id) {
   const own = ML().recipes[id]; const b = MEAL_BUILTIN[id];
-  if (own) return { ...own, id, builtin: !!b, edited: !!b };
+  if (own) { const c = _ownRec.get(id); if (c && c.src === own) return c.r; const r = { ...own, id, builtin: !!b, edited: !!b }; _ownRec.set(id, { src: own, r }); return r; }
   return b || comboRecipe(id);
 }
+function getRecipe(id) { const r = getRecipeRaw(id); return r && typeof swapRecipe === 'function' ? swapRecipe(r) : r; }
 function allRecipes() {
   const ids = [...Object.keys(MEAL_BUILTIN), ...Object.keys(ML().recipes).filter(k => !MEAL_BUILTIN[k])];
   return ids.map(getRecipe).filter(Boolean);
@@ -693,10 +712,11 @@ function PrepPane() {
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
     <div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
     <p class="small muted" style="margin:-4px 0 8px">A whole week of cooking in one tap. Tap one to see what’s in it.</p>
-    <div class="ready-list">${MEAL_PREPS.map(pr => { const open = PREP_UI.ready || PREP_UI.open === pr.id;
+    <div class="ready-list">${readyPreps().map(pr => { const open = PREP_UI.ready || PREP_UI.open === pr.id; const fit = prepFits(pr); const sw = prepSwaps(pr);
       return html`<div key=${pr.id} class=${'prep-card ready-row' + (open ? ' open' : '')}>
-      <button class="ready-h" aria-expanded=${open} onClick=${() => { PREP_UI.open = open ? null : pr.id; setMore(!more); }}><span style="flex:1;min-width:0"><b>${pr.name}</b><span class="small muted" style="display:block">${pr.items.length} recipes${prepIssues(pr).length ? ' · has ' + prepIssues(pr).join(', ') : ''}</span></span>${open ? I.up : I.down}</button>
+      <button class="ready-h" aria-expanded=${open} onClick=${() => { PREP_UI.open = open ? null : pr.id; setMore(!more); }}><span style="flex:1;min-width:0"><b>${pr.name}</b>${fit ? html`<span class="fit-tag">Picked for your food preferences</span>` : null}<span class="small muted" style="display:block">${pr.items.length} recipes${prepIssues(pr).length ? ' · has ' + prepIssues(pr).join(', ') : sw.length ? ' · ' + sw.length + ' swap' + (sw.length === 1 ? '' : 's') + ' for you' : ''}</span></span>${open ? I.up : I.down}</button>
       ${open ? html`<div class="small" style="margin:2px 0 6px">${pr.d}</div><div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
+        ${sw.length ? html`<div class="small" style="margin-top:6px">Swapped for you: ${sw.join(' · ')}</div>` : null}
         <button class="btn wide" style="margin-top:8px" onClick=${() => usePrep(pr)}>Use this prep</button>` : null}</div>`; })}</div></div>
     ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
   </div>`;
@@ -789,8 +809,9 @@ function RecipeView({ id }) {
   const [sv, setSv] = useState(() => r ? (it ? servingsFor(it) : r.serves) : 1);
   if (!r) return html`<div class="card note" style="margin-top:12px">This recipe was deleted.</div>`;
   const f = sv / (r.serves || 1);
-  const edit = () => UI.setView({ type: 'mealEdit', isNew: false, draft: clone({ ...r, builtin: undefined, edited: undefined }) });
-  const copy = () => UI.setView({ type: 'mealEdit', isNew: true, draft: clone({ ...r, id: uid('m'), name: r.name + ' (my version)', builtin: undefined, edited: undefined }) });
+  const r0 = r.raw || r;
+  const edit = () => UI.setView({ type: 'mealEdit', isNew: false, draft: clone({ ...r0, builtin: undefined, edited: undefined }) });
+  const copy = () => UI.setView({ type: 'mealEdit', isNew: true, draft: clone({ ...r, raw: undefined, swaps: undefined, id: uid('m'), name: r.name + ' (my version)', builtin: undefined, edited: undefined }) });
   const del = () => openSheet({ type: 'confirm', title: r.builtin ? 'Undo your changes?' : 'Delete this recipe?', body: r.builtin ? 'Puts ' + r.name + ' back to the original recipe.' : r.name + ' will be removed from your recipes and your prep.', ok: r.builtin ? 'Reset recipe' : 'Delete recipe', danger: true,
     onOk: () => { mealCommit(m => { delete m.recipes[id]; if (!r.builtin) m.plan.items = m.plan.items.filter(i => i.r !== id); }); closeSheet(); if (!r.builtin) UI.setView(null); } });
   return html`<div class="meal-view">
@@ -806,7 +827,7 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
-    <${IssueLine} r=${r}/>
+    <${IssueLine} r=${r}/><${SwapLine} r=${r}/>
     <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>

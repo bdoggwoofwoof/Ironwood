@@ -26,7 +26,8 @@ async def main():
         un = await pg.evaluate("estimateMacros([parseIng('2 lb chicken breast'), parseIng('1 cup dragonfruit puree')])")
         check('unknown ingredients are listed, not guessed', un['missing'] == ['dragonfruit puree'] and 200 <= un['p'] <= 210, un)
         check('typed-in numbers win', await pg.evaluate("macros({ serves: 2, ing: [parseIng('1 lb chicken breast')], macros: { kcal: 300 } }).kcal") == 300)
-        # tab and a ready-made prep
+        # tab and a ready-made prep (amounts by weight for these checks; Easy is the default since Nov 10)
+        await pg.evaluate("mealCommit(m => { m.units = 'weight'; })")
         await pg.locator('.tabs button', has_text='Meals').click(); await pg.wait_for_timeout(300)
         await pg.locator('.prep-card', has_text='Bowl Week').locator('button').click(); await pg.wait_for_timeout(300)
         check('ready-made prep fills the prep', await pg.locator('.mp-item').count() == 4)

@@ -113,7 +113,7 @@ function portionText(r, sv) {
   const g = r.size ? parseIng(r.size) : null; const um = !g && r.size ? String(r.size).match(/^(\S+)\s+([A-Za-z]+)$/) : null;
   if (um && numOf(um[1]) > 0) { const u = UNIT_ALIAS[um[2].toLowerCase()]; const q = numOf(um[1]) * sv; return u ? qtyText(q, u) : fracStr(q) + ' ' + (q > 1.01 ? plural(um[2]) : um[2]); }
   if (!g || g.q == null) return (sv === 1 ? '1 serving' : fracStr(sv) + ' servings') + (r.size ? ' (' + r.size + ' each)' : '');
-  const q = g.q * sv; const easy = (ML().units || 'written') === 'easy';
+  const q = g.q * sv; const easy = ML().units !== 'weight';
   let hint = '';
   if (easy && g.u === 'cup') hint = q <= 0.6 ? ' (a cupped hand)' : q <= 1.2 ? ' (about a fist)' : ' (about ' + fracStr(Math.round(q * 2) / 2) + ' fists)';
   if (easy && (g.u === 'oz') && /cooked/.test(g.n)) hint = q <= 5 ? ' (about a palm)' : ' (about ' + fracStr(Math.round(q / 4 * 2) / 2) + ' palms)';
@@ -139,7 +139,7 @@ const roundHalf = v => Math.max(0.5, Math.round(v * 2) / 2);
 function wtText(gr) { const [v, u, dec] = measure(gr, { k: 'wt', mul: 1 }, false); return qtyText(isMetric() ? v : Math.round(v * 4) / 4, u, dec); }
 /* One ingredient line in the chosen style; f = how much the recipe is scaled */
 function amtLine(g, f, mode) {
-  mode = mode || ML().units || 'written';
+  mode = mode || (ML().units === 'weight' ? 'weight' : 'easy');
   if (mode === 'written' || g.q == null || isExactIng(g)) return ingLine(g, f);
   const fam = famOf(g.u); const food = foodFor(g);
   if (mode === 'easy') {
@@ -158,13 +158,13 @@ function amtLine(g, f, mode) {
 }
 /* Shopping list: easy mode turns weights into things you can count off the shelf */
 function easyShop(e) {
-  if ((ML().units || 'written') !== 'easy' || !e.fams.wt || Object.keys(e.fams).length !== 1) return null;
+  if (ML().units === 'weight' || !e.fams.wt || Object.keys(e.fams).length !== 1) return null;
   const x = eachFor(e.name); if (!x) return null; const gr = e.fams.wt.total; const n = Math.max(1, Math.ceil(gr / x[1] - 0.15));
   return { qty: String(n), label: x[4] ? (n > 1 ? plural(x[2]) : x[2]) + ' ' + e.name + (x[3] && n > 1 ? x[3] : '') : (n > 1 ? plural(x[2]) : x[2]) + ' (about ' + wtText(gr) + ')' };
 }
 function UnitsSeg({ small }) {
-  const cur = ML().units || 'written';
-  return html`<div class=${'seg' + (small ? '' : ' wide')} role="group" aria-label="Amounts" id="units-seg">${[['easy', 'Easy'], ['written', 'As written'], ['weight', 'By weight']].map(([k, l]) => html`<button key=${k} id=${'units-' + k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} onClick=${() => mealCommit(m => { m.units = k; })}>${l}</button>`)}</div>`;
+  const cur = ML().units === 'weight' ? 'weight' : 'easy';   /* two choices (Nov 10, meal audit M6); old "as written" reads as Easy */
+  return html`<div class=${'seg' + (small ? '' : ' wide')} role="group" aria-label="Amounts" id="units-seg">${[['easy', 'Easy amounts'], ['weight', 'By weight']].map(([k, l]) => html`<button key=${k} id=${'units-' + k} class=${cur === k ? 'on' : ''} aria-pressed=${cur === k} onClick=${() => mealCommit(m => { m.units = k; })}>${l}</button>`)}</div>`;
 }
 
 /* ---- setup sheet ---- */
@@ -183,7 +183,11 @@ function TargetsSheet({ preset } = {}) {
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
     mealCommit(m => { m.prefs = savePrefs(d.pf); m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
-    const hadPrep = ML().plan.items.length > 0 && !ML().rot;
+    /* Making the plan fills the prep and shopping list right away (Nov 10, meal audit M1). A prep you built yourself or a
+       rotation is only replaced if you say so. */
+    const own = ML().plan.items.length > 0 && !ML().plan.fromMenu || !!ML().rot;
+    if (ML().menu && !own) usePlanForPrep(true, true);
+    const hadPrep = own;
     closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Update my prep', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your targets and a week of meals are ready.' + (hadPrep ? ' Your prep and shopping list still have the old recipes.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
@@ -213,11 +217,11 @@ function TargetsSheet({ preset } = {}) {
 
 /* ---- the plan on Prep, today's menu on Log ---- */
 /* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
-function usePlanForPrep(sure) {
+function usePlanForPrep(sure, quiet) {
   const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
   const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
-  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.checks = {}; delete mm.rot; }); closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
-  if (sure || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
+  if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
 function MenuCard() {
   const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
@@ -226,20 +230,21 @@ function MenuCard() {
     <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button>
     <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`;
   const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
-  const reroll = () => mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); });
+  const reroll = () => { mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
-      <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
+      <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit my answers</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
+    <p class="small muted" style="margin:6px 0 2px">Tap a meal for its recipe.</p>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
       return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
-    <div class="small muted num">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat</div>
+    <div class="small muted num" id="menu-total">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat${t.p ? ' · ' + (Math.abs(tot.p - t.p) <= Math.max(10, t.p * 0.1) ? 'protein on target' : (tot.p > t.p ? '+' : '−') + Math.abs(Math.round(tot.p - t.p)) + ' g protein vs your target') : ''}</div>
     ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
-    <div class="row" style="margin-top:10px;gap:8px"><button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button><button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
+    <div class="row" style="margin-top:10px;gap:8px">${m.plan.fromMenu && !m.rot ? html`<button class="btn primary" style="flex:1" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>` : html`<button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button>`}<button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
     <p class="small faint" style="margin-top:8px">${NOT_ADVICE}</p></div>`;
 }
 function TodayMenu({ day }) {

@@ -492,7 +492,7 @@ function normMeals(x) {
   const recipes = {}; for (const [k, r] of Object.entries(x.recipes && typeof x.recipes === 'object' ? x.recipes : {})) if (r && typeof r === 'object' && Array.isArray(r.ing)) recipes[k] = r;
   return {
     recipes,
-    plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: clampInt(i.n, 1, 21, 3) })) },
+    plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: clampInt(i.n, 1, 21, 3) })), ...(p.fromMenu ? { fromMenu: true } : {}) },
     checks: x.checks && typeof x.checks === 'object' ? x.checks : {},
     preps: Object.fromEntries(Object.entries(x.preps && typeof x.preps === 'object' ? x.preps : {}).filter(([, p]) => p && p.name && Array.isArray(p.items))),
     ...(x.rot && Array.isArray(x.rot.ids) && x.rot.ids.length >= 2 && /^\d{4}-\d\d-\d\d$/.test(x.rot.start) ? { rot: { ids: x.rot.ids.map(String), start: x.rot.start, applied: x.rot.applied || null } } : {}),
@@ -557,10 +557,10 @@ const planItemFor = id => ML().plan.items.find(i => i.r === id);
 const mealCommit = fn => commit(st => { st.meta.meals = normMeals(st.meta.meals); fn(st.meta.meals); }, 'meta');
 function addToPlan(id, n) {
   const r = getRecipe(id); if (!r) return;
-  mealCommit(m => { const it = m.plan.items.find(i => i.r === id); if (it) it.n = n || it.n; else m.plan.items.push({ id: uid('mp'), r: id, n: n || r.week || 3 }); });
+  mealCommit(m => { delete m.plan.fromMenu; const it = m.plan.items.find(i => i.r === id); if (it) it.n = n || it.n; else m.plan.items.push({ id: uid('mp'), r: id, n: n || r.week || 3 }); });
   showToast({ kind: 'info', text: r.name + ' added to your prep', action: 'Undo', ms: 5000, fn: () => mealCommit(m => { m.plan.items = m.plan.items.filter(i => i.r !== id); }) });
 }
-const removeFromPlan = id => mealCommit(m => { m.plan.items = m.plan.items.filter(i => i.r !== id); });
+const removeFromPlan = id => mealCommit(m => { delete m.plan.fromMenu; m.plan.items = m.plan.items.filter(i => i.r !== id); });
 function servingsFor(it) { const P = ML().plan; return it.n * P.people * P.weeks; }
 function shoppingList() {
   const P = ML().plan; const map = new Map();
@@ -615,7 +615,6 @@ function MealsScreen({ view }) {
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
-    <p class="small muted tab-intro" style="margin:2px 0 8px">What you eat: logged, planned and shopped for.</p>
     ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
 }
 function keepNote(r, it) {
@@ -636,7 +635,7 @@ function PrepPane() {
     const bad = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length);
     if (bad.length && !ok) return openSheet({ type: 'confirm', title: 'Some of ' + pr.name + ' goes against your food preferences', body: bad.map(([r]) => getRecipe(r).name + ' (' + recipeIssues(getRecipe(r)).block.join(', ') + ')').join('; ') + '.',
       ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrep({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrep(pr, true), 60); } });
-    const apply = replace => { mealCommit(mm => { if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
+    const apply = replace => { mealCommit(mm => { delete mm.plan.fromMenu; if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
     if (!P.items.length) apply(true);
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace what’s in your prep now, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
   };
@@ -690,7 +689,7 @@ function rotCheck() {
   const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied === mon) return false;
   const i = rotIndex(rot); if (i < 0) return false; const pr = prepById(rot.ids[i]); if (!pr) return false;
   const blocked = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length).map(([r]) => getRecipe(r).name);
-  mealCommit(mm => { mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
+  mealCommit(mm => { delete mm.plan.fromMenu; mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
   showToast({ kind: 'info', ms: blocked.length ? 9000 : 4000, text: 'This week’s prep: ' + pr.name + '.' + (blocked.length ? ' Left out for your food preferences: ' + blocked.join(', ') + '.' : '') + ' Your shopping list is ready.' }); return true;
 }
 function deleteMyPrep(pr) {
@@ -860,7 +859,9 @@ function ShopPane() {
   return html`<div>
     ${P.items.length ? html`<div style="margin-top:8px"><${UnitsSeg}/></div>` : null}
     ${P.items.length ? html`<p class="small muted num" style="margin-top:6px">For ${P.people} ${P.people === 1 ? 'person' : 'people'} · ${P.weeks} ${P.weeks === 1 ? 'week' : 'weeks'} · ${P.items.length} recipe${P.items.length === 1 ? '' : 's'}${all ? ' · ' + got + ' of ' + all + ' in the cart' : ''}</p>`
-      : html`<div class="card stack" style="margin-top:8px"><p class="note">Add recipes to your prep and their ingredients show up here, added up and sorted by aisle.</p><button class="btn wide" onClick=${() => setMealsMode('recipes')}>Browse recipes</button></div>`}
+      : html`<div class="card stack" style="margin-top:8px"><p class="note">Your shopping list fills in from your week’s meals, added up and sorted by aisle.</p>
+        ${ML().menu && ML().menu.days ? html`<button class="btn primary wide" id="list-from-plan" onClick=${() => usePlanForPrep(false)}>Fill it from my meal plan</button>` : html`<button class="btn primary wide" id="list-plan" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>`}
+        <button class="btn wide" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>`}
     ${all ? html`<div class="row" style="margin-top:10px"><button class="btn primary" style="flex:1" id="share-list" onClick=${shareList}>${I.copy} Share or copy</button>${got ? html`<button class="btn" style="flex:1" onClick=${() => mealCommit(mm => { mm.checks = {}; mm.extras.forEach(e => { e.c = false; }); })}>Untick all</button>` : null}</div>` : null}
     ${AISLES.map(([a, label]) => {
       const rows = items.filter(x => x.a === a).sort((x, y) => (+!!m.checks[x.key] - +!!m.checks[y.key]) || x.label.localeCompare(y.label));

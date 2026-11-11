@@ -49,9 +49,9 @@ async def main():
         check('pick a day', await pg.locator('#menu-d3.on').count() == 1)
         seed = await ev("ML().menu.seed"); await pg.click('#plan-shuffle'); await pg.wait_for_timeout(150)
         check('different meals', await ev("ML().menu.seed") != seed)
-        await pg.click('#plan-use'); await pg.wait_for_timeout(300)
+        check('the plan already filled the prep (meal audit M1)', await pg.locator('#plan-use').count() == 0 and await pg.locator('#plan-list').count() == 1)
         prep = await ev("(() => { const w = {}; for (const d of ML().menu.days) for (const x of d) w[x.r] = (w[x.r] || 0) + x.sv; return { items: ML().plan.items.map(i => [i.r, i.n]), want: Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)]), people: ML().plan.people, weeks: ML().plan.weeks }; })()")
-        check('Use for my prep fills the prep with the week’s servings', sorted(prep['items']) == sorted(prep['want']) and prep['people'] == 1 and prep['weeks'] == 1, prep)
+        check('the prep follows the week’s servings, even after Different meals', sorted(prep['items']) == sorted(prep['want']) and prep['people'] == 1 and prep['weeks'] == 1, prep)
         # Today's menu on the log
         await ev("setMealsMode('log')"); await pg.wait_for_timeout(200)
         check('food log shows today’s plan', await pg.locator('#today-menu').count() == 1)
@@ -76,7 +76,7 @@ async def main():
         # The switch on a recipe and the shopping list
         await ev("UI.setView({ type: 'meal', id: 'm-sheet-pan' })"); await pg.wait_for_timeout(250)
         check('recipe page has the amounts switch', await pg.locator('#units-seg').count() == 1)
-        easy_txt = await pg.inner_text('.ing-list'); await pg.click('#units-written'); await pg.wait_for_timeout(150); writ = await pg.inner_text('.ing-list')
+        easy_txt = await pg.inner_text('.ing-list'); await pg.click('#units-weight'); await pg.wait_for_timeout(150); writ = await pg.inner_text('.ing-list')
         check('switching changes the ingredient list', easy_txt != writ, [easy_txt[:120], writ[:120]])
         await ev("UI.setView(null); mealCommit(m => { m.units = 'easy'; m.plan.items = [{ id: 'z', r: 'm-sheet-pan', n: 4 }]; m.plan.people = 1; m.plan.weeks = 1; }); setMealsMode('list')"); await pg.wait_for_timeout(250)
         lst = await ev("shoppingList().filter(x => /chicken/i.test(x.name)).map(x => x.qty + ' ' + x.label)")

@@ -51,7 +51,7 @@ async def main():
         await ev("UI.setView(null); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         first = await ev("[...document.querySelectorAll('#ready-preps .ready-row b')].slice(0, 2).map(b => b.textContent)")
         check('preps built for these answers come first', first == ['Halal, Dairy-Light Week', 'Turkey Burger Bowl Week'], first)
-        check('...marked as picked for you', await pg.locator('#ready-preps .fit-tag').count() == 2)
+        check('...marked as picked for you', await pg.locator('#ready-preps .fit-tag').count() == 3)  # + Reel Favorites Week (Nov 11)
         await pg.locator('#ready-preps .ready-h').first.click(); await pg.wait_for_timeout(200)
         check('an open prep lists its swaps', 'Swapped for you' in await pg.inner_text('#ready-preps'))
         await ev("mealCommit(m => { m.prefs = { allergies: [], diets: [], dislikes: '' }; }); S.rerender()"); await pg.wait_for_timeout(200)

@@ -3303,7 +3303,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 24d9468</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 98991b0</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -5015,6 +5015,7 @@ function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
 }
 function MealsScreen({ view }) {
   useEffect(() => { rotCheck(); }, []);
+  useEffect(() => { syncMenuToPicks(); });
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
@@ -8764,6 +8765,14 @@ function setNoPlan(id, on) {
   if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
   showToast({ kind: 'info', text: on ? 'Left out of your meal plans' + (ML().menu ? '. Your plan was updated.' : '.') : 'Back in your meal plans.' });
 }
+const pickedIds = () => { const P = ML().plan; return P.fromMenu ? [] : P.items.map(i => i.r).filter(id => getRecipe(id)); };
+const picksKey = () => (mealHabits().starred ? 's:' + Object.keys(ML().stars || {}).sort().join(',') : 'p:' + pickedIds().slice().sort().join(','));
+/* Keep the day-by-day plan in step with what you picked: rebuild (same seed) when the picks change */
+function syncMenuToPicks() {
+  const mn = ML().menu; if (!mn || !mn.t || ML().plan.fromMenu || ML().rot) return;
+  const k = picksKey(); if (mn.pk === k) return;
+  const nm = buildMenu(mn.t, mn.seed); if (nm) mealCommit(m => { m.menu = { ...nm, pk: k }; });
+}
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
   const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
@@ -8773,7 +8782,11 @@ function planPool() {
   const st = ML().stars || {}; const H = mealHabits();
   /* Plan from my starred recipes: only starred ones in each meal slot that has enough (your star beats the chili's
      keep-out-of-plans flag, but not your food preferences, gear or Leave out of my meal plans) */
-  const starred = H.starred ? allRecipes().filter(r => st[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
+  /* Recipes you picked to cook yourself (not filled in by the plan) drive the meal plan (Nov 11, Newt picked dishes
+     and the plan showed others). Stars win when Plan from my starred recipes is on. */
+  const picks = pickedIds();
+  const fav = H.starred ? st : picks.length ? Object.fromEntries(picks.map(id => [id, true])) : {};
+  const starred = Object.keys(fav).length ? allRecipes().filter(r => fav[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
   const pick = (f, min) => { const s = starred.filter(f); if (s.length >= (min >= 3 ? 2 : 1)) return s; const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
@@ -8981,7 +8994,7 @@ function MenuCard() {
   const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
-    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : pickedIds().length ? ' · from what you picked' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}

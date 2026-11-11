@@ -2219,7 +2219,7 @@ const TOUR_FULL = [
   ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
   ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
-  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who, #plan-cta', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
@@ -3248,7 +3248,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 9110924</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version f691dfa</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4073,7 +4073,7 @@ function SheetHost({ sheet }) {
     case 'addonFit': return html`<${AddonFitSheet} ...${sheet}/>`;
     case 'runRestart': return html`<${RunRestartSheet}/>`;
     case 'machines': return html`<${MachinesSheet} ...${sheet}/>`;
-    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset}/>`;
+    case 'mealTargets': return html`<${TargetsSheet} preset=${sheet.preset} step0=${sheet.step}/>`;
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
     case 'rotation': return html`<${RotationSheet}/>`;
@@ -4653,7 +4653,7 @@ const mealCommit = fn => commit(st => { st.meta.meals = normMeals(st.meta.meals)
 function addToPlan(id, n) {
   const r = getRecipe(id); if (!r) return;
   mealCommit(m => { delete m.plan.fromMenu; const it = m.plan.items.find(i => i.r === id); if (it) it.n = n || it.n; else m.plan.items.push({ id: uid('mp'), r: id, n: n || r.week || 3 }); });
-  showToast({ kind: 'info', text: r.name + ' added to your prep', action: 'Undo', ms: 5000, fn: () => mealCommit(m => { m.plan.items = m.plan.items.filter(i => i.r !== id); }) });
+  showToast({ kind: 'info', text: r.name + ' added to this week', action: 'Undo', ms: 5000, fn: () => mealCommit(m => { m.plan.items = m.plan.items.filter(i => i.r !== id); }) });
 }
 const removeFromPlan = id => mealCommit(m => { delete m.plan.fromMenu; m.plan.items = m.plan.items.filter(i => i.r !== id); });
 function servingsFor(it) { const P = ML().plan; return it.n * P.people * P.weeks; }
@@ -4709,7 +4709,7 @@ function MealsScreen({ view }) {
   if (vt === 'foods') return html`<${MyFoods}/>`;
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
-  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Prep'], ['recipes', 'Recipes'], ['list', 'List']]} onChange=${setMealsMode}/>
+  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Today'], ['plan', 'Week'], ['recipes', 'Recipes'], ['list', 'Shopping']]} onChange=${setMealsMode}/>
     ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
 }
 function keepNote(r, it) {
@@ -4719,6 +4719,7 @@ function keepNote(r, it) {
   if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
 }
+const PREP_UI = { ready: false };
 function PrepPane() {
   const m = ML(); const P = m.plan; const items = P.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r);
   const setP = (k, v) => mealCommit(mm => { mm.plan[k] = v; });
@@ -4732,16 +4733,27 @@ function PrepPane() {
       ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrep({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrep(pr, true), 60); } });
     const apply = replace => { mealCommit(mm => { delete mm.plan.fromMenu; if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
     if (!P.items.length) apply(true);
-    else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace what’s in your prep now, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
+    else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace this week’s cooking, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
   };
+  /* This week (Nov 10, meal audit M2, M3, M5): one place for what you'll eat and cook. Empty, it offers one main way in
+     (Plan my week) and two others; filled, it shows the plan, then the cooking, people and weeks, and rotation. */
+  const empty = !items.length && !(m.menu && m.menu.days && m.menu.days.length);
+  const [more, setMore] = useState(false);
+  const readyOpen = more || PREP_UI.ready;
   return html`<div>
-    <${MenuCard}/>
-    <div class="card mp-who" style="margin-top:12px">
+    ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
+        <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
+        <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" aria-expanded=${readyOpen} onClick=${() => { PREP_UI.ready = !readyOpen; setMore(!readyOpen); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
+        <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
+      : html`<${MenuCard}/>`}
+    ${items.length ? html`
+    <div class="section-h"><h2>What you’ll cook</h2><span class="aside num">${total} serving${total === 1 ? '' : 's'}</span></div>
+    <div class="card mp-who">
       <div class="mp-cell"><div class="lbl">People</div><${MStep} label="people" value=${P.people} min=${1} max=${12} onChange=${v => setP('people', v)}/></div>
       <div class="mp-cell"><div class="lbl">Weeks</div><${MStep} label="weeks" value=${P.weeks} min=${1} max=${4} onChange=${v => setP('weeks', v)}/></div>
     </div>
-    <${Tip} id="meal-prep" style="margin-top:10px">Set how many times a week each person eats a meal. Recipes and the shopping list scale to match.<//>
-    <div class="section-h"><h2>Your prep</h2>${items.length ? html`<span class="aside num">${total} serving${total === 1 ? '' : 's'}</span>` : null}</div>
+    <${Tip} id="meal-prep" style="margin-top:10px">Set how many times a week each person eats a meal. Recipes and the shopping list scale to match.<//>` : null}
     ${items.length ? html`<div class="stack">${items.map(({ it, r }) => {
       const sv = servingsFor(it); const f = sv / (r.serves || 1); const kn = keepNote(r, it);
       return html`<div key=${it.id} class="mp-item">
@@ -4753,22 +4765,23 @@ function PrepPane() {
       ${sharedBases(items).map(({ base, list }) => html`<div key=${base.id} class="tip-card mix-share" style="margin-top:10px;padding-right:14px">${list.map(x => x.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} use the same base, so make them in one session: ${list.every(x => MIX_FLAVOR[x.mix.flavor].kind === 'sauce') ? 'cook the ' + base.name.toLowerCase() + ' together, then split it and add each sauce.' : 'season each portion on its own before it cooks, and add any sauce after.'}</div>`)}
       ${withM.length || mins ? html`<div class="card mp-sum" id="prep-macros">
         ${withM.length ? html`<div style="font-weight:700">${partial ? 'At least, a day' : 'A day, on average'}${P.people > 1 ? ', per person' : ''}</div><${MacroTiles} m=${perDay}/>
-          <div class="small muted">Estimated from the ingredients, spread over 7 days. Counts only the meals in your prep.</div>` : null}
+          <div class="small muted">Estimated from the ingredients, spread over 7 days. Counts only what you’ll cook this week.</div>` : null}
         ${mins ? html`<div class="small muted">About ${mins >= 60 ? Math.floor(mins / 60) + ' hr ' + (mins % 60 ? (mins % 60) + ' min' : '') : mins + ' min'} of cooking if you make them one after another. Less with the oven and stove going together.</div>` : null}</div>` : null}
       <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>
       <button class="btn ghost wide" style="margin-top:8px" id="prep-save" onClick=${() => openSheet({ type: 'prepSave' })}>Save this prep for later</button>`
-    : html`<div class="card stack"><p class="note">Nothing planned yet. Start from a ready-made prep below, or pick recipes one at a time.</p><button class="btn wide" onClick=${() => setMealsMode('recipes')}>Browse recipes</button></div>`}
-    <${RotationCard}/>
-    ${Object.keys(m.preps).length ? html`<div class="section-h"><h2>Your preps</h2></div>
+    : null}
+    ${items.length || ML().rot || readyOpen ? html`<${RotationCard}/>` : null}
+    ${Object.keys(m.preps).length ? html`<div class="section-h"><h2>Saved preps</h2></div>
       <div class="stack">${Object.values(m.preps).map(pr => html`<div key=${pr.id} class="r-card prep-card" id=${'myprep-' + pr.id}>
         <div class="row"><h3 style="flex:1">${pr.name}</h3><button class="tip-x" aria-label=${'Delete ' + pr.name} onClick=${() => deleteMyPrep(pr)}>${I.x}</button></div>
         <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
-    <div class="section-h"><h2>Ready-made preps</h2></div>
+    ${!empty ? html`<button class="btn text" id="week-ready" style="margin-top:12px;padding-left:0" aria-expanded=${readyOpen} onClick=${() => { PREP_UI.ready = !readyOpen; setMore(!readyOpen); }}>${readyOpen ? 'Hide ready-made preps' : 'Swap in a ready-made prep'}</button>` : null}
+    ${readyOpen ? html`<div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
     <div class="stack">${MEAL_PREPS.map(pr => html`<div key=${pr.id} class="r-card prep-card">
       <h3>${pr.name}</h3><div class="days">${pr.d}</div>${prepIssues(pr).length ? html`<div class="issue-line">Has ${prepIssues(pr).join(', ')}</div>` : null}
       <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
-      <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>
+      <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div></div>` : null}
     ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
   </div>`;
 }
@@ -4801,7 +4814,7 @@ function PrepSaveSheet() {
 function RotationCard() {
   const rot = ML().rot;
   if (!rot) return html`<div class="card" style="margin-top:14px" id="rot-card"><div style="font-weight:700">Rotate preps week by week</div>
-    <p class="small muted" style="margin:2px 0 10px">Pick 2 to 4 preps. Each Monday the next one becomes your prep, shopping list included, so dinners don’t repeat every week.</p>
+    <p class="small muted" style="margin:2px 0 10px">Pick 2 to 4 preps. Each Monday the next one becomes this week’s cooking, shopping list included, so dinners don’t repeat every week.</p>
     <button class="btn wide" id="rot-setup" onClick=${() => openSheet({ type: 'rotation' })}>Set up a rotation</button></div>`;
   const i = rotIndex(rot); const n = rot.ids.length; const name = k => (prepById(rot.ids[k]) || {}).name || 'A deleted prep';
   return html`<div class="card" style="margin-top:14px" id="rot-card"><div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Rotation · ${n} preps</div>
@@ -4825,8 +4838,9 @@ function RotationSheet() {
     ${when === 'now' && ML().plan.items.length ? html`<p class="small muted" style="margin-top:6px">Your current prep is replaced by week 1. Save it first if you want to keep it.</p>` : null}
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rot-save" disabled=${ids.length < 2} onClick=${save}>${ids.length < 2 ? 'Pick at least 2' : 'Save rotation'}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
+const REC_MORE = {};
 function RecipesPane() {
-  const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat);
+  const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat); const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const own = ML().recipes;
   const term = q.trim().toLowerCase();
   const list = cat === 'mix' ? [] : allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
@@ -4836,19 +4850,22 @@ function RecipesPane() {
   const row = r => { const inP = planItemFor(r.id);
     return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
-      <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
+      <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
   const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
     <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['mix', 'Mix & match'], ...MEAL_CATS, ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
     <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
-    ${!term && (cat === 'all' || cat === 'mix') ? html`<div class="section-h"><h2>Mix & match</h2></div>
-      <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/>` : null}
     ${cat === 'mix' ? null : html`<div>
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
     ${combos.length ? html`<div class="section-h"><h2>Mix & match</h2><span class="aside">${combos.length} match${combos.length === 1 ? '' : 'es'}</span></div><div class="stack">${combos.slice(0, 30).map(row)}</div>` : null}
-    ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); return rs.length ? html`<div key=${c}><div class="section-h"><h2>${label}</h2></div><div class="stack">${rs.map(row)}</div></div>` : null; })}
+    ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); if (!rs.length) return null;
+      /* In All, each group shows 3 with Show all (Nov 10, meal audit M8) */
+      const capped = cat === 'all' && !term && !REC_MORE[c] && rs.length > 3;
+      return html`<div key=${c} id=${'rg-' + c}><div class="section-h"><h2>${label}</h2>${cat === 'all' && !term && rs.length > 3 ? html`<button class="btn text" id=${'rmore-' + c} onClick=${() => { REC_MORE[c] = !REC_MORE[c]; re(); }}>${REC_MORE[c] ? 'Show fewer' : 'Show all ' + rs.length}</button>` : null}</div><div class="stack">${(capped ? rs.slice(0, 3) : rs).map(row)}</div></div>`; })}
     ${!list.length && !combos.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}</div>`}
+    ${!term && (cat === 'all' || cat === 'mix') ? html`<div id="rg-mix"><div class="section-h"><h2>Mix & match</h2></div>
+      <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/></div>` : null}
   </div>`;
 }
 function RecipeView({ id }) {
@@ -4883,7 +4900,7 @@ function RecipeView({ id }) {
     ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
       <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
-    ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">In your prep · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
+    ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">This week · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
     <div class="row wrap" style="margin-top:14px">
@@ -5404,7 +5421,7 @@ function BaseView({ id }) {
         <div class="s">${f.d}${f.kind === 'rub' && b.fam !== 'eggs' && b.fam !== 'oats' && b.fam !== 'salad' ? ' · spice rub' : f.kind === 'sauce' && (b.fam === 'protein' || b.fam === 'veg') ? ' · sauce' : ''}</div>
         <div class="s faint">Adds ${f.ing.map(x => shopName(parseIng(x).n).replace(/\s*\(.*\)$/, '')).join(', ')}</div>
         ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}<${IssueLine} r=${r}/></button>
-        <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in your prep. Remove it' : 'Add ' + r.name + ' to your prep'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
+        <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
     <p class="small faint" style="margin-top:14px">Add two or three flavors to your prep and the shopping list buys the base once, in the total amount.</p>
   </div>`;
 }
@@ -8407,7 +8424,7 @@ function UnitsSeg({ small }) {
 }
 
 /* ---- setup sheet ---- */
-function TargetsSheet({ preset } = {}) {
+function TargetsSheet({ preset, step0 } = {}) {
   const me0 = ML().me || {}; const lastBw = (S.meta.bw || []).slice().sort((a, b) => a.d < b.d ? -1 : 1).pop();
   const us0 = me0.us != null ? me0.us : !isMetric();
   const [d, setD] = useState(() => {
@@ -8416,6 +8433,9 @@ function TargetsSheet({ preset } = {}) {
       pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
+  /* Three short steps (Nov 10, meal audit M4, M12): About you, Food, How you eat. The food step is the same Food
+     preferences form as everywhere else, saved to the same place. Make my plan works from any step once the numbers are in. */
+  const [step, setStep] = useState(+step0 || 0); const STEPS = ['About you', 'Food', 'How you eat'];
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
   const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, bmi: d.bmi, us: d.us };
   const t = targetsFor(me); const bmi = bmiOf(me);
@@ -8427,12 +8447,14 @@ function TargetsSheet({ preset } = {}) {
     const own = ML().plan.items.length > 0 && !ML().plan.fromMenu || !!ML().rot;
     if (ML().menu && !own) usePlanForPrep(true, true);
     const hadPrep = own;
-    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Update my prep', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your targets and a week of meals are ready.' + (hadPrep ? ' Your prep and shopping list still have the old recipes.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Use these meals', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your week is planned: meals, cooking and shopping list.' + (hadPrep ? ' What you’ll cook and your shopping list still have the recipes you picked; tap Use these meals to switch.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Plan my week again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
     ${preset ? html`<p class="small muted" id="tg-from-goal">Your goal is filled in from your plan answers. Change it if you like.</p>` : typeof GoalSetupSheet === 'function' ? html`<button class="btn text" id="tg-goal" onClick=${() => openSheet({ type: 'goalSetup' })}>Want a training plan too? Answer a few questions</button>` : null}
-    <div class="stack" style="margin-top:12px">
+    <div class="gs-steps" id="tg-steps" aria-label=${'Step ' + (step + 1) + ' of 3: ' + STEPS[step]}>${STEPS.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
+    <div class="stack" style="margin-top:12px" id=${'tg-step' + step}>
+      ${step === 0 ? html`
       <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
       <div class="row" style="gap:10px">${d.us ? html`<div style="flex:1"><label class="lbl" for="tg-ft">Height</label><div class="row" style="gap:6px"><input class="field" id="tg-ft" inputmode="numeric" placeholder="ft" value=${d.ft} onInput=${e => set('ft', e.target.value.replace(/\D/g, ''))}/><input class="field" id="tg-in" inputmode="numeric" placeholder="in" value=${d.inch} onInput=${e => { const v = e.target.value.replace(/\D/g, ''); set('inch', v === '' ? '' : String(Math.min(11, +v))); }}/></div></div>`
         : html`<div style="flex:1"><label class="lbl" for="tg-cm">Height (cm)</label><input class="field" id="tg-cm" inputmode="numeric" value=${d.cm} onInput=${e => set('cm', e.target.value.replace(/\D/g, ''))}/></div>`}
@@ -8443,15 +8465,19 @@ function TargetsSheet({ preset } = {}) {
       <div><span class="lbl">Your goal</span>${seg('goal', [['lose', 'Lose fat'], ['keep', 'Maintain'], ['gain', 'Build muscle']])}</div>
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
       <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
-      <div><div class="section-h" style="margin:4px 0 2px"><h2>Food</h2></div><${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/></div>
-      <div><div class="section-h" style="margin:4px 0 2px"><h2>How you eat</h2></div><${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/></div>
+      ${t ? null : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}`
+      : step === 1 ? html`<${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/>`
+      : html`<${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
           <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
-          <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}
-      <button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
-      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+          <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">${meProblem(me)}</p>`}`}
+      ${step < 2 ? html`<div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="tg-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}
+          <button class="btn primary" style="flex:2" id="tg-next" disabled=${step === 0 && !t} onClick=${() => setStep(step + 1)}>Next: ${STEPS[step + 1]}</button></div>
+        <button class="btn text" id="tg-save" disabled=${!t} onClick=${save} style="align-self:center">Make my plan with these answers</button>`
+      : html`<button class="btn primary wide" id="tg-save" disabled=${!t} onClick=${save}>Make my plan</button>
+        <div class="row" style="gap:8px"><button class="btn" style="flex:1" id="tg-back" onClick=${() => setStep(1)}>Back</button><button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button></div>`}</div><//>`;
 }
 
 /* ---- the plan on Prep, today's menu on Log ---- */
@@ -8459,15 +8485,14 @@ function TargetsSheet({ preset } = {}) {
 function usePlanForPrep(sure, quiet) {
   const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
   const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
-  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'Your prep and shopping list now match this plan.' }); };
-  if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for your prep?', body: 'It replaces your current prep' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
+  if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for this week?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
 function MenuCard() {
   const m = ML(); const mn = m.menu; const [di, setDi] = useState(menuDayIdx());
-  if (!mn || !mn.days || !mn.days.length) return html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Make me a meal plan</div>
-    <p class="small muted" style="margin:2px 0 10px">Enter your height, weight and goal. Ironwood sets your calories and protein, picks a week of meals with portions, and fills your prep and shopping list.</p>
-    <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Start</button>
-    <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`;
+  if (!mn || !mn.days || !mn.days.length) return html`<div class="card" id="plan-cta-small"><div style="font-weight:700">Want meals that fit your targets?</div>
+    <p class="small muted" style="margin:2px 0 8px">Answer a few questions and Ironwood picks a week of meals with portions.</p>
+    <button class="btn wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button></div>`;
   const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
   const reroll = () => { mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
@@ -8483,7 +8508,7 @@ function MenuCard() {
     ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
-    <div class="row" style="margin-top:10px;gap:8px">${m.plan.fromMenu && !m.rot ? html`<button class="btn primary" style="flex:1" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>` : html`<button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use for my prep</button>`}<button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
+    <div class="row" style="margin-top:10px;gap:8px">${m.plan.fromMenu && !m.rot ? html`<button class="btn primary" style="flex:1" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>` : html`<button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use these meals</button>`}<button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
     <p class="small faint" style="margin-top:8px">${NOT_ADVICE}</p></div>`;
 }
 function TodayMenu({ day }) {

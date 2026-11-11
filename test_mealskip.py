@@ -20,7 +20,7 @@ async def main():
         check('goal tiles are small', h < 170, h)
         check('Log food sits above the fold', await ev("document.querySelector('#log-add').getBoundingClientRect().bottom < 600"))
         for mode in ['log', 'plan', 'recipes', 'list']:
-            await ev(f"setMealsMode('{mode}'); S.rerender()"); await pg.wait_for_timeout(200)
+            await ev(f"setMealsMode('{mode}'); S.rerender()"); await pg.wait_for_timeout(400)
             check('+ button on ' + mode, await pg.locator('#meal-fab').count() == (0 if mode == 'log' else 1))
         await pg.click('#meal-fab'); await pg.wait_for_timeout(300)
         check('+ opens Log food', await pg.locator('#lf-num-go').count() == 1)

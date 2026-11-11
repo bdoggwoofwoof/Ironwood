@@ -63,6 +63,37 @@ const PRICEY_ITEMS = [
   ['powder', 'Protein powder', /protein powder|\bwhey\b/]];
 const priceyOff = H => H.cheap ? (Array.isArray(H.pricey) ? H.pricey : PRICEY_ITEMS.map(x => x[0])) : [];
 const hasPricey = (r, off) => off.length > 0 && ingNames(r).some(n => PRICEY_ITEMS.some(([k, , re]) => off.includes(k) && re.test(n)));
+/* Kitchen gear (Nov 11, Newt): habits.gear = [ids you have]; unset means everything. A recipe's needs are read from
+   its steps. Some gear stands in for another (an air fryer for the oven, a blender for the pint machine); then the recipe
+   stays in with a note. With nothing that stands in, plans skip it and the recipe says what it needs. */
+const GEAR = [
+  ['oven', 'Oven', /\boven\b|\bbak(e|es|ed|ing)\b|\broast|\bbroil|sheet[- ]pan/, ['airfryer'], 'No oven? Air-fry it instead: about 25°F (15°C) lower and a few minutes shorter, in batches so pieces don’t touch.'],
+  ['stove', 'Stovetop', /skillet|saucepan|frying pan|\bpot\b|simmer|\bboil|sauté|saute|stir-fry|\bwok\b|over (low|medium|high)|stovetop|\btoast(?!ed)/, ['slow'], 'No stovetop? Use the sauté and pressure settings on an Instant Pot.'],
+  ['airfryer', 'Air fryer', /air[- ]fr/, ['oven'], 'No air fryer? Bake at 425°F (220°C), turning once.'],
+  ['slow', 'Slow cooker or Instant Pot', /slow cooker|instant pot|pressure[- ]cook/, ['stove'], 'No slow cooker? Simmer it covered on the stove on low, stirring now and then.'],
+  ['blender', 'Blender', /\bblend(?!ed)(?! or shake)/, ['processor'], 'No blender? A food processor works.'],
+  ['processor', 'Food processor', /food processor/, ['blender'], 'No food processor? Pulse it in a blender in small batches.'],
+  ['rice', 'Rice cooker', /rice cooker/, ['stove'], 'No rice cooker? Cook it in a covered pot on the stove.'],
+  ['pint', 'Ice-cream pint machine', /ice-cream maker|ice cream maker|pint machine|\bre-?spin\b|\bspin (on|it)\b/, ['blender'], 'No pint machine? Freeze it in an ice-cube tray and blend the cubes with a splash of milk.']];
+const gearHave = () => { const g = mealHabits().gear; return Array.isArray(g) ? g : GEAR.map(x => x[0]); };
+/* { need: ids, missing: [labels nothing stands in for], notes: [what to do instead] } */
+function recipeGear(r, have = gearHave()) {
+  const txt = (r.steps || []).join(' ').toLowerCase(); const need = GEAR.filter(g => g[2].test(txt)).map(g => g[0]);
+  const missing = [], notes = [];
+  for (const id of need) { if (have.includes(id)) continue; const g = GEAR.find(x => x[0] === id);
+    if (g[3].some(a => have.includes(a))) notes.push(g[4]); else missing.push(g[1].toLowerCase().replace(/^ice-cream/, 'an ice-cream').replace(/^oven/, 'an oven').replace(/^air fryer/, 'an air fryer').replace(/^blender/, 'a blender').replace(/^food processor/, 'a food processor').replace(/^rice cooker/, 'a rice cooker').replace(/^slow cooker/, 'a slow cooker').replace(/^stovetop/, 'a stovetop')); }
+  return { need, missing, notes };
+}
+function GearLine({ r }) {
+  if (!Array.isArray(mealHabits().gear)) return null; const g = recipeGear(r); if (!g.missing.length && !g.notes.length) return null;
+  return html`<div class=${'issue-line' + (g.missing.length ? ' bad' : '')} id="recipe-gear" role="note">${g.missing.length ? 'Needs ' + g.missing.join(' and ') + ', which you said you don’t have. Plans skip it.' : g.notes.join(' ')}</div>`;
+}
+function GearFields({ v, set }) {
+  const have = Array.isArray(v.gear) ? v.gear : GEAR.map(x => x[0]);
+  return html`<div id="gear-fields"><span class="lbl">Kitchen gear you have</span><div class="cat-pick">${GEAR.map(([k, l]) => { const on = have.includes(k);
+      return html`<button key=${k} id=${'gear-' + k} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => set({ ...v, gear: on ? have.filter(x => x !== k) : have.concat(k) })}>${l}</button>`; })}</div>
+    <p class="small muted" style="margin-top:4px">Plans skip recipes that need something you don’t have, unless something you do have can stand in (an air fryer for the oven, a blender for a pint machine). Recipes say how.</p></div>`;
+}
 /* Recipes you keep out of plans (meals.noPlan) */
 function setNoPlan(id, on) {
   mealCommit(m => { m.noPlan = { ...(m.noPlan || {}) }; if (on) m.noPlan[id] = true; else delete m.noPlan[id]; if (m.menu && m.menu.t) { const nm = buildMenu(m.menu.t, m.menu.seed); if (nm) m.menu = nm; } });
@@ -72,7 +103,8 @@ function setNoPlan(id, on) {
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
   const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
-  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
+  const have = gearHave();
+  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
   const lean = base.filter(r => !hasPricey(r, off));
   const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
@@ -137,7 +169,8 @@ function HabitsFields({ v, set }) {
     ${v.cheap ? html`<div class="card stack" id="pricey-menu" style="gap:4px;margin-top:-4px"><div style="font-weight:700">Leave out</div>
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
-    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
+    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <${GearFields} v=${v} set=${set}/></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
 const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */

@@ -2048,6 +2048,10 @@ function SheetHost({ sheet }) {
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
     case 'rotation': return html`<${RotationSheet}/>`;
+    case 'planDates': return html`<${PlanDatesSheet} ...${sheet}/>`;
+    case 'usePrep': return html`<${UsePrepSheet}/>`;
+    case 'recipePick': return html`<${RecipePickSheet} ...${sheet}/>`;
+    case 'planAhead': return html`<${PlanAheadSheet}/>`;
     case 'challenges': return html`<${ChallengeSheet}/>`;
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
@@ -2087,6 +2091,8 @@ function SheetHost({ sheet }) {
 /*@include growth.js*/
 
 /*@include mealplan.js*/
+
+/*@include mealdates.js*/
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {

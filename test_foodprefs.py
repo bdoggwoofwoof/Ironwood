@@ -59,7 +59,8 @@ async def main():
         await ev("closeSheet()")
         # from a post
         await ev("setMealsMode('recipes')"); await pg.wait_for_timeout(200)
-        await pg.click('#from-post'); await pg.wait_for_timeout(200)
+        check('no separate From a post button', await pg.locator('#from-post').count() == 0)
+        await pg.click('#new-recipe'); await pg.wait_for_timeout(200); await pg.click('#paste-open'); await pg.wait_for_timeout(200)
         await pg.fill('#paste-text', POST); await pg.click('#paste-fill'); await pg.wait_for_timeout(150)
         f = await ev("({ name: document.querySelector('#me-name').value, ing: document.querySelector('#me-ing').value.split('\\n'), steps: document.querySelector('#me-steps').value.split('\\n'), src: document.querySelector('#me-src').value })")
         check('post fills name, ingredients, steps and link', f['name'].startswith('High protein chicken bowls') and len(f['ing']) == 4 and len(f['steps']) == 3 and f['src'] == 'https://www.instagram.com/reel/ABC123/', f)

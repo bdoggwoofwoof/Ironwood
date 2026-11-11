@@ -16,10 +16,10 @@ async def main():
         await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1000)
         ev = pg.evaluate
         await ev("UI.setTab('meals'); setMealsMode('recipes'); S.rerender()"); await pg.wait_for_timeout(300)
-        check('each recipe row has a star', await pg.locator('.meal-row .meal-star').count() >= 5)
-        await pg.locator('.meal-row', has_text='Protein Overnight Oats').locator('.meal-star').click(); await pg.wait_for_timeout(200)
+        check('each recipe row has a star', await pg.locator('.meal-row .rec-star').count() >= 5)
+        await pg.locator('.meal-row', has_text='Protein Overnight Oats').locator('.rec-star').click(); await pg.wait_for_timeout(200)
         check('tapping it stars the recipe', await ev("isStarred('m-overnight-oats')"))
-        check('the star fills in', await pg.locator('.meal-row', has_text='Protein Overnight Oats').locator('.meal-star.on').count() == 1)
+        check('the star fills in', await pg.locator('.meal-row', has_text='Protein Overnight Oats').locator('.rec-star.on').count() == 1)
         await ev("UI.setView({ type: 'meal', id: 'm-sc-tikka' })"); await pg.wait_for_timeout(300)
         await pg.click('#rec-star'); await pg.wait_for_timeout(200)
         check('a recipe page can star it too', await ev("isStarred('m-sc-tikka')") and await pg.locator('#rec-star.on').count() == 1)

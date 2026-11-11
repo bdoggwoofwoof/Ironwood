@@ -75,6 +75,7 @@ const GEAR = [
   ['processor', 'Food processor', /food processor/, ['blender'], 'No food processor? Pulse it in a blender in small batches.'],
   ['rice', 'Rice cooker', /rice cooker/, ['stove'], 'No rice cooker? Cook it in a covered pot on the stove.'],
   ['pint', 'Ice-cream pint machine', /ice-cream maker|ice cream maker|pint machine|\bre-?spin\b|\bspin (on|it)\b/, ['blender'], 'No pint machine? Freeze it in an ice-cube tray and blend the cubes with a splash of milk.']];
+const isSlowRecipe = r => /slow cooker/i.test((r.steps || []).join(' '));
 const gearHave = () => { const g = mealHabits().gear; return Array.isArray(g) ? g : GEAR.map(x => x[0]); };
 /* { need: ids, missing: [labels nothing stands in for], notes: [what to do instead] } */
 function recipeGear(r, have = gearHave()) {
@@ -123,6 +124,7 @@ function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = Stri
 function shapePool(list, n, H, rnd) {
   let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
   if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
+  if (H.slow) keep(r => isSlowRecipe(r));
   if (H.cheap) { keep(r => !hasPricey(r, priceyOff(H))); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
   return pickN(L, Math.min(n, L.length), rnd);
@@ -170,6 +172,7 @@ function HabitsFields({ v, set }) {
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-slow"><span><span>Favor slow-cooker recipes</span><span class="d">Plans pick slow-cooker dinners first: about 15 minutes of work in the morning, ready by evening.</span></span><input type="checkbox" role="switch" id="hb-slow" checked=${!!v.slow} onChange=${e => set({ ...v, slow: e.target.checked, ...(e.target.checked && Array.isArray(v.gear) && !v.gear.includes('slow') ? { gear: v.gear.concat('slow') } : {}) })}/></label>
     <${GearFields} v=${v} set=${set}/></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));

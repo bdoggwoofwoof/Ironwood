@@ -888,3 +888,7 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .rec-star.big{width:44px;font-size:calc(26 * var(--u));margin-top:2px}
 .menu-days.dated .chip{flex-direction:column;gap:0;line-height:1.1;padding:4px 0}.menu-days.dated .chip small{font-size:calc(11 * var(--u));font-weight:600;opacity:.8}
 #plan-stars .st{color:var(--pr,#f2c94c);margin-right:4px}
+.cook-step{padding:12px 14px}.cook-step.passive{border-left:4px solid var(--accent)}.cook-step.done{opacity:.55}
+.cook-box{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.cook-run{color:var(--accent);margin-top:4px;display:flex;gap:4px;align-items:center}.cook-run svg{width:15px;height:15px;flex:none}
+#cook-start svg{width:18px;height:18px;margin-right:4px}

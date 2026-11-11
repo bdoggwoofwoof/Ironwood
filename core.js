@@ -2094,6 +2094,8 @@ function SheetHost({ sheet }) {
 
 /*@include mealdates.js*/
 
+/*@include cooking.js*/
+
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {
   const on = !exSideOn(ex); commit(st => { st.meta.exSide = { ...(st.meta.exSide || {}) }; if (on) st.meta.exSide[ex] = true; else delete st.meta.exSide[ex]; }, 'meta', 400);
@@ -2180,6 +2182,7 @@ function App() {
   if (tab === 'meals' && vt === 'mealEdit') title = view.isNew ? 'New recipe' : 'Edit recipe';
   if (tab === 'meals' && vt === 'foods') title = 'My foods';
   if (tab === 'meals' && vt === 'eatReview') title = 'Review my eating';
+  if (tab === 'meals' && vt === 'cook') title = 'Start cooking';
   if (tab === 'meals' && vt === 'base') title = 'Mix & match';
   if (tab === 'train' && vt === 'timer') title = 'Timer';
   if (tab === 'train' && vt === 'fight') title = 'Fight coach';

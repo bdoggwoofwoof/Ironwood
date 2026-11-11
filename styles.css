@@ -869,3 +869,6 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .fab[hidden]{display:none}
 .reel-tag{display:inline-block;font-size:calc(12 * var(--u));font-weight:600;color:var(--accent);margin:2px 0 1px}
 .chips button.chip::after{inset:-4px -3px}
+.meal-star{flex:none;min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--ink-3)}.meal-star svg{width:22px;height:22px}.meal-star.on{color:#b8740a}
+.meal-star.big svg{width:26px;height:26px}
+#plan-stars svg{width:18px;height:18px;color:#b8740a;margin-right:4px;vertical-align:-3px}

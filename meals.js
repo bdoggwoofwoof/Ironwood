@@ -528,7 +528,8 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}) } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}), ...(x.habits.starred ? { starred: true } : {}) } } : {}),
+    ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
     ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -716,6 +717,7 @@ function PrepPane() {
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
+        ${Object.keys(ML().stars || {}).length ? html`<button class="btn wide" id="plan-stars" style="margin-top:8px" onClick=${planFromStars}>${I.starOn} Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
         <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { PREP_UI.all = true; S.rerender(); const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
         <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
       : html`<${MenuCard}/>`}
@@ -814,24 +816,45 @@ function RotationSheet() {
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rot-save" disabled=${ids.length < 2} onClick=${save}>${ids.length < 2 ? 'Pick at least 2' : 'Save rotation'}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 const REC_MORE = {};
+/* Starred recipes (Nov 11, Newt): meals.stars = { id: true }. With "Plan from my starred recipes" on (habits.starred),
+   the meal plan is built from them and rebuilds itself whenever you star or unstar one. */
+const isStarred = id => !!(ML().stars || {})[id];
+function toggleStar(id) {
+  const on = !isStarred(id);
+  mealCommit(m => { m.stars = { ...(m.stars || {}) }; if (on) m.stars[id] = true; else delete m.stars[id]; });
+  const r = getRecipe(id); let rebuilt = false;
+  if (mealHabits().starred && ML().menu && ML().menu.t) { const nm = buildMenu(ML().menu.t, ML().menu.seed); if (nm) { mealCommit(m => { m.menu = nm; }); rebuilt = true; if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); } }
+  showToast({ kind: 'info', text: (on ? 'Starred ' : 'Unstarred ') + (r ? r.name : 'recipe') + (rebuilt ? '. Your meal plan was updated.' : '.') });
+}
+/* Plan from my starred recipes: turns the setting on and builds the week (asks the setup questions first if needed) */
+function planFromStars() {
+  mealCommit(m => { m.habits = { ...mealHabits(), starred: true }; });
+  const t = (ML().menu && ML().menu.t) || (ML().goals && ML().goals.kcal && ML().goals.p ? ML().goals : null);
+  if (!t || !ML().me) return openSheet({ type: 'mealTargets', step: 2 });
+  const nm = buildMenu(t, Date.now() % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Star a few more recipes first: at least one breakfast and two lunches or dinners.' });
+  mealCommit(m => { m.menu = nm; });
+  if (!(ML().plan.items.length && !ML().plan.fromMenu) && !ML().rot) usePlanForPrep(true, true);
+  showToast({ kind: 'info', text: 'Your week is planned from your starred recipes.' });
+}
 /* Recipes that came from a saved reel or short video (Nov 11, Newt couldn't tell which ones) */
 const fromReel = r => !!(r && r.src && /instagram\.com|tiktok\.com|youtube\.com\/shorts/.test(r.src.url || ''));
 function RecipesPane() {
   const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat); const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const own = ML().recipes;
   const term = q.trim().toLowerCase();
-  const list = cat === 'mix' ? [] : allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : cat === 'reels' ? fromReel(r) : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
+  const list = cat === 'mix' ? [] : allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : cat === 'reels' ? fromReel(r) : cat === 'starred' ? isStarred(r.id) : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
   const mine = list.filter(r => !r.builtin); const lib = list.filter(r => r.builtin);
   const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
     return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${fromReel(r) ? html`<span class="reel-tag">From a reel${r.src.by ? ' · ' + r.src.by : ''}</span>` : null}${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
+      <button class=${'meal-star' + (isStarred(r.id) ? ' on' : '')} aria-pressed=${isStarred(r.id)} aria-label=${(isStarred(r.id) ? 'Unstar ' : 'Star ') + r.name} onClick=${() => { toggleStar(r.id); re(); }}>${isStarred(r.id) ? I.starOn : I.star}</button>
       <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
   const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
-    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['mix', 'Mix & match'], ...MEAL_CATS, ['reels', 'From reels'], ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['starred', 'Starred'], ['mix', 'Mix & match'], ...MEAL_CATS, ['reels', 'From reels'], ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
     <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
     ${cat === 'mix' ? null : html`<div>
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
@@ -857,7 +880,7 @@ function RecipeView({ id }) {
     onOk: () => { mealCommit(m => { delete m.recipes[id]; if (!r.builtin) m.plan.items = m.plan.items.filter(i => i.r !== id); }); closeSheet(); if (!r.builtin) UI.setView(null); } });
   return html`<div class="meal-view">
     <div class="eyebrow" style="margin-top:4px">${MEAL_CAT_NAME[r.cat] || 'Recipe'}${r.mins ? ' · ' + r.mins + ' min' : ''}${r.edited ? ' · edited' : !r.builtin ? ' · my recipe' : ''}</div>
-    <h2 class="meal-title">${r.name}</h2>
+    <div class="row" style="align-items:flex-start;gap:8px"><h2 class="meal-title" style="flex:1">${r.name}</h2><button class=${'meal-star big' + (isStarred(r.id) ? ' on' : '')} id="rec-star" aria-pressed=${isStarred(r.id)} aria-label=${isStarred(r.id) ? 'Unstar this recipe' : 'Star this recipe'} onClick=${() => { toggleStar(r.id); S.rerender(); }}>${isStarred(r.id) ? I.starOn : I.star}</button></div>
     ${r.mix ? html`<button class="btn text" id="mix-base-link" style="padding-left:0;min-height:36px" onClick=${() => UI.setView({ type: 'base', id: r.mix.base })}>${r.mix.flavor ? 'Base: ' + MIX_BASE[r.mix.base].name + ' · see other flavors' : 'See flavors for this base'}</button>` : null}
     <div class="row wrap" style="gap:6px;margin-top:8px">
       <span class="chip">Fridge: ${r.keeps || 4} days</span>${r.freezes ? html`<span class="chip">Freezes well</span>` : null}</div>

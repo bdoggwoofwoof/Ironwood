@@ -107,7 +107,11 @@ function planPool() {
   const have = gearHave();
   const base = allRecipes().filter(r => ok(r) && !np[r.id] && !r.noAuto && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
   const lean = base.filter(r => !hasPricey(r, off));
-  const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
+  const st = ML().stars || {}; const H = mealHabits();
+  /* Plan from my starred recipes: only starred ones in each meal slot that has enough (your star beats the chili's
+     keep-out-of-plans flag, but not your food preferences, gear or Leave out of my meal plans) */
+  const starred = H.starred ? allRecipes().filter(r => st[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
+  const pick = (f, min) => { const s = starred.filter(f); if (s.length >= (min >= 3 ? 2 : 1)) return s; const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
 /* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
@@ -172,6 +176,7 @@ function HabitsFields({ v, set }) {
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-starred"><span><span>Plan from my starred recipes</span><span class="d">${Object.keys(ML().stars || {}).length ? 'You have ' + Object.keys(ML().stars).length + ' starred. ' : 'Star recipes in Recipes. '}The plan uses them and updates itself when you star or unstar one. Meals with too few stars use other recipes.</span></span><input type="checkbox" role="switch" id="hb-starred" checked=${!!v.starred} onChange=${e => set({ ...v, starred: e.target.checked })}/></label>
     <label class="toggle-row" for="hb-slow"><span><span>Favor slow-cooker recipes</span><span class="d">Plans pick slow-cooker dinners first: about 15 minutes of work in the morning, ready by evening.</span></span><input type="checkbox" role="switch" id="hb-slow" checked=${!!v.slow} onChange=${e => set({ ...v, slow: e.target.checked, ...(e.target.checked && Array.isArray(v.gear) && !v.gear.includes('slow') ? { gear: v.gear.concat('slow') } : {}) })}/></label>
     <${GearFields} v=${v} set=${set}/></div>`;
 }
@@ -311,9 +316,10 @@ function MenuCard() {
   const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
-    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
+    ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
     <p class="small muted" style="margin:6px 0 2px">Tap a meal for its recipe.</p>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);

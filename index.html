@@ -276,6 +276,11 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .menu-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
 .menu-row{display:grid;grid-template-columns:76px minmax(0,1fr);column-gap:10px;text-align:left;padding:8px 0;border-bottom:1px solid var(--line);color:inherit;align-items:baseline}
 .menu-row .eyebrow{grid-row:span 2}.menu-row .t{font-weight:600}.menu-row .s{grid-column:2;font-size:calc(14 * var(--u));color:var(--ink-2)}
+.menu-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}.menu-item .menu-row{flex:1;min-width:0;border-bottom:0}
+.menu-item.off .menu-row .t,.menu-item.off .menu-row .s{color:var(--ink-3,var(--ink-2));font-weight:400}
+.menu-skip{min-height:44px;padding:0 10px;font-size:calc(14 * var(--u));color:var(--accent);font-weight:600;flex:none}
+.fit-tag{display:inline-block;font-size:calc(12 * var(--u));font-weight:700;color:var(--accent);margin:2px 0}
+.swap-line{margin:0 0 10px;padding:12px 14px}.swap-line ul{margin:6px 0 4px;padding-left:18px}.swap-line li{margin:2px 0}
 .menu-log{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:10px 12px}
 .w-th{display:flex;align-items:center;justify-content:center;gap:1px;min-width:0}
 .side-tog{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:24px;min-height:32px;padding:0 4px;margin:-2px 0}
@@ -299,6 +304,9 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .gs-steps span{flex:1;text-align:center;font-size:calc(12 * var(--u));padding:4px 0;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--muted,inherit)}
 .gs-steps span.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
 .gs-steps span.done{opacity:.8}
+#tg-steps button{flex:1;text-align:center;font-size:calc(12 * var(--u));min-height:44px;padding:0 4px;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--ink-2);position:relative}
+#tg-steps button.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
+#tg-steps button:disabled{opacity:.5}
 .hdr-clock{font-family:var(--display);font-size:calc(20 * var(--u));font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .hdr-space{height:4px}
 main{padding-top:2px}
@@ -859,7 +867,25 @@ main.with-mini{padding-top:64px}
 .opt.danger{color:var(--stop)}
 
 [id^="ps-"] .stack > .row,[id^="ps-"] .stack > .note{margin:10px 0}
-</style>
+
+.ready-list{display:flex;flex-direction:column}
+.ready-row{border-bottom:1px solid var(--line);padding:2px 0 8px}
+.ready-row:first-child{border-top:1px solid var(--line)}
+.ready-h{display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:52px;padding:6px 2px}
+
+.ready-h svg{width:18px;height:18px;flex:none;color:var(--ink-3)}
+
+.goal-tiles .mac small{font-size:calc(11 * var(--u));color:var(--ink-3)}
+.gt-bar{display:block;width:100%;height:4px;border-radius:2px;background:var(--line);margin-top:4px;overflow:hidden}
+.gt-bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+
+/* Quick-log button on every Meals page (Nov 10, Newt) */
+.fab{position:fixed;right:max(16px, calc((100vw - 640px) / 2 + 16px));bottom:calc(var(--tabs-h, 66px) + 14px);z-index:28;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.fab svg{width:26px;height:26px}
+main:has(.fab:not([hidden])){padding-bottom:84px}
+
+
+.fab[hidden]{display:none}</style>
 
 <div id="app"></div>
 
@@ -3248,7 +3274,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version f691dfa</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 8aad9a1</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4293,6 +4319,22 @@ MEAL_PREPS.push(
   { id: 'p-bowls-southern', name: 'Bowl Rotation 4: Southern', d: 'Hoppin’ John, collards and crumble, and hot-honey chicken bowls. ' + WF_BOWL + ' Ferment: sauerkraut or fermented hot peppers. Then start again at week 1.',
     items: [['m-thighs-paprika', 4], ['m-crumble-sage', 3], ['m-farro', 4], ['m-bep', 3], ['m-collards', 4], ['m-butternut', 3], ['m-sauce-ranch', 4], ['m-sauce-hothoney', 3], ['m-egg-muffins', 5]] },
 );
+/* Preps built around food preferences (Nov 11, Newt): halal, lactose intolerant, no beef, pork or cheese. They come
+   first, marked "Picked for your food preferences", for anyone whose answers overlap (fits). Swaps fill in the rest:
+   milk becomes lactose-free, the burger bowls use turkey and skip the cheese. */
+MEAL_PREPS.push(
+  { id: 'p-halal-light', name: 'Halal, Dairy-Light Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
+    d: 'Chicken and turkey only, no cheese, and lactose-free milk where a recipe calls for milk. Za’atar chicken thighs and turkey chili for lunches and dinners, rice cooked in broth, a tray of roasted vegetables, egg muffins and Greek yogurt jars for breakfast, and hard-boiled eggs to grab.',
+    items: [['m-thighs-zaatar', 4], ['m-turkey-chili', 4], ['m-broth-rice', 5], ['m-roast-veg', 5], ['m-egg-muffins', 5], ['m-yogurt-jars', 5], ['m-hb-eggs', 4]] },
+  { id: 'p-turkey-bowls', name: 'Turkey Burger Bowl Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
+    d: 'The burger bowls made with lean ground turkey and no cheese, turkey egg roll bowls, sheet-pan chicken, overnight oats with lactose-free milk, and hard-boiled eggs. High protein, nothing fried.',
+    items: [['m-reel-burger-bowls', 3], ['m-egg-roll-bowl', 3], ['m-sheet-pan', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] });
+/* Does this prep line up with your answers? */
+function prepFits(pr) {
+  const f = pr.fits; if (!f) return false; const P = prefsOf(); const dis = parseDislikes(P.dislikes);
+  return (f.diets || []).some(d => P.diets.includes(d)) || (f.foods || []).some(x => dis.some(t => dislikeRe(t).test(x)) || (P.swap[x] && P.swap[x] !== 'keep'));
+}
+const readyPreps = () => MEAL_PREPS.map((pr, i) => ({ pr, s: prepFits(pr) ? 0 : pr.fits ? 2 : prepIssues(pr).length ? 3 : 1, i })).sort((a, b) => a.s - b.s || a.i - b.i).map(x => x.pr);
 
 /* ---- quantities ---- */
 const UFRAC = { '½': 1 / 2, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 1 / 4, '¾': 3 / 4, '⅛': 1 / 8 };
@@ -4597,11 +4639,13 @@ function normMeals(x) {
     ...(typeof x.lookup === 'boolean' ? { lookup: x.lookup } : {}),
     ...(x.me && typeof x.me === 'object' && +x.me.h > 0 && +x.me.w > 0 ? { me: x.me } : {}),
     ...(x.menu && Array.isArray(x.menu.days) && x.menu.t ? { menu: x.menu } : {}),
+    ...(x.skip && typeof x.skip === 'object' && Object.keys(x.skip).length ? { skip: Object.fromEntries(Object.keys(x.skip).filter(k => /^[0-6]:(b|l|d|s\d*)$/.test(k) && x.skip[k]).map(k => [k, true])) } : {}),
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}) } } : {}),
+    ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -4629,8 +4673,13 @@ MEAL_LIB.push(
     d: 'A frozen protein shake spun into soft-serve. Chocolate here; change the flavor with what you have.',
     ing: ['1½ cups 2% milk', '1 scoop protein powder', '1 tbsp cocoa powder', '1 tsp honey'],
     steps: ['Blend or shake everything until smooth and pour into an ice-cream maker pint.', 'Freeze flat for 24 hours.', 'Spin on the light ice cream setting. If it’s crumbly, add a splash of milk and re-spin.'],
-    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk.',
+    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk. Most of the cost is the protein powder (and the pint machine, once); the Greek yogurt freezer cups skip both.', alt: 'm-froyo-cups', altWhy: 'Cheaper option',
     src: { by: '@fitnessproductfinder', url: 'https://www.instagram.com/reel/DWPSUyHPS8k/', what: 'Protein ice cream pint ideas' } },
+  { id: 'm-froyo-cups', name: 'Chocolate Greek Yogurt Freezer Cups', cat: 'snack', serves: 3, size: '1 cup', mins: 5, keeps: 30, freezes: true, week: 3,
+    d: 'The cheap way to a frozen protein dessert: Greek yogurt brings the protein, so there’s no protein powder and no ice-cream machine.',
+    ing: ['3 cups plain nonfat Greek yogurt', '3 tbsp cocoa powder', '3 tbsp honey', '1 tsp vanilla extract', '¼ tsp salt'],
+    steps: ['Whisk everything until smooth. Taste and add more honey if you like it sweeter.', 'Spoon into three freezer-safe cups or containers and smooth the tops.', 'Freeze at least 3 hours.', 'Let one sit on the counter 10–15 minutes before eating so it scoops like soft-serve.'],
+    note: 'Swirl in a spoon of peanut butter or a few frozen berries before freezing for a change. Blending the frozen cup with a splash of milk makes a thick shake.' },
   { id: 'm-reel-burger-bowls', name: 'Lighter Burger Bowls', cat: 'main', serves: 4, size: '1 bowl', mins: 20, keeps: 3, freezes: false, week: 3,
     d: 'A cheeseburger, swapped lighter: lean beef over crunchy lettuce with a quick burger sauce.',
     ing: ['1 lb ground beef (93% lean)', '1 onion, diced', '½ tsp salt', '6 cups chopped romaine', '2 tomatoes, diced', '½ cup shredded cheese', '½ cup pickles, chopped', '⅓ cup plain Greek yogurt', '2 tbsp ketchup', '1 tbsp mustard'],
@@ -4639,11 +4688,14 @@ MEAL_LIB.push(
     src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
 const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normMeals(S.meta.meals); return S.meta.meals; };
-function getRecipe(id) {
+/* Recipes as written; getRecipe gives them with your food-preference swaps (foodprefs.js) */
+const _ownRec = new Map();
+function getRecipeRaw(id) {
   const own = ML().recipes[id]; const b = MEAL_BUILTIN[id];
-  if (own) return { ...own, id, builtin: !!b, edited: !!b };
+  if (own) { const c = _ownRec.get(id); if (c && c.src === own) return c.r; const r = { ...own, id, builtin: !!b, edited: !!b }; _ownRec.set(id, { src: own, r }); return r; }
   return b || comboRecipe(id);
 }
+function getRecipe(id) { const r = getRecipeRaw(id); return r && typeof swapRecipe === 'function' ? swapRecipe(r) : r; }
 function allRecipes() {
   const ids = [...Object.keys(MEAL_BUILTIN), ...Object.keys(ML().recipes).filter(k => !MEAL_BUILTIN[k])];
   return ids.map(getRecipe).filter(Boolean);
@@ -4710,7 +4762,8 @@ function MealsScreen({ view }) {
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Today'], ['plan', 'Week'], ['recipes', 'Recipes'], ['list', 'Shopping']]} onChange=${setMealsMode}/>
-    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
+    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}
+    <button class="fab" id="meal-fab" hidden=${MEALS.mode === 'log'} aria-label="Log food" onClick=${() => openSheet({ type: 'mealLog', day: MEALS.mode === 'log' && MEALS.day ? MEALS.day : ymd(new Date()) })}>${I.plus}</button></div>`;
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
@@ -4719,7 +4772,14 @@ function keepNote(r, it) {
   if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
 }
-const PREP_UI = { ready: false };
+const PREP_UI = { ready: false, open: null, all: false };
+/* Clear this week (Nov 11, Newt): drops the meal plan, what you'll cook and the shopping ticks, and stops a rotation.
+   Keeps saved preps, your recipes, food log, answers, food preferences and skipped meals. */
+function clearMealPlan() {
+  openSheet({ type: 'confirm', title: 'Clear this week and start over?', body: 'Your meal plan, what you’ll cook and the shopping list are cleared' + (ML().rot ? ', and your rotation stops' : '') + '. Saved preps, your recipes, your answers and food preferences stay.', ok: 'Clear it', onOk: () => {
+    mealCommit(mm => { delete mm.menu; delete mm.rot; mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; mm.extras = []; });
+    closeSheet(); PREP_UI.open = null; showToast({ kind: 'info', text: 'Cleared. Plan my week starts fresh.' }); } });
+}
 function PrepPane() {
   const m = ML(); const P = m.plan; const items = P.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r);
   const setP = (k, v) => mealCommit(mm => { mm.plan[k] = v; });
@@ -4741,10 +4801,11 @@ function PrepPane() {
   const [more, setMore] = useState(false);
   const readyOpen = more || PREP_UI.ready;
   return html`<div>
+    ${items.length || m.menu ? html`<div class="row" style="justify-content:flex-end;margin:-4px 0 4px"><button class="btn text" id="plan-clear" style="color:var(--danger,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear and start over</button></div>` : null}
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
-        <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" aria-expanded=${readyOpen} onClick=${() => { PREP_UI.ready = !readyOpen; setMore(!readyOpen); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { PREP_UI.all = true; S.rerender(); const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
         <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
       : html`<${MenuCard}/>`}
     ${items.length ? html`
@@ -4770,19 +4831,22 @@ function PrepPane() {
       <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>
       <button class="btn ghost wide" style="margin-top:8px" id="prep-save" onClick=${() => openSheet({ type: 'prepSave' })}>Save this prep for later</button>`
     : null}
-    ${items.length || ML().rot || readyOpen ? html`<${RotationCard}/>` : null}
     ${Object.keys(m.preps).length ? html`<div class="section-h"><h2>Saved preps</h2></div>
       <div class="stack">${Object.values(m.preps).map(pr => html`<div key=${pr.id} class="r-card prep-card" id=${'myprep-' + pr.id}>
         <div class="row"><h3 style="flex:1">${pr.name}</h3><button class="tip-x" aria-label=${'Delete ' + pr.name} onClick=${() => deleteMyPrep(pr)}>${I.x}</button></div>
         <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
-    ${!empty ? html`<button class="btn text" id="week-ready" style="margin-top:12px;padding-left:0" aria-expanded=${readyOpen} onClick=${() => { PREP_UI.ready = !readyOpen; setMore(!readyOpen); }}>${readyOpen ? 'Hide ready-made preps' : 'Swap in a ready-made prep'}</button>` : null}
-    ${readyOpen ? html`<div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
-    <div class="stack">${MEAL_PREPS.map(pr => html`<div key=${pr.id} class="r-card prep-card">
-      <h3>${pr.name}</h3><div class="days">${pr.d}</div>${prepIssues(pr).length ? html`<div class="issue-line">Has ${prepIssues(pr).join(', ')}</div>` : null}
-      <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
-      <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div></div>` : null}
-    ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
+    <div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
+    <p class="small muted" style="margin:-4px 0 8px">A whole week of cooking in one tap. Tap one to see what’s in it.</p>
+    ${(() => { const list = readyPreps(); const n = empty ? 4 : 0; const shown = PREP_UI.all || PREP_UI.ready ? list : list.filter((pr, i) => i < n || PREP_UI.open === pr.id);
+      return html`<div class="ready-list">${shown.map(pr => { const open = PREP_UI.ready || PREP_UI.open === pr.id; const fit = prepFits(pr); const sw = prepSwaps(pr);
+      return html`<div key=${pr.id} class=${'prep-card ready-row' + (open ? ' open' : '')}>
+      <button class="ready-h" aria-expanded=${open} onClick=${() => { PREP_UI.open = open ? null : pr.id; setMore(!more); }}><span style="flex:1;min-width:0"><b>${pr.name}</b>${fit ? html`<span class="fit-tag">Picked for your food preferences</span>` : null}<span class="small muted" style="display:block">${pr.items.length} recipes${prepIssues(pr).length ? ' · has ' + prepIssues(pr).join(', ') : sw.length ? ' · ' + sw.length + ' swap' + (sw.length === 1 ? '' : 's') + ' for you' : ''}</span></span>${open ? I.up : I.down}</button>
+      ${open ? html`<div class="small" style="margin:2px 0 6px">${pr.d}</div><div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
+        ${sw.length ? html`<div class="small" style="margin-top:6px">Swapped for you: ${sw.join(' · ')}</div>` : null}
+        <button class="btn wide" style="margin-top:8px" onClick=${() => usePrep(pr)}>Use this prep</button>` : null}</div>`; })}</div>
+      ${list.length > n ? html`<button class="btn wide" id="ready-more" style="margin-top:8px" aria-expanded=${PREP_UI.all} onClick=${() => { PREP_UI.all = !PREP_UI.all; setMore(!more); }}>${PREP_UI.all ? 'Show fewer' : n ? 'Show all ' + list.length + ' ready-made preps' : 'Browse ' + list.length + ' ready-made preps'}</button>` : null}`; })()}</div>
+    <${RotationCard}/>
   </div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
@@ -4873,8 +4937,9 @@ function RecipeView({ id }) {
   const [sv, setSv] = useState(() => r ? (it ? servingsFor(it) : r.serves) : 1);
   if (!r) return html`<div class="card note" style="margin-top:12px">This recipe was deleted.</div>`;
   const f = sv / (r.serves || 1);
-  const edit = () => UI.setView({ type: 'mealEdit', isNew: false, draft: clone({ ...r, builtin: undefined, edited: undefined }) });
-  const copy = () => UI.setView({ type: 'mealEdit', isNew: true, draft: clone({ ...r, id: uid('m'), name: r.name + ' (my version)', builtin: undefined, edited: undefined }) });
+  const r0 = r.raw || r;
+  const edit = () => UI.setView({ type: 'mealEdit', isNew: false, draft: clone({ ...r0, builtin: undefined, edited: undefined }) });
+  const copy = () => UI.setView({ type: 'mealEdit', isNew: true, draft: clone({ ...r, raw: undefined, swaps: undefined, id: uid('m'), name: r.name + ' (my version)', builtin: undefined, edited: undefined }) });
   const del = () => openSheet({ type: 'confirm', title: r.builtin ? 'Undo your changes?' : 'Delete this recipe?', body: r.builtin ? 'Puts ' + r.name + ' back to the original recipe.' : r.name + ' will be removed from your recipes and your prep.', ok: r.builtin ? 'Reset recipe' : 'Delete recipe', danger: true,
     onOk: () => { mealCommit(m => { delete m.recipes[id]; if (!r.builtin) m.plan.items = m.plan.items.filter(i => i.r !== id); }); closeSheet(); if (!r.builtin) UI.setView(null); } });
   return html`<div class="meal-view">
@@ -4890,7 +4955,8 @@ function RecipeView({ id }) {
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
-    <${IssueLine} r=${r}/>
+    <${IssueLine} r=${r}/><${SwapLine} r=${r}/><${GearLine} r=${r}/>
+    ${r.alt && getRecipe(r.alt) ? html`<button class="opt card" id="recipe-alt" style="margin-bottom:10px;padding:12px 14px" onClick=${() => UI.setView({ type: 'meal', id: r.alt })}><div style="flex:1"><div>${r.altWhy || 'Another option'}: ${getRecipe(r.alt).name}</div><div class="d">${getRecipe(r.alt).d || ''}</div></div></button>` : null}
     <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
@@ -4903,6 +4969,8 @@ function RecipeView({ id }) {
     ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">This week · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
+    ${['breakfast', 'main', 'snack'].includes(r.cat) ? html`<label class="toggle-row" for="rec-noplan" style="margin-top:8px"><span><span>Leave out of my meal plans</span><span class="d">Plan my week and Different meals won’t pick it. You can still add it yourself.</span></span>
+      <input type="checkbox" role="switch" id="rec-noplan" checked=${!!(ML().noPlan || {})[id]} onChange=${e => setNoPlan(id, e.target.checked)}/></label>` : null}
     <div class="row wrap" style="margin-top:14px">
       ${r.mix ? null : html`<button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>`}
       <button class="btn" style="flex:1" onClick=${copy}>${I.copy} ${r.mix ? 'Copy to my recipes to change it' : 'Copy'}</button></div>
@@ -5074,6 +5142,15 @@ function GoalBar({ k, label, unit, v, goal }) {
     <div class=${'goal-bar' + (lim && over > 0 ? ' over' : '')} role="progressbar" aria-label=${label} aria-valuenow=${Math.round(v)} aria-valuemin="0" aria-valuemax=${goal}><i style=${{ width: pct + '%' }}></i></div>
     <div class="small muted num">${note}</div></div>`;
 }
+/* Compact goal tiles (Nov 10, Newt: the bars took over the screen and pushed Log food down) */
+function GoalTiles({ tot, G }) {
+  const main = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' g'], ['f', 'Fat', ' g']];
+  const extra = NUT.filter(([k]) => !main.some(x => x[0] === k));
+  return html`<div class="mac-tiles goal-tiles" id="goal-tiles">${main.map(([k, l, u]) => { const g = G[k]; const v = tot[k] || 0; const pct = g ? Math.min(100, v / g * 100) : 0;
+      return html`<div key=${k} class="mac" role=${g ? 'progressbar' : null} aria-label=${g ? l + ': ' + fmtNut(k, v) + u + ' of ' + fmtNut(k, g) + u : null} aria-valuenow=${g ? Math.round(v) : null} aria-valuemax=${g || null}>
+        <b class="num">${fmtNut(k, v)}${u}</b><span>${l}</span>${g ? html`<small class="num">of ${fmtNut(k, g)}${u}</small><i class="gt-bar"><i style=${{ width: pct + '%' }}></i></i>` : null}</div>`; })}</div>
+    <div class="mac-extra num">${extra.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k] || 0)}${u}</b>${G[k] ? html`<span class="muted"> / ${fmtNut(k, G[k])}${u}${LIMITS[k] ? ' max' : ''}</span>` : null}</span>`)}</div>`;
+}
 function LogPane() {
   const m = ML(); const today = ymd(new Date()); const day = MEALS.day && MEALS.day < today ? MEALS.day : today;
   const go = n => { const d = ymd(addDays(parseYmd(day), n)); MEALS.day = d >= today ? null : d; S.rerender(); };
@@ -5085,12 +5162,10 @@ function LogPane() {
     <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
       <button class="pill-btn flip" aria-label="Next day" disabled=${day === today} onClick=${() => go(1)}>${I.back}</button></div>
     <div class="card" id="log-totals">
-      ${gk.length ? html`<div class="stack" style="gap:14px">${gk.map(([k, l, u]) => html`<${GoalBar} key=${k} k=${k} label=${l} unit=${u} v=${tot[k]} goal=${G[k]}/>`)}</div>
-        ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
-      : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
+      ${gk.length ? html`<${GoalTiles} tot=${tot} G=${G}/>` : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>
-    <${TodayMenu} day=${day}/>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
+    <${TodayMenu} day=${day}/>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
       <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
         <div class="s num">${n ? fracStr(n) + ' of ' + it.n + ' this week' : it.n + ' planned this week'} · ${macroLine(macros(r))}</div></div><span class="go">${I.plus}</span></button>`; })}</div>` : null}
@@ -8256,7 +8331,7 @@ function StatsExtras() {
 
 /* ============ Meal plan from your targets, and easy measurements (Nov 2) ============ */
 /* meals.me: { h (cm), w (kg), age, sex: 'm' | 'f' | 'x', act: 1–4, goal: 'lose' | 'keep' | 'gain', pace: 'gentle' | 'steady',
-   bmi: show BMI, us: true for ft/in and lb }. The targets are estimates (Mifflin-St Jeor resting energy × activity, then
+   us: true for ft/in and lb }. The targets are estimates (Mifflin-St Jeor resting energy × activity, then
    a modest change for the goal) with a floor, never a crash diet. meals.menu: { seed, t: targets, days: [[{ slot, r, sv }]] }.
    meals.units: 'easy' | 'written' | 'weight' for every ingredient amount in Meals. */
 const ACT_LEVELS = [[1, 'Light', 'Desk job, 1–3 workouts a week', 1.375], [2, 'Moderate', '3–5 workouts a week', 1.55], [3, 'Active', '6+ workouts, or on your feet all day', 1.725], [4, 'Very active', 'Physical job plus training', 1.9]];
@@ -8296,12 +8371,74 @@ function menuRows(day) {
     const lbl = (PLAN_SLOTS.find(p => p[0] === x.slot) || [, 'Meal'])[1];
     if (x.slot !== 's') return { x, key: x.slot, label: lbl }; k++; return { x, key: k > 1 ? 's' + k : 's', label: ns > 1 ? 'Snack ' + k : 'Snack' }; });
 }
+/* Meals you don't prep (Nov 10, Newt): a lunch at work on Thursdays, say. meals.skip: { 'day index:slot key': true }.
+   Skipped meals stay out of the cooking, the shopping list, the day total and Today. They survive Different meals. */
+const skipKey = (di, key) => di + ':' + key;
+const isSkipped = (di, key) => !!((ML().skip || {})[skipKey(di, key)]);
+function toggleSkip(di, key) {
+  mealCommit(m => { m.skip = { ...(m.skip || {}) }; const k = skipKey(di, key); if (m.skip[k]) delete m.skip[k]; else m.skip[k] = true; });
+  if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
+}
 function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
+/* Pricey things to leave out (Nov 11, Newt): with Keep it cheap on, pick which ones. habits.pricey = [ids]; unset = all. */
+const PRICEY_ITEMS = [
+  ['fish', 'Salmon and fish fillets', /salmon|\bcod\b|halibut|mahi|swordfish/],
+  ['steak', 'Steak and lamb', /steak|sirloin|\blamb\b|bison/],
+  ['shrimp', 'Shrimp and scallops', /shrimp|scallop/],
+  ['nuts', 'Nuts', /(?<!peanut |nut )\b(almonds?|cashews?|pecans?|walnuts?|pistachios?|pine nuts?)\b(?! milk)/],
+  ['berries', 'Fresh berries (frozen stay in)', /(?<!frozen (mixed )?)\b(berries|blueberr|strawberr|raspberr|blackberr)/],
+  ['avocado', 'Avocado', /avocado/],
+  ['quinoa', 'Quinoa', /quinoa/],
+  ['cheese', 'Specialty cheese (parmesan, feta, goat)', /parmesan|\bfeta\b|goat cheese|cheese crisps/],
+  ['powder', 'Protein powder', /protein powder|\bwhey\b/]];
+const priceyOff = H => H.cheap ? (Array.isArray(H.pricey) ? H.pricey : PRICEY_ITEMS.map(x => x[0])) : [];
+const hasPricey = (r, off) => off.length > 0 && ingNames(r).some(n => PRICEY_ITEMS.some(([k, , re]) => off.includes(k) && re.test(n)));
+/* Kitchen gear (Nov 11, Newt): habits.gear = [ids you have]; unset means everything. A recipe's needs are read from
+   its steps. Some gear stands in for another (an air fryer for the oven, a blender for the pint machine); then the recipe
+   stays in with a note. With nothing that stands in, plans skip it and the recipe says what it needs. */
+const GEAR = [
+  ['oven', 'Oven', /\boven\b|\bbak(e|es|ed|ing)\b|\broast|\bbroil|sheet[- ]pan/, ['airfryer'], 'No oven? Air-fry it instead: about 25°F (15°C) lower and a few minutes shorter, in batches so pieces don’t touch.'],
+  ['stove', 'Stovetop', /skillet|saucepan|frying pan|\bpot\b|simmer|\bboil|sauté|saute|stir-fry|\bwok\b|over (low|medium|high)|stovetop|\btoast(?!ed)/, ['slow'], 'No stovetop? Use the sauté and pressure settings on an Instant Pot.'],
+  ['airfryer', 'Air fryer', /air[- ]fr/, ['oven'], 'No air fryer? Bake at 425°F (220°C), turning once.'],
+  ['slow', 'Slow cooker or Instant Pot', /slow cooker|instant pot|pressure[- ]cook/, ['stove'], 'No slow cooker? Simmer it covered on the stove on low, stirring now and then.'],
+  ['blender', 'Blender', /\bblend(?!ed)(?! or shake)/, ['processor'], 'No blender? A food processor works.'],
+  ['processor', 'Food processor', /food processor/, ['blender'], 'No food processor? Pulse it in a blender in small batches.'],
+  ['rice', 'Rice cooker', /rice cooker/, ['stove'], 'No rice cooker? Cook it in a covered pot on the stove.'],
+  ['pint', 'Ice-cream pint machine', /ice-cream maker|ice cream maker|pint machine|\bre-?spin\b|\bspin (on|it)\b/, ['blender'], 'No pint machine? Freeze it in an ice-cube tray and blend the cubes with a splash of milk.']];
+const gearHave = () => { const g = mealHabits().gear; return Array.isArray(g) ? g : GEAR.map(x => x[0]); };
+/* { need: ids, missing: [labels nothing stands in for], notes: [what to do instead] } */
+function recipeGear(r, have = gearHave()) {
+  const txt = (r.steps || []).join(' ').toLowerCase(); const need = GEAR.filter(g => g[2].test(txt)).map(g => g[0]);
+  const missing = [], notes = [];
+  for (const id of need) { if (have.includes(id)) continue; const g = GEAR.find(x => x[0] === id);
+    if (g[3].some(a => have.includes(a))) notes.push(g[4]); else missing.push(g[1].toLowerCase().replace(/^ice-cream/, 'an ice-cream').replace(/^oven/, 'an oven').replace(/^air fryer/, 'an air fryer').replace(/^blender/, 'a blender').replace(/^food processor/, 'a food processor').replace(/^rice cooker/, 'a rice cooker').replace(/^slow cooker/, 'a slow cooker').replace(/^stovetop/, 'a stovetop')); }
+  return { need, missing, notes };
+}
+function GearLine({ r }) {
+  if (!Array.isArray(mealHabits().gear)) return null; const g = recipeGear(r); if (!g.missing.length && !g.notes.length) return null;
+  return html`<div class=${'issue-line' + (g.missing.length ? ' bad' : '')} id="recipe-gear" role="note">${g.missing.length ? 'Needs ' + g.missing.join(' and ') + ', which you said you don’t have. Plans skip it.' : g.notes.join(' ')}</div>`;
+}
+function GearFields({ v, set }) {
+  const have = Array.isArray(v.gear) ? v.gear : GEAR.map(x => x[0]);
+  return html`<div id="gear-fields"><span class="lbl">Kitchen gear you have</span><div class="cat-pick">${GEAR.map(([k, l]) => { const on = have.includes(k);
+      return html`<button key=${k} id=${'gear-' + k} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => set({ ...v, gear: on ? have.filter(x => x !== k) : have.concat(k) })}>${l}</button>`; })}</div>
+    <p class="small muted" style="margin-top:4px">Plans skip recipes that need something you don’t have, unless something you do have can stand in (an air fryer for the oven, a blender for a pint machine). Recipes say how.</p></div>`;
+}
+/* Recipes you keep out of plans (meals.noPlan) */
+function setNoPlan(id, on) {
+  mealCommit(m => { m.noPlan = { ...(m.noPlan || {}) }; if (on) m.noPlan[id] = true; else delete m.noPlan[id]; if (m.menu && m.menu.t) { const nm = buildMenu(m.menu.t, m.menu.seed); if (nm) m.menu = nm; } });
+  if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
+  showToast({ kind: 'info', text: on ? 'Left out of your meal plans' + (ML().menu ? '. Your plan was updated.' : '.') : 'Back in your meal plans.' });
+}
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
-  const all = allRecipes().filter(r => ok(r) && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
-  return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
+  const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
+  const have = gearHave();
+  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
+  const lean = base.filter(r => !hasPricey(r, off));
+  const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
+  return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
 /* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
    meals 2 = two bigger meals, 3 = three meals, 4 = three meals and a snack (the default), 5 = three meals and two snacks.
@@ -8317,7 +8454,7 @@ function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = Stri
 function shapePool(list, n, H, rnd) {
   let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
   if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
-  if (H.cheap) { keep(r => costScore(r) < 2); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
+  if (H.cheap) { keep(r => !hasPricey(r, priceyOff(H))); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
   return pickN(L, Math.min(n, L.length), rnd);
 }
@@ -8327,7 +8464,7 @@ function buildMenu(t, seed) {
   const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
   const mains = two && P.m.length > nM ? P.m.slice().sort((a, b) => macros(b).kcal - macros(a).kcal).slice(0, Math.max(nM, Math.ceil(P.m.length / 2))) : P.m; /* two meals: the bigger mains */
   const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(mains, nM, H, rnd);
-  const cheapS = P.s.filter(r => costScore(r) <= 0);
+  const cheapS = P.s.filter(r => !hasPricey(r, priceyOff(H)) && costScore(r) <= 2);
   const snacks = (H.cheap && cheapS.length ? cheapS : H.cheap && P.s.length ? P.s.slice().sort((a, b) => costScore(a) - costScore(b)).slice(0, 2) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
   const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2; const topUp = snacks.length ? snacks.slice().sort((a, b) => macros(b).kcal - macros(a).kcal)[0] : null;
   const addSnack = (day, r) => { const y = day.find(x => x.slot === 's' && x.r === r.id); if (y) y.sv += 1; else day.push({ slot: 's', r: r.id, sv: 1 }); };
@@ -8359,8 +8496,12 @@ function HabitsFields({ v, set }) {
     <div><span class="lbl">Meals a day</span>${seg('meals', [[2, '2'], [3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], 'meals')}</div>
     <div><span class="lbl">How you cook</span>${seg('prep', [['once', 'Once a week'], ['few', 'A few times'], ['fresh', 'Most days']], 'prep')}
       <p class="small muted" style="margin-top:4px">${v.prep === 'once' ? 'Fewest recipes: one big cook covers the week.' : v.prep === 'fresh' ? 'More variety, smaller batches.' : 'Two or three cooks a week.'}</p></div>
-    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
-    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
+    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg, and leaves out the pricey things you pick below, so you get fewer recipes to pick from.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    ${v.cheap ? html`<div class="card stack" id="pricey-menu" style="gap:4px;margin-top:-4px"><div style="font-weight:700">Leave out</div>
+      ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
+      <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
+    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <${GearFields} v=${v} set=${set}/></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
 const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */
@@ -8430,15 +8571,15 @@ function TargetsSheet({ preset, step0 } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   /* Three short steps (Nov 10, meal audit M4, M12): About you, Food, How you eat. The food step is the same Food
      preferences form as everywhere else, saved to the same place. Make my plan works from any step once the numbers are in. */
   const [step, setStep] = useState(+step0 || 0); const STEPS = ['About you', 'Food', 'How you eat'];
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
-  const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, bmi: d.bmi, us: d.us };
-  const t = targetsFor(me); const bmi = bmiOf(me);
+  const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, us: d.us };
+  const t = targetsFor(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
     mealCommit(m => { m.prefs = savePrefs(d.pf); m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
@@ -8452,7 +8593,8 @@ function TargetsSheet({ preset, step0 } = {}) {
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
     ${preset ? html`<p class="small muted" id="tg-from-goal">Your goal is filled in from your plan answers. Change it if you like.</p>` : typeof GoalSetupSheet === 'function' ? html`<button class="btn text" id="tg-goal" onClick=${() => openSheet({ type: 'goalSetup' })}>Want a training plan too? Answer a few questions</button>` : null}
-    <div class="gs-steps" id="tg-steps" aria-label=${'Step ' + (step + 1) + ' of 3: ' + STEPS[step]}>${STEPS.map((s, i) => html`<span key=${s} class=${i === step ? 'on' : i < step ? 'done' : ''}>${s}</span>`)}</div>
+    <div class="gs-steps" id="tg-steps" role="group" aria-label=${'Step ' + (step + 1) + ' of 3: ' + STEPS[step]}>${STEPS.map((s, i) => { const can = i === 0 || !!t;
+      return html`<button key=${s} id=${'tg-go-' + i} class=${i === step ? 'on' : i < step ? 'done' : ''} aria-current=${i === step ? 'step' : null} disabled=${!can} onClick=${() => can && setStep(i)}>${s}</button>`; })}</div>
     <div class="stack" style="margin-top:12px" id=${'tg-step' + step}>
       ${step === 0 ? html`
       <div class="row"><span class="lbl" style="flex:1;margin:0">Units</span><div class="seg" role="group">${[[true, 'ft · lb'], [false, 'cm · kg']].map(([v, l]) => html`<button key=${l} class=${d.us === v ? 'on' : ''} aria-pressed=${d.us === v} onClick=${() => set('us', v)}>${l}</button>`)}</div></div>
@@ -8464,13 +8606,12 @@ function TargetsSheet({ preset, step0 } = {}) {
       <div><span class="lbl">How active are you?</span><div class="stack" style="gap:6px;margin-top:6px">${ACT_LEVELS.map(([v, l, s]) => html`<button key=${v} id=${'tg-act-' + v} class=${'opt' + (d.act === v ? ' on' : '')} aria-pressed=${d.act === v} onClick=${() => set('act', v)}><div style="flex:1"><div>${l}</div><div class="d">${s}</div></div>${d.act === v ? I.check : null}</button>`)}</div></div>
       <div><span class="lbl">Your goal</span>${seg('goal', [['lose', 'Lose fat'], ['keep', 'Maintain'], ['gain', 'Build muscle']])}</div>
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
-      <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
       ${t ? null : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}`
       : step === 1 ? html`<${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/>`
       : html`<${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
-          <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
+          <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
           <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">${meProblem(me)}</p>`}`}
       ${step < 2 ? html`<div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="tg-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}
@@ -8484,7 +8625,7 @@ function TargetsSheet({ preset, step0 } = {}) {
 /* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
 function usePlanForPrep(sure, quiet) {
   const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
-  const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
+  const week = {}; mn.days.forEach((d, di) => { for (const { x, key } of menuRows(d)) if (!isSkipped(di, key)) week[x.r] = (week[x.r] || 0) + x.sv; });
   const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
   if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for this week?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
@@ -8493,19 +8634,23 @@ function MenuCard() {
   if (!mn || !mn.days || !mn.days.length) return html`<div class="card" id="plan-cta-small"><div style="font-weight:700">Want meals that fit your targets?</div>
     <p class="small muted" style="margin:2px 0 8px">Answer a few questions and Ironwood picks a week of meals with portions.</p>
     <button class="btn wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button></div>`;
-  const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
-  const reroll = () => { mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
+  const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(menuRows(day).filter(({ key }) => !isSkipped(di, key)).map(({ x }) => x)); const t = mn.t || {};
+  const nSkip = menuRows(day).filter(({ key }) => isSkipped(di, key)).length;
+  const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
-      <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit my answers</button></div>
+      <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
     <p class="small muted" style="margin:6px 0 2px">Tap a meal for its recipe.</p>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
-      return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
-    <div class="small muted num" id="menu-total">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat${t.p ? ' · ' + (Math.abs(tot.p - t.p) <= Math.max(10, t.p * 0.1) ? 'protein on target' : (tot.p > t.p ? '+' : '−') + Math.abs(Math.round(tot.p - t.p)) + ' g protein vs your target') : ''}</div>
-    ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
+      const off = isSkipped(di, s);
+      return html`<div key=${s} class=${'menu-item' + (off ? ' off' : '')}><button class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${off ? 'Covered elsewhere' : r.name}</span><span class="s">${off ? 'Not in your cooking or shopping' : portionText(r, x.sv)}</span></button>
+        <button class="menu-skip" id=${'menu-skip-' + s} aria-pressed=${!off} aria-label=${(off ? 'Prep ' : 'Don’t prep ') + ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][di] + ' ' + label.toLowerCase()} onClick=${() => toggleSkip(di, s)}>${off ? 'Prep it' : 'Skip'}</button></div>`; })}</div>
+    <p class="small faint" style="margin:6px 0 0">Already have a meal covered, like lunch at work? Tap Skip and it stays out of your cooking and shopping, every week.</p>
+    <div class="small muted num" id="menu-total">This day${nSkip ? ', not counting what’s covered elsewhere' : ''}: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat${t.p && !nSkip ? ' · ' + (Math.abs(tot.p - t.p) <= Math.max(10, t.p * 0.1) ? 'protein on target' : (tot.p > t.p ? '+' : '−') + Math.abs(Math.round(tot.p - t.p)) + ' g protein vs your target') : ''}</div>
+    ${nSkip ? null : t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px">${m.plan.fromMenu && !m.rot ? html`<button class="btn primary" style="flex:1" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>` : html`<button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use these meals</button>`}<button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
@@ -8513,9 +8658,9 @@ function MenuCard() {
 }
 function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;
-  const list = (mn.days[menuDayIdx(parseYmd(day))] || []).filter(x => getRecipe(x.r)); if (!list.length) return null;
+  const di = menuDayIdx(parseYmd(day)); const list = (mn.days[di] || []).filter(x => getRecipe(x.r)); if (!menuRows(list).some(({ key }) => !isSkipped(di, key))) return null;
   const logged = new Set((ML().log[day] || []).filter(e => e.k === 'recipe').map(e => e.r + ':' + (e.slot || '')));
-  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
+  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).filter(({ key }) => !isSkipped(di, key)).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
     return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
       <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
 }
@@ -8917,10 +9062,11 @@ const ALLERGENS = [
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
-  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/],
+  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|pepperoni|salami|chorizo|\bwine\b|\bbeer\b|\brum\b|bourbon|gelatin/, /(turkey|chicken|beef|veggie|plant[- ]based) (bacon|ham|pepperoni|sausage)|wine vinegar/g],
   ['lactose', 'Lactose intolerant', null]];
 /* Lactose intolerant (Nov 10, Newt): pick which dairy foods to leave out. Low-lactose ones start allowed. */
 const DAIRY_SAFE = ALLERGENS[0][3];
+const LACTOSE_SAFE = new RegExp(DAIRY_SAFE.source + '|lactose-free [a-z]+( [a-z]+)?', 'g');
 const LACTOSE_FOODS = [
   ['milk', 'Milk', /\bmilk\b|half[- ]and[- ]half|buttermilk|evaporated|condensed milk/, true],
   ['cream', 'Cream and sour cream', /(?<!ice )\bcream\b|creamer|sour cream|whipped/, true],
@@ -8936,13 +9082,14 @@ const lactoseDefault = () => LACTOSE_FOODS.filter(x => x[3]).map(x => x[0]);
 /* Several diets can be on at once; older saves had one diet string */
 const prefsOf = () => { const p = ML().prefs || {};
   const diets = Array.isArray(p.diets) ? p.diets.filter(k => k !== 'none') : p.diet && p.diet !== 'none' ? [p.diet] : [];
-  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || '') }; };
-const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim() });
+  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || ''),
+    swap: p.swap && typeof p.swap === 'object' ? p.swap : {} }; };
+const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim(), swap: { ...(v.swap || {}) } });
 /* Foods you don't like (Nov 10, Newt asked how "cheese beef" reads): commas, "and", or plain spaces all separate foods.
    A two-word food like "sour cream" stays together when a recipe here uses it. Plurals match singulars. */
 const DISLIKE_FILLER = /^(no|not|any|i|dont|don’t|don't|like|eat|the|a|an|much|too|really|please|without)$/;
 let DIS_VOCAB = null;
-const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof allRecipes === 'function' ? allRecipes().flatMap(ingNames).join(' | ') : '');
+const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof MEAL_BUILTIN === 'object' ? Object.values(MEAL_BUILTIN).flatMap(ingNames).join(' | ') : '');
 function parseDislikes(text) {
   const out = [];
   for (const chunk of String(text || '').toLowerCase().split(/[,;\n/&+]|\band\b|\bor\b/)) {
@@ -8957,15 +9104,95 @@ const dislikeRe = t => { const root = t.replace(/ies$/, 'y').replace(/oes$/, 'o'
 const dislikeTerms = () => parseDislikes(prefsOf().dislikes);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
-function recipeIssues(r) {
-  const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
+function recipeIssues(r, P = prefsOf()) {
+  const names = ingNames(r).concat(String(r.name || '').toLowerCase());
   const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
   const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
   for (const k of P.diets) { const d = DIETS.find(x => x[0] === k); const lbl = d && 'Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''); if (d && d[2] && has(d[2], d[3]) && !block.includes(lbl)) block.push(lbl); }
-  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, DAIRY_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
-  const dislike = dislikeTerms().filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
+  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, LACTOSE_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
+  const dislike = parseDislikes(P.dislikes).filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
   return { block, dislike };
 }
+/* ---- Swaps (Nov 11, Newt): instead of dropping a recipe, trade what you can't or won't eat for something you can ----
+   Each ingredient that goes against your answers is tried against a short list of stand-ins, in order; the first one
+   that passes your answers is used. Beef and pork can also be traded on purpose (meals.prefs.swap = { beef: 'turkey' |
+   'chicken' | 'keep', pork: … }), even when you'd eat them. Cheese with nothing that fits is left out. Recipes keep their
+   original text underneath (r.raw), so editing a recipe edits the real one. */
+const PROT = (k, P, turkey, chicken) => (P.swap[k] === 'chicken' ? [chicken, turkey] : [turkey, chicken]);
+/* [what it matches, which protein choice it follows, (P) => stand-ins in order ('' = leave it out)] */
+const SWAP_RULES = [
+  [/\bbeef (broth|stock)\b/, null, () => ['chicken broth', 'vegetable broth']],
+  [/\bground (?:beef|pork|lamb)\b/, n => /beef/.test(n) ? 'beef' : 'pork', (P, n) => PROT(/beef/.test(n) ? 'beef' : 'pork', P, 'ground turkey', 'ground chicken').concat('cooked lentils')],
+  [/\bbacon\b/, () => 'pork', () => ['turkey bacon']],
+  [/\b(?:pork |italian )?sausage\b/, () => 'pork', P => PROT('pork', P, 'turkey sausage', 'chicken sausage')],
+  [/\bham\b|\bprosciutto\b/, () => 'pork', P => PROT('pork', P, 'sliced turkey', 'sliced chicken')],
+  [/\bpepperoni\b|\bsalami\b|\bchorizo\b/, () => 'pork', () => ['turkey pepperoni', 'chicken sausage']],
+  [/\bpork(?: chops?| tenderloin| loin| shoulder)?\b/, () => 'pork', P => PROT('pork', P, 'turkey breast', 'chicken breast').concat('extra-firm tofu')],
+  [/\b(?:sirloin|ribeye|flank|skirt) steak\b|\bsirloin\b|\bbeef\b|\bsteak\b/, () => 'beef', P => PROT('beef', P, 'turkey breast', 'chicken breast').concat('extra-firm tofu')],
+  [/\blamb\b/, null, () => ['chicken thighs', 'turkey breast']],
+  [/\b(?:red |white )?wine\b|\bbeer\b/, null, () => ['chicken broth', 'vegetable broth']],
+  [/\brum\b|\bbourbon\b/, null, () => ['']],
+  [/\bsour cream\b|\bcream cheese\b|\bricotta\b|\bcottage cheese\b/, null, () => ['plain Greek yogurt', 'lactose-free Greek yogurt', 'coconut yogurt', '']],
+  [/\bice cream\b/, null, () => ['']],
+  [/\b(?:heavy |whipping |light )?cream\b|\bhalf[- ]and[- ]half\b|\bcreamer\b/, null, () => ['lactose-free half-and-half', 'coconut cream']],
+  [/\b(?:whole |2% |1% |skim |low-fat |nonfat )?milk\b|\bbuttermilk\b/, null, () => ['lactose-free milk', 'unsweetened almond milk', 'oat milk']],
+  [/\bgreek yogh?urt\b|\bskyr\b/, null, () => ['lactose-free Greek yogurt', 'coconut yogurt']],
+  [/\byogh?urt\b/, null, () => ['lactose-free yogurt', 'coconut yogurt']],
+  [/\bkefir\b/, null, () => ['lactose-free milk', 'oat milk']],
+  [/\b(?:unsalted |salted )?butter\b|\bghee\b/, null, () => ['olive oil']],
+  [/\bwhey(?: protein)?(?: powder)?\b|\bcasein\b|\bprotein powder\b/, null, () => ['pea protein powder']],
+  [/\b(?:[a-z-]+ )?cheese\b|\bcheddar\b|\bmozzarella\b|\bparmesan\b|\bparm\b|\bfeta\b|\bqueso\b|\bgouda\b|\bprovolone\b|\bswiss\b|\bpecorino\b|\bpaneer\b/, () => 'cheese', P => P.swap.cheese === 'dairyfree' ? ['dairy-free cheese', ''] : ['']],
+];
+let SWAP_KEY = '', SWAP_CACHE = new WeakMap(), ING_OK = new Map();
+const ingBad = n => { if (!ING_OK.has(n)) { const x = recipeIssues({ name: '', ing: [{ n }] }); ING_OK.set(n, x.block.length + x.dislike.length > 0); } return ING_OK.get(n); };
+const swEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* One ingredient name → { to: new name ('' = left out), from: the words replaced, by: the words used } or null */
+function swapIng(n, P) {
+  const low = String(n || '').toLowerCase(); if (!low) return null;
+  const bad = ingBad(low);
+  for (const [re, keyOf, cands] of SWAP_RULES) {
+    const m = low.match(re); if (!m || !m[0].trim()) continue;
+    const key = keyOf && keyOf(low); const want = key && P.swap[key] && P.swap[key] !== 'keep' && (key !== 'cheese');
+    if (!bad && !want) return null;
+    for (const c of cands(P, low)) {
+      if (c === '') return { to: '', from: m[0].trim(), by: '' };
+      const to = low.replace(re, c).replace(/\s+/g, ' ').trim();
+      if (!ingBad(to)) return { to, from: m[0].trim(), by: c };
+    }
+    return null;
+  }
+  return null;
+}
+function swapRecipe(r) {
+  if (!r || !Array.isArray(r.ing)) return r;
+  const key = JSON.stringify(ML().prefs || {}); if (key !== SWAP_KEY) { SWAP_KEY = key; SWAP_CACHE = new WeakMap(); ING_OK = new Map(); }
+  const hit = SWAP_CACHE.get(r); if (hit) return hit;
+  const P = prefsOf(); const swaps = []; const ing = []; let split = r.mix ? r.mix.split : null;
+  r.ing.forEach((g, i) => {
+    const s = g && swapIng(g.n, P);
+    if (!s) { ing.push(g); return; }
+    swaps.push({ from: g.n, to: s.to, w: s.from, by: s.by });
+    if (s.to) ing.push({ ...g, n: s.to }); else if (split != null && i < r.mix.split) split--;
+  });
+  let out = r;
+  if (swaps.length) {
+    const PW = /\b(beef|pork|steak|lamb|bacon|sausage|ham)\b/, NW = /\b(turkey|chicken|tofu|lentils)\b/;
+    const words = swaps.filter(s => s.by && s.w !== s.by).flatMap(s => { const a = s.w.match(PW), b = s.by.match(NW); return a && b && a[1] !== s.w ? [s, { w: a[1], by: b[1] }] : [s]; }).sort((a, b) => b.w.length - a.w.length);
+    const gone = [...new Set(swaps.filter(s => !s.to).map(s => s.w.split(' ').pop()))];
+    const txt = t => { let x = String(t || ''); for (const w of gone) x = x.replace(new RegExp('(,? (?:and |or )?)?\\b(?:shredded |grated |crumbled )?' + swEsc(w) + '\\b', 'gi'), ''); for (const s of words) x = x.replace(new RegExp('\\b' + swEsc(s.w) + '\\b', 'gi'), mm => mm[0] === mm[0].toUpperCase() ? s.by.replace(/^./, c => c.toUpperCase()) : s.by); return x; };
+    out = { ...r, raw: r, swaps, ing, name: txt(r.name), steps: (r.steps || []).map(txt), ...(r.mix ? { mix: { ...r.mix, split } } : {}) };
+  }
+  SWAP_CACHE.set(r, out); return out;
+}
+/* "Swapped for you" on a recipe */
+function SwapLine({ r }) {
+  if (!r.swaps || !r.swaps.length) return null;
+  return html`<div class="swap-line card" id="recipe-swaps" role="note"><div style="font-weight:700">Swapped for your food preferences</div>
+    <ul>${r.swaps.map((s, i) => html`<li key=${i}>${s.from} → ${s.to ? html`<b>${s.to}</b>` : html`<b>left out</b>`}</li>`)}</ul>
+    ${r.swaps.some(s => !s.to) ? html`<p class="small muted">Skip anything left out where the steps mention it.</p>` : null}
+    <button class="btn text" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Change swaps</button></div>`;
+}
+const prepSwaps = pr => { const out = new Set(); for (const [id] of pr.items || []) { const r = getRecipe(id); for (const s of (r && r.swaps) || []) out.add(s.w + ' → ' + (s.by || 'left out')); } return [...out]; };
 const avoidRecipe = r => { const x = recipeIssues(r); return x.block.length > 0 || x.dislike.length > 0; };
 const prepIssues = pr => { const out = new Set(); for (const [id] of pr.items || []) { const r = getRecipe(id); if (!r) continue; const x = recipeIssues(r); x.block.concat(x.dislike).forEach(t => out.add(t)); } return [...out]; };
 function IssueLine({ r }) {
@@ -8985,7 +9212,20 @@ function PrefsFields({ v, set }) {
         <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
       ${parseDislikes(v.dislikes).length ? html`<p class="small" id="pf-dislikes-read" style="margin-top:6px">Leaving out: ${parseDislikes(v.dislikes).join(' · ')}</p>` : null}
-      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div></div>`;
+      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div>
+    <${SwapFields} v=${v} set=${set}/></div>`;
+}
+/* Trade out proteins (Nov 11): beef and pork can always be traded; when your answers rule one out, Keep isn't offered */
+function SwapFields({ v, set }) {
+  const sw = v.swap || {}; const save = (k, x) => set({ ...v, swap: { ...sw, [k]: x } });
+  const bad = n => { const x = recipeIssues({ name: '', ing: [{ n }] }, v); return x.block.length + x.dislike.length > 0; };
+  const rules = { beef: bad('ground beef'), pork: bad('pork chops') || bad('bacon'), cheese: bad('cheddar cheese') };
+  const row = (k, label, opts) => { const cur = sw[k] && !(sw[k] === 'keep' && rules[k]) ? sw[k] : rules[k] ? opts.find(o => o[0] !== 'keep')[0] : 'keep';
+    return html`<div key=${k}><span class="small" style="font-weight:600">${label}</span><div class="seg wide" role="group" style="margin-top:4px">${opts.filter(o => !(o[0] === 'keep' && rules[k])).map(([x, l]) => html`<button key=${x} id=${'sw-' + k + '-' + x} class=${cur === x ? 'on' : ''} aria-pressed=${cur === x} onClick=${() => save(k, x)}>${l}</button>`)}</div></div>`; };
+  return html`<div id="swap-fields"><span class="lbl">Trade out proteins</span>
+    <div class="stack" style="gap:10px">${row('beef', 'Beef', [['keep', 'Keep beef'], ['turkey', 'Turkey'], ['chicken', 'Chicken']])}${row('pork', 'Pork, bacon and sausage', [['keep', 'Keep pork'], ['turkey', 'Turkey'], ['chicken', 'Chicken']])}
+      ${rules.cheese ? row('cheese', 'Cheese', [['omit', 'Leave it out'], ['dairyfree', 'Dairy-free cheese']]) : null}</div>
+    <p class="small muted" style="margin-top:6px">Recipes swap instead of disappearing: ground beef becomes ground turkey, bacon becomes turkey bacon, milk becomes lactose-free or dairy-free milk, butter becomes olive oil. Each recipe lists what changed.</p></div>`;
 }
 function PrefsSheet() {
   const [v, setV] = useState(prefsOf());

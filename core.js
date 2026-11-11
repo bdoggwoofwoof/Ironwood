@@ -1215,7 +1215,7 @@ function ProfileScreen({ view }) {
     <${AboutYouCard}/>
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
-    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
+    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
     <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
@@ -2255,6 +2255,6 @@ function CrashScreen({ err, retry }) {
   setInterval(audioTick, 200);
   setTimeout(l10nStart, 0);
   initCloud();
-  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour(); }, 1400);
+  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour('short'); }, 1400);
 })();
 

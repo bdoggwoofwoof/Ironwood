@@ -117,7 +117,8 @@ function HelpFoot() { return html`<div class="help-foot"><button class="btn text
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>
-    <button class="opt" id="help-tour" onClick=${startTour}><div style="flex:1"><div>Take the tour</div><div class="d">A quick walk through each page.</div></div></button>
+    <button class="opt" id="help-page-tour" onClick=${() => startTour('page')}><div style="flex:1"><div>Tour this page</div><div class="d">What you can do on ${PAGE_NAMES[(lsGet('tab') || 'train') === 'train' ? TRAIN.mode : lsGet('tab')] || 'this page'}, a few stops.</div></div></button>
+    <button class="opt" id="help-tour" onClick=${() => startTour('full')}><div style="flex:1"><div>Full tour</div><div class="d">Every page and feature, about ${TOUR_FULL.length} stops.</div></div></button>
     <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
     ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
 }
@@ -133,6 +134,40 @@ const TOUR = [
   ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
   ['profile', null, '#backup-file', 'Profile', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
 ];
+/* The full walkthrough (the 22-stop tour from before Nov 10), from Help → Full tour */
+const TOUR_FULL = [
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
+  ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
+  ['train', 'train', '#plan-sched, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#ch-finder-train, #plan-sched, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
+  ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
+  ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
+  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: yours, lifting, one-day plans, goal plans, running, fight, joint care and challenges. Search or tap a filter. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#ps-care', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
+  ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a plan or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
+  ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
+  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
+  ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
+  ['train', 'train', null, 'You’re set', 'Time to train.'],
+];
+/* Each page's own tour (Nov 10, Newt): the full tour's stops for the page you're on, plus a closing card */
+const PAGE_NAMES = { train: 'Train', run: 'Run', fight: 'Fight', routines: 'Plans', stats: 'Progress', meals: 'Meals', profile: 'Profile' };
+function pageTour() {
+  const tab = lsGet('tab') || 'train'; const mode = tab === 'train' ? TRAIN.mode : null;
+  const steps = TOUR_FULL.filter(t => t[0] === tab && t[2] && (tab !== 'train' || t[1] === mode));
+  const name = PAGE_NAMES[mode || tab] || 'This page';
+  return [[tab, mode, null, name + ' in ' + steps.length + ' stops', 'A quick look at this page. Skip any time.'], ...steps, [tab, mode, null, 'That’s ' + name, 'Help at the bottom of every page has this tour and the full one.']];
+}
+const tourSteps = () => (S.tour && S.tour.steps) || TOUR;
 function demoSessions() {
   if (DEMO.list) return DEMO.list;
   const kg = U() === 'kg', now = Date.now(), out = [];
@@ -149,9 +184,9 @@ function demoSessions() {
 }
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
-function startTour() { if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
-function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
-const tourGo = n => { S.tour = { step: n }; S.rerender(); };
+function startTour(which) { if (typeof which !== 'string') which = 'short'; if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0, steps: which === 'full' ? TOUR_FULL : which === 'page' ? pageTour() : null, page: which === 'page' ? { tab: lsGet('tab') || 'train', mode: TRAIN.mode } : null }; S.rerender(); }
+function endTour() { const pg = S.tour && S.tour.page; S.tour = null; tourDone(); if (pg) { UI.setTab(pg.tab); if (pg.tab === 'train') { TRAIN.mode = pg.mode || 'train'; lsSet('trainMode', TRAIN.mode); } S.rerender(); return; } TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
+const tourGo = n => { S.tour = { ...S.tour, step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
    transitions to restart mid-motion). Moving to another screen fades the page out, swaps it while it is invisible,
    and fades it back in; scrolling uses an eased animation. Reduce Motion skips all of it. */
@@ -164,9 +199,9 @@ function tourScroll(to, ms) {
     const f = now => { const p = Math.min(1, (now - t0) / ms); scrollTo(0, from + d * ease(p)); if (p < 1) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
 }
 function TourOverlay() {
-  const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
+  const step = S.tour.step; const T = tourSteps(); const [tab, mode, sel, title, body, extra] = T[step] || T[0]; const last = step >= T.length - 1;
   const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
-  const [vis, setVis] = useState(step); const shown = TOUR[vis] || TOUR[0];   /* the words on the card; under Reduce Motion they change only once it has faded out */
+  const [vis, setVis] = useState(step); const shown = tourSteps()[vis] || tourSteps()[0];   /* the words on the card; under Reduce Motion they change only once it has faded out */
   const tgt = useRef({ els: null, mid: true, side: 'mid', show: false });
   /* one loop for the whole tour */
   useEffect(() => {
@@ -245,7 +280,7 @@ function TourOverlay() {
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
     <div class="tour-hole" ref=${holeRef}><svg class="tour-dim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><rect class="tour-cut" x="0" y="0" width="0" height="0" rx="14" fill="#000"/></mask></defs><rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,.62)" mask="url(#tour-mask)"/></svg><div class="tour-ring"></div></div>
     <div class="tour-card" ref=${cardRef}><div key=${vis} class="tour-txt">
-      <div class="row"><div class="eyebrow" style="flex:1">${vis + 1} of ${TOUR.length}</div>${vis >= TOUR.length - 1 ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
+      <div class="row"><div class="eyebrow" style="flex:1">${vis + 1} of ${tourSteps().length}</div>${vis >= tourSteps().length - 1 ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
       <h2>${shown[3]}</h2><p class="note" style="margin:6px 0 14px">${shown[4]}</p></div>
       <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
         <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>

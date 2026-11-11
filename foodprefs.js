@@ -19,17 +19,53 @@ const ALLERGENS = [
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
-  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/]];
-const prefsOf = () => { const p = ML().prefs || {}; return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diet: p.diet || 'none', dislikes: String(p.dislikes || '') }; };
-const dislikeTerms = () => prefsOf().dislikes.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
+  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/],
+  ['lactose', 'Lactose intolerant', null]];
+/* Lactose intolerant (Nov 10, Newt): pick which dairy foods to leave out. Low-lactose ones start allowed. */
+const DAIRY_SAFE = ALLERGENS[0][3];
+const LACTOSE_FOODS = [
+  ['milk', 'Milk', /\bmilk\b|half[- ]and[- ]half|buttermilk|evaporated|condensed milk/, true],
+  ['cream', 'Cream and sour cream', /(?<!ice )\bcream\b|creamer|sour cream|whipped/, true],
+  ['icecream', 'Ice cream', /ice cream|gelato|frozen yogh?urt/, true],
+  ['softcheese', 'Soft cheese (mozzarella, ricotta, cottage, cream cheese, feta)', /ricotta|cottage|cream cheese|mozzarella|\bbrie\b|queso|paneer|\bfeta\b|mascarpone/, true],
+  ['yogurt', 'Yogurt', /(?<!greek )yogh?urt/, true],
+  ['hardcheese', 'Hard cheese (cheddar, parmesan, Swiss)', /cheddar|parmesan|\bparm\b|gouda|provolone|swiss|pecorino|asiago|manchego|monterey|(?<!cream |cottage |soft )\bcheese\b/, false],
+  ['greek', 'Greek yogurt and skyr', /greek yogh?urt|\bskyr\b/, false],
+  ['butter', 'Butter and ghee', /\bbutter\b|\bghee\b/, false],
+  ['whey', 'Whey protein', /\bwhey\b|protein powder|casein/, false],
+  ['kefir', 'Kefir', /\bkefir\b/, false]];
+const lactoseDefault = () => LACTOSE_FOODS.filter(x => x[3]).map(x => x[0]);
+/* Several diets can be on at once; older saves had one diet string */
+const prefsOf = () => { const p = ML().prefs || {};
+  const diets = Array.isArray(p.diets) ? p.diets.filter(k => k !== 'none') : p.diet && p.diet !== 'none' ? [p.diet] : [];
+  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || '') }; };
+const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim() });
+/* Foods you don't like (Nov 10, Newt asked how "cheese beef" reads): commas, "and", or plain spaces all separate foods.
+   A two-word food like "sour cream" stays together when a recipe here uses it. Plurals match singulars. */
+const DISLIKE_FILLER = /^(no|not|any|i|dont|don’t|don't|like|eat|the|a|an|much|too|really|please|without)$/;
+let DIS_VOCAB = null;
+const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof allRecipes === 'function' ? allRecipes().flatMap(ingNames).join(' | ') : '');
+function parseDislikes(text) {
+  const out = [];
+  for (const chunk of String(text || '').toLowerCase().split(/[,;\n/&+]|\band\b|\bor\b/)) {
+    const words = chunk.replace(/[^a-z\u00c0-\u024f\s'’-]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !DISLIKE_FILLER.test(w)); if (!words.length) continue;
+    const phrase = words.join(' ');
+    if (words.length === 1 || dislikeVocab().includes(phrase)) out.push(phrase); else out.push(...words);
+  }
+  return [...new Set(out)];
+}
+const dislikeRe = t => { const root = t.replace(/ies$/, 'y').replace(/oes$/, 'o').replace(/([^s])s$/, '$1'); const e = root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('\\b' + (root.endsWith('y') ? e.slice(0, -1) + '(y|ies)' : e + '(s|es)?') + '\\b'); };
+const dislikeTerms = () => parseDislikes(prefsOf().dislikes);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
 function recipeIssues(r) {
   const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
   const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
   const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
-  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2], d[3]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
-  const dislike = dislikeTerms().filter(t => names.some(n => n.includes(t)) || String(r.name).toLowerCase().includes(t));
+  for (const k of P.diets) { const d = DIETS.find(x => x[0] === k); const lbl = d && 'Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''); if (d && d[2] && has(d[2], d[3]) && !block.includes(lbl)) block.push(lbl); }
+  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, DAIRY_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
+  const dislike = dislikeTerms().filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
   return { block, dislike };
 }
 const avoidRecipe = r => { const x = recipeIssues(r); return x.block.length > 0 || x.dislike.length > 0; };
@@ -44,13 +80,18 @@ function PrefsFields({ v, set }) {
   return html`<div class="stack" style="gap:12px" id="prefs-fields">
     <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
       <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
-    <div><span class="lbl">Diet</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
+    <div><span class="lbl">Diet (pick any)</span><div class="cat-pick">${DIETS.map(([k, l]) => { const on = k === 'none' ? !v.diets.length : v.diets.includes(k);
+        return html`<button key=${k} id=${'diet-' + k} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => set({ ...v, diets: k === 'none' ? [] : on ? v.diets.filter(x => x !== k) : v.diets.concat(k) })}>${l}</button>`; })}</div>
+      ${v.diets.includes('lactose') ? html`<div class="card stack" id="lactose-menu" style="gap:4px;margin-top:10px"><div style="font-weight:700">Leave out</div>
+        ${LACTOSE_FOODS.map(([k, l]) => html`<label key=${k} class="toggle-row" for=${'lac-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'lac-' + k} checked=${v.lactose.includes(k)} onChange=${e => set({ ...v, lactose: e.target.checked ? v.lactose.concat(k) : v.lactose.filter(x => x !== k) })}/></label>`)}
+        <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
-      <p class="small muted">Left out of plans and suggestions. You can still search for them.</p></div></div>`;
+      ${parseDislikes(v.dislikes).length ? html`<p class="small" id="pf-dislikes-read" style="margin-top:6px">Leaving out: ${parseDislikes(v.dislikes).join(' · ')}</p>` : null}
+      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div></div>`;
 }
 function PrefsSheet() {
   const [v, setV] = useState(prefsOf());
-  const save = () => { mealCommit(m => { m.prefs = { allergies: v.allergies, diet: v.diet, dislikes: v.dislikes.trim() }; if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
+  const save = () => { mealCommit(m => { m.prefs = savePrefs(v); if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
   return html`<${Sheet} label="Food preferences"><h2>Food preferences</h2><p class="note">So Ironwood never suggests something you can’t or won’t eat.</p>
     <div style="margin-top:12px"><${PrefsFields} v=${v} set=${setV}/></div>
     <div class="stack" style="margin-top:14px"><button class="btn primary wide" id="pf-save" onClick=${save}>Save</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;

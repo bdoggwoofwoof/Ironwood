@@ -101,6 +101,14 @@ function setNoPlan(id, on) {
   if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
   showToast({ kind: 'info', text: on ? 'Left out of your meal plans' + (ML().menu ? '. Your plan was updated.' : '.') : 'Back in your meal plans.' });
 }
+const pickedIds = () => { const P = ML().plan; return P.fromMenu ? [] : P.items.map(i => i.r).filter(id => getRecipe(id)); };
+const picksKey = () => (mealHabits().starred ? 's:' + Object.keys(ML().stars || {}).sort().join(',') : 'p:' + pickedIds().slice().sort().join(','));
+/* Keep the day-by-day plan in step with what you picked: rebuild (same seed) when the picks change */
+function syncMenuToPicks() {
+  const mn = ML().menu; if (!mn || !mn.t || ML().plan.fromMenu || ML().rot) return;
+  const k = picksKey(); if (mn.pk === k) return;
+  const nm = buildMenu(mn.t, mn.seed); if (nm) mealCommit(m => { m.menu = { ...nm, pk: k }; });
+}
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
   const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
@@ -110,7 +118,11 @@ function planPool() {
   const st = ML().stars || {}; const H = mealHabits();
   /* Plan from my starred recipes: only starred ones in each meal slot that has enough (your star beats the chili's
      keep-out-of-plans flag, but not your food preferences, gear or Leave out of my meal plans) */
-  const starred = H.starred ? allRecipes().filter(r => st[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
+  /* Recipes you picked to cook yourself (not filled in by the plan) drive the meal plan (Nov 11, Newt picked dishes
+     and the plan showed others). Stars win when Plan from my starred recipes is on. */
+  const picks = pickedIds();
+  const fav = H.starred ? st : picks.length ? Object.fromEntries(picks.map(id => [id, true])) : {};
+  const starred = Object.keys(fav).length ? allRecipes().filter(r => fav[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
   const pick = (f, min) => { const s = starred.filter(f); if (s.length >= (min >= 3 ? 2 : 1)) return s; const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
@@ -318,7 +330,7 @@ function MenuCard() {
   const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
-    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : pickedIds().length ? ' · from what you picked' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}

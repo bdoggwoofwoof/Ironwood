@@ -861,6 +861,7 @@ function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
 }
 function MealsScreen({ view }) {
   useEffect(() => { rotCheck(); }, []);
+  useEffect(() => { syncMenuToPicks(); });
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;

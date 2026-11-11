@@ -58,6 +58,10 @@ function parseDislikes(text) {
 }
 const dislikeRe = t => { const root = t.replace(/ies$/, 'y').replace(/oes$/, 'o').replace(/([^s])s$/, '$1'); const e = root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp('\\b' + (root.endsWith('y') ? e.slice(0, -1) + '(y|ies)' : e + '(s|es)?') + '\\b'); };
+/* Dish words that are also a spice (Nov 11, Newt: "chili" meant the dish, not chili powder). Not liking chili or curry
+   leaves out the dish, not a teaspoon of chili powder, chili flakes or curry powder. */
+const DISH_SPICE = { chili: /\bchil(i|e|li)s? ?(powder|flakes|crisp|oil|paste|sauce|seasoning)|\bchil(i|e|li)[- ]lime|\bchil(i|e|li) (pepper|de arbol)/g, curry: /\bcurry (powder|paste|leaves)/g };
+const dislikeText = (n, t) => { const k = t.replace(/(ies|es|s)$/, '').replace(/^chil(e|li)$/, 'chili'); const re = DISH_SPICE[k === 'chilie' ? 'chili' : k]; return re ? n.replace(re, ' ') : n; };
 const dislikeTerms = () => parseDislikes(prefsOf().dislikes);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
@@ -67,7 +71,7 @@ function recipeIssues(r, P = prefsOf()) {
   const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
   for (const k of P.diets) { const d = DIETS.find(x => x[0] === k); const lbl = d && 'Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''); if (d && d[2] && has(d[2], d[3]) && !block.includes(lbl)) block.push(lbl); }
   if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, LACTOSE_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
-  const dislike = parseDislikes(P.dislikes).filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
+  const dislike = parseDislikes(P.dislikes).filter(t => { const re = dislikeRe(t); return names.some(n => re.test(dislikeText(n, t))); });
   return { block, dislike };
 }
 /* ---- Swaps (Nov 11, Newt): instead of dropping a recipe, trade what you can't or won't eat for something you can ----

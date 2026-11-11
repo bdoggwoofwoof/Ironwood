@@ -23,6 +23,12 @@ async def main():
         check('no beef, pork or cheese in them', not await ev(f"{SC}.some(id => getRecipe(id).ing.some(g => /beef|pork|bacon|cheese/.test(g.n)))"))
         check('the chili is still in Recipes', await ev("allRecipes().some(r => r.id === 'm-turkey-chili')"))
         check('...but never in a meal plan', not await ev("planPool().m.some(r => r.id === 'm-turkey-chili')") and not await ev("[1,2,3,4,5,6,7,8].some(s => { const M = buildMenu({ kcal: 2400, p: 150, c: 250, f: 80 }, s * 977); return M && M.days.some(d => d.some(x => x.r === 'm-turkey-chili')); })"))
+        await ev("mealCommit(m => { m.prefs = { allergies: [], diets: [], dislikes: 'chili' }; })")
+        check('not liking chili flags the chili dish', await ev("recipeIssues(getRecipe('m-turkey-chili')).dislike") == ['chili'])
+        check('...but not chili powder or chili-lime chicken', await ev("!recipeIssues(getRecipe('m-sc-salsa-chicken')).dislike.length && !recipeIssues(getRecipe('m-thighs-chili-lime')).dislike.length"))
+        check('...so no ready-made prep says has chili', await ev("MEAL_PREPS.filter(p => prepIssues(p).length).map(p => p.name)") == [])
+        check('curry powder works the same way', await ev("(mealCommit(m => { m.prefs = { allergies: [], diets: [], dislikes: 'curry' }; }), recipeIssues({ name: 'Rice', ing: [{ n: 'curry powder' }] }).dislike.length === 0 && recipeIssues({ name: 'Chickpea Curry', ing: [] }).dislike.length === 1)"))
+        await ev("mealCommit(m => { m.prefs = { allergies: [], diets: [], dislikes: '' }; })")
         check('no chili left in the ready-made preps', not await ev("MEAL_PREPS.some(p => p.items.some(([r]) => r === 'm-turkey-chili'))"))
         # Favor slow-cooker recipes
         await ev("mealCommit(m => { m.me = { h: 178, w: 82, age: 30, sex: 'm', act: 1.55, us: true }; }); UI.setTab('meals'); setMealsMode('plan'); S.rerender(); openSheet({ type: 'mealTargets', step: 2 })"); await pg.wait_for_timeout(400)

@@ -841,3 +841,10 @@ main.with-mini{padding-top:64px}
 
 [id^="ps-"] .stack > .row,[id^="ps-"] .stack > .note{margin:10px 0}
 
+.ready-list{display:flex;flex-direction:column}
+.ready-row{border-bottom:1px solid var(--line);padding:2px 0 8px}
+.ready-row:first-child{border-top:1px solid var(--line)}
+.ready-h{display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:52px;padding:6px 2px}
+
+.ready-h svg{width:18px;height:18px;flex:none;color:var(--ink-3)}
+

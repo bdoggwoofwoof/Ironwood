@@ -105,7 +105,7 @@ function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
   const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
   const have = gearHave();
-  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
+  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !r.noAuto && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
   const lean = base.filter(r => !hasPricey(r, off));
   const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };

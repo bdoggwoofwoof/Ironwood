@@ -21,6 +21,8 @@ async def main():
         check('each is a real meal (300+ kcal, 20+ g protein)', all(x[2] >= 300 and x[3] >= 20 for x in info), info)
         check('each needs only the slow cooker', all(x[5] == 'slow' for x in info), info)
         check('no beef, pork or cheese in them', not await ev(f"{SC}.some(id => getRecipe(id).ing.some(g => /beef|pork|bacon|cheese/.test(g.n)))"))
+        check('the chili is still in Recipes', await ev("allRecipes().some(r => r.id === 'm-turkey-chili')"))
+        check('...but never in a meal plan', not await ev("planPool().m.some(r => r.id === 'm-turkey-chili')") and not await ev("[1,2,3,4,5,6,7,8].some(s => { const M = buildMenu({ kcal: 2400, p: 150, c: 250, f: 80 }, s * 977); return M && M.days.some(d => d.some(x => x.r === 'm-turkey-chili')); })"))
         check('no chili left in the ready-made preps', not await ev("MEAL_PREPS.some(p => p.items.some(([r]) => r === 'm-turkey-chili'))"))
         # Favor slow-cooker recipes
         await ev("mealCommit(m => { m.me = { h: 178, w: 82, age: 30, sex: 'm', act: 1.55, us: true }; }); UI.setTab('meals'); setMealsMode('plan'); S.rerender(); openSheet({ type: 'mealTargets', step: 2 })"); await pg.wait_for_timeout(400)

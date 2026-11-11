@@ -1,6 +1,6 @@
 /* ============ Meal plan from your targets, and easy measurements (Nov 2) ============ */
 /* meals.me: { h (cm), w (kg), age, sex: 'm' | 'f' | 'x', act: 1–4, goal: 'lose' | 'keep' | 'gain', pace: 'gentle' | 'steady',
-   bmi: show BMI, us: true for ft/in and lb }. The targets are estimates (Mifflin-St Jeor resting energy × activity, then
+   us: true for ft/in and lb }. The targets are estimates (Mifflin-St Jeor resting energy × activity, then
    a modest change for the goal) with a floor, never a crash diet. meals.menu: { seed, t: targets, days: [[{ slot, r, sv }]] }.
    meals.units: 'easy' | 'written' | 'weight' for every ingredient amount in Meals. */
 const ACT_LEVELS = [[1, 'Light', 'Desk job, 1–3 workouts a week', 1.375], [2, 'Moderate', '3–5 workouts a week', 1.55], [3, 'Active', '6+ workouts, or on your feet all day', 1.725], [4, 'Very active', 'Physical job plus training', 1.9]];
@@ -240,15 +240,15 @@ function TargetsSheet({ preset, step0 } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   /* Three short steps (Nov 10, meal audit M4, M12): About you, Food, How you eat. The food step is the same Food
      preferences form as everywhere else, saved to the same place. Make my plan works from any step once the numbers are in. */
   const [step, setStep] = useState(+step0 || 0); const STEPS = ['About you', 'Food', 'How you eat'];
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
-  const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, bmi: d.bmi, us: d.us };
-  const t = targetsFor(me); const bmi = bmiOf(me);
+  const me = { h, w, age: +d.age, sex: d.sex, act: d.act, goal: d.goal, pace: d.pace, us: d.us };
+  const t = targetsFor(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
     mealCommit(m => { m.prefs = savePrefs(d.pf); m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
@@ -275,13 +275,12 @@ function TargetsSheet({ preset, step0 } = {}) {
       <div><span class="lbl">How active are you?</span><div class="stack" style="gap:6px;margin-top:6px">${ACT_LEVELS.map(([v, l, s]) => html`<button key=${v} id=${'tg-act-' + v} class=${'opt' + (d.act === v ? ' on' : '')} aria-pressed=${d.act === v} onClick=${() => set('act', v)}><div style="flex:1"><div>${l}</div><div class="d">${s}</div></div>${d.act === v ? I.check : null}</button>`)}</div></div>
       <div><span class="lbl">Your goal</span>${seg('goal', [['lose', 'Lose fat'], ['keep', 'Maintain'], ['gain', 'Build muscle']])}</div>
       ${d.goal !== 'keep' ? html`<div><span class="lbl">Pace</span>${seg('pace', d.goal === 'lose' ? [['gentle', 'Gentle (about ½ lb a week)'], ['steady', 'Steady (about 1 lb)']] : [['gentle', 'Lean (slow gain)'], ['steady', 'Faster']])}</div>` : null}
-      <label class="toggle-row" for="tg-bmi"><span><span>Show my BMI</span><span class="d">Optional. A rough screening number that doesn’t account for muscle.</span></span><input type="checkbox" role="switch" id="tg-bmi" checked=${d.bmi} onChange=${e => set('bmi', e.target.checked)}/></label>
       ${t ? null : html`<p class="small muted" id="tg-problem">${meProblem(me)}</p>`}`
       : step === 1 ? html`<${PrefsFields} v=${d.pf} set=${pf => set('pf', pf)}/>`
       : html`<${HabitsFields} v=${d.hb} set=${hb => set('hb', hb)}/>
       <div><span class="lbl">How should amounts look?</span>${seg('units', [['easy', 'Easy (3 chicken breasts)'], ['weight', 'By weight']])}<p class="small muted" style="margin-top:4px">Spices and sauces stay exact either way. Change it any time.</p></div>
       ${t ? html`<div class="card" id="tg-result"><div style="font-weight:700">${fmt(t.kcal)} calories a day</div>
-          <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g${d.bmi && bmi ? ' · BMI ' + (Math.round(bmi * 10) / 10) : ''}</div>
+          <div class="small muted">Protein ${t.p} g · Carbs ${t.c} g · Fat ${t.f} g · Fiber ${t.fib} g</div>
           ${t.note ? html`<p class="small" style="margin-top:6px">${t.note}</p>` : null}
           <p class="small faint" style="margin-top:6px">From a standard formula. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</p></div>` : html`<p class="small muted">${meProblem(me)}</p>`}`}
       ${step < 2 ? html`<div class="row" style="gap:8px">${step > 0 ? html`<button class="btn" style="flex:1" id="tg-back" onClick=${() => setStep(step - 1)}>Back</button>` : html`<button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button>`}

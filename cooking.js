@@ -29,7 +29,8 @@ function cookTasks(items) {
     const each = untimed ? Math.min(12, Math.max(3, Math.round(handsOn / untimed))) : 0;
     const temp = (/(\d{3})\s*°\s*F/.exec(steps.join(' ')) || [])[1];
     const f = servingsFor(it) / (r.serves || 1);
-    out.push({ r, f, steps: steps.map((s, i) => ({ key: r.id + ':' + i, r, i, text: s, passive: tm[i].passive, overnight: tm[i].overnight, run: tm[i].passive ? tm[i].mins : 0, work: tm[i].passive ? 2 : (tm[i].mins || each), oven: COOK_OVEN.test(String(s).toLowerCase()) && !/slow cooker/i.test(s), temp: temp ? +temp : 0 })) });
+    const withAmt = stepsWithAmounts(r, f);
+    out.push({ r, f, steps: steps.map((s, i) => ({ key: r.id + ':' + i, r, i, text: s, parts: withAmt[i], passive: tm[i].passive, overnight: tm[i].overnight, run: tm[i].passive ? tm[i].mins : 0, work: tm[i].passive ? 2 : (tm[i].mins || each), oven: COOK_OVEN.test(String(s).toLowerCase()) && !/slow cooker/i.test(s), temp: temp ? +temp : 0 })) });
   }
   return out;
 }
@@ -93,7 +94,7 @@ function CookView() {
       <p class="small muted" style="margin:-4px 0 8px">These cook on their own for hours. Start them before anything else${S2.longFirst.filter(rc => /slow cooker/i.test(rc.steps.map(s => s.text).join(' '))).length > 1 ? '. More than one needs the slow cooker: start one now and the other tomorrow, or use a second cooker or an Instant Pot' : ''}.</p>
       <div class="stack" id="cook-long">${S2.longFirst.map(rc => { const k = rc.steps.findIndex(s => s.passive && (s.run > 120 || s.overnight)); const setup = rc.steps.slice(0, k + 1); const after = rc.steps.slice(k + 1);
         return html`<div key=${rc.r.id} class="card cook-step"><div class="row" style="align-items:flex-start;gap:10px">${tick(rc.r.id + ':long')}<div style="flex:1;min-width:0"><div style="font-weight:700">${rc.r.name}${Math.abs(rc.f - 1) > 0.01 ? html`<span class="small muted"> · ${fracStr(rc.f)} × recipe</span>` : null}</div>
-          <ol class="small" style="margin:4px 0 0;padding-left:18px">${setup.map(s => html`<li key=${s.i}>${s.text}</li>`)}</ol>
+          <ol class="small" style="margin:4px 0 0;padding-left:18px">${setup.map(s => html`<li key=${s.i}><${StepText} parts=${s.parts}/></li>`)}</ol>
           ${after.length ? html`<div class="small muted" style="margin-top:4px">When it’s done (${setup[k].overnight ? 'next day' : 'in about ' + minsText(setup[k].run)}): ${after.map(s => s.text).join(' ')}</div>` : null}</div></div></div>`; })}</div>` : null}
     ${knives.length ? html`<div class="section-h"><h2>Chop once for everything</h2></div>
       <p class="small muted" style="margin:-4px 0 8px">Do all the cutting before the heat goes on, then nothing waits on the knife.</p>
@@ -103,7 +104,7 @@ function CookView() {
     <div class="stack" id="cook-plan" style="gap:8px">${S2.plan.map((s, n) => html`<div key=${s.key} class=${'card cook-step' + (s.passive ? ' passive' : '') + (st.done[s.key] ? ' done' : '')}>
       <div class="row" style="align-items:flex-start;gap:10px">${tick(s.key)}<div style="flex:1;min-width:0">
         <div class="small muted num">${when(s.at)} · ${s.r.name}</div>
-        <div>${s.text}</div>
+        <div><${StepText} parts=${s.parts}/></div>
         ${s.passive ? html`<div class="small cook-run">${I.timer} Runs about ${minsText(s.run)} on its own · ready ${st.start ? 'at ' + clockAt(st.start, s.at + s.work + s.run) : 'at +' + minsText(s.at + s.work + s.run)}. Go on to the next step.</div>` : null}
         ${!s.passive && s.while.length ? html`<div class="small muted">While ${s.while.join(' and ')} ${s.while.length > 1 ? 'cook' : 'cooks'}</div>` : null}</div></div></div>`)}</div>
     <div class="section-h"><h2>Finish and pack</h2></div>
@@ -111,3 +112,44 @@ function CookView() {
     <p class="small faint">Times are estimates read from the recipes. ${NOT_ADVICE}</p>
   </div>`;
 }
+/* ---- Amounts inside the steps (Nov 11, Newt: "what does half of the garlic mean?") ----
+   Each step names its ingredients with the amount for the batch you're making, so you don't scroll back up:
+   "Add half the garlic (1½ cloves)". Splits like half, a third, two-thirds, the rest and the remaining follow
+   what earlier steps already used. An ingredient written with its own amount in the step is left alone. */
+const SPLIT_WORDS = [[/\b(?:the )?other half(?: of)?(?: the)?\s*$/, 'rest'], [/\bhalf(?: of)?(?: the)?\s*$/, 0.5], [/\btwo[- ]thirds?(?: of)?(?: the)?\s*$/, 2 / 3], [/\b(?:a|one)[- ]third(?: of)?(?: the)?\s*$/, 1 / 3], [/\b(?:a|one)[- ]quarter(?: of)?(?: the)?\s*$/, 0.25],
+  [/\bthree[- ]quarters?(?: of)?(?: the)?\s*$/, 0.75], [/\bthe rest(?: of)?(?: the)?\s*$/, 'rest'], [/\bremaining\s*$/, 'rest'], [/\bmost(?: of)?(?: the)?\s*$/, 0.75], [/\ba little(?: of)?(?: the)?\s*$/, 0.25]];
+const ING_SKIP = /^(salt|pepper|black pepper|water|ice|oil spray|cooking spray)$/;
+function ingKeys(r) {
+  const base = (r.ing || []).map(g => String(g.n || '').toLowerCase().split(',')[0].replace(/\([^)]*\)/g, ' ').replace(/\b(boneless|skinless|fresh|large|small|medium|ripe|plain|nonfat|low-fat|unsweetened|dry|dried|canned|frozen|lean|extra-virgin|ground|chopped|diced|minced|sliced)\b/g, ' ').replace(/\s+/g, ' ').trim());
+  /* tail words first ("soy sauce", "sauce"), then single words ("chicken" in "chicken thighs"); a word two
+     ingredients share is never used */
+  const tails = base.map(n => { const w = n.split(' ').filter(Boolean); const out = []; for (let k = w.length; k >= 1; k--) { const s = w.slice(w.length - k).join(' '); if (s.length >= 3) out.push(s); } return out; });
+  const words = base.map(n => n.split(' ').filter(x => x.length >= 4));
+  const cT = {}, cA = {}; base.forEach((n, i) => { new Set(tails[i]).forEach(s => { cT[s] = (cT[s] || 0) + 1; }); new Set([...tails[i], ...words[i]]).forEach(s => { cA[s] = (cA[s] || 0) + 1; }); });
+  const cands = base.map((n, i) => [...tails[i].filter(s => cT[s] === 1), ...words[i].filter(x => !tails[i].includes(x) && cA[x] === 1)]);
+  return cands.map((c, i) => (ING_SKIP.test(base[i]) ? [] : c).map(s => ({ s, re: new RegExp('\\b' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/(s|es)$/, '') + '(?:es|s)?\\b', 'i') })));
+}
+/* steps → [[text or { amt, of }]] for one recipe at batch factor f */
+function stepsWithAmounts(r, f) {
+  const keys = ingKeys(r); const used = (r.ing || []).map(() => 0); const ing = r.ing || [];
+  return (r.steps || []).map(step => {
+    const hits = [];
+    ing.forEach((g, i) => { if (g.q == null || !(g.q > 0)) return;
+      for (const k of keys[i]) { const m = k.re.exec(step); if (!m) continue;
+        if (hits.some(h => m.index < h.end && h.start < m.index + m[0].length)) break;
+        const before = step.slice(0, m.index);
+        if (/\d[\d\s½¼¾⅓⅔⅛\/.-]*(\s*(cups?|tbsp|tsp|oz|lb|g|kg|ml|cloves?|cans?|scoops?))?\s*$/i.test(before.slice(-14))) break;
+        let frac = 0, split = false; for (const [re, v] of SPLIT_WORDS) if (re.test(before.slice(-28).toLowerCase())) { frac = v === 'rest' ? Math.max(0, 1 - used[i]) : v; split = true; break; }
+        if (!split) { if (used[i] > 0) break; frac = 1; }   /* named again later without a split: no amount */
+        if (frac <= 0.01) break;
+        const tail = /^\s+(juice|zest|wedges)\b/i.exec(step.slice(m.index + m[0].length)); if (tail) m[0] += tail[0];
+        used[i] = Math.min(1, used[i] + frac);
+        hits.push({ start: m.index, end: m.index + m[0].length, amt: ingLine({ ...g, q: g.q * frac }, f).q });
+        break; } });
+    hits.sort((a, b) => a.start - b.start);
+    const parts = []; let at = 0;
+    for (const h of hits) { parts.push(step.slice(at, h.end)); parts.push({ amt: h.amt }); at = h.end; }
+    parts.push(step.slice(at)); return parts;
+  });
+}
+const StepText = ({ parts }) => parts.map((p, i) => typeof p === 'string' ? p : html`<span key=${i} class="step-amt"> (${p.amt})</span>`);

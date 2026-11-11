@@ -892,3 +892,4 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .cook-box{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
 .cook-run{color:var(--accent);margin-top:4px;display:flex;gap:4px;align-items:center}.cook-run svg{width:15px;height:15px;flex:none}
 #cook-start svg{width:18px;height:18px;margin-right:4px}
+.step-amt{font-weight:700;color:var(--ink)}

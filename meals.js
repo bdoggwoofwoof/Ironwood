@@ -1117,7 +1117,7 @@ function RecipeView({ id }) {
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
       ${Math.abs(f - 1) > 0.01 ? html`<p class="small muted" style="margin:-4px 0 8px">Written for ${r.serves} servings. Cooking times stay about the same; use more pans so food isn’t crowded.</p>` : null}
-      <ol class="step-list card">${r.steps.map((s, i) => html`<li key=${i}>${s}</li>`)}</ol>` : null}
+      <ol class="step-list card">${stepsWithAmounts(r, f).map((parts, i) => html`<li key=${i}><${StepText} parts=${parts}/></li>`)}</ol>` : null}
     ${r.note ? html`<div class="tip-card" style="margin-top:12px;padding-right:14px">${r.note}</div>` : null}
     ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
       <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}

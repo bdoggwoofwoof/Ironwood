@@ -40,6 +40,14 @@ function menuRows(day) {
     const lbl = (PLAN_SLOTS.find(p => p[0] === x.slot) || [, 'Meal'])[1];
     if (x.slot !== 's') return { x, key: x.slot, label: lbl }; k++; return { x, key: k > 1 ? 's' + k : 's', label: ns > 1 ? 'Snack ' + k : 'Snack' }; });
 }
+/* Meals you don't prep (Nov 10, Newt): a lunch at work on Thursdays, say. meals.skip: { 'day index:slot key': true }.
+   Skipped meals stay out of the cooking, the shopping list, the day total and Today. They survive Different meals. */
+const skipKey = (di, key) => di + ':' + key;
+const isSkipped = (di, key) => !!((ML().skip || {})[skipKey(di, key)]);
+function toggleSkip(di, key) {
+  mealCommit(m => { m.skip = { ...(m.skip || {}) }; const k = skipKey(di, key); if (m.skip[k]) delete m.skip[k]; else m.skip[k] = true; });
+  if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
+}
 function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
 function planPool() {
@@ -103,8 +111,8 @@ function HabitsFields({ v, set }) {
     <div><span class="lbl">Meals a day</span>${seg('meals', [[2, '2'], [3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], 'meals')}</div>
     <div><span class="lbl">How you cook</span>${seg('prep', [['once', 'Once a week'], ['few', 'A few times'], ['fresh', 'Most days']], 'prep')}
       <p class="small muted" style="margin-top:4px">${v.prep === 'once' ? 'Fewest recipes: one big cook covers the week.' : v.prep === 'fresh' ? 'More variety, smaller batches.' : 'Two or three cooks a week.'}</p></div>
-    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
-    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
+    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg. Leaves out salmon, steak, shrimp and lamb, nuts, berries, avocado, quinoa, fancy cheeses and protein powder, so you get fewer recipes to pick from.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));
 const menuDayIdx = (d = new Date()) => (d.getDay() + 6) % 7;   /* Monday first */
@@ -228,7 +236,7 @@ function TargetsSheet({ preset, step0 } = {}) {
 /* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
 function usePlanForPrep(sure, quiet) {
   const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
-  const week = {}; for (const d of mn.days) for (const x of d) week[x.r] = (week[x.r] || 0) + x.sv;
+  const week = {}; mn.days.forEach((d, di) => { for (const { x, key } of menuRows(d)) if (!isSkipped(di, key)) week[x.r] = (week[x.r] || 0) + x.sv; });
   const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
   if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for this week?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
@@ -237,8 +245,9 @@ function MenuCard() {
   if (!mn || !mn.days || !mn.days.length) return html`<div class="card" id="plan-cta-small"><div style="font-weight:700">Want meals that fit your targets?</div>
     <p class="small muted" style="margin:2px 0 8px">Answer a few questions and Ironwood picks a week of meals with portions.</p>
     <button class="btn wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button></div>`;
-  const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(day); const t = mn.t || {};
-  const reroll = () => { mealCommit(mm => { mm.menu = buildMenu(mm.menu.t, (mm.menu.seed + 7919) % 1e6); }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
+  const day = (mn.days[di] || []).filter(x => getRecipe(x.r)); const tot = dayTotals(menuRows(day).filter(({ key }) => !isSkipped(di, key)).map(({ x }) => x)); const t = mn.t || {};
+  const nSkip = menuRows(day).filter(({ key }) => isSkipped(di, key)).length;
+  const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
@@ -247,9 +256,12 @@ function MenuCard() {
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
     <p class="small muted" style="margin:6px 0 2px">Tap a meal for its recipe.</p>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
-      return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
-    <div class="small muted num" id="menu-total">This day: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat${t.p ? ' · ' + (Math.abs(tot.p - t.p) <= Math.max(10, t.p * 0.1) ? 'protein on target' : (tot.p > t.p ? '+' : '−') + Math.abs(Math.round(tot.p - t.p)) + ' g protein vs your target') : ''}</div>
-    ${t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
+      const off = isSkipped(di, s);
+      return html`<div key=${s} class=${'menu-item' + (off ? ' off' : '')}><button class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${off ? 'Covered elsewhere' : r.name}</span><span class="s">${off ? 'Not in your cooking or shopping' : portionText(r, x.sv)}</span></button>
+        <button class="menu-skip" id=${'menu-skip-' + s} aria-pressed=${!off} aria-label=${(off ? 'Prep ' : 'Don’t prep ') + ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][di] + ' ' + label.toLowerCase()} onClick=${() => toggleSkip(di, s)}>${off ? 'Prep it' : 'Skip'}</button></div>`; })}</div>
+    <p class="small faint" style="margin:6px 0 0">Already have a meal covered, like lunch at work? Tap Skip and it stays out of your cooking and shopping, every week.</p>
+    <div class="small muted num" id="menu-total">This day${nSkip ? ', not counting what’s covered elsewhere' : ''}: ${fmt(tot.kcal)} cal · ${tot.p} g protein · ${tot.c} g carbs · ${tot.f} g fat${t.p && !nSkip ? ' · ' + (Math.abs(tot.p - t.p) <= Math.max(10, t.p * 0.1) ? 'protein on target' : (tot.p > t.p ? '+' : '−') + Math.abs(Math.round(tot.p - t.p)) + ' g protein vs your target') : ''}</div>
+    ${nSkip ? null : t.kcal && tot.kcal < t.kcal * 0.9 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((t.kcal - tot.kcal) / 10) * 10)} cal short of your target. Add a snack or a bigger portion${+mealHabits().meals < 4 ? ', or pick more meals a day in Edit' : ''}.</p>`
       : t.kcal && tot.kcal > t.kcal * 1.1 ? html`<p class="small" id="menu-short" style="margin-top:4px">About ${fmt(Math.round((tot.kcal - t.kcal) / 10) * 10)} cal over your target. Eat a smaller portion of one meal.</p>` : null}
     <div style="margin-top:10px"><${UnitsSeg}/></div>
     <div class="row" style="margin-top:10px;gap:8px">${m.plan.fromMenu && !m.rot ? html`<button class="btn primary" style="flex:1" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>` : html`<button class="btn primary" style="flex:1" id="plan-use" onClick=${usePlan}>Use these meals</button>`}<button class="btn" style="flex:1" id="plan-shuffle" onClick=${reroll}>Different meals</button></div>
@@ -257,9 +269,9 @@ function MenuCard() {
 }
 function TodayMenu({ day }) {
   const mn = ML().menu; if (!mn || !mn.days) return null;
-  const list = (mn.days[menuDayIdx(parseYmd(day))] || []).filter(x => getRecipe(x.r)); if (!list.length) return null;
+  const di = menuDayIdx(parseYmd(day)); const list = (mn.days[di] || []).filter(x => getRecipe(x.r)); if (!menuRows(list).some(({ key }) => !isSkipped(di, key))) return null;
   const logged = new Set((ML().log[day] || []).filter(e => e.k === 'recipe').map(e => e.r + ':' + (e.slot || '')));
-  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
+  return html`<div id="today-menu"><div class="section-h"><h2>On your plan</h2></div><div class="stack" style="gap:8px">${menuRows(list).filter(({ key }) => !isSkipped(di, key)).map(({ x, key: s, label }) => { const r = getRecipe(x.r); const done = logged.has(r.id + ':' + s);
     return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
       <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
 }

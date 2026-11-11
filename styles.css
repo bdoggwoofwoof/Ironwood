@@ -257,6 +257,9 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .menu-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
 .menu-row{display:grid;grid-template-columns:76px minmax(0,1fr);column-gap:10px;text-align:left;padding:8px 0;border-bottom:1px solid var(--line);color:inherit;align-items:baseline}
 .menu-row .eyebrow{grid-row:span 2}.menu-row .t{font-weight:600}.menu-row .s{grid-column:2;font-size:calc(14 * var(--u));color:var(--ink-2)}
+.menu-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}.menu-item .menu-row{flex:1;min-width:0;border-bottom:0}
+.menu-item.off .menu-row .t,.menu-item.off .menu-row .s{color:var(--ink-3,var(--ink-2));font-weight:400}
+.menu-skip{min-height:44px;padding:0 10px;font-size:calc(14 * var(--u));color:var(--accent);font-weight:600;flex:none}
 .menu-log{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:10px 12px}
 .w-th{display:flex;align-items:center;justify-content:center;gap:1px;min-width:0}
 .side-tog{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:24px;min-height:32px;padding:0 4px;margin:-2px 0}
@@ -847,4 +850,13 @@ main.with-mini{padding-top:64px}
 .ready-h{display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:52px;padding:6px 2px}
 
 .ready-h svg{width:18px;height:18px;flex:none;color:var(--ink-3)}
+
+.goal-tiles .mac small{font-size:calc(11 * var(--u));color:var(--ink-3)}
+.gt-bar{display:block;width:100%;height:4px;border-radius:2px;background:var(--line);margin-top:4px;overflow:hidden}
+.gt-bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+
+/* Quick-log button on every Meals page (Nov 10, Newt) */
+.fab{position:fixed;right:max(16px, calc((100vw - 640px) / 2 + 16px));bottom:calc(var(--tabs-h, 66px) + 14px);z-index:28;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.fab svg{width:26px;height:26px}
+main:has(.fab){padding-bottom:84px}
 

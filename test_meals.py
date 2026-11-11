@@ -127,7 +127,7 @@ async def main():
         check('remove an entry', await pg.evaluate("ML().log[ymd(new Date())].length") == 2)
         # goals
         await pg.locator('#log-goals').click(); await pg.locator('#goal-kcal').fill('2400'); await pg.locator('#goal-p').fill('160'); await pg.locator('#goal-na').fill('2300'); await pg.locator('#goal-save').click(); await pg.wait_for_timeout(200)
-        check('goals show as progress', await pg.locator('#log-totals .goal-bar').count() == 3 and 'to go' in await pg.locator('#log-totals').inner_text())
+        check('goals show as progress', await pg.locator('#log-totals .gt-bar').count() >= 3 and 'of ' in await pg.locator('#log-totals').inner_text())
         await pg.locator('button[aria-label="Previous day"]').click(); await pg.wait_for_timeout(150)
         check('other days start empty', 'Yesterday' in await pg.locator('.day-nav').inner_text() and await pg.locator('.log-row').count() == 0)
         await pg.locator('button[aria-label="Next day"]').click()

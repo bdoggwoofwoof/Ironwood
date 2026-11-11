@@ -502,6 +502,7 @@ function normMeals(x) {
     ...(typeof x.lookup === 'boolean' ? { lookup: x.lookup } : {}),
     ...(x.me && typeof x.me === 'object' && +x.me.h > 0 && +x.me.w > 0 ? { me: x.me } : {}),
     ...(x.menu && Array.isArray(x.menu.days) && x.menu.t ? { menu: x.menu } : {}),
+    ...(x.skip && typeof x.skip === 'object' && Object.keys(x.skip).length ? { skip: Object.fromEntries(Object.keys(x.skip).filter(k => /^[0-6]:(b|l|d|s\d*)$/.test(k) && x.skip[k]).map(k => [k, true])) } : {}),
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
@@ -615,7 +616,8 @@ function MealsScreen({ view }) {
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Today'], ['plan', 'Week'], ['recipes', 'Recipes'], ['list', 'Shopping']]} onChange=${setMealsMode}/>
-    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}</div>`;
+    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}
+    <button class="fab" id="meal-fab" aria-label="Log food" onClick=${() => openSheet({ type: 'mealLog', day: MEALS.mode === 'log' && MEALS.day ? MEALS.day : ymd(new Date()) })}>${I.plus}</button></div>`;
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
@@ -625,6 +627,13 @@ function keepNote(r, it) {
   return null;
 }
 const PREP_UI = { ready: false, open: null };
+/* Clear this week (Nov 11, Newt): drops the meal plan, what you'll cook and the shopping ticks, and stops a rotation.
+   Keeps saved preps, your recipes, food log, answers, food preferences and skipped meals. */
+function clearMealPlan() {
+  openSheet({ type: 'confirm', title: 'Clear this week and start over?', body: 'Your meal plan, what you’ll cook and the shopping list are cleared' + (ML().rot ? ', and your rotation stops' : '') + '. Saved preps, your recipes, your answers and food preferences stay.', ok: 'Clear it', onOk: () => {
+    mealCommit(mm => { delete mm.menu; delete mm.rot; mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; mm.extras = []; });
+    closeSheet(); PREP_UI.open = null; showToast({ kind: 'info', text: 'Cleared. Plan my week starts fresh.' }); } });
+}
 function PrepPane() {
   const m = ML(); const P = m.plan; const items = P.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r);
   const setP = (k, v) => mealCommit(mm => { mm.plan[k] = v; });
@@ -646,6 +655,7 @@ function PrepPane() {
   const [more, setMore] = useState(false);
   const readyOpen = more || PREP_UI.ready;
   return html`<div>
+    ${items.length || m.menu ? html`<div class="row" style="justify-content:flex-end;margin:-4px 0 4px"><button class="btn text" id="plan-clear" style="color:var(--danger,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear and start over</button></div>` : null}
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
@@ -980,6 +990,15 @@ function GoalBar({ k, label, unit, v, goal }) {
     <div class=${'goal-bar' + (lim && over > 0 ? ' over' : '')} role="progressbar" aria-label=${label} aria-valuenow=${Math.round(v)} aria-valuemin="0" aria-valuemax=${goal}><i style=${{ width: pct + '%' }}></i></div>
     <div class="small muted num">${note}</div></div>`;
 }
+/* Compact goal tiles (Nov 10, Newt: the bars took over the screen and pushed Log food down) */
+function GoalTiles({ tot, G }) {
+  const main = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' g'], ['f', 'Fat', ' g']];
+  const extra = NUT.filter(([k]) => !main.some(x => x[0] === k));
+  return html`<div class="mac-tiles goal-tiles" id="goal-tiles">${main.map(([k, l, u]) => { const g = G[k]; const v = tot[k] || 0; const pct = g ? Math.min(100, v / g * 100) : 0;
+      return html`<div key=${k} class="mac" role=${g ? 'progressbar' : null} aria-label=${g ? l + ': ' + fmtNut(k, v) + u + ' of ' + fmtNut(k, g) + u : null} aria-valuenow=${g ? Math.round(v) : null} aria-valuemax=${g || null}>
+        <b class="num">${fmtNut(k, v)}${u}</b><span>${l}</span>${g ? html`<small class="num">of ${fmtNut(k, g)}${u}</small><i class="gt-bar"><i style=${{ width: pct + '%' }}></i></i>` : null}</div>`; })}</div>
+    <div class="mac-extra num">${extra.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k] || 0)}${u}</b>${G[k] ? html`<span class="muted"> / ${fmtNut(k, G[k])}${u}${LIMITS[k] ? ' max' : ''}</span>` : null}</span>`)}</div>`;
+}
 function LogPane() {
   const m = ML(); const today = ymd(new Date()); const day = MEALS.day && MEALS.day < today ? MEALS.day : today;
   const go = n => { const d = ymd(addDays(parseYmd(day), n)); MEALS.day = d >= today ? null : d; S.rerender(); };
@@ -991,12 +1010,10 @@ function LogPane() {
     <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
       <button class="pill-btn flip" aria-label="Next day" disabled=${day === today} onClick=${() => go(1)}>${I.back}</button></div>
     <div class="card" id="log-totals">
-      ${gk.length ? html`<div class="stack" style="gap:14px">${gk.map(([k, l, u]) => html`<${GoalBar} key=${k} k=${k} label=${l} unit=${u} v=${tot[k]} goal=${G[k]}/>`)}</div>
-        ${rest.length ? html`<div class="mac-extra num">${rest.map(([k, l, u]) => html`<span key=${k}>${l} <b>${fmtNut(k, tot[k])}${u}</b></span>`)}</div>` : null}`
-      : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
+      ${gk.length ? html`<${GoalTiles} tot=${tot} G=${G}/>` : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>
-    <${TodayMenu} day=${day}/>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
+    <${TodayMenu} day=${day}/>
     ${prep.length ? html`<div class="section-h"><h2>From your prep</h2><span class="aside">Tap to log a serving</span></div>
       <div class="stack">${prep.map(({ it, r }) => { const n = wk[r.id] || 0; return html`<button key=${r.id} class="day-btn prep-log" aria-label=${'Log a serving of ' + r.name} onClick=${() => quick(r)}><div style="min-width:0"><div class="t">${r.name}</div>
         <div class="s num">${n ? fracStr(n) + ' of ' + it.n + ' this week' : it.n + ' planned this week'} · ${macroLine(macros(r))}</div></div><span class="go">${I.plus}</span></button>`; })}</div>` : null}

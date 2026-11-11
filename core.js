@@ -42,7 +42,7 @@ const ALSO = { v: true };
    with nothing open uses it up and goes on back, so leaving the app still takes one gesture. */
 const SHEET_H = { open: false, entry: false };
 const openSheet = s => { UI.setSheet(s); SHEET_H.open = !!s; if (s && !SHEET_H.entry) { try { history.pushState({ ironSheet: 1 }, ''); SHEET_H.entry = true; } catch (e) {} } };
-const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; };
+const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; setTimeout(() => { if (typeof settleScroll === 'function') settleScroll(); }, 350); };
 addEventListener('popstate', () => { if (!SHEET_H.entry) return; SHEET_H.entry = false; if (SHEET_H.open) { SHEET_H.open = false; UI.setSheet(null); } else { try { history.back(); } catch (e) {} } });
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -2125,10 +2125,16 @@ function HdrClock({ since }) {
 }
 /*@include labelread.js*/
 
+const KB = { open: false };
+function settleScroll() { const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight); const y = Math.min(window.scrollY, max); window.scrollTo(window.scrollX, y + 1); window.scrollTo(window.scrollX, y); }
 function kbFit(h, top) {
   const r = document.documentElement; const kb = Math.max(0, window.innerHeight - h - top);
   if (kb > 80) { r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', top + 'px'); r.classList.add('kb-open'); }
-  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open'); }
+  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open');
+    /* iPhone can leave the page nudged up after the keyboard closes on a short screen, which lifts the tab bar off the
+       bottom (Nov 10, Newt's Meals screenshot). Settle the scroll back inside the page once the keyboard is gone. */
+    if (KB.open || top > 0) setTimeout(settleScroll, 80); }
+  KB.open = kb > 80;
   const a = document.activeElement;
   if (kb > 80 && a && a.closest && a.closest('.sheet')) setTimeout(() => { try { a.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
 }

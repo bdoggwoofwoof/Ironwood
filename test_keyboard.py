@@ -32,6 +32,13 @@ async def main():
         f = await box('#fd-na')
         check('a field low in a long sheet scrolls into view above the keyboard', f[0] >= 0 and f[1] <= 508.5, f)
         await ev("kbFit(844, 0)")
+        # After the keyboard closes on a short screen, the page settles back so the tab bar sits on the bottom
+        await ev("closeSheet(); UI.setTab('meals'); setMealsMode('log'); S.rerender()"); await pg.wait_for_timeout(400)
+        await ev("window.__set = 0; const o = settleScroll; settleScroll = () => { window.__set++; o(); }; kbFit(508, 0)"); await pg.wait_for_timeout(100)
+        await ev("kbFit(844, 0)"); await pg.wait_for_timeout(300)
+        check('keyboard closing settles the page scroll', await ev("window.__set") >= 1)
+        tb = await box('.tabs')
+        check('tab bar sits on the bottom after the keyboard closes', abs(tb[1] - 844) < 1, tb)
         check('no page errors', not errs, errs[:2])
         await b.close()
 asyncio.run(main()); srv.kill()

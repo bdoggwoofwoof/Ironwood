@@ -636,7 +636,7 @@ function MealsScreen({ view }) {
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Today'], ['plan', 'Week'], ['recipes', 'Recipes'], ['list', 'Shopping']]} onChange=${setMealsMode}/>
     ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PrepPane}/>`}
-    <button class="fab" id="meal-fab" aria-label="Log food" onClick=${() => openSheet({ type: 'mealLog', day: MEALS.mode === 'log' && MEALS.day ? MEALS.day : ymd(new Date()) })}>${I.plus}</button></div>`;
+    ${MEALS.mode === 'log' ? null : html`<button class="fab" id="meal-fab" aria-label="Log food" onClick=${() => openSheet({ type: 'mealLog', day: MEALS.mode === 'log' && MEALS.day ? MEALS.day : ymd(new Date()) })}>${I.plus}</button>`}</div>`;
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
@@ -645,7 +645,7 @@ function keepNote(r, it) {
   if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
 }
-const PREP_UI = { ready: false, open: null };
+const PREP_UI = { ready: false, open: null, all: false };
 /* Clear this week (Nov 11, Newt): drops the meal plan, what you'll cook and the shopping ticks, and stops a rotation.
    Keeps saved preps, your recipes, food log, answers, food preferences and skipped meals. */
 function clearMealPlan() {
@@ -678,7 +678,7 @@ function PrepPane() {
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
-        <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { PREP_UI.all = true; S.rerender(); const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
         <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
       : html`<${MenuCard}/>`}
     ${items.length ? html`
@@ -704,7 +704,6 @@ function PrepPane() {
       <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>
       <button class="btn ghost wide" style="margin-top:8px" id="prep-save" onClick=${() => openSheet({ type: 'prepSave' })}>Save this prep for later</button>`
     : null}
-    <${RotationCard}/>
     ${Object.keys(m.preps).length ? html`<div class="section-h"><h2>Saved preps</h2></div>
       <div class="stack">${Object.values(m.preps).map(pr => html`<div key=${pr.id} class="r-card prep-card" id=${'myprep-' + pr.id}>
         <div class="row"><h3 style="flex:1">${pr.name}</h3><button class="tip-x" aria-label=${'Delete ' + pr.name} onClick=${() => deleteMyPrep(pr)}>${I.x}</button></div>
@@ -712,13 +711,15 @@ function PrepPane() {
         <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
     <div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
     <p class="small muted" style="margin:-4px 0 8px">A whole week of cooking in one tap. Tap one to see what’s in it.</p>
-    <div class="ready-list">${readyPreps().map(pr => { const open = PREP_UI.ready || PREP_UI.open === pr.id; const fit = prepFits(pr); const sw = prepSwaps(pr);
+    ${(() => { const list = readyPreps(); const n = empty ? 4 : 0; const shown = PREP_UI.all || PREP_UI.ready ? list : list.filter((pr, i) => i < n || PREP_UI.open === pr.id);
+      return html`<div class="ready-list">${shown.map(pr => { const open = PREP_UI.ready || PREP_UI.open === pr.id; const fit = prepFits(pr); const sw = prepSwaps(pr);
       return html`<div key=${pr.id} class=${'prep-card ready-row' + (open ? ' open' : '')}>
       <button class="ready-h" aria-expanded=${open} onClick=${() => { PREP_UI.open = open ? null : pr.id; setMore(!more); }}><span style="flex:1;min-width:0"><b>${pr.name}</b>${fit ? html`<span class="fit-tag">Picked for your food preferences</span>` : null}<span class="small muted" style="display:block">${pr.items.length} recipes${prepIssues(pr).length ? ' · has ' + prepIssues(pr).join(', ') : sw.length ? ' · ' + sw.length + ' swap' + (sw.length === 1 ? '' : 's') + ' for you' : ''}</span></span>${open ? I.up : I.down}</button>
       ${open ? html`<div class="small" style="margin:2px 0 6px">${pr.d}</div><div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
         ${sw.length ? html`<div class="small" style="margin-top:6px">Swapped for you: ${sw.join(' · ')}</div>` : null}
-        <button class="btn wide" style="margin-top:8px" onClick=${() => usePrep(pr)}>Use this prep</button>` : null}</div>`; })}</div></div>
-    ${items.length ? html`<button class="btn text wide" style="margin-top:14px;color:var(--stop)" onClick=${() => openSheet({ type: 'confirm', title: 'Clear your prep?', body: 'Removes every recipe from this prep and unticks the shopping list. Your saved recipes stay.', ok: 'Clear prep', danger: true, onOk: () => { mealCommit(mm => { mm.plan.items = []; mm.checks = {}; }); closeSheet(); } })}>Clear prep</button>` : null}
+        <button class="btn wide" style="margin-top:8px" onClick=${() => usePrep(pr)}>Use this prep</button>` : null}</div>`; })}</div>
+      ${list.length > n ? html`<button class="btn wide" id="ready-more" style="margin-top:8px" aria-expanded=${PREP_UI.all} onClick=${() => { PREP_UI.all = !PREP_UI.all; setMore(!more); }}>${PREP_UI.all ? 'Show fewer' : n ? 'Show all ' + list.length + ' ready-made preps' : 'Browse ' + list.length + ' ready-made preps'}</button>` : null}`; })()}</div>
+    <${RotationCard}/>
   </div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----

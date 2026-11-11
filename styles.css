@@ -863,5 +863,7 @@ main.with-mini{padding-top:64px}
 /* Quick-log button on every Meals page (Nov 10, Newt) */
 .fab{position:fixed;right:max(16px, calc((100vw - 640px) / 2 + 16px));bottom:calc(var(--tabs-h, 66px) + 14px);z-index:28;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .fab svg{width:26px;height:26px}
-main:has(.fab){padding-bottom:84px}
+main:has(.fab:not([hidden])){padding-bottom:84px}
 
+
+.fab[hidden]{display:none}

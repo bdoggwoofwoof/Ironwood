@@ -21,7 +21,12 @@ async def main():
         check('Log food sits above the fold', await ev("document.querySelector('#log-add').getBoundingClientRect().bottom < 600"))
         for mode in ['log', 'plan', 'recipes', 'list']:
             await ev(f"setMealsMode('{mode}'); S.rerender()"); await pg.wait_for_timeout(400)
-            check('+ button on ' + mode, await pg.locator('#meal-fab').count() == (0 if mode == 'log' else 1))
+            want = 0 if mode == 'log' else 1
+            try:
+                await pg.wait_for_function(f"document.querySelectorAll('#meal-fab:not([hidden])').length === {want}", timeout=3000)
+            except Exception:
+                pass
+            check('+ button on ' + mode, await pg.locator('#meal-fab:not([hidden])').count() == want, await ev("[MEALS.mode, document.querySelector('#meal-fab') && [...document.querySelectorAll('#meal-fab')].map(e => e.outerHTML.slice(0, 120)).join(' ;; ')]"))
         await pg.click('#meal-fab'); await pg.wait_for_timeout(300)
         check('+ opens Log food', await pg.locator('#lf-num-go').count() == 1)
         await ev("closeSheet()"); await pg.wait_for_timeout(300)

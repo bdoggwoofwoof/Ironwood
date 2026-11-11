@@ -30,7 +30,7 @@ async def main():
         await pg.evaluate("mealCommit(m => { m.units = 'weight'; })")
         await pg.locator('.tabs button', has_text='Meals').click(); await pg.wait_for_timeout(300)
         await pg.evaluate("PREP_UI.ready = true; S.rerender()"); await pg.wait_for_timeout(200)
-        await pg.locator('.prep-card', has_text='Bowl Week').locator('button', has_text='Use this prep').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.prep-card').filter(has=pg.locator('b', has_text=__import__('re').compile('^Bowl Week$'))).locator('button', has_text='Use this prep').click(); await pg.wait_for_timeout(300)
         check('ready-made prep fills the prep', await pg.locator('.mp-item').count() == 4)
         check('prep shows daily macros', await pg.locator('#prep-macros .mac').count() == 4)
         # scale: 2 people doubles the shopping list

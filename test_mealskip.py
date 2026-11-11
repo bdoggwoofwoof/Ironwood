@@ -70,7 +70,8 @@ async def main():
         # Clear this week
         await ev("setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.click('#plan-clear'); await pg.wait_for_timeout(300)
-        await pg.click('.sheet .btn.primary'); await pg.wait_for_timeout(400)
+        check('clear warns it can\'t be undone', 'can’t be undone' in await pg.inner_text('.sheet'))
+        await pg.click('.sheet .btn.danger'); await pg.wait_for_timeout(400)
         M = await ev("ML()")
         check('clear drops the meal plan and the cooking', 'menu' not in M and not M['plan']['items'] and not M['plan'].get('fromMenu'), list(M.keys()))
         check('clear keeps saved preps', 'k1' in M['preps'])

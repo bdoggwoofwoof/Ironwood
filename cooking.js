@@ -144,7 +144,8 @@ function stepsWithAmounts(r, f) {
         if (frac <= 0.01) break;
         const tail = /^\s+(juice|zest|wedges)\b/i.exec(step.slice(m.index + m[0].length)); if (tail) m[0] += tail[0];
         used[i] = Math.min(1, used[i] + frac);
-        hits.push({ start: m.index, end: m.index + m[0].length, amt: ingLine({ ...g, q: g.q * frac }, f).q });
+        const L = ingLine({ ...g, q: g.q * frac }, f); const noun = !g.u ? String(L.n || '').split(',')[0].replace(/\([^)]*\)/g, '').trim().split(' ').pop() : '';
+        hits.push({ start: m.index, end: m.index + m[0].length, amt: L.q + (noun ? ' ' + noun : '') });
         break; } });
     hits.sort((a, b) => a.start - b.start);
     const parts = []; let at = 0;

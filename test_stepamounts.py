@@ -19,6 +19,7 @@ async def main():
         check('two-thirds of the garlic says how many cloves', 'two-thirds of the garlic[4 cloves]' in sh[0], sh[0])
         check('the rest of the garlic is what is left', 'the rest of the garlic[2 cloves]' in sh[2], sh[2])
         check('chicken thighs are found as "the chicken"', 'chicken[3 lb]' in sh[0], sh[0])
+        check('counts say what they count', 'onions[2 onions]' in sh[0] and 'lemon juice[2 lemons]' in sh[0], sh[0])
         check('a second mention without a split gets no amount', 'Pack rice, chicken and onions,' in sh[3], sh[3])
         sp = await ev(f"({FLAT})('m-sheet-pan', 1)")
         check('half the oil', 'half the oil[1½ tbsp]' in sp[1], sp[1])

@@ -2184,7 +2184,8 @@ function HelpFoot() { return html`<div class="help-foot"><button class="btn text
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>
-    <button class="opt" id="help-tour" onClick=${startTour}><div style="flex:1"><div>Take the tour</div><div class="d">A quick walk through each page.</div></div></button>
+    <button class="opt" id="help-page-tour" onClick=${() => startTour('page')}><div style="flex:1"><div>Tour this page</div><div class="d">What you can do on ${PAGE_NAMES[(lsGet('tab') || 'train') === 'train' ? TRAIN.mode : lsGet('tab')] || 'this page'}, a few stops.</div></div></button>
+    <button class="opt" id="help-tour" onClick=${() => startTour('full')}><div style="flex:1"><div>Full tour</div><div class="d">Every page and feature, about ${TOUR_FULL.length} stops.</div></div></button>
     <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
     ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
 }
@@ -2200,6 +2201,40 @@ const TOUR = [
   ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
   ['profile', null, '#backup-file', 'Profile', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
 ];
+/* The full walkthrough (the 22-stop tour from before Nov 10), from Help → Full tour */
+const TOUR_FULL = [
+  ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
+  ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
+  ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
+  ['train', 'train', '#plan-sched, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
+  ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
+  ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
+  ['train', 'train', '#ch-finder-train, #plan-sched, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
+  ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
+  ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
+  ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
+  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: yours, lifting, one-day plans, goal plans, running, fight, joint care and challenges. Search or tap a filter. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#ps-care', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
+  ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a plan or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
+  ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
+  ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
+  ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
+  ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
+  ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
+  ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
+  ['train', 'train', '#help-btn', 'Help is always here', 'Take this tour again or send feedback from Help at the bottom of any page.'],
+  ['train', 'train', null, 'You’re set', 'Time to train.'],
+];
+/* Each page's own tour (Nov 10, Newt): the full tour's stops for the page you're on, plus a closing card */
+const PAGE_NAMES = { train: 'Train', run: 'Run', fight: 'Fight', routines: 'Plans', stats: 'Progress', meals: 'Meals', profile: 'Profile' };
+function pageTour() {
+  const tab = lsGet('tab') || 'train'; const mode = tab === 'train' ? TRAIN.mode : null;
+  const steps = TOUR_FULL.filter(t => t[0] === tab && t[2] && (tab !== 'train' || t[1] === mode));
+  const name = PAGE_NAMES[mode || tab] || 'This page';
+  return [[tab, mode, null, name + ' in ' + steps.length + ' stops', 'A quick look at this page. Skip any time.'], ...steps, [tab, mode, null, 'That’s ' + name, 'Help at the bottom of every page has this tour and the full one.']];
+}
+const tourSteps = () => (S.tour && S.tour.steps) || TOUR;
 function demoSessions() {
   if (DEMO.list) return DEMO.list;
   const kg = U() === 'kg', now = Date.now(), out = [];
@@ -2216,9 +2251,9 @@ function demoSessions() {
 }
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
-function startTour() { if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0 }; S.rerender(); }
-function endTour() { S.tour = null; tourDone(); TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
-const tourGo = n => { S.tour = { step: n }; S.rerender(); };
+function startTour(which) { if (typeof which !== 'string') which = 'short'; if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0, steps: which === 'full' ? TOUR_FULL : which === 'page' ? pageTour() : null, page: which === 'page' ? { tab: lsGet('tab') || 'train', mode: TRAIN.mode } : null }; S.rerender(); }
+function endTour() { const pg = S.tour && S.tour.page; S.tour = null; tourDone(); if (pg) { UI.setTab(pg.tab); if (pg.tab === 'train') { TRAIN.mode = pg.mode || 'train'; lsSet('trainMode', TRAIN.mode); } S.rerender(); return; } TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
+const tourGo = n => { S.tour = { ...S.tour, step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
    transitions to restart mid-motion). Moving to another screen fades the page out, swaps it while it is invisible,
    and fades it back in; scrolling uses an eased animation. Reduce Motion skips all of it. */
@@ -2231,9 +2266,9 @@ function tourScroll(to, ms) {
     const f = now => { const p = Math.min(1, (now - t0) / ms); scrollTo(0, from + d * ease(p)); if (p < 1) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
 }
 function TourOverlay() {
-  const step = S.tour.step; const [tab, mode, sel, title, body, extra] = TOUR[step] || TOUR[0]; const last = step >= TOUR.length - 1;
+  const step = S.tour.step; const T = tourSteps(); const [tab, mode, sel, title, body, extra] = T[step] || T[0]; const last = step >= T.length - 1;
   const holeRef = useRef(null), cardRef = useRef(null), insetRef = useRef(null);
-  const [vis, setVis] = useState(step); const shown = TOUR[vis] || TOUR[0];   /* the words on the card; under Reduce Motion they change only once it has faded out */
+  const [vis, setVis] = useState(step); const shown = tourSteps()[vis] || tourSteps()[0];   /* the words on the card; under Reduce Motion they change only once it has faded out */
   const tgt = useRef({ els: null, mid: true, side: 'mid', show: false });
   /* one loop for the whole tour */
   useEffect(() => {
@@ -2312,7 +2347,7 @@ function TourOverlay() {
     <div class="tour-inset" ref=${insetRef} aria-hidden="true"></div>
     <div class="tour-hole" ref=${holeRef}><svg class="tour-dim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><rect class="tour-cut" x="0" y="0" width="0" height="0" rx="14" fill="#000"/></mask></defs><rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,.62)" mask="url(#tour-mask)"/></svg><div class="tour-ring"></div></div>
     <div class="tour-card" ref=${cardRef}><div key=${vis} class="tour-txt">
-      <div class="row"><div class="eyebrow" style="flex:1">${vis + 1} of ${TOUR.length}</div>${vis >= TOUR.length - 1 ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
+      <div class="row"><div class="eyebrow" style="flex:1">${vis + 1} of ${tourSteps().length}</div>${vis >= tourSteps().length - 1 ? null : html`<button class="btn text" id="tour-skip" style="min-height:28px;padding:0" onClick=${endTour}>Skip tour</button>`}</div>
       <h2>${shown[3]}</h2><p class="note" style="margin:6px 0 14px">${shown[4]}</p></div>
       <div class="row">${step > 0 ? html`<button class="btn" style="flex:1" onClick=${() => tourGo(step - 1)}>Back</button>` : null}
         <button class="btn primary" style="flex:2" id="tour-next" onClick=${() => last ? endTour() : tourGo(step + 1)}>${last ? 'Done' : step === 0 ? 'Show me' : 'Next'}</button></div>
@@ -3211,9 +3246,9 @@ function ProfileScreen({ view }) {
     <${AboutYouCard}/>
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
-    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
+    <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 8f4b22a</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 20a67dc</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4565,7 +4600,7 @@ function normMeals(x) {
     ...(['easy', 'written', 'weight'].includes(x.units) ? { units: x.units } : {}),
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
-    ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), dislikes: String(x.prefs.dislikes || '') } } : {}),
+    ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
     ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick } } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -8377,7 +8412,7 @@ function TargetsSheet({ preset } = {}) {
   const [d, setD] = useState(() => {
     const kgW = me0.w || (lastBw ? conv(+lastBw.w, lastBw.u || U(), 'kg') : 0);
     return { us: us0, ft: me0.h ? String(Math.floor(me0.h / 2.54 / 12)) : '', inch: me0.h ? String(Math.round(me0.h / 2.54 % 12)) : '', cm: me0.h ? String(Math.round(me0.h)) : '',
-      pf: typeof prefsOf === 'function' ? prefsOf() : { allergies: [], diet: 'none', dislikes: '' }, hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
+      pf: prefsOf(), hb: mealHabits(), w: kgW ? String(Math.round(us0 ? kgW * 2.20462 : kgW)) : '', age: me0.age ? String(me0.age) : '', sex: me0.sex || 'x', act: me0.act || 2, goal: (preset && preset.goal) || me0.goal || (mealGoalFromAbout(aboutYou().goal) || {}).goal || 'keep', pace: (preset && preset.pace) || me0.pace || (mealGoalFromAbout(aboutYou().goal) || {}).pace || 'gentle', bmi: !!me0.bmi, units: ML().units && ML().units !== 'written' ? ML().units : 'easy' };
   });
   const set = (k, v) => setD({ ...d, [k]: v });
   const h = d.us ? ((+d.ft || 0) * 12 + (+d.inch || 0)) * 2.54 : +d.cm; const w = d.us ? (+d.w || 0) / 2.20462 : +d.w;
@@ -8385,7 +8420,7 @@ function TargetsSheet({ preset } = {}) {
   const t = targetsFor(me); const bmi = bmiOf(me);
   const seg = (k, opts) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v} id=${'tg-' + k + '-' + v} class=${d[k] === v ? 'on' : ''} aria-pressed=${d[k] === v} onClick=${() => set(k, v)}>${l}</button>`)}</div>`;
   const save = () => {
-    mealCommit(m => { m.prefs = { allergies: d.pf.allergies, diet: d.pf.diet, dislikes: String(d.pf.dislikes || '').trim() }; m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
+    mealCommit(m => { m.prefs = savePrefs(d.pf); m.habits = { ...d.hb }; m.me = me; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; m.units = d.units; m.menu = buildMenu(t, Date.now() % 1e6); });
     const hadPrep = ML().plan.items.length > 0 && !ML().rot;
     closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Update my prep', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your targets and a week of meals are ready.' + (hadPrep ? ' Your prep and shopping list still have the old recipes.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Make me a meal plan again.' });
   };
@@ -8434,7 +8469,7 @@ function MenuCard() {
   return html`<div class="card" id="menu-card">
     <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Edit</button></div>
-    <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diet !== 'none' || prefsOf().dislikes ? ' (set)' : ''}</button>
+    <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
       return html`<button key=${s} class="menu-row" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><span class="eyebrow">${label}</span><span class="t">${r.name}</span><span class="s">${portionText(r, x.sv)}</span></button>`; })}</div>
@@ -8851,17 +8886,53 @@ const ALLERGENS = [
 const DIETS = [
   ['none', 'No restrictions', null], ['vegetarian', 'Vegetarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|salmon|tuna|\bcod\b|tilapia|\bfish\b|shrimp|prawn|crab|liver|broth|stock|anchov|worcestershire/, /(vegetable|veggie|mushroom) (broth|stock)/g],
   ['pescatarian', 'Pescatarian', /chicken|turkey|beef|pork|bacon|sausage|\bham\b|steak|lamb|prosciutto|pepperoni|salami|chorizo|jerky|gelatin|liver|chicken broth|beef broth|bone broth/], ['dairyfree', 'Dairy-free', ALLERGENS[0][2], ALLERGENS[0][3]],
-  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/]];
-const prefsOf = () => { const p = ML().prefs || {}; return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diet: p.diet || 'none', dislikes: String(p.dislikes || '') }; };
-const dislikeTerms = () => prefsOf().dislikes.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
+  ['halal', 'Halal (no pork or alcohol)', /pork|bacon|\bham\b|prosciutto|wine|beer|rum|bourbon|gelatin/],
+  ['lactose', 'Lactose intolerant', null]];
+/* Lactose intolerant (Nov 10, Newt): pick which dairy foods to leave out. Low-lactose ones start allowed. */
+const DAIRY_SAFE = ALLERGENS[0][3];
+const LACTOSE_FOODS = [
+  ['milk', 'Milk', /\bmilk\b|half[- ]and[- ]half|buttermilk|evaporated|condensed milk/, true],
+  ['cream', 'Cream and sour cream', /(?<!ice )\bcream\b|creamer|sour cream|whipped/, true],
+  ['icecream', 'Ice cream', /ice cream|gelato|frozen yogh?urt/, true],
+  ['softcheese', 'Soft cheese (mozzarella, ricotta, cottage, cream cheese, feta)', /ricotta|cottage|cream cheese|mozzarella|\bbrie\b|queso|paneer|\bfeta\b|mascarpone/, true],
+  ['yogurt', 'Yogurt', /(?<!greek )yogh?urt/, true],
+  ['hardcheese', 'Hard cheese (cheddar, parmesan, Swiss)', /cheddar|parmesan|\bparm\b|gouda|provolone|swiss|pecorino|asiago|manchego|monterey|(?<!cream |cottage |soft )\bcheese\b/, false],
+  ['greek', 'Greek yogurt and skyr', /greek yogh?urt|\bskyr\b/, false],
+  ['butter', 'Butter and ghee', /\bbutter\b|\bghee\b/, false],
+  ['whey', 'Whey protein', /\bwhey\b|protein powder|casein/, false],
+  ['kefir', 'Kefir', /\bkefir\b/, false]];
+const lactoseDefault = () => LACTOSE_FOODS.filter(x => x[3]).map(x => x[0]);
+/* Several diets can be on at once; older saves had one diet string */
+const prefsOf = () => { const p = ML().prefs || {};
+  const diets = Array.isArray(p.diets) ? p.diets.filter(k => k !== 'none') : p.diet && p.diet !== 'none' ? [p.diet] : [];
+  return { allergies: Array.isArray(p.allergies) ? p.allergies : [], diets, diet: diets[0] || 'none', lactose: Array.isArray(p.lactose) ? p.lactose : lactoseDefault(), dislikes: String(p.dislikes || '') }; };
+const savePrefs = v => ({ allergies: v.allergies, diets: v.diets, diet: v.diets[0] || 'none', lactose: v.lactose, dislikes: String(v.dislikes || '').trim() });
+/* Foods you don't like (Nov 10, Newt asked how "cheese beef" reads): commas, "and", or plain spaces all separate foods.
+   A two-word food like "sour cream" stays together when a recipe here uses it. Plurals match singulars. */
+const DISLIKE_FILLER = /^(no|not|any|i|dont|don’t|don't|like|eat|the|a|an|much|too|really|please|without)$/;
+let DIS_VOCAB = null;
+const dislikeVocab = () => DIS_VOCAB || (DIS_VOCAB = typeof allRecipes === 'function' ? allRecipes().flatMap(ingNames).join(' | ') : '');
+function parseDislikes(text) {
+  const out = [];
+  for (const chunk of String(text || '').toLowerCase().split(/[,;\n/&+]|\band\b|\bor\b/)) {
+    const words = chunk.replace(/[^a-z\u00c0-\u024f\s'’-]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !DISLIKE_FILLER.test(w)); if (!words.length) continue;
+    const phrase = words.join(' ');
+    if (words.length === 1 || dislikeVocab().includes(phrase)) out.push(phrase); else out.push(...words);
+  }
+  return [...new Set(out)];
+}
+const dislikeRe = t => { const root = t.replace(/ies$/, 'y').replace(/oes$/, 'o').replace(/([^s])s$/, '$1'); const e = root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('\\b' + (root.endsWith('y') ? e.slice(0, -1) + '(y|ies)' : e + '(s|es)?') + '\\b'); };
+const dislikeTerms = () => parseDislikes(prefsOf().dislikes);
 const ingNames = r => (r.ing || []).map(g => String(g && g.n || g || '').toLowerCase());
 /* What in this recipe goes against your answers: { block: ['Peanuts', ...], dislike: ['mushrooms'] } */
 function recipeIssues(r) {
   const P = prefsOf(); const names = ingNames(r).concat(String(r.name || '').toLowerCase());
   const has = (re, safe) => names.some(n => re.test(safe ? n.replace(safe, ' ') : n));
   const block = ALLERGENS.filter(([k, , re, safe]) => P.allergies.includes(k) && has(re, safe)).map(a => a[1]);
-  const d = DIETS.find(x => x[0] === P.diet); if (d && d[2] && has(d[2], d[3]) && !block.includes(d[1])) block.push('Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''));
-  const dislike = dislikeTerms().filter(t => names.some(n => n.includes(t)) || String(r.name).toLowerCase().includes(t));
+  for (const k of P.diets) { const d = DIETS.find(x => x[0] === k); const lbl = d && 'Not ' + d[1].toLowerCase().replace(/ \(.*\)/, ''); if (d && d[2] && has(d[2], d[3]) && !block.includes(lbl)) block.push(lbl); }
+  if (P.diets.includes('lactose') && !P.allergies.includes('dairy')) for (const [k, l, re] of LACTOSE_FOODS) if (P.lactose.includes(k) && has(re, DAIRY_SAFE)) block.push(l.replace(/ \(.*\)/, ''));
+  const dislike = dislikeTerms().filter(t => { const re = dislikeRe(t); return names.some(n => re.test(n)); });
   return { block, dislike };
 }
 const avoidRecipe = r => { const x = recipeIssues(r); return x.block.length > 0 || x.dislike.length > 0; };
@@ -8876,13 +8947,18 @@ function PrefsFields({ v, set }) {
   return html`<div class="stack" style="gap:12px" id="prefs-fields">
     <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
       <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
-    <div><span class="lbl">Diet</span><div class="cat-pick">${DIETS.map(([k, l]) => html`<button key=${k} id=${'diet-' + k} class=${'chip' + (v.diet === k ? ' on' : '')} aria-pressed=${v.diet === k} onClick=${() => set({ ...v, diet: k })}>${l}</button>`)}</div></div>
+    <div><span class="lbl">Diet (pick any)</span><div class="cat-pick">${DIETS.map(([k, l]) => { const on = k === 'none' ? !v.diets.length : v.diets.includes(k);
+        return html`<button key=${k} id=${'diet-' + k} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => set({ ...v, diets: k === 'none' ? [] : on ? v.diets.filter(x => x !== k) : v.diets.concat(k) })}>${l}</button>`; })}</div>
+      ${v.diets.includes('lactose') ? html`<div class="card stack" id="lactose-menu" style="gap:4px;margin-top:10px"><div style="font-weight:700">Leave out</div>
+        ${LACTOSE_FOODS.map(([k, l]) => html`<label key=${k} class="toggle-row" for=${'lac-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'lac-' + k} checked=${v.lactose.includes(k)} onChange=${e => set({ ...v, lactose: e.target.checked ? v.lactose.concat(k) : v.lactose.filter(x => x !== k) })}/></label>`)}
+        <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>
     <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
-      <p class="small muted">Left out of plans and suggestions. You can still search for them.</p></div></div>`;
+      ${parseDislikes(v.dislikes).length ? html`<p class="small" id="pf-dislikes-read" style="margin-top:6px">Leaving out: ${parseDislikes(v.dislikes).join(' · ')}</p>` : null}
+      <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div></div>`;
 }
 function PrefsSheet() {
   const [v, setV] = useState(prefsOf());
-  const save = () => { mealCommit(m => { m.prefs = { allergies: v.allergies, diet: v.diet, dislikes: v.dislikes.trim() }; if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
+  const save = () => { mealCommit(m => { m.prefs = savePrefs(v); if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
   return html`<${Sheet} label="Food preferences"><h2>Food preferences</h2><p class="note">So Ironwood never suggests something you can’t or won’t eat.</p>
     <div style="margin-top:12px"><${PrefsFields} v=${v} set=${setV}/></div>
     <div class="stack" style="margin-top:14px"><button class="btn primary wide" id="pf-save" onClick=${save}>Save</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
@@ -9812,7 +9888,7 @@ function CrashScreen({ err, retry }) {
   setInterval(audioTick, 200);
   setTimeout(l10nStart, 0);
   initCloud();
-  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour(); }, 1400);
+  setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour('short'); }, 1400);
 })();
 </script>
 

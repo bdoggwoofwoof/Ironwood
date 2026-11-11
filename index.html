@@ -3274,7 +3274,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 8aad9a1</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version c860aa0</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4218,7 +4218,7 @@ const MEAL_PREPS = [
   { id: 'p-bowls', name: 'Bowl Week', d: 'Two complete bowls to trade off, plus a grab-and-go breakfast and snack.', items: [['m-burrito-bowls', 3], ['m-med-bowls', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] },
   { id: 'p-lowcook', name: 'Low-Cook Week', d: 'Canned chicken and fish, yogurt jars and snack boxes. The only cooking is boiling eggs.', items: [['m-tuna-salad', 3], ['m-chicken-salad', 3], ['m-yogurt-jars', 5], ['m-snack-box', 5]] },
   { id: 'p-mix', name: 'Mix & Match Week', d: 'Three bases, eight flavors: one chicken batch split two ways, turkey tacos, two kinds of rice and two vegetable trays.', items: [['b-chicken~teriyaki', 3], ['b-chicken~shawarma', 3], ['b-turkey~taco', 3], ['b-rice~sesame-rice', 3], ['b-rice~cilantro-lime', 3], ['b-veg~sesame-ginger', 3], ['b-veg~zaatar', 3], ['b-eggs~southwest', 5], ['b-oats~pb-banana', 5]] },
-  { id: 'p-freezer', name: 'Freezer Stock-Up', d: 'Big batches that freeze well. Portion them, freeze, and pull a few out each week.', items: [['m-turkey-chili', 4], ['m-meatballs', 3], ['m-salmon-patties', 2], ['m-curry', 3], ['m-breakfast-burritos', 4]] },
+  { id: 'p-freezer', name: 'Freezer Stock-Up', d: 'Big batches that freeze well. Portion them, freeze, and pull a few out each week.', items: [['m-sc-salsa-chicken', 4], ['m-meatballs', 3], ['m-salmon-patties', 2], ['m-curry', 3], ['m-breakfast-burritos', 4]] },
 ];
 
 /* ---- Whole-food prep and four bowl weeks (Oct 26, from the Meal prep chat's plan) ----
@@ -4324,14 +4324,18 @@ MEAL_PREPS.push(
    milk becomes lactose-free, the burger bowls use turkey and skip the cheese. */
 MEAL_PREPS.push(
   { id: 'p-halal-light', name: 'Halal, Dairy-Light Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
-    d: 'Chicken and turkey only, no cheese, and lactose-free milk where a recipe calls for milk. Za’atar chicken thighs and turkey chili for lunches and dinners, rice cooked in broth, a tray of roasted vegetables, egg muffins and Greek yogurt jars for breakfast, and hard-boiled eggs to grab.',
-    items: [['m-thighs-zaatar', 4], ['m-turkey-chili', 4], ['m-broth-rice', 5], ['m-roast-veg', 5], ['m-egg-muffins', 5], ['m-yogurt-jars', 5], ['m-hb-eggs', 4]] },
+    d: 'Chicken and turkey only, no cheese, and lactose-free milk where a recipe calls for milk. Za’atar chicken thighs and a slow-cooker chicken tikka masala for lunches and dinners, rice cooked in broth, a tray of roasted vegetables, egg muffins and Greek yogurt jars for breakfast, and hard-boiled eggs to grab.',
+    items: [['m-thighs-zaatar', 4], ['m-sc-tikka', 4], ['m-broth-rice', 5], ['m-roast-veg', 5], ['m-egg-muffins', 5], ['m-yogurt-jars', 5], ['m-hb-eggs', 4]] },
   { id: 'p-turkey-bowls', name: 'Turkey Burger Bowl Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
     d: 'The burger bowls made with lean ground turkey and no cheese, turkey egg roll bowls, sheet-pan chicken, overnight oats with lactose-free milk, and hard-boiled eggs. High protein, nothing fried.',
-    items: [['m-reel-burger-bowls', 3], ['m-egg-roll-bowl', 3], ['m-sheet-pan', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] });
+    items: [['m-reel-burger-bowls', 3], ['m-egg-roll-bowl', 3], ['m-sheet-pan', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] },
+  { id: 'p-slow', name: 'Slow-Cooker Week', fits: { slow: true },
+    d: 'Three slow-cooker dinners you start in the morning and portion at night: chicken tikka masala, honey-garlic chicken with broccoli, and salsa chicken. Overnight oats and hard-boiled eggs cover breakfast.',
+    items: [['m-sc-tikka', 3], ['m-sc-honey-garlic', 3], ['m-sc-salsa-chicken', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] });
 /* Does this prep line up with your answers? */
 function prepFits(pr) {
   const f = pr.fits; if (!f) return false; const P = prefsOf(); const dis = parseDislikes(P.dislikes);
+  if (f.slow && mealHabits().slow) return true;
   return (f.diets || []).some(d => P.diets.includes(d)) || (f.foods || []).some(x => dis.some(t => dislikeRe(t).test(x)) || (P.swap[x] && P.swap[x] !== 'keep'));
 }
 const readyPreps = () => MEAL_PREPS.map((pr, i) => ({ pr, s: prepFits(pr) ? 0 : pr.fits ? 2 : prepIssues(pr).length ? 3 : 1, i })).sort((a, b) => a.s - b.s || a.i - b.i).map(x => x.pr);
@@ -4460,7 +4464,7 @@ const FOODS = [
   F('cocoa', 'Cocoa powder, unsweetened', 'cocoa', 228, 20, 58, 14, 37, 2, 21, { cup: 86 }),
   F('coconut-flakes', 'Shredded coconut, unsweetened', 'shredded coconut|coconut flakes', 660, 7, 24, 65, 16, 7, 37, { cup: 80 }),
   F('balsamic', 'Balsamic vinegar', 'balsamic', 88, 0.5, 17, 0, 0, 15, 23, { cup: 255 }),
-  F('spices', 'Spices & dried herbs', 'italian seasoning|cayenne|turmeric|allspice|coriander|cardamom|za.?atar|sumac|ground ginger|powder|cumin|paprika|oregano|cinnamon|nutmeg|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary|bay lea', 0, 0, 0, 0, 0, 0, 0, { cup: 100 }),
+  F('spices', 'Spices & dried herbs', 'italian seasoning|garam masala|cayenne|turmeric|allspice|coriander|cardamom|za.?atar|sumac|ground ginger|powder|cumin|paprika|oregano|cinnamon|nutmeg|black pepper|vanilla|\\bdried\\b|flakes|vinegar|extract|curry|thyme|rosemary|bay lea', 0, 0, 0, 0, 0, 0, 0, { cup: 100 }),
   F('seasoning', 'Seasoning blend (with salt)', 'seasoning', 0, 0, 0, 0, 0, 0, 6000, { cup: 100 }),
   F('water', 'Water', '^water$|\\bwater\\b', 0, 0, 0, 0, 0, 0, 0, { cup: 237 }),
   F('broth', 'Broth or stock', 'broth|\\bstock\\b', 5, 0.5, 0.4, 0.2, 0, 0.3, 370, { cup: 240, can: 400 }),
@@ -4644,7 +4648,7 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}) } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}) } } : {}),
     ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -4675,6 +4679,33 @@ MEAL_LIB.push(
     steps: ['Blend or shake everything until smooth and pour into an ice-cream maker pint.', 'Freeze flat for 24 hours.', 'Spin on the light ice cream setting. If it’s crumbly, add a splash of milk and re-spin.'],
     note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk. Most of the cost is the protein powder (and the pint machine, once); the Greek yogurt freezer cups skip both.', alt: 'm-froyo-cups', altWhy: 'Cheaper option',
     src: { by: '@fitnessproductfinder', url: 'https://www.instagram.com/reel/DWPSUyHPS8k/', what: 'Protein ice cream pint ideas' } },
+  /* Slow-cooker mains (Nov 11, Newt likes slow-cooker recipes over another chili). Halal-friendly, no beef, pork or cheese.
+     mins is the hands-on time; the cooker does the rest. */
+  { id: 'm-sc-salsa-chicken', name: 'Slow-Cooker Salsa Chicken & Rice', cat: 'main', serves: 6, size: '1 container', mins: 15, keeps: 4, freezes: true, week: 3,
+    d: 'Chicken, salsa, black beans and corn go in the cooker; you come back to shredded burrito-bowl chicken.',
+    ing: ['3 lb boneless skinless chicken breast', '2 cups salsa', '1 can black beans (15 oz), rinsed', '1½ cups frozen corn', '2 tsp ground cumin', '1 tsp chili powder', '1 tsp salt', '2 limes, juiced', '2 cups white rice (dry)'],
+    steps: ['Put the chicken in the slow cooker. Pour the salsa over it and add the beans, corn, cumin, chili powder and salt.', 'Cover and cook on low 6 hours or high 3 hours, until the chicken shreds easily.', 'Shred the chicken with two forks right in the cooker and stir in the lime juice.', 'Cook the rice, then portion rice and chicken into six containers.'],
+    note: 'Top with lettuce, the Chipotle Yogurt Sauce or hot sauce. Freezes well without the rice.' },
+  { id: 'm-sc-tikka', name: 'Slow-Cooker Chicken Tikka Masala', cat: 'main', serves: 6, size: '1 container', mins: 20, keeps: 4, freezes: true, week: 3,
+    d: 'Thighs simmer all day in spiced tomato; coconut milk and Greek yogurt make it creamy at the end.',
+    ing: ['3 lb boneless skinless chicken thighs, cut into chunks', '1 can crushed tomatoes (28 oz)', '1 yellow onion, diced', '5 cloves garlic, minced', '1 tbsp fresh ginger, grated', '2 tbsp garam masala', '1 tsp ground turmeric', '1 tsp salt', '1 can light coconut milk (13.5 oz)', '¾ cup plain nonfat Greek yogurt', '2 cups white rice (dry)'],
+    steps: ['Put the chicken, tomatoes, onion, garlic, ginger, garam masala, turmeric and salt in the slow cooker and stir.', 'Cover and cook on low 6 hours or high 3 hours.', 'Turn the cooker off. Stir in the coconut milk, then the yogurt a spoonful at a time so it stays smooth.', 'Cook the rice and portion it with the curry into six containers.'],
+    note: 'No yogurt? Use the whole can of coconut milk instead.' },
+  { id: 'm-sc-shawarma', name: 'Slow-Cooker Chicken Shawarma Bowls', cat: 'main', serves: 6, size: '1 bowl', mins: 20, keeps: 4, freezes: true, week: 3,
+    d: 'Lemony, cumin-and-paprika chicken over sliced onions, shredded for rice bowls with a garlic yogurt sauce.',
+    ing: ['3 lb boneless skinless chicken thighs', '2 red onions, sliced', '2 lemons, juiced', '2 tbsp olive oil', '6 cloves garlic, minced', '1 tbsp ground cumin', '1 tbsp smoked paprika', '1 tsp ground turmeric', '½ tsp ground cinnamon', '1 tsp salt', '2 cups white rice (dry)', '1 cup plain nonfat Greek yogurt', '2 cucumbers, diced'],
+    steps: ['Spread the onions in the slow cooker. Toss the chicken with the lemon juice, oil, two-thirds of the garlic, the spices and the salt, and lay it on top.', 'Cover and cook on low 6 hours or high 3 hours, then shred the chicken in the juices.', 'Stir the rest of the garlic and a pinch of salt into the yogurt for the sauce.', 'Cook the rice. Pack rice, chicken and onions, with the cucumbers and sauce in separate small containers.'],
+    note: 'Leftover juices make the rice taste great: cook the rice in a cup of them plus water.' },
+  { id: 'm-sc-honey-garlic', name: 'Slow-Cooker Honey-Garlic Chicken', cat: 'main', serves: 6, size: '1 container', mins: 15, keeps: 4, freezes: true, week: 3,
+    d: 'Sticky soy, honey and garlic chicken with broccoli added at the end.',
+    ing: ['3 lb boneless skinless chicken thighs', '⅓ cup soy sauce', '⅓ cup honey', '6 cloves garlic, minced', '1 tbsp fresh ginger, grated', '2 tbsp cornstarch', '1 head broccoli, cut into florets', '2 cups white rice (dry)'],
+    steps: ['Whisk the soy sauce, honey, garlic and ginger in the slow cooker. Add the chicken and turn it to coat.', 'Cover and cook on low 5 hours or high 2½ hours.', 'Whisk the cornstarch with 3 tbsp water, stir it in, add the broccoli, and cook on high 30 minutes more, until the sauce thickens.', 'Cook the rice and portion everything into six containers.'],
+    note: 'Gluten-free? Use tamari instead of soy sauce.' },
+  { id: 'm-sc-lentil-soup', name: 'Slow-Cooker Lentil & Vegetable Soup', cat: 'main', serves: 6, size: '2 cups', mins: 15, keeps: 5, freezes: true, week: 3,
+    d: 'A cheap, filling meatless soup: lentils, carrots, celery and tomatoes, with spinach and lemon at the end.',
+    ing: ['2 cups lentils (dry), rinsed', '1 can diced tomatoes (14.5 oz)', '8 cups vegetable broth', '3 carrots, diced', '3 celery stalks, diced', '1 yellow onion, diced', '4 cloves garlic, minced', '2 tsp ground cumin', '1 tsp smoked paprika', '1 tsp salt', '4 cups spinach', '1 lemon, juiced', '1 cup plain nonfat Greek yogurt'],
+    steps: ['Put everything except the spinach, lemon and yogurt in the slow cooker and stir.', 'Cover and cook on low 7 hours or high 4 hours, until the lentils are soft.', 'Stir in the spinach and lemon juice until the spinach wilts. Taste for salt.', 'Portion into six containers and top each with a spoon of yogurt when you eat it.'],
+    note: 'Add a can of chickpeas or some shredded chicken for more protein.' },
   { id: 'm-froyo-cups', name: 'Chocolate Greek Yogurt Freezer Cups', cat: 'snack', serves: 3, size: '1 cup', mins: 5, keeps: 30, freezes: true, week: 3,
     d: 'The cheap way to a frozen protein dessert: Greek yogurt brings the protein, so there’s no protein powder and no ice-cream machine.',
     ing: ['3 cups plain nonfat Greek yogurt', '3 tbsp cocoa powder', '3 tbsp honey', '1 tsp vanilla extract', '¼ tsp salt'],
@@ -8406,6 +8437,7 @@ const GEAR = [
   ['processor', 'Food processor', /food processor/, ['blender'], 'No food processor? Pulse it in a blender in small batches.'],
   ['rice', 'Rice cooker', /rice cooker/, ['stove'], 'No rice cooker? Cook it in a covered pot on the stove.'],
   ['pint', 'Ice-cream pint machine', /ice-cream maker|ice cream maker|pint machine|\bre-?spin\b|\bspin (on|it)\b/, ['blender'], 'No pint machine? Freeze it in an ice-cube tray and blend the cubes with a splash of milk.']];
+const isSlowRecipe = r => /slow cooker/i.test((r.steps || []).join(' '));
 const gearHave = () => { const g = mealHabits().gear; return Array.isArray(g) ? g : GEAR.map(x => x[0]); };
 /* { need: ids, missing: [labels nothing stands in for], notes: [what to do instead] } */
 function recipeGear(r, have = gearHave()) {
@@ -8454,6 +8486,7 @@ function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = Stri
 function shapePool(list, n, H, rnd) {
   let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
   if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
+  if (H.slow) keep(r => isSlowRecipe(r));
   if (H.cheap) { keep(r => !hasPricey(r, priceyOff(H))); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
   return pickN(L, Math.min(n, L.length), rnd);
@@ -8501,6 +8534,7 @@ function HabitsFields({ v, set }) {
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-slow"><span><span>Favor slow-cooker recipes</span><span class="d">Plans pick slow-cooker dinners first: about 15 minutes of work in the morning, ready by evening.</span></span><input type="checkbox" role="switch" id="hb-slow" checked=${!!v.slow} onChange=${e => set({ ...v, slow: e.target.checked, ...(e.target.checked && Array.isArray(v.gear) && !v.gear.includes('slow') ? { gear: v.gear.concat('slow') } : {}) })}/></label>
     <${GearFields} v=${v} set=${set}/></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));

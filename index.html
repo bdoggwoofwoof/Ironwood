@@ -1676,7 +1676,7 @@ const ALSO = { v: true };
    with nothing open uses it up and goes on back, so leaving the app still takes one gesture. */
 const SHEET_H = { open: false, entry: false };
 const openSheet = s => { UI.setSheet(s); SHEET_H.open = !!s; if (s && !SHEET_H.entry) { try { history.pushState({ ironSheet: 1 }, ''); SHEET_H.entry = true; } catch (e) {} } };
-const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; };
+const closeSheet = () => { UI.setSheet(null); SHEET_H.open = false; setTimeout(() => { if (typeof settleScroll === 'function') settleScroll(); }, 350); };
 addEventListener('popstate', () => { if (!SHEET_H.entry) return; SHEET_H.entry = false; if (SHEET_H.open) { SHEET_H.open = false; UI.setSheet(null); } else { try { history.back(); } catch (e) {} } });
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -3213,7 +3213,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${startTour}>Take the tour again</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 7c0901e</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 8f4b22a</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -9573,10 +9573,16 @@ function LabelReader({ onFill }) {
   </div>`;
 }
 
+const KB = { open: false };
+function settleScroll() { const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight); const y = Math.min(window.scrollY, max); window.scrollTo(window.scrollX, y + 1); window.scrollTo(window.scrollX, y); }
 function kbFit(h, top) {
   const r = document.documentElement; const kb = Math.max(0, window.innerHeight - h - top);
   if (kb > 80) { r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', top + 'px'); r.classList.add('kb-open'); }
-  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open'); }
+  else { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb-open');
+    /* iPhone can leave the page nudged up after the keyboard closes on a short screen, which lifts the tab bar off the
+       bottom (Nov 10, Newt's Meals screenshot). Settle the scroll back inside the page once the keyboard is gone. */
+    if (KB.open || top > 0) setTimeout(settleScroll, 80); }
+  KB.open = kb > 80;
   const a = document.activeElement;
   if (kb > 80 && a && a.closest && a.closest('.sheet')) setTimeout(() => { try { a.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
 }

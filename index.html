@@ -279,7 +279,7 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .menu-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}.menu-item .menu-row{flex:1;min-width:0;border-bottom:0}
 .menu-item.off .menu-row .t,.menu-item.off .menu-row .s{color:var(--ink-3,var(--ink-2));font-weight:400}
 .menu-skip{min-height:44px;padding:0 10px;font-size:calc(14 * var(--u));color:var(--accent);font-weight:600;flex:none}
-.fit-tag{display:inline-block;font-size:calc(12 * var(--u));font-weight:700;color:var(--accent);margin:2px 0}
+.fit-tag{display:block;font-size:calc(12 * var(--u));font-weight:700;color:var(--accent);margin:2px 0}
 .swap-line{margin:0 0 10px;padding:12px 14px}.swap-line ul{margin:6px 0 4px;padding-left:18px}.swap-line li{margin:2px 0}
 .menu-log{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:10px 12px}
 .w-th{display:flex;align-items:center;justify-content:center;gap:1px;min-width:0}
@@ -888,9 +888,24 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .fab[hidden]{display:none}
 .reel-tag{display:inline-block;font-size:calc(12 * var(--u));font-weight:600;color:var(--accent);margin:2px 0 1px}
 .chips button.chip::after{inset:-4px -3px}
-.meal-star{flex:none;min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--ink-3)}.meal-star svg{width:22px;height:22px}.meal-star.on{color:#b8740a}
-.meal-star.big svg{width:26px;height:26px}
-#plan-stars svg{width:18px;height:18px;color:#b8740a;margin-right:4px;vertical-align:-3px}</style>
+/* Meals dates, swaps and stars (Nov 11) */
+.dates-bar{margin:4px 0 12px}.dates-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent-ink);display:grid;place-items:center;flex:none}.dates-ic svg{width:20px;height:20px}
+.rcal-h{gap:4px;margin-bottom:4px}.rcal-h .btn{min-width:44px;font-size:calc(22 * var(--u))}
+.rcal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0;text-align:center}
+.rcal-dow{font-size:calc(12 * var(--u));font-weight:700;color:var(--ink-3);padding:4px 0}.rcal-dow.prep{color:var(--accent)}
+.rcal-d{height:42px;min-height:0;padding:0;margin:0;align-self:center;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);position:relative}
+.rcal-d:disabled{color:var(--ink-3);opacity:.45}
+.rcal-d.prep::after{content:'';position:absolute;left:35%;right:35%;bottom:5px;height:2px;border-radius:2px;background:var(--accent)}
+.rcal-d.today{color:var(--accent)}
+.rcal-d.in{background:var(--accent-bg);color:var(--accent-ink)}
+.rcal-d.rs{border-radius:21px 0 0 21px}.rcal-d.re{border-radius:0 21px 21px 0}.rcal-d.rs.re{border-radius:21px}
+.rcal-d.rs,.rcal-d.re{background:var(--accent);color:#fff}.rcal-d.rs.prep::after,.rcal-d.re.prep::after{background:#fff}
+.up-row{display:flex;align-items:center;gap:8px;background:var(--raised);border-radius:12px;padding:8px 6px 8px 12px}
+.up-row .btn{min-height:38px;padding:6px 10px;gap:4px}.up-row .btn svg,.mp-swap svg{width:16px;height:16px}
+.mp-swap{min-height:36px;padding:4px 10px;gap:4px;flex:none;font-size:calc(14 * var(--u))}
+.rec-star{width:36px;height:44px;flex:none;display:grid;place-items:center;font-size:calc(21 * var(--u));color:var(--ink-3)}.rec-star.on{color:var(--pr,#f2c94c)}
+.rec-star.big{width:44px;font-size:calc(26 * var(--u));margin-top:2px}
+.menu-days.dated .chip{flex-direction:column;gap:0;line-height:1.1;padding:4px 0}.menu-days.dated .chip small{font-size:calc(11 * var(--u));font-weight:600;opacity:.8}</style>
 
 <div id="app"></div>
 
@@ -1693,8 +1708,6 @@ const ICONS = {
   meals: ic(() => html`<path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0z"/><path d="M8 8c0-1.4 1-1.8 1-3.2M12 8c0-1.4 1-1.8 1-3.2M16 8c0-1.4 1-1.8 1-3.2"/>`),
   share: ic(() => html`<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>`),
   cal: ic(() => html`<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
-  star: ic(() => html`<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`),
-  starOn: ic(() => html`<path fill="currentColor" d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`),
   globe: ic(() => html`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>`),
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
@@ -2217,7 +2230,7 @@ function HelpFoot() { return html`<div class="help-foot"><button class="btn text
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>
-    <button class="opt" id="help-page-tour" onClick=${() => startTour('page')}><div style="flex:1"><div>Tour this page</div><div class="d">What you can do on ${PAGE_NAMES[(lsGet('tab') || 'train') === 'train' ? TRAIN.mode : lsGet('tab')] || 'this page'}, a few stops.</div></div></button>
+    <button class="opt" id="help-page-tour" onClick=${() => startTour('page')}><div style="flex:1"><div>Tour this page</div><div class="d">What you can do on ${PAGE_NAMES[(lsGet('tab') || 'train') === 'train' ? TRAIN.mode : lsGet('tab')] || 'this page'}${lsGet('tab') === 'meals' ? ', step by step' : ', a few stops'}.</div></div></button>
     <button class="opt" id="help-tour" onClick=${() => startTour('full')}><div style="flex:1"><div>Full tour</div><div class="d">Every page and feature, about ${TOUR_FULL.length} stops.</div></div></button>
     <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
     ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
@@ -2252,7 +2265,7 @@ const TOUR_FULL = [
   ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
   ['meals', null, '#menu-card, #plan-cta', 'Meal plan', 'Enter your height, weight, goal, what you can’t or won’t eat, how many meals a day, how often you cook, and whether to keep it cheap or quick, and Ironwood sets your calories and protein, then builds a week of meals with portions and fills your prep and shopping list. Amounts can be easy, like 3 chicken breasts or half a can, or by weight. Spices and sauces stay exact.', { meals: 'plan' }],
-  ['meals', null, '#rot-card, .mp-who, #plan-cta', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Save a prep and rotate a few of them so each week loads the next one. Add recipes from any post: paste the caption and the link stays at the bottom.', { meals: 'plan' }],
+  ['meals', null, '#rot-card, .mp-who, #plan-cta', 'Meal prep', 'Plan the week’s cooking, mix and match bases with flavors, scale for more people or weeks, and get one shopping list sorted by aisle. Pick your dates on a calendar, swap any recipe in a prep, plan the next stretch ahead, and star favorites. Meals → How Meals works has its own step-by-step tour.', { meals: 'plan' }],
   ['meals', null, '#log-scan, #log-add', 'Food log', 'Log what you eat against daily goals. One search finds recipes and foods, or type “2 eggs”. Your recent foods log again with one tap, and ☆ saves favorites by category. Scan a barcode or look a food up online, if you allow it: only the barcode or the words you search leave your phone.', { meals: 'log' }],
   ['profile', null, '.pal-grid', 'Make it yours', 'Pick your colors, including two color-blind friendly themes, plus text size and units. Training settings set your weight jumps, the smallest jump your gym allows, rest timers and where last time’s numbers come from.'],
   ['profile', null, '#backup-file', 'Keep a backup', 'Everything stays on this phone, with no account. Save a backup file now and then, and restore it on a new phone.'],
@@ -2284,7 +2297,9 @@ function demoSessions() {
 }
 const setDemo = on => { if (DEMO.on === on) return; DEMO.on = on; if (!on) DEMO.list = null; S.ver++; S.rerender(); };
 const tourDone = () => { lsSet('tourDone', '1'); setDemo(false); };
-function startTour(which) { if (typeof which !== 'string') which = 'short'; if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true); S.tour = { step: 0, steps: which === 'full' ? TOUR_FULL : which === 'page' ? pageTour() : null, page: which === 'page' ? { tab: lsGet('tab') || 'train', mode: TRAIN.mode } : null }; S.rerender(); }
+function startTour(which) { if (typeof which !== 'string') which = 'short'; if (S.active) { closeSheet(); showToast({ kind: 'info', text: 'Finish your workout first, then take the tour. It walks through every page.' }); return; } closeSheet(); setDemo(true);
+  if (which === 'page' && (lsGet('tab') || 'train') === 'meals') which = 'meals';   /* Meals has its own, longer tour (Nov 11) */
+  S.tour = { step: 0, steps: which === 'full' ? TOUR_FULL : which === 'page' ? pageTour() : which === 'meals' ? MEALS_TOUR : null, page: which === 'page' || which === 'meals' ? { tab: which === 'meals' ? 'meals' : lsGet('tab') || 'train', mode: TRAIN.mode } : null }; S.rerender(); }
 function endTour() { const pg = S.tour && S.tour.page; S.tour = null; tourDone(); if (pg) { UI.setTab(pg.tab); if (pg.tab === 'train') { TRAIN.mode = pg.mode || 'train'; lsSet('trainMode', TRAIN.mode); } S.rerender(); return; } TRAIN.mode = 'train'; lsSet('trainMode', 'train'); UI.setTab('train'); if (typeof offerSetup === 'function') offerSetup(); }
 const tourGo = n => { S.tour = { ...S.tour, step: n }; S.rerender(); };
 /* Spotlight tour. One animation loop eases the highlight and the text card toward where they should be (no CSS
@@ -3281,7 +3296,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 65c69b9</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 238da36</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4110,6 +4125,10 @@ function SheetHost({ sheet }) {
     case 'liftGoal': return html`<${LiftGoalSheet} ...${sheet}/>`;
     case 'prepSave': return html`<${PrepSaveSheet}/>`;
     case 'rotation': return html`<${RotationSheet}/>`;
+    case 'planDates': return html`<${PlanDatesSheet} ...${sheet}/>`;
+    case 'usePrep': return html`<${UsePrepSheet}/>`;
+    case 'recipePick': return html`<${RecipePickSheet} ...${sheet}/>`;
+    case 'planAhead': return html`<${PlanAheadSheet}/>`;
     case 'challenges': return html`<${ChallengeSheet}/>`;
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
@@ -4340,6 +4359,17 @@ MEAL_PREPS.push(
   { id: 'p-slow', name: 'Slow-Cooker Week', fits: { slow: true },
     d: 'Three slow-cooker dinners you start in the morning and portion at night: chicken tikka masala, honey-garlic chicken with broccoli, and salsa chicken. Overnight oats and hard-boiled eggs cover breakfast.',
     items: [['m-sc-tikka', 3], ['m-sc-honey-garlic', 3], ['m-sc-salsa-chicken', 3], ['m-overnight-oats', 5], ['m-hb-eggs', 5]] });
+/* Nov 11: ready-made preps from the recipes in Newt's reels log */
+MEAL_PREPS.push(
+  { id: 'p-reels-faves', name: 'Reel Favorites Week', fits: { diets: ['halal', 'lactose'], foods: ['beef', 'pork', 'cheese'] },
+    d: 'Picked from your saved reels: slow-cooker honey teriyaki chicken and rice, loaf-pan chicken shawarma with vermicelli rice, rice-cooker chana masala, a crunchy edamame salad for lunches, banana bread baked oatmeal for breakfast and Korean mayak eggs.',
+    items: [['m-reel-sc-teriyaki', 4], ['m-reel-loaf-shawarma', 3], ['m-reel-vermicelli-rice', 3], ['m-reel-chana', 3], ['m-reel-edamame-salad', 3], ['m-reel-banana-oatmeal', 5], ['m-reel-mayak-eggs', 3]] },
+  { id: 'p-reels-freezer', name: 'Reel Freezer Stock-Up',
+    d: 'Big batches from your reels that freeze well: chicken tikka masala burritos, two lentil soups, a Greek lemon chicken and rice bake, and brownie baked oatmeal. Freeze half and pull a few out each week.',
+    items: [['m-reel-tikka-burritos', 5], ['m-reel-red-lentil-soup', 3], ['m-reel-adas-hamod', 3], ['m-reel-greek-lemon-rice', 4], ['m-reel-brownie-oatmeal', 5]] },
+  { id: 'p-reels-onepot', name: 'One-Pot Reel Week',
+    d: 'Dinners from your reels that cook in one pot: green curry chicken and rice, Lebanese chicken and moghrabieh stew, and gochujang coconut chicken, plus Human Kibble bowls for lunches and tahini granola for breakfast.',
+    items: [['m-reel-green-curry', 4], ['m-reel-moghrabieh', 3], ['m-reel-gochujang-coconut', 3], ['m-reel-human-kibble', 4], ['m-reel-tahini-granola', 5]] });
 /* Does this prep line up with your answers? */
 function prepFits(pr) {
   const f = pr.fits; if (!f) return false; const P = prefsOf(); const dis = parseDislikes(P.dislikes);
@@ -4381,10 +4411,12 @@ function guessAisle(n, u) {
   if (/\bfrozen\b/.test(t)) return 'frozen';
   if (/protein powder|garam masala/.test(t)) return 'pantry';
   if (u === 'can' || u === 'jar' || /\bcanned\b|\bbeans?\b|chickpea|salsa|marinara|tomato (paste|sauce)|crushed tomato|diced tomato|coconut milk|broth|stock\b|pickle|olives/.test(t)) return 'canned';
-  if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|bay lea|za.?atar|allspice|cayenne|gochujang|\bmiso\b|tamari|\bsage\b|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
+  if (/peanut butter|almond butter|powder|seasoning|flakes|\bdried\b|cumin|paprika|oregano|cinnamon|nutmeg|\bsalt\b|black pepper|curry|vanilla|honey|maple|syrup|soy sauce|vinegar|\boil\b|mustard|sriracha|hot sauce|tahini|chia|flax|cornstarch|baking|bay lea|za.?atar|allspice|cayenne|gochujang|mirin|fish sauce|oyster sauce|curry paste|harissa|pomegranate molasses|bouillon|\bghee\b|baking soda|gochugaru|caraway|baharat|7 spice|\blumi\b|dried lime|whole cloves|ground cloves|white pepper|urfa|aleppo|saffron|\bmayo|peanuts?\b|seeds?\b|cinnamon stick|cardamom pod|\bmiso\b|tamari|\bsage\b|sugar|chocolate|almonds?\b|walnut|pecan|cashew|\bnuts?\b|sesame|ketchup|mayo/.test(t)) return 'pantry';
   if (/\beggs?\b|yogurt|\bmilk\b|\bbutter\b|kefir|cream\b|cheese|cheddar|mozzarella/.test(t)) return 'dairy';
   if (/chicken|turkey|salmon|shrimp|tofu|tempeh|\bfish\b|\bcod\b|tilapia|steak|\bbeef\b|\bpork\b|sausage|bacon/.test(t)) return 'protein';
+  if (/vermicelli|moghrabieh/.test(t)) return 'grains';
   if (/\brice\b|cereal|quinoa|\boats?\b|pasta|noodle|tortilla|bread|granola|crumbs|cracker|lentil|pita|\bwraps?\b|couscous|farro|flour|bagel|\bbuns?\b/.test(t)) return 'grains';
+  if (/lemongrass|lime leaf|chil(i|ie|e)s?\b|shallot|/.test(t)) return 'produce';
   if (/onion|garlic|pepper|broccoli|spinach|lettuce|romaine|tomato|cucumber|carrot|celery|zucchini|potato|\blimes?\b|lemon|cilantro|parsley|basil|berr|banana|apple|grape|avocado|ginger|scallion|kale|cabbage|dill|chive|brussels|collard|tomatillo|jalape|turmeric|coleslaw|\bpeas?\b|mushroom|squash|green bean|\bcorn\b|hummus|orange|cauliflower|asparagus|herb|mint|fruit/.test(t)) return 'produce';
   return 'other';
 }
@@ -4451,6 +4483,29 @@ const NUT = [['kcal', 'Calories', ''], ['p', 'Protein', ' g'], ['c', 'Carbs', ' 
 const MACRO_KEYS = NUT.slice(0, 4), EXTRA_KEYS = NUT.slice(4);
 const F = (id, label, k, kcal, p, c, f, fib, sug, na, g) => ({ id, label, re: new RegExp(k), kcal, p, c, f, fib, sug, na, g: g || {} });
 const FOODS = [
+  /* Nov 11: foods for the meal-prep recipes from Newt's reels log (USDA-style averages per 100 g); first so they win over broader matches */
+  F('egg-noodles', 'Egg noodles, dry', 'egg noodle', 384, 14, 71, 4.4, 3.3, 2, 21, { cup: 38 }),
+  F('mirin', 'Mirin', 'mirin', 241, 0.2, 43, 0, 0, 43, 90, { cup: 290 }),
+  F('oyster-sauce', 'Oyster sauce', 'oyster sauce', 51, 1.4, 11, 0.3, 0.3, 0, 2730, { cup: 288 }),
+  F('fish-sauce', 'Fish sauce', 'fish sauce', 35, 5, 3.6, 0, 0, 3.6, 7850, { cup: 290 }),
+  F('curry-paste', 'Thai curry paste', 'curry paste', 110, 2.5, 13, 5, 4, 5, 3000, { cup: 256 }),
+  F('tomato-paste', 'Tomato paste', 'tomato paste', 82, 4.3, 19, 0.5, 4.1, 12, 59, { cup: 262, can: 170 }),
+  F('mayo', 'Mayonnaise, light', '\\bmayo|mayonnaise', 300, 0.9, 9, 30, 0, 4, 830, { cup: 240 }),
+  F('edamame', 'Edamame, shelled', 'edamame', 121, 12, 9, 5, 5, 2, 6, { cup: 155 }),
+  F('couscous', 'Pearl couscous (moghrabieh), dry', 'couscous|moghrabieh', 370, 13, 75, 1.5, 3, 1, 10, { cup: 170 }),
+  F('vermicelli', 'Vermicelli noodles, dry', 'vermicelli', 360, 12, 75, 1.5, 3, 2, 5, { cup: 100 }),
+  F('bouillon', 'Bouillon cube', 'bouillon', 300, 10, 30, 15, 0, 10, 24000, { each: 4 }),
+  F('ghee', 'Ghee', '\\bghee\\b', 876, 0.3, 0, 99.5, 0, 0, 2, { cup: 205 }),
+  F('chicken-leg', 'Chicken legs, bone-in with skin (as bought)', 'chicken leg|drumstick', 160, 13.5, 0, 11.5, 0, 0, 70, { each: 300 }),
+  F('whole-chicken', 'Whole chicken (as bought)', 'whole chicken|\\bchickens\\b', 150, 13, 0, 10.5, 0, 0, 60, { each: 1600 }),
+  F('chicken-bone-in', 'Chicken thighs, bone-in with skin (as bought)', 'bone-in|skin on|skin-on', 175, 14, 0, 13, 0, 0, 70, { each: 170 }),
+  F('seeds', 'Pumpkin, sunflower or hemp seeds', 'pumpkin seed|sunflower seed|hemp seed|pepitas', 570, 27, 15, 47, 6, 1.5, 10, { cup: 130 }),
+  F('peanuts', 'Peanuts, roasted', '\\bpeanuts?\\b(?! butter| sauce| oil)', 585, 24, 21, 50, 8, 4, 6, { cup: 146 }),
+  F('fresh-chili', 'Fresh chili peppers', 'green chil|red chil|fresh chil|bird.?s.?eye|thai chil|serrano|habanero|fresno', 40, 1.9, 9, 0.4, 1.5, 5, 9, { each: 15 }),
+  F('pom-molasses', 'Pomegranate molasses', 'pomegranate molasses', 300, 0, 74, 0, 0, 60, 30, { cup: 320 }),
+  F('harissa', 'Harissa paste', 'harissa', 100, 2.5, 10, 6, 4, 4, 1800, { cup: 250 }),
+  F('lemongrass', 'Lemongrass', 'lemongrass', 99, 1.8, 25, 0.5, 0, 0, 6, { each: 20, stalk: 20 }),
+  F('zero-extras', 'Spices & dried herbs', 'baking soda|lime leaf|gochugaru|caraway|baharat|7 spice|seven spice|\\blumi\\b|dried lime|black lime|whole cloves|ground cloves|white pepper|urfa|aleppo|saffron|cinnamon stick|cardamom pod', 0, 0, 0, 0, 0, 0, 0, { cup: 100, each: 1 }),
   /* Nov 2: foods for the recipes from Newt's reels */
   F('cereal', 'Breakfast cereal', '\\bcereal', 380, 7, 84, 3, 6, 20, 450, { cup: 40 }),
   F('ground-beef', 'Ground beef, 93% lean', 'ground beef', 152, 21, 0, 7, 0, 0, 66, {}),
@@ -4641,7 +4696,11 @@ function normMeals(x) {
   const recipes = {}; for (const [k, r] of Object.entries(x.recipes && typeof x.recipes === 'object' ? x.recipes : {})) if (r && typeof r === 'object' && Array.isArray(r.ing)) recipes[k] = r;
   return {
     recipes,
-    plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: clampInt(i.n, 1, 21, 3) })), ...(p.fromMenu ? { fromMenu: true } : {}) },
+    plan: { people: clampInt(p.people, 1, 12, 1), weeks: clampInt(p.weeks, 1, 4, 1), days: clampInt(p.days, 1, 28, 7 * clampInt(p.weeks, 1, 4, 1)), ...(/^\d{4}-\d\d-\d\d$/.test(p.start) ? { start: p.start } : {}), ...(p.src === 'next' || p.src === 'rot' ? { src: p.src } : {}),
+      items: (Array.isArray(p.items) ? p.items : []).filter(i => i && typeof i.r === 'string').map(i => ({ id: String(i.id || uid('mp')), r: i.r, n: +i.n > 0 ? Math.min(21, Math.round(+i.n * 100) / 100) : 3 })), ...(p.fromMenu ? { fromMenu: true } : {}) },
+    ...(Number.isInteger(x.prepDay) && x.prepDay >= 0 && x.prepDay <= 6 ? { prepDay: x.prepDay } : {}),
+    ...(Array.isArray(x.next) ? { next: x.next.filter(e => e && /^\d{4}-\d\d-\d\d$/.test(e.start) && Array.isArray(e.items)).map(e => ({ id: String(e.id || uid('nx')), name: String(e.name || 'Planned prep'), start: e.start, days: clampInt(e.days, 1, 28, 7), items: e.items.filter(x => Array.isArray(x) && typeof x[0] === 'string').map(([r, n]) => [r, +n > 0 ? +n : 3]) })) } : {}),
+    ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
     checks: x.checks && typeof x.checks === 'object' ? x.checks : {},
     preps: Object.fromEntries(Object.entries(x.preps && typeof x.preps === 'object' ? x.preps : {}).filter(([, p]) => p && p.name && Array.isArray(p.items))),
     ...(x.rot && Array.isArray(x.rot.ids) && x.rot.ids.length >= 2 && /^\d{4}-\d\d-\d\d$/.test(x.rot.start) ? { rot: { ids: x.rot.ids.map(String), start: x.rot.start, applied: x.rot.applied || null } } : {}),
@@ -4656,8 +4715,7 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}), ...(x.habits.starred ? { starred: true } : {}) } } : {}),
-    ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}) } } : {}),
     ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -4726,6 +4784,156 @@ MEAL_LIB.push(
     steps: ['Brown the beef and onion with the salt, 8–10 minutes, breaking it up.', 'Stir the yogurt, ketchup and mustard together for the sauce.', 'Pack the lettuce and tomatoes separately from the warm beef. To eat, top the lettuce with beef, cheese, pickles and sauce.'],
     note: 'The swaps: lean beef, no bun, yogurt-based sauce. Add a toasted bun on a high-carb day.',
     src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
+/* Nov 11: meal-prep picks from Newt's reels log (Stockpile Ideas → Recipes). Steps are written in Ironwood's own words;
+   src credits the creator and links the reel. Amounts follow the reel; where the reel gave none, the note says the amounts
+   are Ironwood's. All halal-friendly with no beef, pork or cheese; noAuto ones are in Recipes to look up but not picked
+   for a meal plan (long weekend cooks). */
+MEAL_LIB.push(
+  { id: 'm-reel-sc-teriyaki', name: 'Slow-Cooker Honey Teriyaki Chicken & Rice', cat: 'main', serves: 8, size: '1 container', mins: 20, keeps: 4, freezes: true, week: 4,
+    d: 'Sticky teriyaki thighs from the slow cooker over short-grain rice, with a light spicy mayo. Made to portion and freeze.',
+    ing: ['3 lb boneless skinless chicken thighs', '5 tbsp soy sauce', '2 tbsp dark soy sauce', '4 tbsp honey', '4 tbsp mirin', '2 tbsp ginger paste', '1 tbsp garlic paste', '3 tbsp cornstarch', '2½ cups short-grain rice (dry)', '½ cup light mayo', '½ cup plain nonfat Greek yogurt', '5 tbsp sriracha', '½ tsp garlic powder', '2 green onions, sliced'],
+    steps: ['Put the chicken, both soy sauces, honey, mirin, ginger and garlic in the slow cooker and turn the chicken to coat.', 'Cook on high 4–5 hours or low 5–6 hours, until the chicken is tender.', 'Stir the cornstarch into 4 tbsp cold water, stir it into the sauce and leave the lid off 15–20 minutes so it thickens. Break up the chicken.', 'Cook the rice. Mix it into the chicken or keep it separate.', 'For the spicy mayo, stir the mayo, yogurt, sriracha and garlic powder together, with a splash of water to thin it.', 'Portion into eight containers, top with green onions and keep the sauce on the side. Freeze what you won’t eat in 4 days.'],
+    note: 'The creator counts about 515 calories and 40 g protein a serving. The reel thins the sauce with milk; water works and keeps it dairy-light.',
+    src: { by: 'Tom Walsh', url: 'https://www.instagram.com/reel/DB60tB4y-lm/', what: 'Slow-cooker meal prep' } },
+  { id: 'm-reel-tikka-burritos', name: 'Chicken Tikka Masala Burritos', cat: 'main', serves: 11, size: '1 burrito', mins: 75, keeps: 4, freezes: true, week: 4,
+    d: 'Charred yogurt-marinated chicken, a blended masala sauce and rice rolled into eleven freezer burritos, with a herby yogurt dip.',
+    ing: ['3 lb boneless skinless chicken breast', '3 tbsp smoked paprika', '2 tbsp ground cumin', '1 tbsp garam masala', '1 tbsp ground coriander', '1 tsp ground turmeric', '1 tsp cayenne', '1 cup plain nonfat Greek yogurt, for the marinade', '4 tbsp minced garlic', '4 tbsp ginger paste', '3 lemons', '2 tbsp salt', '3 tbsp butter', '2 yellow onions, chopped', '4 tbsp tomato paste', '1 can diced tomatoes (14.5 oz)', '1 bunch cilantro', '3½ cups plain nonfat Greek yogurt, for the sauce and dip', '1 cup basmati rice (dry)', '1½ cups chicken bone broth', '11 large flour tortillas', '1 tbsp honey', '2 tbsp chives, chopped'],
+    steps: ['Mix the spices. Coat the chicken with the marinade yogurt, half the garlic and ginger, the juice of 2 lemons, the salt and half the spices. Marinate at least 2 hours.', 'For the sauce, melt 2 tbsp butter and cook the onions over high heat until they start to brown. Add the rest of the garlic and ginger for 3–4 minutes, then the tomato paste and the rest of the spices for 1 minute.', 'Add the tomatoes, ⅔ cup water and half the cilantro. Simmer 10–15 minutes, blend until smooth, then stir in 1 cup of the sauce yogurt and the last tbsp of butter over low heat.', 'Cook the rice in the broth. Grill or broil the chicken until charred and cooked to 165°F (74°C), then chop it.', 'Fill each tortilla with rice, chicken and sauce, roll tightly and wrap in foil. Freeze what you won’t eat in 4 days.', 'For the dip, stir the rest of the yogurt with the juice of the last lemon, the honey, chives and the rest of the cilantro.', 'Reheat a frozen burrito unwrapped in a damp paper towel, 3–4 minutes in the microwave, or 25 minutes in a 375°F (190°C) oven in its foil.'],
+    note: 'The creator counts about 480 calories and 40 g protein a burrito. The reel thins the dip with milk; a splash of water does the same.',
+    src: { by: 'Tom Walsh (Stealth Health)', url: 'https://www.instagram.com/reel/C7ul8ZhJjbZ/', what: 'Frozen burrito meal prep' } },
+  { id: 'm-reel-loaf-chicken', name: 'Easy Loaf Pan Chicken', cat: 'main', serves: 6, size: '4–5 oz sliced', mins: 60, keeps: 4, freezes: true, week: 4,
+    d: 'Marinated thighs packed into a loaf pan and baked into one juicy block you slice thin, like a homemade gyro.',
+    ing: ['2½ lb boneless chicken thighs', '1 yellow onion', '1 lemon', '3 tbsp tomato paste', '2 tbsp plain nonfat Greek yogurt', '1 tsp salt', '½ tsp black pepper', '1½ tbsp dried thyme', '1½ tbsp garlic powder', '1 tbsp urfa or Aleppo pepper flakes'],
+    steps: ['Blitz the onion in a food processor (or grate it) and mix it with the chicken, lemon juice, tomato paste and yogurt.', 'Add the salt, pepper, thyme, garlic powder and pepper flakes and mix well. Marinate 2–6 hours, or overnight.', 'Heat the oven to 425°F (220°C). Let the chicken sit out 30 minutes, then pack it tightly into a standard loaf pan.', 'Bake 50 minutes. Pour the juices off into a jar, spoon them back over the top, and do it once more.', 'Turn it out, slice thin and pack with rice, a salad or in wraps. Save the juices for soup or rice.'],
+    src: { by: '@shredhappens', url: 'https://www.instagram.com/reel/DE24LhvyGnF/', what: 'Loaf pan chicken for weekly prep' } },
+  { id: 'm-reel-loaf-shawarma', name: 'Loaf Pan Chicken Shawarma', cat: 'main', serves: 8, size: '4–5 oz sliced', mins: 60, keeps: 4, freezes: true, week: 4,
+    d: 'Lemon, garlic and warm-spiced thighs baked in a loaf pan, then sliced like shawarma for wraps, bowls and salads.',
+    ing: ['3½ lb boneless skinless chicken thighs', '⅓ cup lemon juice', '¼ cup olive oil', '10 cloves garlic, minced', '3 tsp salt', '1½ tsp ground cardamom', '1½ tsp paprika', '1½ tsp ground cumin', '½ tsp crushed red pepper flakes', '½ tsp ground cinnamon'],
+    steps: ['Mix the lemon juice, oil, garlic, salt and spices, and coat the chicken. Marinate at least 1 hour.', 'Heat the oven to 400°F (200°C) and pack the chicken into a loaf pan.', 'Bake about 45 minutes, until it reaches 165°F (74°C).', 'Cool a little, slice thin, and pack with rice, pickles and a garlic or tahini sauce.'],
+    src: { by: '@feelgoodfoodie', url: 'https://www.instagram.com/reel/Cu8P8CONbbP/', what: 'Loaf pan chicken shawarma' } },
+  { id: 'm-reel-moghrabieh', name: 'Lebanese Chicken & Moghrabieh Stew', cat: 'main', serves: 5, size: '1 bowl', mins: 90, keeps: 4, freezes: true, week: 3,
+    d: 'Chicken thighs braised with caraway, cumin and cinnamon, finished with pearl couscous and chickpeas.',
+    ing: ['2¼ lb bone-in skin-on chicken thighs', '2 tbsp olive oil', '6 shallots, peeled', '8 cloves garlic, peeled', '2 tsp ground caraway', '2 tsp ground cumin', '2 tsp baharat (Lebanese 7 spice)', '1 cinnamon stick', '2 cups chicken stock', '2 cups moghrabieh (pearl couscous)', '1 cup chickpeas, drained', '1 lemon', '1 bunch cilantro, chopped', '1 tsp salt'],
+    steps: ['Brown the chicken skin side down with the shallots in the oil in a large pot over medium heat, 8–10 minutes.', 'Turn the chicken, add the garlic for 2 minutes, then the spices and stock. Bring to a boil, cover and cook on low 40–45 minutes.', 'Meanwhile boil the moghrabieh 15 minutes and drain.', 'Add it to the pot with the chickpeas, cover and cook 15 minutes, then uncover and cook 10–12 minutes more until the sauce is thick.', 'Finish with the lemon juice and zest, salt and cilantro. Portion into five containers.'],
+    src: { by: '@johngregorysmith', url: 'https://www.instagram.com/reel/CsqzW2moGoA/', what: 'Lebanese chicken stew with moghrabieh' } },
+  { id: 'm-reel-green-curry', name: 'One-Pot Green Curry Chicken & Rice', cat: 'main', serves: 4, size: '1 container', mins: 60, keeps: 4, freezes: true, week: 3,
+    d: 'Chicken, rice and vegetables cooked together in green curry and coconut milk. One pot, a full meal.',
+    ing: ['1½ cups jasmine rice (dry)', '1½ lb boneless skinless chicken thighs', '2 tbsp cooking oil', '4 carrots, sliced', '1 head broccoli, cut into florets', '1 small onion, diced', '3 cloves garlic, minced', '1 tbsp fresh ginger, minced', '4 tbsp green curry paste', '1 can coconut milk (13.5 oz)', '1½ cups chicken broth', '1 tsp salt', '2 limes', '½ bunch cilantro'],
+    steps: ['Soak the rice 30 minutes, then rinse. Season the chicken with salt and pepper.', 'Sear the chicken in the oil in a large pot over medium-high heat, 3–5 minutes a side, and set it aside.', 'Turn the heat to medium. Cook the onion, carrots and broccoli 3 minutes, then the garlic and ginger 1–2 minutes.', 'Stir the curry paste in a clear spot for 30 seconds, then add the broth and coconut milk, scraping the bottom.', 'Add the rice and salt, bring to a simmer, and nestle the chicken in. Cover and cook on low 20 minutes, then rest 10–15 minutes off the heat.', 'Finish with lime juice and cilantro and portion into four containers.'],
+    note: 'Counted with light coconut milk; full-fat adds about 100 calories a serving.',
+    src: { by: 'Olivia Adriance', url: 'https://www.instagram.com/reel/C15Z4_JOe2w/', what: 'One-pot green curry chicken and rice' } },
+  { id: 'm-reel-gochujang-coconut', name: 'Gochujang Coconut Chicken', cat: 'main', serves: 4, size: '1 container', mins: 30, keeps: 4, freezes: true, week: 3,
+    d: 'Crispy-skinned thighs simmered in a spicy, jammy gochujang and coconut sauce. About 25 minutes.',
+    ing: ['6 boneless chicken thighs', '3 tsp paprika', '1 tsp ground ginger', '2 tsp gochugaru', '2 tbsp cooking oil', '1 small red onion, diced', '3 cloves garlic, diced', '1 tbsp tomato paste', '1 tbsp gochujang', '1 can coconut milk (13.5 oz)', '1 makrut lime leaf', '1 lime', '1½ cups white rice (dry)'],
+    steps: ['Rub the chicken with the paprika, ginger, gochugaru and a little oil while you chop the onion and garlic. Start the rice.', 'Fry the chicken skin side down in a shallow pan over medium heat until crisp, flip for a few minutes and take it out.', 'In the same pan, cook the onion, tomato paste and gochujang 5 minutes until jammy, then the garlic 2 minutes.', 'Pour in the coconut milk with the lime leaf and bring to a simmer. Return the chicken and cook about 10 minutes, to 165°F (74°C).', 'Portion over the rice with a squeeze of lime.'],
+    note: 'The reel adds a pinch of MSG with the spices.',
+    src: { by: 'Bella | Cooking Made Easy', url: 'https://www.instagram.com/reel/DWOBD5QDXeU/', what: 'Gochujang and coconut chicken' } },
+  { id: 'm-reel-greek-lemon-rice', name: 'Greek Lemon Chicken & Rice Bake', cat: 'main', serves: 6, size: '1 container', mins: 60, keeps: 4, freezes: true, week: 3,
+    d: 'Raw rice, chicken and vegetables baked together in one dish under foil. Six meals, about 40 g protein each.',
+    ing: ['2 lb boneless skinless chicken breast, cut into bites', '1½ cups jasmine rice (dry)', '2 cups chicken broth', '1 red onion, diced', '1 cup cherry tomatoes, halved', '3 cups baby spinach', '4 cloves garlic, minced', '1 lemon', '1 tbsp olive oil', '2 tbsp parsley, chopped', '2 tsp dried oregano', '1 tsp garlic powder', '1 tsp onion powder', '1 tsp dried dill', '1 tsp salt', '½ tsp black pepper'],
+    steps: ['Heat the oven to 400°F (200°C).', 'In a 9×13 dish mix the rice, chicken, onion, tomatoes, garlic, lemon zest, oil and all the seasonings.', 'Pour in the warm broth and the juice of half the lemon, stir, and spread it out so the rice is mostly under the liquid.', 'Cover tightly with foil and bake 45–50 minutes, until the rice is tender and the chicken reaches 165°F (74°C).', 'Stir in the spinach while it’s hot, add the parsley and the rest of the lemon juice, and split into six containers.'],
+    note: 'The reel tops it with feta; it’s left out here.',
+    src: { by: 'Adam Wolfe', url: 'https://www.instagram.com/reel/Deh7xGUBYuU/', what: 'Greek lemon chicken and rice bake' } },
+  { id: 'm-reel-yogurt-airfryer', name: 'Yogurt-Marinated Air Fryer Chicken', cat: 'main', serves: 4, size: '1 breast', mins: 50, keeps: 4, freezes: true, week: 3,
+    d: 'Greek yogurt, lemon and paprika keep chicken breasts juicy in 12–15 minutes.',
+    ing: ['1½ lb boneless skinless chicken breast', '⅓ cup plain nonfat Greek yogurt', '4 cloves garlic, minced', '1 tbsp lemon juice', '2 tsp paprika', '1 tsp garlic powder', '½ tsp onion powder', '½ tsp dried oregano', '1 tsp salt', '½ tsp black pepper'],
+    steps: ['Pat the chicken dry and pound the thick ends so the breasts are even.', 'Rub with the yogurt, lemon juice, garlic and seasonings. Marinate at least 30 minutes, up to a day.', 'Air fry at 375°F (190°C) smooth side down 8 minutes, flip, and cook 4–7 minutes more, to 165°F (74°C).', 'Rest 5 minutes, slice and pack with rice and vegetables.'],
+    src: { by: '@feelgoodfoodie', url: 'https://www.instagram.com/reel/Cbq1qpNAzIm/', what: 'Yogurt-marinated air fryer chicken' } },
+  { id: 'm-reel-me-baked-chicken', name: 'Middle Eastern Baked Chicken Legs', cat: 'main', serves: 6, size: '1 chicken leg', mins: 75, keeps: 4, freezes: true, week: 3,
+    d: 'Chicken legs coated in a blended tomato, pepper and herb marinade, baked under foil then browned. Good with vermicelli rice.',
+    ing: ['6 chicken legs (thigh and drumstick)', '1 Roma tomato', '½ red onion', '1 red bell pepper', '4 cloves garlic', '⅓ cup fresh parsley', '⅓ cup fresh cilantro', '¼ cup olive oil', '½ lemon', '¼ cup plain nonfat Greek yogurt', '¼ cup tomato paste', '2 tsp salt', '1 tsp black pepper', '1 tsp garlic powder', '1 tsp onion powder', '1 tsp ground coriander', '1 tsp sumac', '1 tsp ground turmeric', '1 tsp smoked paprika'],
+    steps: ['Blend everything except the chicken in a food processor until smooth.', 'Coat the chicken in it. You can do this the night before.', 'Heat the oven to 425°F (220°C). Bake the chicken in a dish covered with foil for 45 minutes.', 'Uncover and bake 15 minutes more, until golden.'],
+    src: { by: 'Food Dolls', url: 'https://www.instagram.com/reel/Cm9T-arunpq/', what: 'Middle Eastern baked chicken' } },
+  { id: 'm-reel-lemon-chicken', name: 'Lemon Chicken with Lemon Sauce', cat: 'main', serves: 4, size: '1 breast', mins: 35, keeps: 4, freezes: true, week: 3,
+    d: 'Thin chicken cutlets in a bright lemon pan sauce made with oil and flour: no butter, no cream.',
+    ing: ['4 boneless skinless chicken breasts', '¼ cup lemon juice, for the marinade', '1 tsp salt', '1 tsp dried thyme', '½ tsp paprika', '½ tsp black pepper', '2 tbsp olive oil', '2 tbsp flour', '⅓ cup lemon juice, for the sauce', '2 tbsp parsley, chopped'],
+    steps: ['Slice the breasts in half lengthwise and marinate in the lemon juice and spices 15–20 minutes.', 'Cook in a pan over medium-high heat 2–3 minutes a side until cooked through, and set aside.', 'In the same pan whisk the oil and flour into a paste, then whisk in 2 cups water and the sauce lemon juice until it thickens.', 'Pour over the chicken, add the parsley, and pack with rice or potatoes.'],
+    src: { by: 'Samara Alkhammach', url: 'https://www.instagram.com/reel/Ckn3tLNuUgT/', what: 'Dairy-free lemon chicken' } },
+  { id: 'm-reel-peanut-noodles', name: 'Spicy Peanut Broccoli Chicken Noodles', cat: 'main', serves: 3, size: '1 container', mins: 35, keeps: 3, freezes: false, week: 3,
+    d: 'Tender stir-fried chicken and broccoli in a peanut, soy and sriracha sauce over egg noodles.',
+    ing: ['2 boneless skinless chicken breasts', '1 tsp baking soda', '2 tbsp soy sauce', '3½ tbsp rice vinegar', '2 tsp minced garlic', '⅛ tsp white pepper', '1 head broccoli, thinly sliced', '1 tbsp cooking oil', '4 tbsp peanut butter', '2 tbsp oyster sauce', '2 tbsp sriracha', '1 tsp sesame oil', '½ bouillon cube', '10 oz egg noodles', '2 green onions, sliced', '2 tbsp roasted peanuts, crushed'],
+    steps: ['Cube the chicken, toss with the baking soda, wait 15 minutes, then rinse and pat dry.', 'Stir-fry the chicken in a hot wok with ½ tbsp each of soy sauce and rice vinegar, half the garlic and the white pepper until golden. Take it out.', 'Add the oil and stir-fry the broccoli.', 'Simmer the peanut butter, the rest of the soy sauce and vinegar, the oyster sauce, sriracha, the rest of the garlic, sesame oil and bouillon with ⅓ cup water while the noodles cook.', 'Toss the noodles, chicken and broccoli in the sauce and top with green onions and peanuts. Add a splash of water when you reheat.'],
+    src: { by: 'Sara | Nutrient Matters', url: 'https://www.instagram.com/reel/C0MpbsnuITa/', what: 'Spicy peanut chicken noodles' } },
+  { id: 'm-reel-chana', name: 'Rice Cooker Chana Masala', cat: 'main', serves: 5, size: '1 cup', mins: 10, keeps: 5, freezes: true, week: 3,
+    d: 'Four ingredients and the rice cooker: chickpeas in tomato, ginger and coconut milk. Cheap and meatless.',
+    ing: ['3 cups cooked chickpeas', '1 cup crushed tomatoes', '1 tbsp fresh ginger, minced', '3 cloves garlic, minced', '1 can coconut milk (13.5 oz)', '2 tsp garam masala', '½ tsp salt'],
+    steps: ['Put everything in the rice cooker and stir.', 'Cook on the white rice setting.', 'Stir, taste for salt, and portion. Serve with rice or flatbread.'],
+    note: 'The reel uses only chickpeas, tomatoes, ginger and coconut milk; garlic (mentioned in the video), garam masala and salt are Ironwood’s additions.',
+    src: { by: 'serena yau', url: 'https://www.instagram.com/reel/DTlTfsWEq7Z/', what: 'Rice cooker chana masala' } },
+  { id: 'm-reel-red-lentil-soup', name: 'Red Lentil Soup (Shorbat Adas)', cat: 'main', serves: 4, size: '1½ cups', mins: 40, keeps: 5, freezes: true, week: 3,
+    d: 'The classic Arab lentil soup: red lentils, potato and carrot with cumin, blended smooth and finished with lemon.',
+    ing: ['1 tbsp olive oil', '1 large onion, diced', '1 russet potato, diced', '1 cup shredded carrots', '1 tsp ground cumin', '2 tsp paprika', '1 tsp salt', '1 cup red lentils (dry)', '6 cups chicken stock', '1 lemon'],
+    steps: ['Cook the onion, potato and carrots in the oil with the cumin, paprika and salt until they soften.', 'Add the lentils and stock (and a bouillon cube if the stock is mild). Boil hard, then cover and simmer about 30 minutes.', 'Blend until smooth and finish with lemon juice. Portion; it thickens in the fridge, so add water when you reheat.'],
+    src: { by: '@ahmadalzahabi', url: 'https://www.instagram.com/reel/CqLY5XcDpf4/', what: 'Shorbat adas' } },
+  { id: 'm-reel-adas-hamod', name: 'Syrian Sour Lentil Soup (Adas bi Hamod)', cat: 'main', serves: 4, size: '1½ cups', mins: 45, keeps: 5, freezes: true, week: 3,
+    d: 'Chunky red lentil soup with potato, crushed garlic and lots of lemon. Vegan and very cheap.',
+    ing: ['1½ cups red lentils (dry)', '2 tsp salt', '½ tsp ground turmeric', '3 cloves garlic', '2 lemons', '1 russet potato, diced', '¼ cup olive oil'],
+    steps: ['Rinse the lentils well and boil them in 5 cups water on medium about 20 minutes, skimming the foam.', 'Crush the garlic with 1 tsp salt and dice the potato.', 'Add the potato, garlic, turmeric and the rest of the salt. Cook about 15 minutes, adding water if it gets thick.', 'Stir in most of the lemon juice, taste, then turn off the heat and stir in the oil. Serve with more lemon and Aleppo pepper.'],
+    note: 'Pumpkin or squash work in place of the potato.',
+    src: { by: 'Bayan’s kitchen', url: 'https://www.instagram.com/reel/DCHijiDOXY0/', what: 'Adas bi hamod' } },
+  { id: 'm-reel-damset-adas', name: 'Lentils with Garlic-Chili Dagga & Tahini', cat: 'main', serves: 4, size: '1½ cups', mins: 45, keeps: 5, freezes: true, week: 3,
+    d: 'Brown lentils simmered thick, then stirred with a mashed garlic, chili and lemon dagga and tahini.',
+    ing: ['2 cups brown lentils (dry)', '1 tsp salt', '½ tsp black pepper', '1 tsp ground cumin', '4 cloves garlic', '5 green chilies', '2 lemons', '4 tbsp tahini', '4 tbsp olive oil', '1 tomato, chopped'],
+    steps: ['Boil the lentils in 4 cups water with the salt, pepper and cumin for 30–40 minutes, adding a cup more water if it thickens before they’re soft.', 'Mash the garlic and chilies with a pinch of salt and stir in the lemon juice.', 'Stir the dagga, 3 tbsp tahini and the oil into the lentils.', 'Portion, and top with the rest of the tahini and the tomato when you eat it.'],
+    src: { by: 'Mohammed Moosa', url: 'https://www.instagram.com/reel/C8oowSCMQRl/', what: 'Damset adas' } },
+  { id: 'm-reel-mahmoos', name: 'Mahmoos Gutaifi (Saudi Caramelized Onion Chicken & Rice)', cat: 'main', serves: 6, size: '1 plate', mins: 120, keeps: 4, freezes: true, week: 3, noAuto: true,
+    d: 'A weekend pot: onions cooked to deep brown, whole chickens simmered with spices, then broiled while basmati cooks in the broth.',
+    ing: ['5 onions, finely chopped', '4 tbsp cooking oil', '2 whole chickens', '2 cups basmati rice (dry)', '3 heads garlic', '1 lime', '3 bay leaves', '4 cardamom pods', '4 whole cloves', '2 cinnamon sticks', '4 dried limes (lumi), optional', '1 tsp black pepper', '1 tsp paprika', '1 tsp ground cinnamon', '1 tsp ground cardamom', '1 tsp garlic powder', '1 tsp ground coriander', '½ tsp ground turmeric', '2 tsp salt'],
+    steps: ['Fry the onions in the oil on high 10–15 minutes, then turn the heat to low and keep stirring until they’re dark brown.', 'Add the chickens and sear briefly, then the whole spices, garlic heads, ground spices and 5 cups water. Cover and cook on medium about 30 minutes.', 'Move the chickens to a tray and broil until crisp.', 'Soak the rice 30 minutes, add it to the broth (the liquid should sit a fingertip above the rice) and boil uncovered about 10 minutes.', 'Cover and cook on the lowest heat 20 minutes, then leave the lid on 20 minutes off the heat. Serve the chicken on the rice with lime.'],
+    note: 'A long cook for a weekend. Portion the chicken off the bone for the week.',
+    src: { by: 'Mohammed Moosa', url: 'https://www.instagram.com/reel/DIOMcpOtqn_/', what: 'Mahmoos gutaifi' } },
+  { id: 'm-reel-human-kibble', name: 'Human Kibble (Rice, Bean & Veg Bowls)', cat: 'main', serves: 10, size: '1 bowl', mins: 60, keeps: 4, freezes: true, week: 5,
+    d: 'Ten high-fiber bowls in an hour: rice, black beans, peas, sautéed vegetables and an egg each.',
+    ing: ['3 cups white rice (dry)', '2 cans black beans (15 oz), rinsed', '2 cups frozen peas', '1 head broccoli, chopped', '4 carrots, diced', '3 zucchini, diced', '2 yellow onions, diced', '2 tbsp olive oil', '2 tsp salt', '10 eggs'],
+    steps: ['Start the rice first, since it takes longest.', 'Simmer the beans and peas in a little water until hot.', 'Sauté the broccoli, carrots, zucchini and onions in your biggest pot with the oil and salt until tender.', 'Boil, fry or scramble the eggs (one per bowl).', 'Mix everything and split into ten containers.'],
+    note: 'Amounts are Ironwood’s; the reel gave the method only. Add chicken for more protein, and a sauce from Mix & match.',
+    src: { by: 'Patrick Kong', url: 'https://www.instagram.com/reel/DUWH06CAayU/', what: 'High-fiber meal prep' } },
+  { id: 'm-reel-edamame-salad', name: 'Crunchy Edamame Salad', cat: 'main', serves: 4, size: '1 container', mins: 25, keeps: 4, freezes: false, week: 3,
+    d: 'Edamame, quinoa, red cabbage and peanuts with a peanut-ginger dressing. Keeps crunchy all week with the dressing on the side.',
+    ing: ['½ cup quinoa (dry)', '2½ cups frozen shelled edamame', '2 cups red cabbage, shredded', '2 cups baby spinach, chopped', '1 cup shredded carrots', '½ cup roasted peanuts', '1 jalapeño, sliced', '1 lime', '½ bunch cilantro', '2 tbsp peanut butter', '2 tbsp white vinegar', '1 tbsp soy sauce', '1 tbsp maple syrup', '3 cloves garlic, minced', '1 tsp fresh ginger, minced', '½ tsp chili flakes'],
+    steps: ['Cook the quinoa and let it cool. Thaw or briefly boil the edamame.', 'Whisk the peanut butter, vinegar, soy sauce, maple syrup, garlic, ginger, chili flakes and 2 tbsp water.', 'Toast the peanuts in a dry skillet for a few minutes.', 'Pack the quinoa, edamame, cabbage, spinach, carrots, jalapeño and peanuts, with the dressing, lime and cilantro on the side.'],
+    note: 'The creator counts about 485 calories and 26 g protein a serving.',
+    src: { by: 'Jenny Bolle', url: 'https://www.instagram.com/reel/CbxiDvJKjZr/', what: 'Crunchy edamame salad' } },
+  { id: 'm-reel-sp-chickpea-salad', name: 'Sweet Potato Chickpea Salad with Tahini', cat: 'main', serves: 4, size: '1 container', mins: 35, keeps: 4, freezes: false, week: 3,
+    d: 'Roasted Cajun sweet potato, chickpeas and crunchy vegetables with a lemon-tahini dressing.',
+    ing: ['1 large sweet potato, cubed', '1 can chickpeas (15 oz), rinsed', '1 red onion, diced', '1 cucumber, diced', '1 carrot, diced', '1 yellow bell pepper, diced', '1 red bell pepper, diced', '1 bunch parsley, chopped', '1 tbsp olive oil', '2 tsp Cajun seasoning', '3 tbsp tahini', '⅓ cup lemon juice', '½ tsp ground cumin', '½ tsp salt'],
+    steps: ['Toss the sweet potato with the oil and Cajun seasoning. Air fry at 400°F (200°C) 10–12 minutes, or bake at 425°F (220°C) 25–30 minutes.', 'Chop the other vegetables and parsley.', 'Whisk the tahini, lemon juice, cumin, salt and 1–2 tbsp water.', 'Pack the salad with the dressing on the side.'],
+    src: { by: 'Samara Alkhammach', url: 'https://www.instagram.com/reel/CoSOdTyrtJ5/', what: 'Sweet potato chickpea salad' } },
+  { id: 'm-reel-steamed-chicken', name: 'Juicy Pan-Steamed Chicken Breast', cat: 'base', serves: 6, size: '4 oz cooked', mins: 30, keeps: 4, freezes: true, week: 4,
+    d: 'Sear one side, add water, cover and turn the heat off: the easiest way to keep batch chicken breast juicy.',
+    ing: ['2 lb boneless skinless chicken breast', '1 tbsp olive oil', '1 tsp salt', '½ tsp black pepper', '1 tsp garlic powder', '1 tsp paprika'],
+    steps: ['Season the chicken well on both sides.', 'Heat the oil in a pan over medium heat and cook the chicken 5 minutes without moving it.', 'Flip, add about 1 cup water and cover. Keep the heat on 2 minutes (4 for a thin pan or big breasts), then turn it off.', 'Leave it covered and untouched 15 minutes, rest a few minutes more, then slice.'],
+    note: 'Amounts are Ironwood’s; the reel teaches the method with any seasoning. Use it with any Mix & match flavor.',
+    src: { by: 'smalltowninfluencer', url: 'https://www.instagram.com/reel/DGwsZ_evJO3/', what: 'Pan-steamed chicken breast' } },
+  { id: 'm-reel-vermicelli-rice', name: 'Rice with Vermicelli (Riz bi Shaariyeh)', cat: 'base', serves: 6, size: '¾ cup cooked', mins: 35, keeps: 4, freezes: true, week: 4,
+    d: 'Lebanese everyday rice: vermicelli toasted in ghee, then cooked with the rice. Goes with any stew or tray bake.',
+    ing: ['1½ cups medium-grain rice (dry)', '1 tbsp ghee', '2 oz vermicelli noodles', '1 tsp salt'],
+    steps: ['Wash the rice until the water runs clear.', 'Melt the ghee in a pot, crush the vermicelli in by hand and stir until light brown.', 'Add the rice, 3 cups water and the salt. Cover and bring to a boil.', 'Simmer on low about 25 minutes, until the water is gone.'],
+    src: { by: 'Sunday Kitchen', url: 'https://www.instagram.com/reel/DKyxqVSzynZ/', what: 'Rice with vermicelli' } },
+  { id: 'm-reel-mayak-eggs', name: 'Korean Mayak Eggs', cat: 'snack', serves: 3, size: '2 eggs', mins: 20, keeps: 5, freezes: false, week: 5,
+    d: 'Jammy eggs marinated overnight in sweet-spicy soy with garlic, chilies and sesame. Great over rice.',
+    ing: ['6 eggs', '¾ cup soy sauce', '¼ cup sugar', '¼ cup rice vinegar', '1 tbsp sesame oil', '1 tbsp gochugaru', '1 tbsp sesame seeds', '4 cloves garlic, minced', '1 jalapeño, finely diced', '1 Fresno pepper, thinly sliced'],
+    steps: ['Lower the eggs into boiling water and cook 6–7 minutes for jammy yolks. Cool in ice water and peel.', 'Stir everything else with ½ cup water.', 'Put the eggs in, making sure they’re covered, and refrigerate overnight.', 'Eat over rice with a spoon of the marinade.'],
+    note: 'Nutrition counts 2 eggs and about a tablespoon of the marinade each, since most of it is left over. Reuse it for a second batch within a few days.',
+    macros: { kcal: 165, p: 13, c: 5, f: 10, fib: 0, sug: 4, na: 700 },
+    src: { by: 'Alexa Santos', url: 'https://www.instagram.com/reel/C4T1FJPPgOT/', what: 'Korean marinated eggs' } },
+  { id: 'm-reel-banana-oatmeal', name: 'Banana Bread Baked Oatmeal', cat: 'breakfast', serves: 7, size: '1 square', mins: 40, keeps: 5, freezes: true, week: 5,
+    d: 'Dairy-free baked oats that taste like banana bread. One pan covers a week of breakfasts.',
+    ing: ['2 large ripe bananas, mashed', '1⅓ cups oat milk', '¼ cup peanut butter', '4 tbsp maple syrup', '¼ tsp salt', '2 cups rolled oats', '2 tsp baking powder', '¼ cup chocolate chips', '1 banana, sliced, for the top'],
+    steps: ['Heat the oven to 400°F (200°C). Mash the bananas in a baking dish and mix in the oat milk, peanut butter, maple syrup and salt.', 'Stir in the oats, baking powder and chocolate chips.', 'Lay the banana slices on top.', 'Bake 30–35 minutes, cool, and cut into seven squares. Reheat 30–60 seconds.'],
+    src: { by: '@maya.plantbased', url: 'https://www.instagram.com/reel/CqqqboeKYba/', what: 'Banana bread baked oatmeal' } },
+  { id: 'm-reel-brownie-oatmeal', name: 'Brownie Baked Oatmeal', cat: 'breakfast', serves: 6, size: '1 square', mins: 50, keeps: 5, freezes: true, week: 5,
+    d: 'Chocolate peanut butter baked oats, dairy-free. Breakfast that tastes like dessert.',
+    ing: ['2 cups coconut milk', '½ cup maple syrup', '⅓ cup peanut butter', '1 tsp vanilla extract', '2 cups rolled oats', '¼ cup cocoa powder', '1 tsp baking powder', '1 tbsp ground flax', '¼ tsp salt', '⅓ cup chocolate chips'],
+    steps: ['Heat the oven to 350°F (175°C).', 'Whisk the coconut milk, maple syrup, peanut butter and vanilla, then stir in the oats, cocoa, baking powder, flax and salt. Fold in the chocolate chips.', 'Pour into a 6×9 pan and bake 40 minutes.', 'Cool, cut into six squares and keep in the fridge. Reheat to serve.'],
+    note: 'Counted with light canned coconut milk; a carton of coconut milk works too.',
+    src: { by: '@healthygirlkitchen', url: 'https://www.instagram.com/reel/Cc0HFw1JAuq/', what: 'Vegan brownie baked oatmeal' } },
+  { id: 'm-reel-tahini-granola', name: 'Spiced Tahini Granola', cat: 'breakfast', serves: 16, size: '½ cup', mins: 40, keeps: 30, freezes: true, week: 5,
+    d: 'Oats, nuts and seeds baked with tahini, maple and warm spices. Keeps for weeks in a jar; great on Greek yogurt.',
+    ing: ['3 cups rolled oats', '1 cup almonds, chopped', '1 cup walnuts, chopped', '½ cup pumpkin seeds', '½ cup sunflower seeds', '¼ cup hemp seeds', '1 tsp ground cinnamon', '1 tsp ground ginger', '1 tsp ground nutmeg', '¾ tsp salt', '½ cup tahini', '½ cup maple syrup', '½ cup olive oil', '1 tsp vanilla extract'],
+    steps: ['Heat the oven to 320°F (160°C) and get two sheet pans ready.', 'Mix the oats, nuts, seeds, spices and salt.', 'Warm the tahini, maple syrup, oil and vanilla in a small pot, pour over and coat everything.', 'Press it thin and flat on the pans. Bake 20 minutes, turn the pans, and bake 5–10 minutes more, watching so it doesn’t burn.', 'Cool completely before breaking into jars.'],
+    src: { by: 'Terianncarty', url: 'https://www.instagram.com/reel/ComviwOrZS0/', what: 'Spiced tahini granola' } },
+);
 const MEAL_BUILTIN = Object.fromEntries(MEAL_LIB.map(r => [r.id, { ...r, builtin: true, ing: r.ing.map(parseIng).filter(Boolean) }]));
 const ML = () => { if (!S.meta.meals || !S.meta.meals.plan) S.meta.meals = normMeals(S.meta.meals); return S.meta.meals; };
 /* Recipes as written; getRecipe gives them with your food-preference swaps (foodprefs.js) */
@@ -4748,7 +4956,7 @@ function addToPlan(id, n) {
   showToast({ kind: 'info', text: r.name + ' added to this week', action: 'Undo', ms: 5000, fn: () => mealCommit(m => { m.plan.items = m.plan.items.filter(i => i.r !== id); }) });
 }
 const removeFromPlan = id => mealCommit(m => { delete m.plan.fromMenu; m.plan.items = m.plan.items.filter(i => i.r !== id); });
-function servingsFor(it) { const P = ML().plan; return it.n * P.people * P.weeks; }
+function servingsFor(it) { const P = ML().plan; return servingsOver(it.n, spanDays(P), P.people); }
 function shoppingList() {
   const P = ML().plan; const map = new Map();
   for (const it of P.items) {
@@ -4770,7 +4978,7 @@ function shoppingList() {
   });
 }
 function listText() {
-  const P = ML().plan; const items = shoppingList(); const m = ML(); const out = ['Ironwood shopping list · ' + P.people + (P.people === 1 ? ' person' : ' people') + ' · ' + P.weeks + (P.weeks === 1 ? ' week' : ' weeks')];
+  const P = ML().plan; const items = shoppingList(); const m = ML(); const out = ['Ironwood shopping list · ' + P.people + (P.people === 1 ? ' person' : ' people') + ' · ' + (P.start ? rangeText(parseYmd(P.start), spanDays(P)) : daysTxt(spanDays(P)))];
   for (const [a, label] of AISLES) {
     const rows = items.filter(x => x.a === a && !m.checks[x.key]).map(x => '- ' + (x.qty ? x.qty + ' ' : '') + x.label);
     const ex = a === 'other' ? m.extras.filter(e => !e.c).map(e => '- ' + e.t) : [];
@@ -4807,7 +5015,7 @@ function MealsScreen({ view }) {
 }
 function keepNote(r, it) {
   const P = ML().plan; const keeps = r.keeps || 4;
-  if (P.weeks > 1) return r.freezes ? 'Lasts ' + keeps + (keeps === 1 ? ' day' : ' days') + ' in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
+  if (spanDays(P) > 7) return r.freezes ? 'Lasts ' + keeps + (keeps === 1 ? ' day' : ' days') + ' in the fridge. Freeze the portions for later weeks.' : 'Doesn’t freeze well. Make this fresh each week rather than all at once.';
   const dd = n => n + (n === 1 ? ' day' : ' days'); const once = typeof mealHabits === 'function' && mealHabits().prep === 'once';
   if (it.n > keeps && keeps < 7) return r.freezes ? 'Lasts ' + dd(keeps) + ' in the fridge. Freeze what you’ll eat after day ' + keeps + '.' : once ? 'Lasts ' + dd(keeps) + ' in the fridge and doesn’t freeze well: eat it early in the week.' : 'Lasts ' + dd(keeps) + ' in the fridge. Make a second batch midweek.';
   return null;
@@ -4816,27 +5024,9 @@ const PREP_UI = { ready: false, open: null, all: false };
 /* Clear this week (Nov 11, Newt): drops the meal plan, what you'll cook and the shopping ticks, and stops a rotation.
    Keeps saved preps, your recipes, food log, answers, food preferences and skipped meals. */
 function clearMealPlan() {
-  openSheet({ type: 'confirm', danger: true, title: 'Clear everything and start over?', body: 'This can’t be undone. It clears your meal plan, what you’ll cook, the shopping list and your extra items' + (ML().rot ? ', and stops your rotation' : '') + '. Saved preps, your recipes, stars, answers, food preferences and skipped meals stay. To change one thing instead, close this and use the options above it.', ok: 'Clear everything', onOk: () => {
+  openSheet({ type: 'confirm', title: 'Clear this week and start over?', body: 'Your meal plan, what you’ll cook and the shopping list are cleared' + (ML().rot ? ', and your rotation stops' : '') + '. Saved preps, your recipes, your answers and food preferences stay.', ok: 'Clear it', onOk: () => {
     mealCommit(mm => { delete mm.menu; delete mm.rot; mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; mm.extras = []; });
     closeSheet(); PREP_UI.open = null; showToast({ kind: 'info', text: 'Cleared. Plan my week starts fresh.' }); } });
-}
-/* Change or clear this week (Nov 11, Newt): smaller changes first, Clear everything last, with a warning */
-function WeekTools() {
-  const m = ML(); const P = m.plan; const nSkip = Object.keys(m.skip || {}).length; const nTick = Object.values(m.checks || {}).filter(Boolean).length;
-  const ask = (title, body, ok, fn) => openSheet({ type: 'confirm', title, body, ok, onOk: () => { fn(); closeSheet(); } });
-  const opts = [
-    m.menu && ['wt-reroll', 'Different meals', 'New picks for the week with the same settings and skips.', () => { const nm = buildMenu(m.menu.t, (m.menu.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); showToast({ kind: 'info', text: 'New meals for the week.' }); }],
-    ['wt-settings', 'Change plan settings', 'Calories, food preferences, how you eat, kitchen gear.', () => openSheet({ type: 'mealTargets' })],
-    nSkip && ['wt-unskip', 'Bring back skipped meals', nSkip + ' meal' + (nSkip === 1 ? ' is' : 's are') + ' marked as covered elsewhere.', () => ask('Bring back skipped meals?', 'They go back into your cooking and shopping list.', 'Bring them back', () => { mealCommit(mm => { delete mm.skip; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); })],
-    nTick && ['wt-untick', 'Untick the shopping list', nTick + ' item' + (nTick === 1 ? '' : 's') + ' ticked. Start the shopping list fresh.', () => ask('Untick the shopping list?', 'Every item goes back to not bought. Nothing else changes.', 'Untick all', () => mealCommit(mm => { mm.checks = {}; }))],
-    m.menu && ['wt-drop-menu', 'Remove the meal plan only', 'Keeps what you’ll cook and the shopping list; drops the day-by-day meals.', () => ask('Remove the meal plan?', 'The day-by-day meals go away. What you’ll cook and your shopping list stay, so you can change them by hand.', 'Remove it', () => mealCommit(mm => { delete mm.menu; delete mm.plan.fromMenu; }))],
-    P.items.length && ['wt-empty-cook', 'Empty what you’ll cook', 'Takes every recipe out of this week' + (m.menu ? '; the meal plan stays and can fill it again' : '') + '.', () => ask('Empty what you’ll cook?', 'Every recipe comes out of this week and the shopping list starts fresh.' + (m.menu ? ' Your meal plan stays; tap Use these meals to fill it again.' : ''), 'Empty it', () => mealCommit(mm => { mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; delete mm.rot; }))],
-  ].filter(Boolean);
-  if (!m.menu && !P.items.length) return null;
-  return html`<div class="card" id="week-tools" style="margin-top:18px"><div style="font-weight:700">Change or clear this week</div>
-    <div class="stack" style="gap:2px;margin-top:6px">${opts.map(([id, l, d, fn]) => html`<button key=${id} class="opt" id=${id} onClick=${fn}><div style="flex:1"><div>${l}</div><div class="d">${d}</div></div></button>`)}</div>
-    <button class="btn text wide" id="plan-clear" style="margin-top:8px;color:var(--stop,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear everything and start over</button>
-    <p class="small muted" style="text-align:center;margin-top:2px">Asks first. Saved preps, recipes and preferences stay.</p></div>`;
 }
 function PrepPane() {
   const m = ML(); const P = m.plan; const items = P.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r);
@@ -4859,10 +5049,12 @@ function PrepPane() {
   const [more, setMore] = useState(false);
   const readyOpen = more || PREP_UI.ready;
   return html`<div>
+    <div class="row" style="margin:-4px 0 4px"><button class="btn text" id="meals-tour-btn" style="padding-left:0;flex:1;justify-content:flex-start" onClick=${() => startTour('meals')}><span class="help-q" aria-hidden="true">?</span> How Meals works</button>
+      ${items.length || m.menu ? html`<button class="btn text" id="plan-clear" style="color:var(--danger,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear and start over</button>` : null}</div>
+    <${DatesBar}/>
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
-        ${Object.keys(ML().stars || {}).length ? html`<button class="btn wide" id="plan-stars" style="margin-top:8px" onClick=${planFromStars}>${I.starOn} Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
         <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { PREP_UI.all = true; S.rerender(); const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
         <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
       : html`<${MenuCard}/>`}
@@ -4870,21 +5062,25 @@ function PrepPane() {
     <div class="section-h"><h2>What you’ll cook</h2><span class="aside num">${total} serving${total === 1 ? '' : 's'}</span></div>
     <div class="card mp-who">
       <div class="mp-cell"><div class="lbl">People</div><${MStep} label="people" value=${P.people} min=${1} max=${12} onChange=${v => setP('people', v)}/></div>
-      <div class="mp-cell"><div class="lbl">Weeks</div><${MStep} label="weeks" value=${P.weeks} min=${1} max=${4} onChange=${v => setP('weeks', v)}/></div>
+      <div class="mp-cell"><div class="lbl">Days</div><${MStep} label="days" value=${spanDays(P)} min=${1} max=${28} onChange=${v => setPlanDates(P.start ? parseYmd(P.start) : null, v)}/></div>
     </div>
-    <${Tip} id="meal-prep" style="margin-top:10px">Set how many times a week each person eats a meal. Recipes and the shopping list scale to match.<//>` : null}
+    <${Tip} id="meal-prep" style="margin-top:10px">Set how many times each person eats a meal. Recipes and the shopping list scale to match. Swap trades a recipe for another.<//>` : null}
     ${items.length ? html`<div class="stack">${items.map(({ it, r }) => {
       const sv = servingsFor(it); const f = sv / (r.serves || 1); const kn = keepNote(r, it);
       return html`<div key=${it.id} class="mp-item">
         <div class="row" style="align-items:flex-start"><button class="mp-name" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>
           <div class="s num">${sv} serving${sv === 1 ? '' : 's'} · ${Math.abs(f - 1) < 0.01 ? '1 batch' : fracStr(f) + ' × recipe'}${macros(r) ? ' · ' + macroLine(macros(r)) + ' each' : ''}</div></button>
+          <button class="btn mp-swap" id=${'mp-swap-' + r.id} aria-label=${'Swap ' + r.name + ' for another recipe'} onClick=${() => swapPlanItem(it.id)}>${I.swap} Swap</button>
           <button class="tip-x" aria-label=${'Remove ' + r.name} onClick=${() => removeFromPlan(r.id)}>${I.x}</button></div>
-        <div class="row"><span class="small muted" style="flex:1">Times a week${P.people > 1 ? ', per person' : ''}</span><${MStep} label=${'times a week for ' + r.name} value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(mm => { const x = mm.plan.items.find(i => i.id === it.id); if (x) x.n = v; })}/></div>
+        ${(() => { const dd = spanDays(P); const short = dd < 7; const setN = n => mealCommit(mm => { const x = mm.plan.items.find(i => i.id === it.id); if (x) x.n = n; });
+          return html`<div class="row"><span class="small muted" style="flex:1">${short ? 'Times in these ' + dd + ' days' : 'Times a week'}${P.people > 1 ? ', per person' : ''}</span>${short
+            ? html`<${MStep} label=${'times in these days for ' + r.name} value=${servingsOver(it.n, dd)} min=${1} max=${Math.max(1, Math.floor(3 * dd))} onChange=${v => setN(round2(v * 7 / dd))}/>`
+            : html`<${MStep} label=${'times a week for ' + r.name} value=${Math.max(1, Math.round(it.n))} min=${1} max=${21} onChange=${setN}/>`}</div>`; })()}
         ${kn ? html`<div class="mp-warn">${kn}</div>` : null}</div>`; })}</div>
       ${sharedBases(items).map(({ base, list }) => html`<div key=${base.id} class="tip-card mix-share" style="margin-top:10px;padding-right:14px">${list.map(x => x.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} use the same base, so make them in one session: ${list.every(x => MIX_FLAVOR[x.mix.flavor].kind === 'sauce') ? 'cook the ' + base.name.toLowerCase() + ' together, then split it and add each sauce.' : 'season each portion on its own before it cooks, and add any sauce after.'}</div>`)}
       ${withM.length || mins ? html`<div class="card mp-sum" id="prep-macros">
         ${withM.length ? html`<div style="font-weight:700">${partial ? 'At least, a day' : 'A day, on average'}${P.people > 1 ? ', per person' : ''}</div><${MacroTiles} m=${perDay}/>
-          <div class="small muted">Estimated from the ingredients, spread over 7 days. Counts only what you’ll cook this week.</div>` : null}
+          <div class="small muted">Estimated from the ingredients. Counts only what you’ll cook for these dates.</div>` : null}
         ${mins ? html`<div class="small muted">About ${mins >= 60 ? Math.floor(mins / 60) + ' hr ' + (mins % 60 ? (mins % 60) + ' min' : '') : mins + ' min'} of cooking if you make them one after another. Less with the oven and stove going together.</div>` : null}</div>` : null}
       <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:1" id="to-list" onClick=${() => setMealsMode('list')}>Shopping list</button><button class="btn" style="flex:1" onClick=${() => setMealsMode('recipes')}>${I.plus} Add recipes</button></div>
       <button class="btn ghost wide" style="margin-top:8px" id="prep-save" onClick=${() => openSheet({ type: 'prepSave' })}>Save this prep for later</button>`
@@ -4893,7 +5089,7 @@ function PrepPane() {
       <div class="stack">${Object.values(m.preps).map(pr => html`<div key=${pr.id} class="r-card prep-card" id=${'myprep-' + pr.id}>
         <div class="row"><h3 style="flex:1">${pr.name}</h3><button class="tip-x" aria-label=${'Delete ' + pr.name} onClick=${() => deleteMyPrep(pr)}>${I.x}</button></div>
         <div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
-        <button class="btn wide" style="margin-top:6px" onClick=${() => usePrep(pr)}>Use this prep</button></div>`)}</div>` : null}
+        <div class="row" style="margin-top:6px;gap:8px"><button class="btn" style="flex:1" onClick=${() => usePrep(pr)}>Use this prep</button><button class="btn" style="flex:1" onClick=${() => openUsePrep(pr)}>Swap recipes or plan it</button></div></div>`)}</div>` : null}
     <div id="ready-preps"><div class="section-h"><h2>Ready-made preps</h2></div>
     <p class="small muted" style="margin:-4px 0 8px">A whole week of cooking in one tap. Tap one to see what’s in it.</p>
     ${(() => { const list = readyPreps(); const n = empty ? 4 : 0; const shown = PREP_UI.all || PREP_UI.ready ? list : list.filter((pr, i) => i < n || PREP_UI.open === pr.id);
@@ -4902,25 +5098,28 @@ function PrepPane() {
       <button class="ready-h" aria-expanded=${open} onClick=${() => { PREP_UI.open = open ? null : pr.id; setMore(!more); }}><span style="flex:1;min-width:0"><b>${pr.name}</b>${fit ? html`<span class="fit-tag">Picked for your food preferences</span>` : null}<span class="small muted" style="display:block">${pr.items.length} recipes${prepIssues(pr).length ? ' · has ' + prepIssues(pr).join(', ') : sw.length ? ' · ' + sw.length + ' swap' + (sw.length === 1 ? '' : 's') + ' for you' : ''}</span></span>${open ? I.up : I.down}</button>
       ${open ? html`<div class="small" style="margin:2px 0 6px">${pr.d}</div><div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
         ${sw.length ? html`<div class="small" style="margin-top:6px">Swapped for you: ${sw.join(' · ')}</div>` : null}
-        <button class="btn wide" style="margin-top:8px" onClick=${() => usePrep(pr)}>Use this prep</button>` : null}</div>`; })}</div>
+        <div class="row" style="margin-top:8px;gap:8px"><button class="btn primary" style="flex:1" onClick=${() => usePrep(pr)}>Use this prep</button><button class="btn" style="flex:1" id=${'ready-swap-' + pr.id} onClick=${() => openUsePrep(pr)}>Swap recipes or plan it</button></div>` : null}</div>`; })}</div>
       ${list.length > n ? html`<button class="btn wide" id="ready-more" style="margin-top:8px" aria-expanded=${PREP_UI.all} onClick=${() => { PREP_UI.all = !PREP_UI.all; setMore(!more); }}>${PREP_UI.all ? 'Show fewer' : n ? 'Show all ' + list.length + ' ready-made preps' : 'Browse ' + list.length + ' ready-made preps'}</button>` : null}`; })()}</div>
+    <${ComingUp}/>
     <${RotationCard}/>
-    <${WeekTools}/>
   </div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
    meals.preps: { id: { id, name, items: [[recipe id, times a week]] } } (preps you save). meals.rot: { ids: [prep ids, 2–4],
-   start: Monday 'YYYY-MM-DD', applied: Monday last loaded }. Each new week the next prep in the list replaces your prep
+   start: first day 'YYYY-MM-DD', applied: prep-week start last loaded }. Weeks start on your prep day (meals.prepDay,
+   Sunday by default; Monday before Nov 11). Each new week the next prep in the list replaces your prep
    and the shopping list starts fresh. */
 const allPreps = () => Object.values(ML().preps).concat(MEAL_PREPS);
 const prepById = id => ML().preps[id] || MEAL_PREPS.find(p => p.id === id) || null;
-const thisMonday = () => ymd(startOfWeek(new Date()));
-function rotIndex(rot, day) { const wk = Math.round((+startOfWeek(day || new Date()) - +parseYmd(rot.start)) / (7 * DAY)); const n = rot.ids.length; return wk < 0 ? -1 : ((wk % n) + n) % n; }
+const thisMonday = () => ymd(prepWeekStart());   /* the start of this prep week (named before prep days existed) */
+function rotIndex(rot, day) { const wk = Math.round((+prepWeekStart(day || new Date()) - +prepWeekStart(parseYmd(rot.start))) / (7 * DAY)); const n = rot.ids.length; return wk < 0 ? -1 : ((wk % n) + n) % n; }
 function rotCheck() {
-  const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied === mon) return false;
+  if (nextCheck()) return true;
+  const rot = ML().rot; if (!rot) return false; const mon = thisMonday(); if (rot.applied && ymd(prepWeekStart(parseYmd(rot.applied))) === mon) return false;   /* also covers a Monday saved before prep days */
+  const P0 = ML().plan; if (P0.src === 'next' && !planEnded(P0)) return false;   /* a plan you set ahead wins until it ends */
   const i = rotIndex(rot); if (i < 0) return false; const pr = prepById(rot.ids[i]); if (!pr) return false;
   const blocked = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length).map(([r]) => getRecipe(r).name);
-  mealCommit(mm => { delete mm.plan.fromMenu; mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; });
+  mealCommit(mm => { delete mm.plan.fromMenu; mm.plan.items = pr.items.filter(([r]) => getRecipe(r) && !recipeIssues(getRecipe(r)).block.length).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.checks = {}; mm.rot = { ...mm.rot, applied: mon }; mm.plan.start = mon; mm.plan.days = 7; mm.plan.weeks = 1; mm.plan.src = 'rot'; });
   showToast({ kind: 'info', ms: blocked.length ? 9000 : 4000, text: 'This week’s prep: ' + pr.name + '.' + (blocked.length ? ' Left out for your food preferences: ' + blocked.join(', ') + '.' : '') + ' Your shopping list is ready.' }); return true;
 }
 function deleteMyPrep(pr) {
@@ -4937,7 +5136,7 @@ function PrepSaveSheet() {
 function RotationCard() {
   const rot = ML().rot;
   if (!rot) return html`<div class="card" style="margin-top:14px" id="rot-card"><div style="font-weight:700">Rotate preps week by week</div>
-    <p class="small muted" style="margin:2px 0 10px">Pick 2 to 4 preps. Each Monday the next one becomes this week’s cooking, shopping list included, so dinners don’t repeat every week.</p>
+    <p class="small muted" style="margin:2px 0 10px">Pick 2 to 4 preps. Each ${DOW_FULL[prepDow()]} the next one becomes that week’s cooking, shopping list included, so dinners don’t repeat every week.</p>
     <button class="btn wide" id="rot-setup" onClick=${() => openSheet({ type: 'rotation' })}>Set up a rotation</button></div>`;
   const i = rotIndex(rot); const n = rot.ids.length; const name = k => (prepById(rot.ids[k]) || {}).name || 'A deleted prep';
   return html`<div class="card" style="margin-top:14px" id="rot-card"><div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Rotation · ${n} preps</div>
@@ -4950,11 +5149,11 @@ function RotationSheet() {
   const rot = ML().rot; const [ids, setIds] = useState(rot ? rot.ids.filter(prepById) : []); const [when, setWhen] = useState(rot ? 'keep' : 'now');
   const tap = id => setIds(ids.includes(id) ? ids.filter(x => x !== id) : ids.length >= 4 ? ids : ids.concat(id));
   const save = () => {
-    const start = when === 'keep' && rot ? rot.start : when === 'next' ? ymd(addDays(startOfWeek(new Date()), 7)) : thisMonday();
+    const start = when === 'keep' && rot ? rot.start : when === 'next' ? ymd(addDays(prepWeekStart(), 7)) : thisMonday();
     mealCommit(mm => { mm.rot = { ids, start, applied: when === 'keep' && rot ? rot.applied : null }; });
     closeSheet(); if (when !== 'keep') rotCheck(); else S.rerender();
   };
-  return html`<${Sheet} label="Prep rotation"><h2>Prep rotation</h2><p class="note">Tap 2 to 4 preps in the order you want them. Each Monday the next one loads.</p>
+  return html`<${Sheet} label="Prep rotation"><h2>Prep rotation</h2><p class="note">Tap 2 to 4 preps in the order you want them. Each ${DOW_FULL[prepDow()]} (your prep day) the next one loads.</p>
     <div class="stack" style="margin-top:10px">${allPreps().map(pr => { const k = ids.indexOf(pr.id);
       return html`<button key=${pr.id} class=${'opt' + (k >= 0 ? ' on' : '')} id=${'rot-' + pr.id} aria-pressed=${k >= 0} onClick=${() => tap(pr.id)}><div style="flex:1;min-width:0"><div>${pr.name}</div><div class="d">${pr.items.length} recipes${ML().preps[pr.id] ? ' · yours' : ''}</div></div>${k >= 0 ? html`<span class="chip on">Week ${k + 1}</span>` : null}</button>`; })}</div>
     <div class="seg wide" role="group" aria-label="Start" style="margin-top:12px">${(rot ? [['keep', 'Keep its place'], ['now', 'Restart this week'], ['next', 'Restart next week']] : [['now', 'Start this week'], ['next', 'Start next week']]).map(([k, l]) => html`<button key=${k} class=${when === k ? 'on' : ''} aria-pressed=${when === k} onClick=${() => setWhen(k)}>${l}</button>`)}</div>
@@ -4962,47 +5161,29 @@ function RotationSheet() {
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rot-save" disabled=${ids.length < 2} onClick=${save}>${ids.length < 2 ? 'Pick at least 2' : 'Save rotation'}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 const REC_MORE = {};
-/* Starred recipes (Nov 11, Newt): meals.stars = { id: true }. With "Plan from my starred recipes" on (habits.starred),
-   the meal plan is built from them and rebuilds itself whenever you star or unstar one. */
-const isStarred = id => !!(ML().stars || {})[id];
-function toggleStar(id) {
-  const on = !isStarred(id);
-  mealCommit(m => { m.stars = { ...(m.stars || {}) }; if (on) m.stars[id] = true; else delete m.stars[id]; });
-  const r = getRecipe(id); let rebuilt = false;
-  if (mealHabits().starred && ML().menu && ML().menu.t) { const nm = buildMenu(ML().menu.t, ML().menu.seed); if (nm) { mealCommit(m => { m.menu = nm; }); rebuilt = true; if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); } }
-  showToast({ kind: 'info', text: (on ? 'Starred ' : 'Unstarred ') + (r ? r.name : 'recipe') + (rebuilt ? '. Your meal plan was updated.' : '.') });
-}
-/* Plan from my starred recipes: turns the setting on and builds the week (asks the setup questions first if needed) */
-function planFromStars() {
-  mealCommit(m => { m.habits = { ...mealHabits(), starred: true }; });
-  const t = (ML().menu && ML().menu.t) || (ML().goals && ML().goals.kcal && ML().goals.p ? ML().goals : null);
-  if (!t || !ML().me) return openSheet({ type: 'mealTargets', step: 2 });
-  const nm = buildMenu(t, Date.now() % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Star a few more recipes first: at least one breakfast and two lunches or dinners.' });
-  mealCommit(m => { m.menu = nm; });
-  if (!(ML().plan.items.length && !ML().plan.fromMenu) && !ML().rot) usePlanForPrep(true, true);
-  showToast({ kind: 'info', text: 'Your week is planned from your starred recipes.' });
-}
 /* Recipes that came from a saved reel or short video (Nov 11, Newt couldn't tell which ones) */
 const fromReel = r => !!(r && r.src && /instagram\.com|tiktok\.com|youtube\.com\/shorts/.test(r.src.url || ''));
 function RecipesPane() {
   const [q, setQ] = useState(MEALS.q); const [cat, setCat] = useState(MEALS.cat); const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const own = ML().recipes;
   const term = q.trim().toLowerCase();
-  const list = cat === 'mix' ? [] : allRecipes().filter(r => (cat === 'all' || (cat === 'mine' ? own[r.id] && !r.builtin : cat === 'reels' ? fromReel(r) : cat === 'starred' ? isStarred(r.id) : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
+  const st = ML().stars || {};
+  const list = cat === 'mix' ? [] : (cat === 'starred' ? Object.keys(st).map(getRecipe).filter(Boolean) : allRecipes()).filter(r => (cat === 'all' || cat === 'starred' || (cat === 'mine' ? own[r.id] && !r.builtin : cat === 'reels' ? fromReel(r) : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
   const mine = list.filter(r => !r.builtin); const lib = list.filter(r => r.builtin);
   const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
     return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${fromReel(r) ? html`<span class="reel-tag">From a reel${r.src.by ? ' · ' + r.src.by : ''}</span>` : null}${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
-      <button class=${'meal-star' + (isStarred(r.id) ? ' on' : '')} aria-pressed=${isStarred(r.id)} aria-label=${(isStarred(r.id) ? 'Unstar ' : 'Star ') + r.name} onClick=${() => { toggleStar(r.id); re(); }}>${isStarred(r.id) ? I.starOn : I.star}</button>
+      <${StarBtn} id=${r.id} name=${r.name}/>
       <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
-  const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: cat === 'all' || cat === 'mine' ? 'main' : cat, serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
+  const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: ['breakfast', 'main', 'snack', 'base'].includes(cat) ? cat : 'main', serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
-    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['starred', 'Starred'], ['mix', 'Mix & match'], ...MEAL_CATS, ['reels', 'From reels'], ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
-    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="from-post" onClick=${() => newRecipe(true)}>From a post</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
-    ${cat === 'mix' ? null : html`<div>
+    <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['starred', '★ Starred'], ['mix', 'Mix & match'], ...MEAL_CATS, ['reels', 'From reels'], ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} id=${'rchip-' + k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
+    ${cat === 'starred' && !list.length ? html`<div class="card note" style="margin-top:14px" id="starred-empty">No starred recipes yet. Tap ☆ on any recipe to keep it here.</div>` : null}
+    ${cat === 'mix' ? null : cat === 'starred' ? (list.length ? html`<div class="section-h"><h2>Starred</h2><span class="aside">${list.length}</span></div><div class="stack" id="starred-list">${list.map(row)}</div>` : null) : html`<div>
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
     ${combos.length ? html`<div class="section-h"><h2>Mix & match</h2><span class="aside">${combos.length} match${combos.length === 1 ? '' : 'es'}</span></div><div class="stack">${combos.slice(0, 30).map(row)}</div>` : null}
     ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); if (!rs.length) return null;
@@ -5026,7 +5207,7 @@ function RecipeView({ id }) {
     onOk: () => { mealCommit(m => { delete m.recipes[id]; if (!r.builtin) m.plan.items = m.plan.items.filter(i => i.r !== id); }); closeSheet(); if (!r.builtin) UI.setView(null); } });
   return html`<div class="meal-view">
     <div class="eyebrow" style="margin-top:4px">${MEAL_CAT_NAME[r.cat] || 'Recipe'}${r.mins ? ' · ' + r.mins + ' min' : ''}${r.edited ? ' · edited' : !r.builtin ? ' · my recipe' : ''}</div>
-    <div class="row" style="align-items:flex-start;gap:8px"><h2 class="meal-title" style="flex:1">${r.name}</h2><button class=${'meal-star big' + (isStarred(r.id) ? ' on' : '')} id="rec-star" aria-pressed=${isStarred(r.id)} aria-label=${isStarred(r.id) ? 'Unstar this recipe' : 'Star this recipe'} onClick=${() => { toggleStar(r.id); S.rerender(); }}>${isStarred(r.id) ? I.starOn : I.star}</button></div>
+    <div class="row" style="align-items:flex-start"><h2 class="meal-title" style="flex:1">${r.name}</h2><${StarBtn} id=${r.id} name=${r.name} big=${true}/></div>
     ${r.mix ? html`<button class="btn text" id="mix-base-link" style="padding-left:0;min-height:36px" onClick=${() => UI.setView({ type: 'base', id: r.mix.base })}>${r.mix.flavor ? 'Base: ' + MIX_BASE[r.mix.base].name + ' · see other flavors' : 'See flavors for this base'}</button>` : null}
     <div class="row wrap" style="gap:6px;margin-top:8px">
       <span class="chip">Fridge: ${r.keeps || 4} days</span>${r.freezes ? html`<span class="chip">Freezes well</span>` : null}</div>
@@ -5067,7 +5248,7 @@ function RecipeEditor({ view }) {
   const [stepTxt, setStepTxt] = useState(() => (d0.steps || []).join('\n'));
   const [ov, setOv] = useState(() => Object.fromEntries((d0.ing || []).filter(g => g.a && g.a !== guessAisle(g.n, g.u)).map(g => [ingKey(g.n), g.a])));
   const [fov, setFov] = useState(() => Object.fromEntries((d0.ing || []).filter(g => g.fk).map(g => [ingKey(g.n), g.fk])));
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState(''); const [pasteOpen, setPasteOpen] = useState(!!view.paste);
   const set = (k, v) => setD({ ...d, [k]: v });
   const parsed = ingTxt.split('\n').map(parseIng).filter(Boolean).map(g => { const fk = fov[ingKey(g.n)]; return { ...g, a: ov[ingKey(g.n)] || g.a, ...(fk ? { fk } : {}) }; });
   const pickFood = g => openSheet({ type: 'foodPick', current: g.fk || '', q: shopName(g.n), onPick: id => setFov(o => { const k = ingKey(g.n); const n = { ...o }; if (id) n[k] = id; else delete n[k]; return n; }) });
@@ -5083,7 +5264,7 @@ function RecipeEditor({ view }) {
   };
   const fillFrom = x => { setD(cur => ({ ...cur, name: cur.name || x.name, src: x.url ? { url: x.url, by: '' } : cur.src, ...(x.serves ? { serves: x.serves } : {}), ...(x.mins ? { mins: x.mins } : {}), ...(x.macros && Object.keys(x.macros).length ? { macros: { ...cur.macros, ...x.macros } } : {}) })); if (x.ing.length) setIngTxt(x.ing.join('\n')); if (x.steps.length) setStepTxt(x.steps.join('\n')); showToast({ kind: 'info', text: 'Filled in ' + x.ing.length + ' ingredients and ' + x.steps.length + ' steps. Check them over.' }); };
   return html`<div class="stack" style="margin-top:6px">
-    ${view.paste ? html`<${PasteBox} onFill=${fillFrom}/>` : null}
+    ${view.isNew ? (pasteOpen ? html`<${PasteBox} onFill=${fillFrom}/>` : html`<button class="btn ghost wide" id="paste-open" onClick=${() => setPasteOpen(true)}>Fill it in from a post or website</button>`) : null}
     <div><label class="lbl" for="me-name">Name</label><input class="field" id="me-name" value=${d.name} placeholder="e.g. Lemon pepper chicken" onInput=${e => { set('name', e.target.value); setErr(''); }}/></div>
     <div><label class="lbl">Type</label><div class="seg wide per" role="group" aria-label="Recipe type">${MEAL_CATS.map(([k, l]) => html`<button key=${k} class=${d.cat === k ? 'on' : ''} aria-pressed=${d.cat === k} onClick=${() => set('cat', k)}>${l.replace('Lunch & dinner', 'Meal').replace('Building blocks', 'Base')}</button>`)}</div></div>
     <div class="me-grid">
@@ -5120,7 +5301,7 @@ function ShopPane() {
   const box = on => html`<span class="box" aria-hidden="true">${on ? I.check : null}</span>`;
   return html`<div>
     ${P.items.length ? html`<div style="margin-top:8px"><${UnitsSeg}/></div>` : null}
-    ${P.items.length ? html`<p class="small muted num" style="margin-top:6px">For ${P.people} ${P.people === 1 ? 'person' : 'people'} · ${P.weeks} ${P.weeks === 1 ? 'week' : 'weeks'} · ${P.items.length} recipe${P.items.length === 1 ? '' : 's'}${all ? ' · ' + got + ' of ' + all + ' in the cart' : ''}</p>`
+    ${P.items.length ? html`<p class="small muted num" style="margin-top:6px">For ${P.people} ${P.people === 1 ? 'person' : 'people'} · ${P.start ? rangeText(parseYmd(P.start), spanDays(P)) : daysTxt(spanDays(P))} · ${P.items.length} recipe${P.items.length === 1 ? '' : 's'}${all ? ' · ' + got + ' of ' + all + ' in the cart' : ''}</p>`
       : html`<div class="card stack" style="margin-top:8px"><p class="note">Your shopping list fills in from your week’s meals, added up and sorted by aisle.</p>
         ${ML().menu && ML().menu.days ? html`<button class="btn primary wide" id="list-from-plan" onClick=${() => usePlanForPrep(false)}>Fill it from my meal plan</button>` : html`<button class="btn primary wide" id="list-plan" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>`}
         <button class="btn wide" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>`}
@@ -5336,19 +5517,9 @@ function LogEntrySheet({ day, id }) {
   const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
     if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
     x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
-  /* Amount as the real count (Nov 11, Newt logged 3 eggs and couldn't go below 1½): a food logged as "3" or "150 g"
-     steps in its own unit down to half of one (or 10 g), instead of a times-what-you-logged multiplier. */
-  const g0 = e.k === 'food' ? parseIng(String(e.txt1 != null ? e.txt1 : e.txt || '') + ' x') : null;
-  const q0 = g0 && g0.q > 0 ? g0.q : 0; const u0 = q0 ? g0.u || '' : '';
-  const noun0 = q0 && !u0 ? String(e.txt1 != null ? e.txt1 : e.txt || '').replace(/^[\d\s.\/½¼¾⅓⅔⅛]+(×\s*)?/, '').trim() : '';
-  const stepU = /^(g|ml)$/.test(u0) ? 10 : /^(cup|tbsp|tsp)$/.test(u0) ? 0.25 : 0.5;
-  const setCount = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
-    if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
-    v = Math.round(v * 100) / 100; x.q = v / q0; x.m = scaleNut(x.m1, x.q); x.txt = u0 ? qtyText(v, u0) : fracStr(v) + (noun0 ? ' ' + (v > 1 && !/s$/.test(noun0) ? noun0 + 's' : v <= 1 ? noun0.replace(/s$/, '') : noun0) : ''); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
-    ${q0 ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${u0 ? 'In ' + (UNIT_PL[u0] || u0) : 'How many'}</div></div><${MStep} label=${'amount of ' + e.name} value=${Math.round(q0 * (e.q || 1) * 100) / 100} min=${stepU} max=${u0 === 'g' || u0 === 'ml' ? 2000 : 50} step=${stepU} unit=${u0 ? ' ' + u0 : ''} onChange=${setCount}/></div>`
-    : e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.25} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
     <div class="row" style="margin-top:12px" id="le-when-row"><label for="le-when" style="flex:1;font-weight:600">When you ate it<span class="small muted" style="display:block;font-weight:400">Used by Review my eating. Starts as when you logged it.</span></label>
       <input class="field" id="le-when" type="time" style="width:auto" value=${hhmm(e.at)} onChange=${ev => setWhen(ev.target.value)}/></div>
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
@@ -5531,6 +5702,19 @@ const MIX_FLAVORS = [
     ing: ['1 cucumber, diced', '¼ cup kalamata olives, chopped', '1 tsp dried oregano', '1 lemon'] },
   { id: 'ranch', name: 'Ranch', for: ['salad'], kind: 'rub', per: 4, d: 'Herby and creamy', part: 'Flavorings',
     ing: ['1 tsp dried dill', '1 tsp garlic powder', '1 tsp onion powder', '½ tsp dried parsley', '1 tbsp lemon juice'] },
+  /* Nov 11: sauces and marinades from Newt's reels log */
+  { id: 'harissa-yogurt', name: 'Harissa Yogurt', for: ['protein', 'veg'], kind: 'rub', per: 9, d: 'Spicy, smoky yogurt marinade (from a reel)', part: 'Harissa yogurt marinade',
+    ing: ['1 small yellow onion', '2 small tomatoes', '1 bunch parsley', '6 cloves garlic', '1 cup plain nonfat Greek yogurt', '2 tbsp olive oil', '½ cup harissa paste', '½ lemon', '1½ tbsp ground turmeric', '1 tbsp smoked paprika', '2 tsp salt'],
+    make: 'Blend the onion, tomatoes, parsley, garlic and yogurt until smooth, then stir in the oil, harissa, lemon juice, turmeric, paprika and salt. Marinate at least 2 hours.', goes: ['b-rice~turmeric-rice', 'b-veg~zaatar'] },
+  { id: 'greek-yogurt', name: 'Greek Yogurt & Oregano', for: ['protein'], kind: 'rub', per: 9, d: 'Tangy, garlicky and tender (from a reel)', part: 'Greek yogurt marinade',
+    ing: ['¾ cup plain nonfat Greek yogurt', '1 tbsp light mayo', '4 cloves garlic, grated', '1½ tbsp dried oregano', '½ tsp ground cloves', '1 lemon', '1 tbsp olive oil', '2 tsp salt', '1 tsp black pepper'],
+    make: 'Mix the yogurt, mayo, garlic, oregano, cloves, the lemon’s zest and half its juice, the oil, salt and pepper. Marinate at least 2 hours.', goes: ['b-rice~lemon-rice', 'b-veg~italian'] },
+  { id: 'thai-herb', name: 'Thai Herb Chili Sauce', for: ['protein', 'veg'], kind: 'sauce', per: 12, d: 'Bright, hot and herby, with lemongrass and lime (a reel favorite)', part: 'Thai herb chili sauce',
+    ing: ['½ bunch mint', '½ bunch cilantro', '2 limes', '2 stalks lemongrass', '6 Thai chilies', '4 tbsp fish sauce', '2 tbsp soy sauce', '6 tbsp brown sugar', '¼ shallot', '10 cloves garlic'],
+    make: 'Blend the herbs, lime juice, lemongrass, chilies, fish sauce, soy sauce, sugar, shallot and garlic until as smooth as you like.', finish: 'Keep the sauce on the side; it’s also a great salad dressing.', goes: ['b-rice~coconut-rice'] },
+  { id: 'muhammara', name: 'Muhammara', for: ['protein', 'veg'], kind: 'sauce', per: 12, d: 'Roasted red pepper and walnut sauce, sweet and smoky (Carleigh Bodrug’s reel)', part: 'Muhammara',
+    ing: ['¾ cup walnuts', '4 red bell peppers, roasted and peeled', '½ cup roasted garlic cloves', '1 tbsp Aleppo pepper flakes', '2 tbsp ground cumin', '2 tsp salt', '1 tsp white pepper', '¼ cup pomegranate molasses', '½ cup olive oil', '1 cup breadcrumbs'],
+    make: 'Pulse the walnuts in a food processor, then add everything else and pulse until smooth. Taste for salt.', finish: 'Spoon it on when you eat; it also makes a dip with pita.', goes: ['b-rice~lemon-rice'] },
 ];
 const MIX_BASE = Object.fromEntries(MIX_BASES.map(b => [b.id, b]));
 const MIX_FLAVOR = Object.fromEntries(MIX_FLAVORS.map(f => [f.id, f]));
@@ -8530,11 +8714,7 @@ function planPool() {
   const have = gearHave();
   const base = allRecipes().filter(r => ok(r) && !np[r.id] && !r.noAuto && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
   const lean = base.filter(r => !hasPricey(r, off));
-  const st = ML().stars || {}; const H = mealHabits();
-  /* Plan from my starred recipes: only starred ones in each meal slot that has enough (your star beats the chili's
-     keep-out-of-plans flag, but not your food preferences, gear or Leave out of my meal plans) */
-  const starred = H.starred ? allRecipes().filter(r => st[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
-  const pick = (f, min) => { const s = starred.filter(f); if (s.length >= (min >= 3 ? 2 : 1)) return s; const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
+  const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
 /* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
@@ -8599,7 +8779,6 @@ function HabitsFields({ v, set }) {
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
-    <label class="toggle-row" for="hb-starred"><span><span>Plan from my starred recipes</span><span class="d">${Object.keys(ML().stars || {}).length ? 'You have ' + Object.keys(ML().stars).length + ' starred. ' : 'Star recipes in Recipes. '}The plan uses them and updates itself when you star or unstar one. Meals with too few stars use other recipes.</span></span><input type="checkbox" role="switch" id="hb-starred" checked=${!!v.starred} onChange=${e => set({ ...v, starred: e.target.checked })}/></label>
     <label class="toggle-row" for="hb-slow"><span><span>Favor slow-cooker recipes</span><span class="d">Plans pick slow-cooker dinners first: about 15 minutes of work in the morning, ready by evening.</span></span><input type="checkbox" role="switch" id="hb-slow" checked=${!!v.slow} onChange=${e => set({ ...v, slow: e.target.checked, ...(e.target.checked && Array.isArray(v.gear) && !v.gear.includes('slow') ? { gear: v.gear.concat('slow') } : {}) })}/></label>
     <${GearFields} v=${v} set=${set}/></div>`;
 }
@@ -8688,7 +8867,7 @@ function TargetsSheet({ preset, step0 } = {}) {
     const own = ML().plan.items.length > 0 && !ML().plan.fromMenu || !!ML().rot;
     if (ML().menu && !own) usePlanForPrep(true, true);
     const hadPrep = own;
-    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Use these meals', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your week is planned: meals, cooking and shopping list.' + (hadPrep ? ' What you’ll cook and your shopping list still have the recipes you picked; tap Use these meals to switch.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe or From a post) and tap Plan my week again.' });
+    closeSheet(); setMealsMode('plan'); showToast({ kind: 'info', ms: hadPrep && ML().menu ? 10000 : 7000, ...(hadPrep && ML().menu ? { action: 'Use these meals', fn: () => usePlanForPrep(true) } : {}), text: ML().menu ? 'Your week is planned: meals, cooking and shopping list.' + (hadPrep ? ' What you’ll cook and your shopping list still have the recipes you picked; tap Use these meals to switch.' : '') : 'Targets set. Not enough recipes fit your food answers for a full week yet: add a few of your own (Recipes → New recipe) and tap Plan my week again.' });
   };
   return html`<${Sheet} label="Your meal plan"><h2>Your meal plan</h2>
     <p class="note">A few numbers and Ironwood sets your daily calories and protein, then builds a week of meals from the recipes here.</p>
@@ -8725,8 +8904,10 @@ function TargetsSheet({ preset, step0 } = {}) {
 /* Fill the prep and shopping list from the week's menu (asks first when it would replace something) */
 function usePlanForPrep(sure, quiet) {
   const m = ML(); const mn = m.menu; if (!mn || !mn.days) return;
-  const week = {}; mn.days.forEach((d, di) => { for (const { x, key } of menuRows(d)) if (!isSkipped(di, key)) week[x.r] = (week[x.r] || 0) + x.sv; });
-  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: Math.max(1, Math.ceil(n - 1e-6)) })); mm.plan.people = 1; mm.plan.weeks = 1; mm.plan.fromMenu = true; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
+  /* Counts the meals on the days you planned (Nov 11): a 4-day plan makes 4 days of food. n stays a rate per week. */
+  const sp = planSpan(); const week = {};
+  for (let k = 0; k < sp.days; k++) { const di = sp.start ? menuDayIdx(addDays(sp.start, k)) : k % 7; for (const { x, key } of menuRows(mn.days[di] || [])) if (!isSkipped(di, key)) week[x.r] = (week[x.r] || 0) + x.sv; }
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: round2(Math.max(1, Math.ceil(n - 1e-6)) * 7 / sp.days) })); mm.plan.people = 1; if (!mm.plan.start) { mm.plan.weeks = 1; mm.plan.days = 7; } mm.plan.fromMenu = true; delete mm.plan.src; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
   if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for this week?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
 function MenuCard() {
@@ -8739,11 +8920,12 @@ function MenuCard() {
   const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
-    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
-    ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
-    <div class="menu-days" role="tablist">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}</button>`)}</div>
+    ${(() => { const sp = planSpan(); /* with dates set, the days of your plan in order, with their dates (Nov 11) */
+      const tabs = sp.start ? Array.from({ length: Math.min(7, sp.days) }, (_, k) => { const d = addDays(sp.start, k); return [menuDayIdx(d), DOW[d.getDay()][0], d.getDate()]; }) : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => [i, l, null]);
+      return html`<div class=${'menu-days' + (sp.start ? ' dated' : '')} role="tablist">${tabs.map(([i, l, n]) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}${n ? html`<small>${n}</small>` : null}</button>`)}</div>`; })()}
     <p class="small muted" style="margin:6px 0 2px">Tap a meal for its recipe.</p>
     <div class="menu-list">${menuRows(day).map(({ x, key: s, label }) => { const r = getRecipe(x.r);
       const off = isSkipped(di, s);
@@ -8765,6 +8947,208 @@ function TodayMenu({ day }) {
     return html`<div key=${s} class="menu-log"><div style="flex:1;min-width:0"><div class="eyebrow">${label}</div><div style="font-weight:600">${r.name}</div><div class="small muted">${portionText(r, x.sv)}</div></div>
       <button class=${'btn' + (done ? '' : ' primary')} id=${'menu-log-' + s} disabled=${done} onClick=${() => { const e = logRecipe(day, r, x.sv); if (e) { mealCommit(mm => { const y = (mm.log[day] || []).find(z => z.id === e.id); if (y) y.slot = s; }); showToast({ kind: 'info', text: r.name + ' logged', action: 'Undo', ms: 5000, fn: () => dropLog(day, e.id) }); } }}>${done ? 'Logged' : 'Ate it'}</button></div>`; })}</div></div>`;
 }
+
+/* ============ Dates, swaps, stars, planning ahead and the Meals tour (Nov 11, Newt) ============
+   plan.start: first day 'YYYY-MM-DD' (unset = no dates yet, a rolling week); plan.days: 1–28. An item's n stays a rate
+   ("times a week"), so a 4-day stretch makes 4/7 of the servings, rounded up; under a week the screen shows the count
+   for those days instead. meals.prepDay: 0–6 (Sunday = 0, the default) is the day your weeks start, for rotations and
+   "until my prep day". meals.next: [{ id, name, start, days, items: [[recipe id, n]] }] are stretches planned ahead;
+   each loads on its first day with a fresh shopping list. meals.stars: { recipe id: true }. */
+const prepDow = () => { const v = ML().prepDay; return Number.isInteger(v) && v >= 0 && v <= 6 ? v : 0; };
+const prepWeekStart = (d = new Date(), dow = prepDow()) => { const x = startOfDay(d); return addDays(x, -((x.getDay() - dow + 7) % 7)); };
+const spanDays = (P = ML().plan) => P.days || 7 * (P.weeks || 1);
+function planSpan(P = ML().plan) { const days = spanDays(P); const start = P.start ? parseYmd(P.start) : null; return { start, days, end: start ? addDays(start, days - 1) : null }; }
+const dayLbl = d => DOW[d.getDay()] + ' ' + MON[d.getMonth()] + ' ' + d.getDate();
+const daysTxt = n => n + (n === 1 ? ' day' : ' days');
+const rangeText = (start, days) => dayLbl(start) + (days > 1 ? ' – ' + dayLbl(addDays(start, days - 1)) : '') + ' · ' + daysTxt(days);
+function spanText(P = ML().plan) { const s = planSpan(P); return s.start ? rangeText(s.start, s.days) : 'No dates yet · ' + (s.days === 7 ? 'a week' : daysTxt(s.days)); }
+/* Days from start through the day before your next prep day (a full week when start is a prep day) */
+const untilPrepDay = start => (prepDow() - startOfDay(start).getDay() + 7) % 7 || 7;
+const round2 = v => Math.round(v * 100) / 100;
+/* How many servings a rate makes over a stretch (0.02 absorbs rounding in stored rates) */
+const servingsOver = (n, days, people = 1) => Math.max(1, Math.ceil(n * people * days / 7 - 0.02));
+const planEnded = (P = ML().plan) => { const s = planSpan(P); return !!(s.end && ymd(s.end) < ymd(new Date())); };
+function setPlanDates(start, days) {
+  mealCommit(mm => { if (start) mm.plan.start = ymd(start); else delete mm.plan.start; mm.plan.days = clampInt(days, 1, 28, 7); mm.plan.weeks = Math.max(1, Math.min(4, Math.round(mm.plan.days / 7))); });
+}
+/* The stretch after the current one: from the day after it ends (or today), up to your prep day */
+function nextStretch() {
+  const q = ML().next || []; const last = q.reduce((a, x) => { const e = addDays(parseYmd(x.start), x.days); return !a || e > a ? e : a; }, null);
+  const s = planSpan(); let start = last || (s.end && s.end >= startOfDay(new Date()) ? addDays(s.end, 1) : prepWeekStart(addDays(new Date(), 7)));
+  if (!last && !s.end) start = addDays(prepWeekStart(), 7);
+  return { start, days: untilPrepDay(start) };
+}
+
+/* ---- the calendar ---- */
+function RangeCal({ start, days, onChange, idp = 'cal' }) {
+  const s0 = start ? startOfDay(start) : startOfDay(new Date());
+  const [mo, setMo] = useState(() => new Date(s0.getFullYear(), s0.getMonth(), 1));
+  const [picking, setPicking] = useState('start');
+  const end = start ? addDays(startOfDay(start), days - 1) : null;
+  const today = startOfDay(new Date()); const minDay = addDays(today, -7);
+  const first = new Date(mo.getFullYear(), mo.getMonth(), 1); const lead = first.getDay(); const nDays = new Date(mo.getFullYear(), mo.getMonth() + 1, 0).getDate();
+  const cells = []; for (let i = 0; i < lead; i++) cells.push(null); for (let d = 1; d <= nDays; d++) cells.push(new Date(mo.getFullYear(), mo.getMonth(), d));
+  const tap = d => {
+    if (picking === 'end' && start && d >= startOfDay(start)) { const n = Math.round((+d - +startOfDay(start)) / DAY) + 1; if (n <= 28) { onChange(start, n); setPicking('start'); return; } }
+    onChange(d, 1); setPicking('end');
+  };
+  const quick = start ? [[untilPrepDay(start), 'Until ' + DOW_FULL[prepDow()]], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [28, '4 weeks']].filter((x, i, a) => a.findIndex(y => y[0] === x[0]) === i) : [];
+  return html`<div class="rcal" id=${idp}>
+    <div class="row rcal-h"><button class="btn text" aria-label="Previous month" onClick=${() => setMo(new Date(mo.getFullYear(), mo.getMonth() - 1, 1))}>‹</button>
+      <div style="flex:1;text-align:center;font-weight:700">${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo.getMonth()]} ${mo.getFullYear()}</div>
+      <button class="btn text" aria-label="Next month" onClick=${() => setMo(new Date(mo.getFullYear(), mo.getMonth() + 1, 1))}>›</button></div>
+    <div class="rcal-g" role="grid">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((l, i) => html`<div key=${'h' + i} class=${'rcal-dow' + (i === prepDow() ? ' prep' : '')} aria-hidden="true">${l}</div>`)}
+      ${cells.map((d, i) => { if (!d) return html`<div key=${'e' + i}></div>`;
+        const inR = start && d >= startOfDay(start) && d <= end; const isS = start && +d === +startOfDay(start); const isE = end && +d === +end;
+        return html`<button key=${i} id=${idp + '-' + ymd(d)} class=${'rcal-d' + (inR ? ' in' : '') + (isS ? ' rs' : '') + (isE ? ' re' : '') + (+d === +today ? ' today' : '') + (d.getDay() === prepDow() ? ' prep' : '')} disabled=${d < minDay} aria-pressed=${!!inR} aria-label=${dayLbl(d) + (isS ? ', first day' : isE ? ', last day' : '')} onClick=${() => tap(d)}>${d.getDate()}</button>`; })}</div>
+    <p class="small muted" style="margin:6px 0 0">${picking === 'end' ? 'Now tap the last day, or pick a length below.' : 'Tap the first day, then the last day.'} Your prep day is underlined.</p>
+    ${quick.length ? html`<div class="chips" style="margin-top:6px">${quick.map(([n, l]) => html`<button key=${l} class=${'chip' + (days === n ? ' on' : '')} aria-pressed=${days === n} onClick=${() => { onChange(start, n); setPicking('start'); }}>${l}</button>`)}</div>` : null}
+  </div>`;
+}
+function PrepDayPick() {
+  const v = prepDow();
+  return html`<div id="prep-day"><span class="lbl">I usually prep on</span><div class="seg wide" role="group" aria-label="Usual prep day" style="margin-top:6px">${DOW.map((l, i) => html`<button key=${i} id=${'prepday-' + i} class=${v === i ? 'on' : ''} aria-pressed=${v === i} aria-label=${DOW_FULL[i]} onClick=${() => mealCommit(mm => { mm.prepDay = i; })}>${l[0]}</button>`)}</div>
+    <p class="small muted" style="margin-top:4px">Rotations switch on this day, and “Until ${DOW_FULL[v]}” plans a short stretch to get you there.</p></div>`;
+}
+function PlanDatesSheet({ start: s0, days: d0 }) {
+  const sp = planSpan(); const [st, setSt] = useState(() => s0 || sp.start || startOfDay(new Date())); const [days, setDays] = useState(() => d0 || (sp.start ? sp.days : untilPrepDay(s0 || new Date())));
+  const save = () => { setPlanDates(st, days); closeSheet(); showToast({ kind: 'info', text: 'Planning ' + rangeText(st, days) + '. Servings and the shopping list match.' }); };
+  return html`<${Sheet} label="Plan dates"><h2>Your dates</h2><p class="note">Pick the days this plan covers. Servings and the shopping list scale to the number of days.</p>
+    <div class="stack" style="margin-top:10px"><${RangeCal} start=${st} days=${days} onChange=${(s, n) => { setSt(s); setDays(n); }}/>
+      <div class="card small" id="pd-sum" style="font-weight:600">${rangeText(st, days)}</div>
+      <${PrepDayPick}/>
+      <button class="btn primary wide" id="pd-save" onClick=${save}>Use these dates</button>
+      ${ML().plan.start ? html`<button class="btn text" id="pd-clear" onClick=${() => { setPlanDates(null, 7); closeSheet(); }}>Clear the dates</button>` : null}
+      <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
+}
+function DatesBar() {
+  const s = planSpan(); const ended = planEnded(); const q = ML().next || [];
+  return html`<div class="card dates-bar" id="plan-dates"><div class="row" style="gap:10px"><span class="dates-ic" aria-hidden="true">${I.cal}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:700" id="plan-dates-t">${spanText()}</div><div class="small muted">You prep on ${DOW_FULL[prepDow()]}s${q.length ? ' · ' + q.length + ' coming up' : ''}</div></div>
+      <button class="btn" id="plan-dates-btn" onClick=${() => openSheet({ type: 'planDates' })}>${s.start ? 'Change' : 'Pick dates'}</button></div>
+    ${ended ? html`<p class="small" id="plan-ended" style="margin-top:8px">This plan ended ${dayLbl(s.end)}. <button class="btn text" style="padding:0;min-height:0" onClick=${() => { const n = nextStretch(); openSheet({ type: 'planDates', start: n.start, days: n.days }); }}>Set dates for the next one</button></p>` : null}</div>`;
+}
+
+/* ---- swapping recipes ---- */
+function RecipePickSheet({ cat, title, cur, onPick, back }) {
+  const [q, setQ] = useState(''); const [all, setAll] = useState(!cat);
+  const st = ML().stars || {}; const term = q.trim().toLowerCase();
+  const list = allRecipes().filter(r => r.id !== cur && (all || r.cat === cat) && r.cat !== 'base' && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)))
+    .map(r => ({ r, bad: recipeIssues(r).block.length > 0, star: !!st[r.id] })).sort((a, b) => (a.bad - b.bad) || (b.star - a.star) || a.r.name.localeCompare(b.r.name));
+  const done = () => { if (back) openSheet(back); else closeSheet(); };
+  return html`<${Sheet} label=${title}><h2>${title}</h2><p class="note">Starred recipes come first. Anything against your food preferences is at the bottom.</p>
+    <input class="field" type="search" id="rp-q" placeholder="Search recipes or ingredients" value=${q} onInput=${e => setQ(e.target.value)} style="margin-top:8px"/>
+    ${cat ? html`<div class="seg wide" role="group" style="margin-top:8px"><button class=${!all ? 'on' : ''} aria-pressed=${!all} onClick=${() => setAll(false)}>${MEAL_CAT_NAME[cat] || 'Same kind'}</button><button class=${all ? 'on' : ''} aria-pressed=${all} id="rp-all" onClick=${() => setAll(true)}>All recipes</button></div>` : null}
+    <div class="stack rp-list" style="margin-top:10px;gap:6px">${list.slice(0, 80).map(({ r, bad, star }) => html`<button key=${r.id} class="opt" id=${'rp-' + r.id} onClick=${() => { onPick(r.id); done(); }}>
+      <div style="flex:1;min-width:0"><div>${star ? '★ ' : ''}${r.name}</div><div class="d">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', bad ? 'has ' + recipeIssues(r).block.join(', ') : ''].filter(Boolean).join(' · ')}</div></div></button>`)}
+      ${list.length ? null : html`<p class="note">No recipes match.</p>`}</div>
+    <button class="btn wide" style="margin-top:10px" onClick=${done}>Cancel</button><//>`;
+}
+function swapPlanItem(itId) {
+  const it = ML().plan.items.find(i => i.id === itId); const r = it && getRecipe(it.r); if (!r) return;
+  openSheet({ type: 'recipePick', cat: r.cat, cur: r.id, title: 'Swap ' + r.name, onPick: id => {
+    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id; delete mm.plan.fromMenu; });
+    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + '. The shopping list is updated.' }); } });
+}
+
+/* ---- using a prep: swap recipes, pick dates, now or later ---- */
+const PREP_DRAFT = { d: null };
+function openUsePrep(pr, later) {
+  const n = later ? nextStretch() : null; const sp = planSpan();
+  PREP_DRAFT.d = { id: pr.id, name: pr.name, orig: pr.items.map(x => x[0]), items: pr.items.filter(([r]) => getRecipe(r)).map(([r, k]) => [r, k]), when: later ? 'later' : 'now',
+    start: later ? n.start : sp.start || startOfDay(new Date()), days: later ? n.days : sp.start ? sp.days : untilPrepDay(new Date()), mode: 'replace' };
+  openSheet({ type: 'usePrep' });
+}
+function UsePrepSheet() {
+  const D = PREP_DRAFT.d; const [, setT] = useState(0); const re = () => setT(x => x + 1);
+  if (!D) return null;
+  const today = startOfDay(new Date()); const sp = planSpan(); const P = ML().plan;
+  const later = D.when === 'later' && startOfDay(D.start) > today;
+  const back = { type: 'usePrep' };
+  const swap = i => { const r = getRecipe(D.items[i][0]); openSheet({ type: 'recipePick', cat: r.cat, cur: r.id, title: 'Swap ' + r.name, back, onPick: id => { const j = D.items.findIndex(x => x[0] === id); if (j >= 0 && j !== i) { D.items[j][1] += D.items[i][1]; D.items.splice(i, 1); } else D.items[i] = [id, D.items[i][1]]; } }); };
+  const add = () => openSheet({ type: 'recipePick', title: 'Add a recipe', back, onPick: id => { if (!D.items.some(x => x[0] === id)) D.items.push([id, (getRecipe(id) || {}).week || 3]); } });
+  const apply = () => {
+    const items = D.items.filter(([r]) => getRecipe(r));
+    if (later) {
+      mealCommit(mm => { mm.next = (mm.next || []).concat({ id: uid('nx'), name: D.name, start: ymd(D.start), days: D.days, items }).sort((a, b) => a.start < b.start ? -1 : 1); });
+      closeSheet(); PREP_DRAFT.d = null; showToast({ kind: 'info', ms: 6000, text: D.name + ' is planned for ' + rangeText(D.start, D.days) + '. It loads that morning with a fresh shopping list.' }); return;
+    }
+    mealCommit(mm => { delete mm.plan.fromMenu; delete mm.plan.src; if (D.mode === 'replace' || !mm.plan.items.length) mm.plan.items = []; for (const [r, n] of items) { const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); }
+      if (D.when === 'later' || D.dated) { mm.plan.start = ymd(D.start); mm.plan.days = D.days; mm.plan.weeks = Math.max(1, Math.min(4, Math.round(D.days / 7))); }
+      if (D.mode === 'replace') mm.checks = {}; });
+    closeSheet(); PREP_DRAFT.d = null; PREP_UI.open = null; scrollTo(0, 0); showToast({ kind: 'info', text: D.name + ' is in What you’ll cook. Your shopping list is ready.' });
+  };
+  return html`<${Sheet} label=${'Use ' + D.name}><h2>${D.name}</h2>
+    <p class="note">Swap any recipe for another or take one out. Changes apply only this time; the prep itself stays as it is.</p>
+    <div class="stack" style="margin-top:10px;gap:6px" id="up-items">${D.items.map(([r, n], i) => { const rec = getRecipe(r); if (!rec) return null; const bad = recipeIssues(rec).block;
+      return html`<div key=${r} class="up-row"><div style="flex:1;min-width:0"><div style="font-weight:600">${rec.name}${D.orig.includes(r) ? '' : html` <span class="chip on" style="margin-left:4px">swapped in</span>`}</div>
+          <div class="small muted">${n === Math.round(n) ? n : fracStr(n)}× a week${bad.length ? html` · <span class="down-c">has ${bad.join(', ')}</span>` : ''}</div></div>
+        <button class="btn" id=${'up-swap-' + i} aria-label=${'Swap ' + rec.name} onClick=${() => swap(i)}>${I.swap} Swap</button>
+        <button class="tip-x" aria-label=${'Take out ' + rec.name} onClick=${() => { D.items.splice(i, 1); re(); }}>${I.x}</button></div>`; })}
+      <button class="btn ghost wide" id="up-add" onClick=${add}>${I.plus} Add a recipe</button></div>
+    <div class="section-h"><h2>When</h2></div>
+    <div class="seg wide" role="group" aria-label="When" id="up-when"><button class=${D.when === 'now' ? 'on' : ''} aria-pressed=${D.when === 'now'} id="up-now" onClick=${() => { D.when = 'now'; re(); }}>Now</button><button class=${D.when === 'later' ? 'on' : ''} aria-pressed=${D.when === 'later'} id="up-later" onClick=${() => { const n = nextStretch(); D.when = 'later'; D.start = n.start; D.days = n.days; re(); }}>Pick dates</button></div>
+    ${D.when === 'now' ? html`<p class="small muted" style="margin-top:6px">For your current dates: ${spanText()}.</p>`
+      : html`<div style="margin-top:8px"><${RangeCal} idp="up-cal" start=${D.start} days=${D.days} onChange=${(s, n) => { D.start = s; D.days = n; re(); }}/>
+        <div class="card small" style="margin-top:8px;font-weight:600" id="up-sum">${rangeText(D.start, D.days)}${later ? ' · planned ahead' : ' · starts now'}</div></div>`}
+    ${!later && P.items.length ? html`<div class="seg wide" role="group" style="margin-top:10px">${[['replace', 'Replace what I’m cooking'], ['add', 'Add to it']].map(([k, l]) => html`<button key=${k} id=${'up-' + k} class=${D.mode === k ? 'on' : ''} aria-pressed=${D.mode === k} onClick=${() => { D.mode = k; re(); }}>${l}</button>`)}</div>` : null}
+    <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="up-apply" disabled=${!D.items.length} onClick=${() => { if (D.when === 'later') D.dated = true; apply(); }}>${later ? 'Plan it for ' + dayLbl(D.start) : 'Use this prep'}</button>
+      <button class="btn wide" onClick=${() => { PREP_DRAFT.d = null; closeSheet(); }}>Cancel</button></div><//>`;
+}
+function PlanAheadSheet() {
+  const m = ML(); const cur = m.plan.items.filter(i => getRecipe(i.r));
+  const pick = pr => openUsePrep(pr, true);
+  return html`<${Sheet} label="Plan ahead"><h2>Plan ahead</h2><p class="note">Pick what to cook next, then its dates. It loads on its first day with a fresh shopping list, and you can line up several.</p>
+    <div class="stack" style="margin-top:10px;gap:6px">
+      ${cur.length ? html`<button class="opt" id="pa-copy" onClick=${() => pick({ id: 'cur', name: 'Same as now', items: cur.map(i => [i.r, i.n]) })}><div style="flex:1"><div>Same as what I’m cooking now</div><div class="d">${cur.map(i => getRecipe(i.r).name).join(' · ')}</div></div></button>` : null}
+      ${Object.values(m.preps).map(pr => html`<button key=${pr.id} class="opt" onClick=${() => pick(pr)}><div style="flex:1"><div>${pr.name}</div><div class="d">Yours · ${pr.items.length} recipes</div></div></button>`)}
+      ${readyPreps().map(pr => html`<button key=${pr.id} class="opt" id=${'pa-' + pr.id} onClick=${() => pick(pr)}><div style="flex:1"><div>${pr.name}</div><div class="d">${prepFits(pr) ? 'Picked for your food preferences · ' : ''}${pr.items.length} recipes</div></div></button>`)}</div>
+    <button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Cancel</button><//>`;
+}
+function ComingUp() {
+  const q = ML().next || [];
+  return html`<div class="card" style="margin-top:14px" id="plan-ahead"><div style="font-weight:700">Plan ahead</div>
+    ${q.length ? html`<div class="stack" style="gap:6px;margin:8px 0">${q.map(x => html`<div key=${x.id} class="up-row"><div style="flex:1;min-width:0"><div style="font-weight:600">${x.name}</div><div class="small muted">${rangeText(parseYmd(x.start), x.days)}</div></div>
+        <button class="tip-x" aria-label=${'Remove ' + x.name} onClick=${() => mealCommit(mm => { mm.next = (mm.next || []).filter(y => y.id !== x.id); })}>${I.x}</button></div>`)}</div>`
+      : html`<p class="small muted" style="margin:2px 0 10px">Line up what you’ll cook next, with its dates, so the next shopping list is ready when that day comes.</p>`}
+    <button class="btn wide" id="plan-ahead-btn" onClick=${() => openSheet({ type: 'planAhead' })}>${q.length ? 'Plan another' : 'Plan what’s next'}</button></div>`;
+}
+/* Load a planned stretch on its first day. Returns true when one loaded. */
+function nextCheck() {
+  const m = ML(); const q = m.next || []; const today = ymd(new Date()); const due = q.filter(x => x.start <= today); if (!due.length) return false;
+  const cur = due.filter(x => ymd(addDays(parseYmd(x.start), x.days - 1)) >= today).sort((a, b) => a.start < b.start ? 1 : -1)[0];
+  mealCommit(mm => { mm.next = (mm.next || []).filter(x => x.start > today);
+    if (cur) { mm.plan.items = cur.items.filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.plan.start = cur.start; mm.plan.days = cur.days; mm.plan.weeks = Math.max(1, Math.min(4, Math.round(cur.days / 7))); mm.plan.src = 'next'; delete mm.plan.fromMenu; mm.checks = {}; } });
+  if (cur) showToast({ kind: 'info', ms: 6000, text: 'Today starts ' + cur.name + ' (' + rangeText(parseYmd(cur.start), cur.days) + '). Your shopping list is ready.' });
+  return !!cur;
+}
+
+/* ---- stars ---- */
+const isStarred = id => !!(ML().stars || {})[id];
+function toggleStar(id) {
+  const on = !isStarred(id); mealCommit(mm => { mm.stars = { ...(mm.stars || {}) }; if (on) mm.stars[id] = true; else delete mm.stars[id]; });
+  const r = getRecipe(id); showToast({ kind: 'info', text: on ? (r ? r.name : 'Recipe') + ' starred. Find it under Recipes → Starred.' : 'Unstarred' });
+}
+function StarBtn({ id, name, big }) {
+  const on = isStarred(id);
+  return html`<button class=${'rec-star' + (on ? ' on' : '') + (big ? ' big' : '')} id=${big ? 'rec-star' : null} aria-pressed=${on} aria-label=${(on ? 'Unstar ' : 'Star ') + name} onClick=${e => { e.stopPropagation(); toggleStar(id); }}>${on ? '★' : '☆'}</button>`;
+}
+
+/* ---- the Meals tour: what to do, in the order most people do it ---- */
+const MEALS_TOUR = [
+  ['meals', null, null, 'How Meals works', 'Meals has four tabs, used in this order: Week to plan, Shopping to buy, then you cook, and Today to log what you eat. This takes about a minute.', { meals: 'plan' }],
+  ['meals', null, '#plan-dates', '1. Pick your dates', 'Tap Pick dates and choose the days on a calendar: the first day, then the last. Starting midweek? Tap “Until Sunday” (or your prep day) for a short first plan, and the next one starts on your prep day.', { meals: 'plan' }],
+  ['meals', null, '#plan-cta, #menu-card, #plan-cta-small', '2. Choose your meals', 'Plan my week asks about you, your food and how you cook, then picks meals with portions. Or use a ready-made prep, or pick recipes yourself. Any of them fills your cooking and shopping list.', { meals: 'plan' }],
+  ['meals', null, '#ready-preps', 'Ready-made preps', 'A week of cooking in one tap. Open one to see its recipes. Use this prep loads it as is. Swap recipes or plan it lets you change any recipe first, or save it for later dates.', { meals: 'plan' }],
+  ['meals', null, '.mp-who, #plan-cta', '3. What you’ll cook', 'Once you’ve picked meals, each recipe shows how many times you’ll eat it. Set the people and days and everything scales. Tap Swap to trade a recipe for another, or ✕ to drop it.', { meals: 'plan' }],
+  ['meals', null, '#plan-ahead', 'Plan ahead', 'Line up the next plan now, with its dates. It loads on its first day with a fresh shopping list. Or rotate 2 to 4 preps, one each week, just below.', { meals: 'plan' }],
+  ['meals', null, '#meal-search', 'Recipes', 'Search by name or ingredient. The filters narrow it to breakfasts, mains, snacks, reels, your own recipes or Starred. The + adds a recipe to what you’ll cook.', { meals: 'recipes' }],
+  ['meals', null, '#rchip-starred', 'Star your favorites', 'Tap ☆ on any recipe to star it. Starred keeps them in one place, and they come first when you swap a recipe.', { meals: 'recipes' }],
+  ['meals', null, '#rchip-mix', 'Mix & match', 'Cook one plain base, like chicken or rice, and turn it into different meals with a sauce or spice mix, so the week doesn’t taste the same every day.', { meals: 'recipes' }],
+  ['meals', null, '#new-recipe', 'Your own recipes', 'New recipe saves your own. It can fill itself in from a post: paste the caption and link, then check what it found. Nutrition is worked out from the ingredients.', { meals: 'recipes' }],
+  ['meals', null, '#share-list, #list-plan, #list-from-plan', '4. Shopping', 'Everything for your dates, added up and sorted by aisle. Tick things off as they go in the cart, add extras like coffee, or share the list.', { meals: 'list' }],
+  ['meals', null, '#log-scan, #log-add', '5. Today', 'Log what you eat against your daily goals. Meals from your plan show up here with an Ate it button.', { meals: 'log' }],
+  ['meals', null, null, 'A simple routine', 'On your prep day: check Week, open Shopping, buy, cook. Each day: tap Ate it in Today. Help at the bottom of any page brings this tour back.', { meals: 'plan' }]];
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {

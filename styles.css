@@ -285,6 +285,9 @@ textarea.field{resize:vertical;min-height:84px;line-height:1.4;font-family:inher
 .gs-steps span{flex:1;text-align:center;font-size:calc(12 * var(--u));padding:4px 0;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--muted,inherit)}
 .gs-steps span.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
 .gs-steps span.done{opacity:.8}
+#tg-steps button{flex:1;text-align:center;font-size:calc(12 * var(--u));min-height:44px;padding:0 4px;border-radius:999px;background:var(--surface-2,rgba(127,127,127,.12));color:var(--ink-2);position:relative}
+#tg-steps button.on{background:var(--accent);color:var(--on-accent,#fff);font-weight:700}
+#tg-steps button:disabled{opacity:.5}
 .hdr-clock{font-family:var(--display);font-size:calc(20 * var(--u));font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .hdr-space{height:4px}
 main{padding-top:2px}

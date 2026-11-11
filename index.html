@@ -905,7 +905,8 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .mp-swap{min-height:36px;padding:4px 10px;gap:4px;flex:none;font-size:calc(14 * var(--u))}
 .rec-star{width:36px;height:44px;flex:none;display:grid;place-items:center;font-size:calc(21 * var(--u));color:var(--ink-3)}.rec-star.on{color:var(--pr,#f2c94c)}
 .rec-star.big{width:44px;font-size:calc(26 * var(--u));margin-top:2px}
-.menu-days.dated .chip{flex-direction:column;gap:0;line-height:1.1;padding:4px 0}.menu-days.dated .chip small{font-size:calc(11 * var(--u));font-weight:600;opacity:.8}</style>
+.menu-days.dated .chip{flex-direction:column;gap:0;line-height:1.1;padding:4px 0}.menu-days.dated .chip small{font-size:calc(11 * var(--u));font-weight:600;opacity:.8}
+#plan-stars .st{color:var(--pr,#f2c94c);margin-right:4px}</style>
 
 <div id="app"></div>
 
@@ -1708,6 +1709,8 @@ const ICONS = {
   meals: ic(() => html`<path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0z"/><path d="M8 8c0-1.4 1-1.8 1-3.2M12 8c0-1.4 1-1.8 1-3.2M16 8c0-1.4 1-1.8 1-3.2"/>`),
   share: ic(() => html`<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>`),
   cal: ic(() => html`<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
+  star: ic(() => html`<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`),
+  starOn: ic(() => html`<path fill="currentColor" d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`),
   globe: ic(() => html`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>`),
 };
 const I = {}; for (const [k, f] of Object.entries(ICONS)) Object.defineProperty(I, k, { get: f });
@@ -3296,7 +3299,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 238da36</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 95f8aaa</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4715,7 +4718,8 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}) } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}), ...(x.habits.starred ? { starred: true } : {}) } } : {}),
+    ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
     ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -5024,9 +5028,27 @@ const PREP_UI = { ready: false, open: null, all: false };
 /* Clear this week (Nov 11, Newt): drops the meal plan, what you'll cook and the shopping ticks, and stops a rotation.
    Keeps saved preps, your recipes, food log, answers, food preferences and skipped meals. */
 function clearMealPlan() {
-  openSheet({ type: 'confirm', title: 'Clear this week and start over?', body: 'Your meal plan, what you’ll cook and the shopping list are cleared' + (ML().rot ? ', and your rotation stops' : '') + '. Saved preps, your recipes, your answers and food preferences stay.', ok: 'Clear it', onOk: () => {
+  openSheet({ type: 'confirm', danger: true, title: 'Clear everything and start over?', body: 'This can’t be undone. It clears your meal plan, what you’ll cook, the shopping list and your extra items' + (ML().rot ? ', and stops your rotation' : '') + '. Saved preps, your recipes, stars, answers, food preferences and skipped meals stay. To change one thing instead, close this and use the options above it.', ok: 'Clear everything', onOk: () => {
     mealCommit(mm => { delete mm.menu; delete mm.rot; mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; mm.extras = []; });
     closeSheet(); PREP_UI.open = null; showToast({ kind: 'info', text: 'Cleared. Plan my week starts fresh.' }); } });
+}
+/* Change or clear this week (Nov 11, Newt): smaller changes first, Clear everything last, with a warning */
+function WeekTools() {
+  const m = ML(); const P = m.plan; const nSkip = Object.keys(m.skip || {}).length; const nTick = Object.values(m.checks || {}).filter(Boolean).length;
+  const ask = (title, body, ok, fn) => openSheet({ type: 'confirm', title, body, ok, onOk: () => { fn(); closeSheet(); } });
+  const opts = [
+    m.menu && ['wt-reroll', 'Different meals', 'New picks for the week with the same settings and skips.', () => { const nm = buildMenu(m.menu.t, (m.menu.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); showToast({ kind: 'info', text: 'New meals for the week.' }); }],
+    ['wt-settings', 'Change plan settings', 'Calories, food preferences, how you eat, kitchen gear.', () => openSheet({ type: 'mealTargets' })],
+    nSkip && ['wt-unskip', 'Bring back skipped meals', nSkip + ' meal' + (nSkip === 1 ? ' is' : 's are') + ' marked as covered elsewhere.', () => ask('Bring back skipped meals?', 'They go back into your cooking and shopping list.', 'Bring them back', () => { mealCommit(mm => { delete mm.skip; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); })],
+    nTick && ['wt-untick', 'Untick the shopping list', nTick + ' item' + (nTick === 1 ? '' : 's') + ' ticked. Start the shopping list fresh.', () => ask('Untick the shopping list?', 'Every item goes back to not bought. Nothing else changes.', 'Untick all', () => mealCommit(mm => { mm.checks = {}; }))],
+    m.menu && ['wt-drop-menu', 'Remove the meal plan only', 'Keeps what you’ll cook and the shopping list; drops the day-by-day meals.', () => ask('Remove the meal plan?', 'The day-by-day meals go away. What you’ll cook and your shopping list stay, so you can change them by hand.', 'Remove it', () => mealCommit(mm => { delete mm.menu; delete mm.plan.fromMenu; }))],
+    P.items.length && ['wt-empty-cook', 'Empty what you’ll cook', 'Takes every recipe out of this week' + (m.menu ? '; the meal plan stays and can fill it again' : '') + '.', () => ask('Empty what you’ll cook?', 'Every recipe comes out of this week and the shopping list starts fresh.' + (m.menu ? ' Your meal plan stays; tap Use these meals to fill it again.' : ''), 'Empty it', () => mealCommit(mm => { mm.plan.items = []; delete mm.plan.fromMenu; mm.checks = {}; delete mm.rot; }))],
+  ].filter(Boolean);
+  if (!m.menu && !P.items.length) return null;
+  return html`<div class="card" id="week-tools" style="margin-top:18px"><div style="font-weight:700">Change or clear this week</div>
+    <div class="stack" style="gap:2px;margin-top:6px">${opts.map(([id, l, d, fn]) => html`<button key=${id} class="opt" id=${id} onClick=${fn}><div style="flex:1"><div>${l}</div><div class="d">${d}</div></div></button>`)}</div>
+    <button class="btn text wide" id="plan-clear" style="margin-top:8px;color:var(--stop,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear everything and start over</button>
+    <p class="small muted" style="text-align:center;margin-top:2px">Asks first. Saved preps, recipes and preferences stay.</p></div>`;
 }
 function PrepPane() {
   const m = ML(); const P = m.plan; const items = P.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r);
@@ -5050,11 +5072,12 @@ function PrepPane() {
   const readyOpen = more || PREP_UI.ready;
   return html`<div>
     <div class="row" style="margin:-4px 0 4px"><button class="btn text" id="meals-tour-btn" style="padding-left:0;flex:1;justify-content:flex-start" onClick=${() => startTour('meals')}><span class="help-q" aria-hidden="true">?</span> How Meals works</button>
-      ${items.length || m.menu ? html`<button class="btn text" id="plan-clear" style="color:var(--danger,#c0392b)" onClick=${clearMealPlan}>${I.x} Clear and start over</button>` : null}</div>
+      </div>
     <${DatesBar}/>
     ${empty ? html`<div class="card plan-cta" id="plan-cta"><div style="font-weight:700">Plan your week</div>
         <p class="small muted" style="margin:2px 0 10px">A few questions and Ironwood picks a week of meals with portions, then fills your cooking and shopping list.</p>
         <button class="btn primary wide" id="plan-start" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>
+        ${Object.keys(ML().stars || {}).length ? html`<button class="btn wide" id="plan-stars" style="margin-top:8px" onClick=${planFromStars}><span class="st" aria-hidden="true">★</span> Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
         <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:1" id="week-ready" onClick=${() => { PREP_UI.all = true; S.rerender(); const el = document.getElementById('ready-preps'); if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); }}>Use a ready-made prep</button><button class="btn" style="flex:1" id="week-pick" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>
         <button class="btn text" id="plan-whole" style="padding-left:0" onClick=${() => openSheet({ type: 'goalSetup' })}>Or build a training plan and meals together</button></div>`
       : html`<${MenuCard}/>`}
@@ -5102,6 +5125,7 @@ function PrepPane() {
       ${list.length > n ? html`<button class="btn wide" id="ready-more" style="margin-top:8px" aria-expanded=${PREP_UI.all} onClick=${() => { PREP_UI.all = !PREP_UI.all; setMore(!more); }}>${PREP_UI.all ? 'Show fewer' : n ? 'Show all ' + list.length + ' ready-made preps' : 'Browse ' + list.length + ' ready-made preps'}</button>` : null}`; })()}</div>
     <${ComingUp}/>
     <${RotationCard}/>
+    <${WeekTools}/>
   </div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
@@ -5161,6 +5185,18 @@ function RotationSheet() {
     <div class="stack" style="margin-top:12px"><button class="btn primary wide" id="rot-save" disabled=${ids.length < 2} onClick=${save}>${ids.length < 2 ? 'Pick at least 2' : 'Save rotation'}</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 const REC_MORE = {};
+/* Starred recipes (Nov 11, Newt): meals.stars = { id: true }. With "Plan from my starred recipes" on (habits.starred),
+   the meal plan is built from them and rebuilds itself whenever you star or unstar one. */
+/* Plan from my starred recipes: turns the setting on and builds the week (asks the setup questions first if needed) */
+function planFromStars() {
+  mealCommit(m => { m.habits = { ...mealHabits(), starred: true }; });
+  const t = (ML().menu && ML().menu.t) || (ML().goals && ML().goals.kcal && ML().goals.p ? ML().goals : null);
+  if (!t || !ML().me) return openSheet({ type: 'mealTargets', step: 2 });
+  const nm = buildMenu(t, Date.now() % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Star a few more recipes first: at least one breakfast and two lunches or dinners.' });
+  mealCommit(m => { m.menu = nm; });
+  if (!(ML().plan.items.length && !ML().plan.fromMenu) && !ML().rot) usePlanForPrep(true, true);
+  showToast({ kind: 'info', text: 'Your week is planned from your starred recipes.' });
+}
 /* Recipes that came from a saved reel or short video (Nov 11, Newt couldn't tell which ones) */
 const fromReel = r => !!(r && r.src && /instagram\.com|tiktok\.com|youtube\.com\/shorts/.test(r.src.url || ''));
 function RecipesPane() {
@@ -5517,9 +5553,19 @@ function LogEntrySheet({ day, id }) {
   const setQ = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
     if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
     x.q = v; x.m = scaleNut(x.m1, v); x.txt = x.txt1 ? (v === 1 ? x.txt1 : fracStr(v) + ' × ' + x.txt1) : (v === 1 ? '' : fracStr(v) + '×'); });
+  /* Amount as the real count (Nov 11, Newt logged 3 eggs and couldn't go below 1½): a food logged as "3" or "150 g"
+     steps in its own unit down to half of one (or 10 g), instead of a times-what-you-logged multiplier. */
+  const g0 = e.k === 'food' ? parseIng(String(e.txt1 != null ? e.txt1 : e.txt || '') + ' x') : null;
+  const q0 = g0 && g0.q > 0 ? g0.q : 0; const u0 = q0 ? g0.u || '' : '';
+  const noun0 = q0 && !u0 ? String(e.txt1 != null ? e.txt1 : e.txt || '').replace(/^[\d\s.\/½¼¾⅓⅔⅛]+(×\s*)?/, '').trim() : '';
+  const stepU = /^(g|ml)$/.test(u0) ? 10 : /^(cup|tbsp|tsp)$/.test(u0) ? 0.25 : 0.5;
+  const setCount = v => mealCommit(m => { const x = (m.log[day] || []).find(y => y.id === id); if (!x) return;
+    if (!x.m1) { x.m1 = scaleNut(x.m, 1 / (x.q || 1)); x.txt1 = x.txt || ''; }
+    v = Math.round(v * 100) / 100; x.q = v / q0; x.m = scaleNut(x.m1, x.q); x.txt = u0 ? qtyText(v, u0) : fracStr(v) + (noun0 ? ' ' + (v > 1 && !/s$/.test(noun0) ? noun0 + 's' : v <= 1 ? noun0.replace(/s$/, '') : noun0) : ''); });
   return html`<${Sheet} label=${e.name}><h2>${e.name}</h2><p class="note">${logDayName(day)}${e.txt ? ' · ' + e.txt : ''}</p>
     ${e.k === 'recipe' ? html`<div class="row" style="margin-top:12px"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${e.sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>` : null}
-    ${e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.5} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
+    ${q0 ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${u0 ? 'In ' + (UNIT_PL[u0] || u0) : 'How many'}</div></div><${MStep} label=${'amount of ' + e.name} value=${Math.round(q0 * (e.q || 1) * 100) / 100} min=${stepU} max=${u0 === 'g' || u0 === 'ml' ? 2000 : 50} step=${stepU} unit=${u0 ? ' ' + u0 : ''} onChange=${setCount}/></div>`
+    : e.k !== 'recipe' ? html`<div class="row" style="margin-top:12px" id="le-amount"><div style="flex:1;min-width:0"><div style="font-weight:600">Amount</div><div class="small muted">${e.txt1 || (e.txt && !e.q) ? 'Times ' + (e.txt1 || e.txt) : 'Times what you logged'}</div></div><${MStep} label="times the logged amount" value=${e.q || 1} min=${0.25} max=${20} step=${0.5} onChange=${setQ}/></div>` : null}
     <div class="row" style="margin-top:12px" id="le-when-row"><label for="le-when" style="flex:1;font-weight:600">When you ate it<span class="small muted" style="display:block;font-weight:400">Used by Review my eating. Starts as when you logged it.</span></label>
       <input class="field" id="le-when" type="time" style="width:auto" value=${hhmm(e.at)} onChange=${ev => setWhen(ev.target.value)}/></div>
     <div style="margin-top:12px"><${MacroTiles} m=${e.m}/><${ExtraLine} m=${e.m}/></div>
@@ -8714,7 +8760,11 @@ function planPool() {
   const have = gearHave();
   const base = allRecipes().filter(r => ok(r) && !np[r.id] && !r.noAuto && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length);
   const lean = base.filter(r => !hasPricey(r, off));
-  const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
+  const st = ML().stars || {}; const H = mealHabits();
+  /* Plan from my starred recipes: only starred ones in each meal slot that has enough (your star beats the chili's
+     keep-out-of-plans flag, but not your food preferences, gear or Leave out of my meal plans) */
+  const starred = H.starred ? allRecipes().filter(r => st[r.id] && ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)) && !recipeGear(r, have).missing.length) : [];
+  const pick = (f, min) => { const s = starred.filter(f); if (s.length >= (min >= 3 ? 2 : 1)) return s; const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
   return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
 /* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
@@ -8779,6 +8829,7 @@ function HabitsFields({ v, set }) {
       ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
       <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-starred"><span><span>Plan from my starred recipes</span><span class="d">${Object.keys(ML().stars || {}).length ? 'You have ' + Object.keys(ML().stars).length + ' starred. ' : 'Star recipes in Recipes. '}The plan uses them and updates itself when you star or unstar one. Meals with too few stars use other recipes.</span></span><input type="checkbox" role="switch" id="hb-starred" checked=${!!v.starred} onChange=${e => set({ ...v, starred: e.target.checked })}/></label>
     <label class="toggle-row" for="hb-slow"><span><span>Favor slow-cooker recipes</span><span class="d">Plans pick slow-cooker dinners first: about 15 minutes of work in the morning, ready by evening.</span></span><input type="checkbox" role="switch" id="hb-slow" checked=${!!v.slow} onChange=${e => set({ ...v, slow: e.target.checked, ...(e.target.checked && Array.isArray(v.gear) && !v.gear.includes('slow') ? { gear: v.gear.concat('slow') } : {}) })}/></label>
     <${GearFields} v=${v} set=${set}/></div>`;
 }
@@ -8920,9 +8971,10 @@ function MenuCard() {
   const reroll = () => { const nm = buildMenu(mn.t, (mn.seed + 7919) % 1e6); if (!nm) return showToast({ kind: 'info', text: 'Not enough other recipes fit your answers and food preferences. Add recipes or loosen a preference.' }); mealCommit(mm => { mm.menu = nm; }); if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); };
   const usePlan = () => usePlanForPrep(false);
   return html`<div class="card" id="menu-card">
-    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
+    <div class="row"><div style="flex:1;min-width:0"><div class="eyebrow">Your meal plan${mealHabits().starred ? ' · from your starred recipes' : ''}</div><div style="font-weight:700">${fmt(t.kcal)} cal · ${t.p} g protein a day</div></div>
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
+    ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
     ${(() => { const sp = planSpan(); /* with dates set, the days of your plan in order, with their dates (Nov 11) */
       const tabs = sp.start ? Array.from({ length: Math.min(7, sp.days) }, (_, k) => { const d = addDays(sp.start, k); return [menuDayIdx(d), DOW[d.getDay()][0], d.getDate()]; }) : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => [i, l, null]);
       return html`<div class=${'menu-days' + (sp.start ? ' dated' : '')} role="tablist">${tabs.map(([i, l, n]) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}${n ? html`<small>${n}</small>` : null}</button>`)}</div>`; })()}
@@ -9127,7 +9179,10 @@ function nextCheck() {
 const isStarred = id => !!(ML().stars || {})[id];
 function toggleStar(id) {
   const on = !isStarred(id); mealCommit(mm => { mm.stars = { ...(mm.stars || {}) }; if (on) mm.stars[id] = true; else delete mm.stars[id]; });
-  const r = getRecipe(id); showToast({ kind: 'info', text: on ? (r ? r.name : 'Recipe') + ' starred. Find it under Recipes → Starred.' : 'Unstarred' });
+  /* Plan from my starred recipes on: the week rebuilds itself (Nov 11, App features chat) */
+  let rebuilt = false;
+  if (mealHabits().starred && ML().menu && ML().menu.t) { const nm = buildMenu(ML().menu.t, ML().menu.seed); if (nm) { mealCommit(m => { m.menu = nm; }); rebuilt = true; if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); } }
+  const r = getRecipe(id); showToast({ kind: 'info', text: (on ? (r ? r.name : 'Recipe') + ' starred.' + (rebuilt ? '' : ' Find it under Recipes → Starred.') : 'Unstarred.') + (rebuilt ? ' Your meal plan was updated.' : '') });
 }
 function StarBtn({ id, name, big }) {
   const on = isStarred(id);

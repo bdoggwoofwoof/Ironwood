@@ -50,10 +50,32 @@ function toggleSkip(di, key) {
 }
 function seeded(seed) { let x = (seed >>> 0) || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1e6) / 1e6; }; }
 function pickN(list, n, rnd) { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); }
+/* Pricey things to leave out (Nov 11, Newt): with Keep it cheap on, pick which ones. habits.pricey = [ids]; unset = all. */
+const PRICEY_ITEMS = [
+  ['fish', 'Salmon and fish fillets', /salmon|\bcod\b|halibut|mahi|swordfish/],
+  ['steak', 'Steak and lamb', /steak|sirloin|\blamb\b|bison/],
+  ['shrimp', 'Shrimp and scallops', /shrimp|scallop/],
+  ['nuts', 'Nuts', /(?<!peanut |nut )\b(almonds?|cashews?|pecans?|walnuts?|pistachios?|pine nuts?)\b(?! milk)/],
+  ['berries', 'Fresh berries (frozen stay in)', /(?<!frozen (mixed )?)\b(berries|blueberr|strawberr|raspberr|blackberr)/],
+  ['avocado', 'Avocado', /avocado/],
+  ['quinoa', 'Quinoa', /quinoa/],
+  ['cheese', 'Specialty cheese (parmesan, feta, goat)', /parmesan|\bfeta\b|goat cheese|cheese crisps/],
+  ['powder', 'Protein powder', /protein powder|\bwhey\b/]];
+const priceyOff = H => H.cheap ? (Array.isArray(H.pricey) ? H.pricey : PRICEY_ITEMS.map(x => x[0])) : [];
+const hasPricey = (r, off) => off.length > 0 && ingNames(r).some(n => PRICEY_ITEMS.some(([k, , re]) => off.includes(k) && re.test(n)));
+/* Recipes you keep out of plans (meals.noPlan) */
+function setNoPlan(id, on) {
+  mealCommit(m => { m.noPlan = { ...(m.noPlan || {}) }; if (on) m.noPlan[id] = true; else delete m.noPlan[id]; if (m.menu && m.menu.t) { const nm = buildMenu(m.menu.t, m.menu.seed); if (nm) m.menu = nm; } });
+  if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
+  showToast({ kind: 'info', text: on ? 'Left out of your meal plans' + (ML().menu ? '. Your plan was updated.' : '.') : 'Back in your meal plans.' });
+}
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
-  const all = allRecipes().filter(r => ok(r) && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
-  return { b: all.filter(r => r.cat === 'breakfast' && macros(r).kcal >= 150), m: all.filter(r => r.cat === 'main' && macros(r).kcal >= 300), s: all.filter(r => r.cat === 'snack' && macros(r).kcal >= 100) };
+  const off = priceyOff(mealHabits()); const np = ML().noPlan || {};
+  const base = allRecipes().filter(r => ok(r) && !np[r.id] && !(typeof avoidRecipe === 'function' && avoidRecipe(r)));
+  const lean = base.filter(r => !hasPricey(r, off));
+  const pick = (f, min) => { const a = lean.filter(f); return a.length >= min ? a : base.filter(f); };
+  return { b: pick(r => r.cat === 'breakfast' && macros(r).kcal >= 150, 2), m: pick(r => r.cat === 'main' && macros(r).kcal >= 300, 3), s: pick(r => r.cat === 'snack' && macros(r).kcal >= 100, 1) };
 }
 /* Eating habits (Nov 2): meals.habits = { meals: 2 | 3 | 4 | 5, prep: 'once' | 'few' | 'fresh', cheap: bool, quick: bool }.
    meals 2 = two bigger meals, 3 = three meals, 4 = three meals and a snack (the default), 5 = three meals and two snacks.
@@ -69,7 +91,7 @@ function costScore(r) { let s = 0; for (const g of r.ing || []) { const n = Stri
 function shapePool(list, n, H, rnd) {
   let L = list; const keep = f => { const x = L.filter(f); if (x.length >= n) L = x; };
   if (H.prep === 'once') { keep(r => (r.keeps || 4) >= 3); keep(r => r.freezes || (r.keeps || 4) >= 5); }
-  if (H.cheap) { keep(r => costScore(r) < 2); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
+  if (H.cheap) { keep(r => !hasPricey(r, priceyOff(H))); const sorted = L.slice().sort((a, b) => costScore(a) - costScore(b)); L = sorted.slice(0, Math.max(n, Math.ceil(sorted.length / 2))); }
   if (H.quick) { const byTime = L.slice().sort((a, b) => (+a.mins || 99) - (+b.mins || 99)); const q = byTime.filter(r => +r.mins > 0 && +r.mins <= 30); L = q.length >= n ? q : byTime.slice(0, Math.max(n, q.length)); }
   return pickN(L, Math.min(n, L.length), rnd);
 }
@@ -79,7 +101,7 @@ function buildMenu(t, seed) {
   const nM = H.prep === 'once' ? 2 : H.prep === 'fresh' ? 5 : 3, nB = H.prep === 'once' ? 1 : H.prep === 'fresh' ? 3 : 2;
   const mains = two && P.m.length > nM ? P.m.slice().sort((a, b) => macros(b).kcal - macros(a).kcal).slice(0, Math.max(nM, Math.ceil(P.m.length / 2))) : P.m; /* two meals: the bigger mains */
   const bs = two ? [] : shapePool(P.b, nB, H, rnd), ms = shapePool(mains, nM, H, rnd);
-  const cheapS = P.s.filter(r => costScore(r) <= 0);
+  const cheapS = P.s.filter(r => !hasPricey(r, priceyOff(H)) && costScore(r) <= 2);
   const snacks = (H.cheap && cheapS.length ? cheapS : H.cheap && P.s.length ? P.s.slice().sort((a, b) => costScore(a) - costScore(b)).slice(0, 2) : P.s).sort((a, b) => macros(b).p / macros(b).kcal - macros(a).p / macros(a).kcal);
   const maxSnacks = +H.meals === 5 ? 2 : +H.meals === 4 ? 1 : 0; const maxSv = two ? 2.5 : 2; const topUp = snacks.length ? snacks.slice().sort((a, b) => macros(b).kcal - macros(a).kcal)[0] : null;
   const addSnack = (day, r) => { const y = day.find(x => x.slot === 's' && x.r === r.id); if (y) y.sv += 1; else day.push({ slot: 's', r: r.id, sv: 1 }); };
@@ -111,7 +133,10 @@ function HabitsFields({ v, set }) {
     <div><span class="lbl">Meals a day</span>${seg('meals', [[2, '2'], [3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], 'meals')}</div>
     <div><span class="lbl">How you cook</span>${seg('prep', [['once', 'Once a week'], ['few', 'A few times'], ['fresh', 'Most days']], 'prep')}
       <p class="small muted" style="margin-top:4px">${v.prep === 'once' ? 'Fewest recipes: one big cook covers the week.' : v.prep === 'fresh' ? 'More variety, smaller batches.' : 'Two or three cooks a week.'}</p></div>
-    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg. Leaves out salmon, steak, shrimp and lamb, nuts, berries, avocado, quinoa, fancy cheeses and protein powder, so you get fewer recipes to pick from.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    <label class="toggle-row" for="hb-cheap"><span><span>Keep it cheap</span><span class="d">Leans on rice, oats, eggs, beans, chicken and frozen veg, and leaves out the pricey things you pick below, so you get fewer recipes to pick from.</span></span><input type="checkbox" role="switch" id="hb-cheap" checked=${v.cheap} onChange=${e => set({ ...v, cheap: e.target.checked })}/></label>
+    ${v.cheap ? html`<div class="card stack" id="pricey-menu" style="gap:4px;margin-top:-4px"><div style="font-weight:700">Leave out</div>
+      ${PRICEY_ITEMS.map(([k, l]) => { const off = priceyOff(v); return html`<label key=${k} class="toggle-row" for=${'pr-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'pr-' + k} checked=${off.includes(k)} onChange=${e => set({ ...v, pricey: e.target.checked ? off.concat(k) : off.filter(x => x !== k) })}/></label>`; })}
+      <p class="small muted">Switch off anything you’re happy to pay for. Plans skip recipes with what’s left on, as long as enough recipes are left.</p></div>` : null}
     <label class="toggle-row" for="hb-quick"><span><span>Quick recipes</span><span class="d">30 minutes or less where possible, otherwise the quickest recipes. Leaves out recipes over 30 minutes when enough quick ones fit.</span></span><input type="checkbox" role="switch" id="hb-quick" checked=${v.quick} onChange=${e => set({ ...v, quick: e.target.checked })}/></label></div>`;
 }
 const dayTotals = day => roundNut(day.reduce((a, x) => { const m = macros(getRecipe(x.r)) || {}; for (const [k] of NUT) a[k] = (a[k] || 0) + (+m[k] || 0) * x.sv; return a; }, {}));

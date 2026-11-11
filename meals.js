@@ -523,7 +523,8 @@ function normMeals(x) {
     saved: Object.fromEntries(Object.entries(x.saved && typeof x.saved === 'object' ? x.saved : {}).filter(([, v]) => v && v.cat && v.e && v.e.m && v.e.name)),
     ...(Array.isArray(x.cats) && x.cats.length ? { cats: x.cats.map(String).slice(0, 20) } : {}),
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
-    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick } } : {}),
+    ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}) } } : {}),
+    ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
 }
@@ -551,8 +552,13 @@ MEAL_LIB.push(
     d: 'A frozen protein shake spun into soft-serve. Chocolate here; change the flavor with what you have.',
     ing: ['1½ cups 2% milk', '1 scoop protein powder', '1 tbsp cocoa powder', '1 tsp honey'],
     steps: ['Blend or shake everything until smooth and pour into an ice-cream maker pint.', 'Freeze flat for 24 hours.', 'Spin on the light ice cream setting. If it’s crumbly, add a splash of milk and re-spin.'],
-    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk.',
+    note: 'No pint machine? Freeze in an ice-cube tray and blend the cubes with a splash of milk. Most of the cost is the protein powder (and the pint machine, once); the Greek yogurt freezer cups skip both.', alt: 'm-froyo-cups', altWhy: 'Cheaper option',
     src: { by: '@fitnessproductfinder', url: 'https://www.instagram.com/reel/DWPSUyHPS8k/', what: 'Protein ice cream pint ideas' } },
+  { id: 'm-froyo-cups', name: 'Chocolate Greek Yogurt Freezer Cups', cat: 'snack', serves: 3, size: '1 cup', mins: 5, keeps: 30, freezes: true, week: 3,
+    d: 'The cheap way to a frozen protein dessert: Greek yogurt brings the protein, so there’s no protein powder and no ice-cream machine.',
+    ing: ['3 cups plain nonfat Greek yogurt', '3 tbsp cocoa powder', '3 tbsp honey', '1 tsp vanilla extract', '¼ tsp salt'],
+    steps: ['Whisk everything until smooth. Taste and add more honey if you like it sweeter.', 'Spoon into three freezer-safe cups or containers and smooth the tops.', 'Freeze at least 3 hours.', 'Let one sit on the counter 10–15 minutes before eating so it scoops like soft-serve.'],
+    note: 'Swirl in a spoon of peanut butter or a few frozen berries before freezing for a change. Blending the frozen cup with a splash of milk makes a thick shake.' },
   { id: 'm-reel-burger-bowls', name: 'Lighter Burger Bowls', cat: 'main', serves: 4, size: '1 bowl', mins: 20, keeps: 3, freezes: false, week: 3,
     d: 'A cheeseburger, swapped lighter: lean beef over crunchy lettuce with a quick burger sauce.',
     ing: ['1 lb ground beef (93% lean)', '1 onion, diced', '½ tsp salt', '6 cups chopped romaine', '2 tomatoes, diced', '½ cup shredded cheese', '½ cup pickles, chopped', '⅓ cup plain Greek yogurt', '2 tbsp ketchup', '1 tbsp mustard'],
@@ -829,6 +835,7 @@ function RecipeView({ id }) {
         <p class="small muted" style="margin-top:10px">${m.manual && !m.est ? 'Entered by you.' : m.manual ? 'Partly entered by you, the rest estimated from the ingredients.' : 'Estimated from the ingredients.'}${m.missing.length && m.est ? ' Not counted: ' + m.missing.join(', ') + '.' : ''}</p></div>` : null; })()}
     <div class="section-h"><h2>Ingredients</h2>${sv !== r.serves ? html`<button class="btn text" onClick=${() => setSv(r.serves)}>Reset</button>` : null}</div>
     <${IssueLine} r=${r}/><${SwapLine} r=${r}/>
+    ${r.alt && getRecipe(r.alt) ? html`<button class="opt card" id="recipe-alt" style="margin-bottom:10px;padding:12px 14px" onClick=${() => UI.setView({ type: 'meal', id: r.alt })}><div style="flex:1"><div>${r.altWhy || 'Another option'}: ${getRecipe(r.alt).name}</div><div class="d">${getRecipe(r.alt).d || ''}</div></div></button>` : null}
     <div style="margin:-2px 0 8px"><${UnitsSeg}/></div>
     <ul class="ing-list card">${(r.ing || []).map((g, i) => { const l = amtLine(g, f); return html`${r.mix && r.mix.flavor && i === 0 ? html`<li class="ing-h" key="h0">Base</li>` : null}${r.mix && r.mix.flavor && i === r.mix.split ? html`<li class="ing-h" key="h1">${r.mix.part}</li>` : null}<li key=${i}><span class="q">${l.q}</span><span>${l.n}</span></li>`; })}</ul>
     ${(r.steps || []).length ? html`<div class="section-h"><h2>Steps</h2></div>
@@ -841,6 +848,8 @@ function RecipeView({ id }) {
     ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">This week · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
+    ${['breakfast', 'main', 'snack'].includes(r.cat) ? html`<label class="toggle-row" for="rec-noplan" style="margin-top:8px"><span><span>Leave out of my meal plans</span><span class="d">Plan my week and Different meals won’t pick it. You can still add it yourself.</span></span>
+      <input type="checkbox" role="switch" id="rec-noplan" checked=${!!(ML().noPlan || {})[id]} onChange=${e => setNoPlan(id, e.target.checked)}/></label>` : null}
     <div class="row wrap" style="margin-top:14px">
       ${r.mix ? null : html`<button class="btn" style="flex:1" onClick=${edit}>${I.edit} Edit</button>`}
       <button class="btn" style="flex:1" onClick=${copy}>${I.copy} ${r.mix ? 'Copy to my recipes to change it' : 'Copy'}</button></div>

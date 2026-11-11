@@ -322,7 +322,10 @@ function nameFor(n, q, u) {
   const words = m[1].split(' '); const last = words.pop(); const w = q > 1.01 ? plural(last) : singular(last);
   return [...words, w].join(' ') + (m[2] || '');
 }
-const ingKey = n => singular(shopName(n).toLowerCase().replace(/\s+/g, ' '));
+/* Size and ripeness words don't make a different thing to buy (Nov 11, Newt: "2 large ripe bananas" and "1 banana" were two lines) */
+const SIZE_WORDS = /^(?:(?:extra[- ]large|large|medium|small|jumbo|very|ripe|overripe|over-ripe)\s+)+/i;
+const plainName = n => shopName(n).replace(SIZE_WORDS, '');
+const ingKey = n => singular(plainName(n).toLowerCase().replace(/\s+/g, ' '));
 function ingLine(g, f) {
   if (g.q == null) return { q: '', n: g.n };
   const fam = famOf(g.u); const [v, u, dec] = fam.k === 'vol' || fam.k === 'wt' ? measure(g.q * fam.mul * f, fam, false) : [g.q * f, g.u];
@@ -817,7 +820,7 @@ function shoppingList() {
     const r = getRecipe(it.r); if (!r) continue; const f = servingsFor(it) / (r.serves || 1);
     for (const g of r.ing || []) {
       if (!g || !g.n) continue; const key = ingKey(g.n);
-      let e = map.get(key); if (!e) { e = { key, name: shopName(g.n), a: g.a || guessAisle(g.n, g.u), fams: {}, from: [], loose: false }; map.set(key, e); }
+      let e = map.get(key); if (!e) { e = { key, name: plainName(g.n), a: g.a || guessAisle(g.n, g.u), fams: {}, from: [], loose: false }; map.set(key, e); }
       if (!e.from.includes(r.name)) e.from.push(r.name);
       if (g.q == null) { e.loose = true; continue; }
       const fam = famOf(g.u); (e.fams[fam.k] = e.fams[fam.k] || { fam, total: 0 }).total += g.q * fam.mul * f;

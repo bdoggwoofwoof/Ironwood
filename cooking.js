@@ -119,22 +119,26 @@ function CookView() {
 const SPLIT_WORDS = [[/\b(?:the )?other half(?: of)?(?: the)?\s*$/, 'rest'], [/\bhalf(?: of)?(?: the)?\s*$/, 0.5], [/\btwo[- ]thirds?(?: of)?(?: the)?\s*$/, 2 / 3], [/\b(?:a|one)[- ]third(?: of)?(?: the)?\s*$/, 1 / 3], [/\b(?:a|one)[- ]quarter(?: of)?(?: the)?\s*$/, 0.25],
   [/\bthree[- ]quarters?(?: of)?(?: the)?\s*$/, 0.75], [/\bthe rest(?: of)?(?: the)?\s*$/, 'rest'], [/\bremaining\s*$/, 'rest'], [/\bmost(?: of)?(?: the)?\s*$/, 0.75], [/\ba little(?: of)?(?: the)?\s*$/, 0.25]];
 const ING_SKIP = /^(salt|pepper|black pepper|water|ice|oil spray|cooking spray)$/;   /* salt and pepper get their own pass */
+/* a word and its plural: tomato(es), lime(s), berr(y|ies) */
+const plRe = w => { const e = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); if (/ies$/.test(w)) return e.slice(0, -3) + '(?:y|ies)'; if (/oes$/.test(w)) return e.slice(0, -2) + '(?:es)?'; if (/(ch|sh|x)es$/.test(w)) return e.slice(0, -2) + '(?:es)?'; if (/[^s]s$/.test(w)) return e.slice(0, -1) + 's?'; if (/y$/.test(w)) return e.slice(0, -1) + '(?:y|ies)'; return e + '(?:es|s)?'; };
 function ingKeys(r) {
   const base = (r.ing || []).map(g => String(g.n || '').toLowerCase().split(',')[0].replace(/\([^)]*\)/g, ' ').replace(/\b(boneless|skinless|fresh|large|small|medium|ripe|plain|nonfat|low-fat|unsweetened|dry|dried|canned|frozen|lean|extra-virgin|ground|chopped|diced|minced|sliced)\b/g, ' ').replace(/\s+/g, ' ').trim());
   /* tail words first ("soy sauce", "sauce"), then single words ("chicken" in "chicken thighs"); a word two
      ingredients share is never used */
   const tails = base.map(n => { const w = n.split(' ').filter(Boolean); const out = []; for (let k = w.length; k >= 1; k--) { const s = w.slice(w.length - k).join(' '); if (s.length >= 3) out.push(s); } return out; });
   /* "chicken" in chicken broth or garlic in garlic powder doesn't make "the chicken" ambiguous */
-  const words = base.map(n => /\b(broth|stock|bouillon|powder|paste|sauce|salt)$/.test(n) ? [] : n.split(' ').filter(x => x.length >= 4));
+  const plain = new Set(base.filter(n => !/\b(broth|stock|bouillon|powder|salt)$/.test(n)).flatMap(n => n.split(' ')));
+  const words = base.map(n => (/\b(broth|stock|bouillon|powder|salt)$/.test(n) ? n.split(' ').filter(x => !plain.has(x)) : n.split(' ')).filter(x => x.length >= 4).concat(/flaxseed/.test(n) ? ['flax'] : []));
   const cT = {}, cA = {}; base.forEach((n, i) => { new Set(tails[i]).forEach(s => { cT[s] = (cT[s] || 0) + 1; }); new Set([...tails[i], ...words[i]]).forEach(s => { cA[s] = (cA[s] || 0) + 1; }); });
   const cands = base.map((n, i) => [...tails[i].filter(s => cT[s] === 1), ...words[i].filter(x => !tails[i].includes(x) && cA[x] === 1)]);
-  return cands.map((c, i) => (ING_SKIP.test(base[i]) ? [] : c).map(s => ({ s, re: new RegExp('\\b' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/(s|es)$/, '') + '(?:es|s)?\\b', 'i') })));
+  return cands.map((c, i) => (ING_SKIP.test(base[i]) ? [] : c).map(s => ({ s, re: new RegExp('\\b' + plRe(s) + '\\b', 'i') })));
 }
 /* steps → [[text or { amt, of }]] for one recipe at batch factor f */
 const SPICE_ING = /^ginger$|caraway|baharat|7 spice|seven spice|clove|dill|fennel seed|mustard seed|powder|cumin|paprika|oregano|cinnamon|turmeric|garam|coriander|chili|cayenne|seasoning|allspice|za.?atar|sumac|thyme|rosemary|sage|nutmeg|cardamom|ginger, ground|ground ginger|black pepper|red pepper flakes|pepper flakes|bay lea|dried|^salt$|kosher salt|sea salt/;
-const GROUP_SPICE = /\b(?:the |all the |your )?(spices|seasonings?|spice (?:mix|blend|rub)|dry rub|rub)\b|^season\b/i;
+const GROUP_SPICE = /\b(?:the |all the |your )?(spices|seasonings?|spice (?:mix|blend|rub)|dry rub|rub)\b|\bseason\b/i;
 const GROUP_ALL = /\b(?:mix|stir|whisk|blend|combine|put|add|shake|puree|blitz|beat|toss)\b[^.]{0,20}?\b(everything(?: else)?|all (?:of )?the (?:ingredients|rest)|the rest of the ingredients|the remaining ingredients)\b/i;
-const SALT_PEP = [[/\bsalt and (?:black )?pepper\b/i, ['salt', 'black pepper']], [/\bsalt\b/i, ['salt']], [/\b(?:black )?pepper\b/i, ['black pepper']]];
+const EXPLICIT = /((?:\d[\d\s½¼¾⅓⅔⅛\/.-]*|\b(?:a|one|two|three|half a) )\s*(?:cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|lb|g|kg|ml|cloves?|cans?|scoops?|pinch|handful|splash)?)(?:\s+of)?(?:\s+the)?(?:\s+[a-z]+)?\s*$/i;
+const SALT_PEP = [[/\bsalt and (?:black )?pepper\b/i, ['salt', 'black pepper']], [/\bsalt(?:ed)?\b/i, ['salt']], [/\b(?:black )?pepper\b/i, ['black pepper']]];
 const ingShort = g => String(g.n || '').toLowerCase().split(',')[0].replace(/\([^)]*\)/g, '').replace(/\b(ground|dried|plain|fresh|kosher)\b/g, '').replace(/\s+/g, ' ').trim();
 function stepsWithAmounts(r, f) {
   const keys = ingKeys(r); const ing = r.ing || []; const used = ing.map(() => 0); const steps = r.steps || [];
@@ -145,6 +149,8 @@ function stepsWithAmounts(r, f) {
   const named = ing.map((g, i) => steps.some(s => keys[i].some(k => mentions(s, k.re))));
   const shared = (() => { const by = {}; ing.forEach((g, i) => { const w = ingShort(g).split(' ').filter(x => x.length >= 3); new Set([w.slice(-1)[0]].filter(Boolean)).forEach(x => { (by[x] = by[x] || []).push(i); }); });
     return Object.entries(by).filter(([, v]) => v.length > 1); })();
+  /* an amount written in the step ("in 1 tbsp oil") counts toward what's used, so "the rest" comes out right */
+  const countExplicit = (ex, i) => { const g = ing[i]; const pr = parseIng((ex[1] || '').trim() + ' x'); if (pr && pr.q > 0 && g.q > 0 && (pr.u || '') === (g.u || '')) used[i] = Math.min(1, used[i] + pr.q / g.q); };
   const isSpice = g => SPICE_ING.test(ingShort(g)) && (!g.u || /tsp|tbsp|pinch/.test(g.u));
   const out = steps.map(step => {
     const hits = [];
@@ -153,7 +159,8 @@ function stepsWithAmounts(r, f) {
       for (const k of keys[i]) { const m = k.re.exec(step); if (!m) continue;
         if (overlaps(m.index, m.index + m[0].length)) break;
         const before = step.slice(0, m.index);
-        if (/\d[\d\s½¼¾⅓⅔⅛\/.-]*(\s*(cups?|tbsp|tsp|oz|lb|g|kg|ml|cloves?|cans?|scoops?))?\s*$/i.test(before.slice(-14))) break;
+        const ex = EXPLICIT.exec(before.slice(-30)); if (ex) { countExplicit(ex, i); break; }
+        if (/\b(last|other|leftover)\s*$/i.test(before.slice(-10))) break;
         if (/\b(until|once|when|while) (the |it(?:s)? )?$/i.test(before.slice(-12))) break;
         let frac = 0, split = false; for (const [re, v] of SPLIT_WORDS) if (re.test(before.slice(-28).toLowerCase())) { frac = v === 'rest' ? Math.max(0, 1 - used[i]) : v; split = true; break; }
         if (!split) { if (used[i] > 0) break; frac = 1; }   /* named again later without a split: no amount */
@@ -166,14 +173,16 @@ function stepsWithAmounts(r, f) {
     for (const [re, names] of SALT_PEP) { const m = re.exec(step); if (!m || overlaps(m.index, m.index + m[0].length) || /bell |chili |red /i.test(step.slice(Math.max(0, m.index - 5), m.index))) continue;
       const list = names.map(n => ing.findIndex((g, i) => ingShort(g) === n && g.q > 0 && !used[i])).filter(i => i >= 0);
       if (!list.length) continue; list.forEach(i => { used[i] = 1; });
-      hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); break; }
+      hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); if (names.length > 1) break; }
     /* group words: the spices, the rub, everything */
     const gm = GROUP_SPICE.exec(step);
     if (gm && !overlaps(gm.index, gm.index + gm[0].length)) { const sp = /\bsalt\b|\bpepper\b/i.test(step); const list = ing.map((g, i) => i).filter(i => isSpice(ing[i]) && !named[i] && !used[i] && ing[i].q > 0 && !(sp && /^salt$|black pepper/.test(ingShort(ing[i]))));
       if (list.length) { list.forEach(i => { used[i] = 1; }); hits.push({ start: gm.index, end: gm.index + gm[0].length, amt: list.map(i => amtOf(ing[i], 1, true)).join(', ') }); } }
     /* a word two ingredients share ("both tomatoes", "the beans", "the oil"): the ones not used yet */
-    for (const [w, idx] of shared) { const m = new RegExp('\\b' + w.replace(/(s|es)$/, '') + '(?:es|s)?\\b', 'i').exec(step); if (!m || overlaps(m.index, m.index + m[0].length)) continue;
-      if (/\d[\d\s½¼¾⅓⅔⅛\/.-]*(\s*(cups?|tbsp|tsp|oz|lb|g|ml|cloves?|cans?))?\s*$/i.test(step.slice(Math.max(0, m.index - 14), m.index))) continue;
+    for (const [w, idx] of shared) { const m = new RegExp('\\b' + plRe(w) + '\\b', 'i').exec(step); if (!m || overlaps(m.index, m.index + m[0].length)) continue;
+      const ex = EXPLICIT.exec(step.slice(Math.max(0, m.index - 30), m.index)); if (ex) { const k = idx.find(i => !used[i] && ing[i].q > 0); if (k != null) countExplicit(ex, k); continue; }
+      const bf = step.slice(Math.max(0, m.index - 28), m.index).toLowerCase(); const rest = /(?:the )?rest(?: of)?(?: the)?\s*$|remaining\s*$/.test(bf);
+      if (rest) { const k = idx.find(i => used[i] > 0 && used[i] < 1 && ing[i].q > 0); if (k != null) { const fr = 1 - used[k]; used[k] = 1; hits.push({ start: m.index, end: m.index + m[0].length, amt: amtOf(ing[k], fr) }); continue; } }
       let list = idx.filter(i => !used[i] && ing[i].q > 0 && !named[i]); if (!list.length) continue;
       if (new Set(list.map(i => ingShort(ing[i]))).size === 1) list = list.slice(0, 1);   /* same food split for two uses: the first one */
       list.forEach(i => { used[i] = 1; }); hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); }
@@ -193,4 +202,21 @@ function stepsWithAmounts(r, f) {
   });
   out.used = used; return out;
 }
-const StepText = ({ parts }) => parts.map((p, i) => typeof p === 'string' ? p : html`<span key=${i} class="step-amt"> (${p.amt})</span>`);
+/* One action per line (Nov 11, Newt): a step's sentences, and ", then" inside a sentence, start new lines */
+const STEP_BREAK = /(?<=[.!?])\s+(?=[A-Z0-9“"(])|,\s+then\s+(?=[a-z])/;
+function stepLines(parts) {
+  const lines = [[]];
+  for (const p of parts) {
+    if (typeof p !== 'string') { lines[lines.length - 1].push(p); continue; }
+    let rest = p, m;
+    while ((m = STEP_BREAK.exec(rest))) {
+      const head = rest.slice(0, m.index); if (head) lines[lines.length - 1].push(head);
+      lines.push([]); rest = rest.slice(m.index + m[0].length);
+      if (/then/.test(m[0])) { rest = 'Then ' + rest; const L = lines[lines.length - 2]; const t = L[L.length - 1]; if (typeof t === 'string') L[L.length - 1] = t.replace(/\s*$/, '.'); else L.push('.'); }
+    }
+    if (rest) lines[lines.length - 1].push(rest);
+  }
+  return lines.filter(l => l.some(x => typeof x !== 'string' || x.trim()));
+}
+const StepBits = ({ parts }) => parts.map((p, i) => typeof p === 'string' ? p : html`<span key=${i} class="step-amt"> (${p.amt})</span>`);
+const StepText = ({ parts }) => { const lines = stepLines(parts); return lines.length < 2 ? html`<${StepBits} parts=${parts}/>` : lines.map((l, i) => html`<span key=${i} class="step-line"><${StepBits} parts=${l}/></span>`); };

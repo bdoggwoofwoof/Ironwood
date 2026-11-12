@@ -911,7 +911,8 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .cook-box{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
 .cook-run{color:var(--accent);margin-top:4px;display:flex;gap:4px;align-items:center}.cook-run svg{width:15px;height:15px;flex:none}
 #cook-start svg{width:18px;height:18px;margin-right:4px}
-.step-amt{font-weight:700;color:var(--ink)}</style>
+.step-amt{font-weight:700;color:var(--ink)}
+.step-line{display:block}.step-line+.step-line{margin-top:6px}</style>
 
 <div id="app"></div>
 
@@ -3304,7 +3305,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version f39470f</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version f041c59</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4223,7 +4224,7 @@ const MEAL_LIB = [
     steps: ['Lower the eggs into boiling water and cook 11–12 minutes (9 for jammy yolks).', 'Move them straight to a bowl of ice water for 10 minutes.', 'Refrigerate in the shell; they peel easiest the next day.'] },
   { id: 'm-snack-box', name: 'Protein Snack Boxes', cat: 'snack', serves: 5, size: '1 box', mins: 25, keeps: 4, freezes: false, week: 5,
     ing: ['10 eggs', '1 cup hummus', '1 lb baby carrots', '2 cucumbers, sliced', '½ box whole-grain crackers', '2 cups grapes'],
-    steps: ['Hard-boil the eggs (see Hard-Boiled Eggs), cool and peel.', 'Divide the hummus between five small containers.', 'Fill five boxes with two eggs, vegetables, grapes and a handful of crackers in a separate bag.'] },
+    steps: ['Hard-boil the eggs, about 10 minutes (see Hard-Boiled Eggs), then cool and peel.', 'Divide the hummus between five small containers.', 'Fill five boxes with two eggs, vegetables, grapes and a handful of crackers in a separate bag.'] },
   { id: 'm-energy-bites', name: 'Peanut Butter Energy Bites', cat: 'snack', serves: 8, size: '2 bites', mins: 15, keeps: 7, freezes: true, week: 4,
     ing: ['1 cup rolled oats', '½ cup peanut butter', '⅓ cup honey', '2 tbsp chia seeds', '¼ cup mini chocolate chips', '1 tsp vanilla extract', '¼ cup vanilla protein powder (optional)'],
     steps: ['Stir everything together. If it’s too dry, add a spoon of milk; too wet, more oats.', 'Chill 15 minutes, then roll into 16 balls.', 'Keep in the fridge or freezer.'] },
@@ -4303,7 +4304,7 @@ MEAL_LIB.push(
   WF_VEG('m-cuke-salad', 'Cucumber, Tomato & Parsley Salad', ['2 cucumbers, diced', '1 pint cherry tomatoes, halved', '1 cup fresh parsley, chopped', '½ red onion, diced', '1 lemon', '2 tbsp olive oil', '½ tsp salt'],
     ['Toss the cucumber, tomatoes, parsley and onion.', 'Dress with the lemon juice, oil and salt when you eat, so it stays crisp.'], 'Keeps 3 days undressed.'),
   WF_VEG('m-roast-sweet-potato', 'Roasted Sweet Potatoes', ['4 sweet potatoes, cubed', '2 tbsp olive oil', '1 tsp salt'],
-    ['Heat the oven to 425°F (220°C).', 'Toss the cubes with the oil and salt and roast 30–35 minutes, turning once.']),
+    ['Heat the oven to 425°F (220°C).', 'Toss the sweet potatoes with the oil and salt and roast 30–35 minutes, turning once.']),
   WF_VEG('m-roast-broccoli', 'Roasted Broccoli', ['2 heads broccoli, cut into florets', '2 tbsp olive oil', '2 cloves garlic, minced', '½ tsp salt'],
     ['Heat the oven to 425°F (220°C).', 'Toss everything together and roast 18–22 minutes, until the edges char.']),
   WF_VEG('m-slaw-asian', 'Cabbage & Carrot Slaw', ['½ head green cabbage, shredded', '3 carrots, shredded', '2 green onions, sliced', '2 tbsp rice vinegar', '1 tbsp sesame oil', '1 tsp honey', '½ tsp salt'],
@@ -4794,7 +4795,7 @@ MEAL_LIB.push(
   { id: 'm-reel-burger-bowls', name: 'Lighter Burger Bowls', cat: 'main', serves: 4, size: '1 bowl', mins: 20, keeps: 3, freezes: false, week: 3,
     d: 'A cheeseburger, swapped lighter: lean beef over crunchy lettuce with a quick burger sauce.',
     ing: ['1 lb ground beef (93% lean)', '1 onion, diced', '½ tsp salt', '6 cups chopped romaine', '2 tomatoes, diced', '½ cup shredded cheese', '½ cup pickles, chopped', '⅓ cup plain Greek yogurt', '2 tbsp ketchup', '1 tbsp mustard'],
-    steps: ['Brown the beef and onion with the salt, 8–10 minutes, breaking it up.', 'Stir the yogurt, ketchup and mustard together for the sauce.', 'Pack the lettuce and tomatoes separately from the warm beef. To eat, top the lettuce with beef, cheese, pickles and sauce.'],
+    steps: ['Brown the beef and onion with the salt, 8–10 minutes, breaking it up.', 'Stir the yogurt, ketchup and mustard together for the sauce.', 'Pack the romaine and tomatoes separately from the warm beef. To eat, top the romaine with beef, cheese, pickles and sauce.'],
     note: 'The swaps: lean beef, no bun, yogurt-based sauce. Add a toasted bun on a high-carb day.',
     src: { by: '@_aussiefitness', url: 'https://www.instagram.com/reel/C-ukFuAS9ua/', what: 'Macro-friendly versions of favorite meals' } });
 /* Nov 11: meal-prep picks from Newt's reels log (Stockpile Ideas → Recipes). Steps are written in Ironwood's own words;
@@ -4865,12 +4866,12 @@ MEAL_LIB.push(
   { id: 'm-reel-peanut-noodles', name: 'Spicy Peanut Broccoli Chicken Noodles', cat: 'main', serves: 3, size: '1 container', mins: 35, keeps: 3, freezes: false, week: 3,
     d: 'Tender stir-fried chicken and broccoli in a peanut, soy and sriracha sauce over egg noodles.',
     ing: ['2 boneless skinless chicken breasts', '1 tsp baking soda', '2 tbsp soy sauce', '3½ tbsp rice vinegar', '2 tsp minced garlic', '⅛ tsp white pepper', '1 head broccoli, thinly sliced', '1 tbsp cooking oil', '4 tbsp peanut butter', '2 tbsp oyster sauce', '2 tbsp sriracha', '1 tsp sesame oil', '½ bouillon cube', '10 oz egg noodles', '2 green onions, sliced', '2 tbsp roasted peanuts, crushed'],
-    steps: ['Cube the chicken, toss with the baking soda, wait 15 minutes, then rinse and pat dry.', 'Stir-fry the chicken in a hot wok with ½ tbsp each of soy sauce and rice vinegar, half the garlic and the white pepper until golden. Take it out.', 'Add the oil and stir-fry the broccoli.', 'Simmer the peanut butter, the rest of the soy sauce and vinegar, the oyster sauce, sriracha, the rest of the garlic, sesame oil and bouillon with ⅓ cup water while the noodles cook.', 'Toss the noodles, chicken and broccoli in the sauce and top with green onions and peanuts. Add a splash of water when you reheat.'],
+    steps: ['Cube the chicken, toss with the baking soda, wait 15 minutes, then rinse and pat dry.', 'Stir-fry the chicken in a hot wok with ½ tbsp each of soy sauce and rice vinegar, half the garlic and the white pepper until golden. Take it out.', 'Add the oil and stir-fry the broccoli.', 'Simmer the peanut butter, the rest of the soy sauce and vinegar, the oyster sauce, sriracha, the rest of the garlic, sesame oil and bouillon with ⅓ cup water for 2–3 minutes while the noodles cook.', 'Toss the noodles, chicken and broccoli in the sauce and top with green onions and peanuts. Add a splash of water when you reheat.'],
     src: { by: 'Sara | Nutrient Matters', url: 'https://www.instagram.com/reel/C0MpbsnuITa/', what: 'Spicy peanut chicken noodles' } },
   { id: 'm-reel-chana', name: 'Rice Cooker Chana Masala', cat: 'main', serves: 5, size: '1 cup', mins: 10, keeps: 5, freezes: true, week: 3,
     d: 'Four ingredients and the rice cooker: chickpeas in tomato, ginger and coconut milk. Cheap and meatless.',
     ing: ['3 cups cooked chickpeas', '1 cup crushed tomatoes', '1 tbsp fresh ginger, minced', '3 cloves garlic, minced', '1 can coconut milk (13.5 oz)', '2 tsp garam masala', '½ tsp salt'],
-    steps: ['Put everything in the rice cooker and stir.', 'Cook on the white rice setting.', 'Stir, taste for salt, and portion. Serve with rice or flatbread.'],
+    steps: ['Put everything in the rice cooker and stir.', 'Cook on the white rice setting, about 45 minutes.', 'Stir, taste for salt, and portion. Serve with rice or flatbread.'],
     note: 'The reel uses only chickpeas, tomatoes, ginger and coconut milk; garlic (mentioned in the video), garam masala and salt are Ironwood’s additions.',
     src: { by: 'serena yau', url: 'https://www.instagram.com/reel/DTlTfsWEq7Z/', what: 'Rice cooker chana masala' } },
   { id: 'm-reel-red-lentil-soup', name: 'Red Lentil Soup (Shorbat Adas)', cat: 'main', serves: 4, size: '1½ cups', mins: 40, keeps: 5, freezes: true, week: 3,
@@ -4892,7 +4893,7 @@ MEAL_LIB.push(
   { id: 'm-reel-mahmoos', name: 'Mahmoos Gutaifi (Saudi Caramelized Onion Chicken & Rice)', cat: 'main', serves: 6, size: '1 plate', mins: 120, keeps: 4, freezes: true, week: 3, noAuto: true,
     d: 'A weekend pot: onions cooked to deep brown, whole chickens simmered with spices, then broiled while basmati cooks in the broth.',
     ing: ['5 onions, finely chopped', '4 tbsp cooking oil', '2 whole chickens', '2 cups basmati rice (dry)', '3 heads garlic', '1 lime', '3 bay leaves', '4 cardamom pods', '4 whole cloves', '2 cinnamon sticks', '4 dried limes (lumi), optional', '1 tsp black pepper', '1 tsp paprika', '1 tsp ground cinnamon', '1 tsp ground cardamom', '1 tsp garlic powder', '1 tsp ground coriander', '½ tsp ground turmeric', '2 tsp salt'],
-    steps: ['Fry the onions in the oil on high 10–15 minutes, then turn the heat to low and keep stirring until they’re dark brown.', 'Add the chickens and sear briefly, then the whole spices, garlic heads, ground spices and 5 cups water. Cover and cook on medium about 30 minutes.', 'Move the chickens to a tray and broil until crisp.', 'Soak the rice 30 minutes, add it to the broth (the liquid should sit a fingertip above the rice) and boil uncovered about 10 minutes.', 'Cover and cook on the lowest heat 20 minutes, then leave the lid on 20 minutes off the heat. Serve the chicken on the rice with lime.'],
+    steps: ['Fry the onions in the oil on high 10–15 minutes, then turn the heat to low and keep stirring until they’re dark brown.', 'Add the chickens and sear briefly, then the whole spices, the dried limes if you have them, garlic heads, ground spices and 5 cups water. Cover and cook on medium about 30 minutes.', 'Move the chickens to a tray and broil until crisp.', 'Soak the rice 30 minutes, add it to the broth (the liquid should sit a fingertip above the rice) and boil uncovered about 10 minutes.', 'Cover and cook on the lowest heat 20 minutes, then leave the lid on 20 minutes off the heat. Serve the chicken on the rice with lime.'],
     note: 'A long cook for a weekend. Portion the chicken off the bone for the week.',
     src: { by: 'Mohammed Moosa', url: 'https://www.instagram.com/reel/DIOMcpOtqn_/', what: 'Mahmoos gutaifi' } },
   { id: 'm-reel-human-kibble', name: 'Human Kibble (Rice, Bean & Veg Bowls)', cat: 'main', serves: 10, size: '1 bowl', mins: 60, keeps: 4, freezes: true, week: 5,
@@ -4904,13 +4905,13 @@ MEAL_LIB.push(
   { id: 'm-reel-edamame-salad', name: 'Crunchy Edamame Salad', cat: 'main', serves: 4, size: '1 container', mins: 25, keeps: 4, freezes: false, week: 3,
     d: 'Edamame, quinoa, red cabbage and peanuts with a peanut-ginger dressing. Keeps crunchy all week with the dressing on the side.',
     ing: ['½ cup quinoa (dry)', '2½ cups frozen shelled edamame', '2 cups red cabbage, shredded', '2 cups baby spinach, chopped', '1 cup shredded carrots', '½ cup roasted peanuts', '1 jalapeño, sliced', '1 lime', '½ bunch cilantro', '2 tbsp peanut butter', '2 tbsp white vinegar', '1 tbsp soy sauce', '1 tbsp maple syrup', '3 cloves garlic, minced', '1 tsp fresh ginger, minced', '½ tsp chili flakes'],
-    steps: ['Cook the quinoa and let it cool. Thaw or briefly boil the edamame.', 'Whisk the peanut butter, vinegar, soy sauce, maple syrup, garlic, ginger, chili flakes and 2 tbsp water.', 'Toast the peanuts in a dry skillet for a few minutes.', 'Pack the quinoa, edamame, cabbage, spinach, carrots, jalapeño and peanuts, with the dressing, lime and cilantro on the side.'],
+    steps: ['Cook the quinoa, about 15 minutes, and let it cool. Thaw or briefly boil the edamame.', 'Whisk the peanut butter, vinegar, soy sauce, maple syrup, garlic, ginger, chili flakes and 2 tbsp water.', 'Toast the peanuts in a dry skillet for a few minutes.', 'Pack the quinoa, edamame, cabbage, spinach, carrots, jalapeño and peanuts, with the dressing, lime and cilantro on the side.'],
     note: 'The creator counts about 485 calories and 26 g protein a serving.',
     src: { by: 'Jenny Bolle', url: 'https://www.instagram.com/reel/CbxiDvJKjZr/', what: 'Crunchy edamame salad' } },
   { id: 'm-reel-sp-chickpea-salad', name: 'Sweet Potato Chickpea Salad with Tahini', cat: 'main', serves: 4, size: '1 container', mins: 35, keeps: 4, freezes: false, week: 3,
     d: 'Roasted Cajun sweet potato, chickpeas and crunchy vegetables with a lemon-tahini dressing.',
     ing: ['1 large sweet potato, cubed', '1 can chickpeas (15 oz), rinsed', '1 red onion, diced', '1 cucumber, diced', '1 carrot, diced', '1 yellow bell pepper, diced', '1 red bell pepper, diced', '1 bunch parsley, chopped', '1 tbsp olive oil', '2 tsp Cajun seasoning', '3 tbsp tahini', '⅓ cup lemon juice', '½ tsp ground cumin', '½ tsp salt'],
-    steps: ['Toss the sweet potato with the oil and Cajun seasoning. Air fry at 400°F (200°C) 10–12 minutes, or bake at 425°F (220°C) 25–30 minutes.', 'Chop the other vegetables and parsley.', 'Whisk the tahini, lemon juice, cumin, salt and 1–2 tbsp water.', 'Pack the salad with the dressing on the side.'],
+    steps: ['Toss the sweet potato with the oil and Cajun seasoning. Air fry at 400°F (200°C) 10–12 minutes, or bake at 425°F (220°C) 25–30 minutes.', 'Chop the other vegetables and parsley and toss them with the chickpeas.', 'Whisk the tahini, lemon juice, cumin, salt and 1–2 tbsp water.', 'Pack the salad with the dressing on the side.'],
     src: { by: 'Samara Alkhammach', url: 'https://www.instagram.com/reel/CoSOdTyrtJ5/', what: 'Sweet potato chickpea salad' } },
   { id: 'm-reel-steamed-chicken', name: 'Juicy Pan-Steamed Chicken Breast', cat: 'base', serves: 6, size: '4 oz cooked', mins: 30, keeps: 4, freezes: true, week: 4,
     d: 'Sear one side, add water, cover and turn the heat off: the easiest way to keep batch chicken breast juicy.',
@@ -9350,22 +9351,26 @@ function CookView() {
 const SPLIT_WORDS = [[/\b(?:the )?other half(?: of)?(?: the)?\s*$/, 'rest'], [/\bhalf(?: of)?(?: the)?\s*$/, 0.5], [/\btwo[- ]thirds?(?: of)?(?: the)?\s*$/, 2 / 3], [/\b(?:a|one)[- ]third(?: of)?(?: the)?\s*$/, 1 / 3], [/\b(?:a|one)[- ]quarter(?: of)?(?: the)?\s*$/, 0.25],
   [/\bthree[- ]quarters?(?: of)?(?: the)?\s*$/, 0.75], [/\bthe rest(?: of)?(?: the)?\s*$/, 'rest'], [/\bremaining\s*$/, 'rest'], [/\bmost(?: of)?(?: the)?\s*$/, 0.75], [/\ba little(?: of)?(?: the)?\s*$/, 0.25]];
 const ING_SKIP = /^(salt|pepper|black pepper|water|ice|oil spray|cooking spray)$/;   /* salt and pepper get their own pass */
+/* a word and its plural: tomato(es), lime(s), berr(y|ies) */
+const plRe = w => { const e = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); if (/ies$/.test(w)) return e.slice(0, -3) + '(?:y|ies)'; if (/oes$/.test(w)) return e.slice(0, -2) + '(?:es)?'; if (/(ch|sh|x)es$/.test(w)) return e.slice(0, -2) + '(?:es)?'; if (/[^s]s$/.test(w)) return e.slice(0, -1) + 's?'; if (/y$/.test(w)) return e.slice(0, -1) + '(?:y|ies)'; return e + '(?:es|s)?'; };
 function ingKeys(r) {
   const base = (r.ing || []).map(g => String(g.n || '').toLowerCase().split(',')[0].replace(/\([^)]*\)/g, ' ').replace(/\b(boneless|skinless|fresh|large|small|medium|ripe|plain|nonfat|low-fat|unsweetened|dry|dried|canned|frozen|lean|extra-virgin|ground|chopped|diced|minced|sliced)\b/g, ' ').replace(/\s+/g, ' ').trim());
   /* tail words first ("soy sauce", "sauce"), then single words ("chicken" in "chicken thighs"); a word two
      ingredients share is never used */
   const tails = base.map(n => { const w = n.split(' ').filter(Boolean); const out = []; for (let k = w.length; k >= 1; k--) { const s = w.slice(w.length - k).join(' '); if (s.length >= 3) out.push(s); } return out; });
   /* "chicken" in chicken broth or garlic in garlic powder doesn't make "the chicken" ambiguous */
-  const words = base.map(n => /\b(broth|stock|bouillon|powder|paste|sauce|salt)$/.test(n) ? [] : n.split(' ').filter(x => x.length >= 4));
+  const plain = new Set(base.filter(n => !/\b(broth|stock|bouillon|powder|salt)$/.test(n)).flatMap(n => n.split(' ')));
+  const words = base.map(n => (/\b(broth|stock|bouillon|powder|salt)$/.test(n) ? n.split(' ').filter(x => !plain.has(x)) : n.split(' ')).filter(x => x.length >= 4).concat(/flaxseed/.test(n) ? ['flax'] : []));
   const cT = {}, cA = {}; base.forEach((n, i) => { new Set(tails[i]).forEach(s => { cT[s] = (cT[s] || 0) + 1; }); new Set([...tails[i], ...words[i]]).forEach(s => { cA[s] = (cA[s] || 0) + 1; }); });
   const cands = base.map((n, i) => [...tails[i].filter(s => cT[s] === 1), ...words[i].filter(x => !tails[i].includes(x) && cA[x] === 1)]);
-  return cands.map((c, i) => (ING_SKIP.test(base[i]) ? [] : c).map(s => ({ s, re: new RegExp('\\b' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/(s|es)$/, '') + '(?:es|s)?\\b', 'i') })));
+  return cands.map((c, i) => (ING_SKIP.test(base[i]) ? [] : c).map(s => ({ s, re: new RegExp('\\b' + plRe(s) + '\\b', 'i') })));
 }
 /* steps → [[text or { amt, of }]] for one recipe at batch factor f */
 const SPICE_ING = /^ginger$|caraway|baharat|7 spice|seven spice|clove|dill|fennel seed|mustard seed|powder|cumin|paprika|oregano|cinnamon|turmeric|garam|coriander|chili|cayenne|seasoning|allspice|za.?atar|sumac|thyme|rosemary|sage|nutmeg|cardamom|ginger, ground|ground ginger|black pepper|red pepper flakes|pepper flakes|bay lea|dried|^salt$|kosher salt|sea salt/;
-const GROUP_SPICE = /\b(?:the |all the |your )?(spices|seasonings?|spice (?:mix|blend|rub)|dry rub|rub)\b|^season\b/i;
+const GROUP_SPICE = /\b(?:the |all the |your )?(spices|seasonings?|spice (?:mix|blend|rub)|dry rub|rub)\b|\bseason\b/i;
 const GROUP_ALL = /\b(?:mix|stir|whisk|blend|combine|put|add|shake|puree|blitz|beat|toss)\b[^.]{0,20}?\b(everything(?: else)?|all (?:of )?the (?:ingredients|rest)|the rest of the ingredients|the remaining ingredients)\b/i;
-const SALT_PEP = [[/\bsalt and (?:black )?pepper\b/i, ['salt', 'black pepper']], [/\bsalt\b/i, ['salt']], [/\b(?:black )?pepper\b/i, ['black pepper']]];
+const EXPLICIT = /((?:\d[\d\s½¼¾⅓⅔⅛\/.-]*|\b(?:a|one|two|three|half a) )\s*(?:cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|lb|g|kg|ml|cloves?|cans?|scoops?|pinch|handful|splash)?)(?:\s+of)?(?:\s+the)?(?:\s+[a-z]+)?\s*$/i;
+const SALT_PEP = [[/\bsalt and (?:black )?pepper\b/i, ['salt', 'black pepper']], [/\bsalt(?:ed)?\b/i, ['salt']], [/\b(?:black )?pepper\b/i, ['black pepper']]];
 const ingShort = g => String(g.n || '').toLowerCase().split(',')[0].replace(/\([^)]*\)/g, '').replace(/\b(ground|dried|plain|fresh|kosher)\b/g, '').replace(/\s+/g, ' ').trim();
 function stepsWithAmounts(r, f) {
   const keys = ingKeys(r); const ing = r.ing || []; const used = ing.map(() => 0); const steps = r.steps || [];
@@ -9376,6 +9381,8 @@ function stepsWithAmounts(r, f) {
   const named = ing.map((g, i) => steps.some(s => keys[i].some(k => mentions(s, k.re))));
   const shared = (() => { const by = {}; ing.forEach((g, i) => { const w = ingShort(g).split(' ').filter(x => x.length >= 3); new Set([w.slice(-1)[0]].filter(Boolean)).forEach(x => { (by[x] = by[x] || []).push(i); }); });
     return Object.entries(by).filter(([, v]) => v.length > 1); })();
+  /* an amount written in the step ("in 1 tbsp oil") counts toward what's used, so "the rest" comes out right */
+  const countExplicit = (ex, i) => { const g = ing[i]; const pr = parseIng((ex[1] || '').trim() + ' x'); if (pr && pr.q > 0 && g.q > 0 && (pr.u || '') === (g.u || '')) used[i] = Math.min(1, used[i] + pr.q / g.q); };
   const isSpice = g => SPICE_ING.test(ingShort(g)) && (!g.u || /tsp|tbsp|pinch/.test(g.u));
   const out = steps.map(step => {
     const hits = [];
@@ -9384,7 +9391,8 @@ function stepsWithAmounts(r, f) {
       for (const k of keys[i]) { const m = k.re.exec(step); if (!m) continue;
         if (overlaps(m.index, m.index + m[0].length)) break;
         const before = step.slice(0, m.index);
-        if (/\d[\d\s½¼¾⅓⅔⅛\/.-]*(\s*(cups?|tbsp|tsp|oz|lb|g|kg|ml|cloves?|cans?|scoops?))?\s*$/i.test(before.slice(-14))) break;
+        const ex = EXPLICIT.exec(before.slice(-30)); if (ex) { countExplicit(ex, i); break; }
+        if (/\b(last|other|leftover)\s*$/i.test(before.slice(-10))) break;
         if (/\b(until|once|when|while) (the |it(?:s)? )?$/i.test(before.slice(-12))) break;
         let frac = 0, split = false; for (const [re, v] of SPLIT_WORDS) if (re.test(before.slice(-28).toLowerCase())) { frac = v === 'rest' ? Math.max(0, 1 - used[i]) : v; split = true; break; }
         if (!split) { if (used[i] > 0) break; frac = 1; }   /* named again later without a split: no amount */
@@ -9397,14 +9405,16 @@ function stepsWithAmounts(r, f) {
     for (const [re, names] of SALT_PEP) { const m = re.exec(step); if (!m || overlaps(m.index, m.index + m[0].length) || /bell |chili |red /i.test(step.slice(Math.max(0, m.index - 5), m.index))) continue;
       const list = names.map(n => ing.findIndex((g, i) => ingShort(g) === n && g.q > 0 && !used[i])).filter(i => i >= 0);
       if (!list.length) continue; list.forEach(i => { used[i] = 1; });
-      hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); break; }
+      hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); if (names.length > 1) break; }
     /* group words: the spices, the rub, everything */
     const gm = GROUP_SPICE.exec(step);
     if (gm && !overlaps(gm.index, gm.index + gm[0].length)) { const sp = /\bsalt\b|\bpepper\b/i.test(step); const list = ing.map((g, i) => i).filter(i => isSpice(ing[i]) && !named[i] && !used[i] && ing[i].q > 0 && !(sp && /^salt$|black pepper/.test(ingShort(ing[i]))));
       if (list.length) { list.forEach(i => { used[i] = 1; }); hits.push({ start: gm.index, end: gm.index + gm[0].length, amt: list.map(i => amtOf(ing[i], 1, true)).join(', ') }); } }
     /* a word two ingredients share ("both tomatoes", "the beans", "the oil"): the ones not used yet */
-    for (const [w, idx] of shared) { const m = new RegExp('\\b' + w.replace(/(s|es)$/, '') + '(?:es|s)?\\b', 'i').exec(step); if (!m || overlaps(m.index, m.index + m[0].length)) continue;
-      if (/\d[\d\s½¼¾⅓⅔⅛\/.-]*(\s*(cups?|tbsp|tsp|oz|lb|g|ml|cloves?|cans?))?\s*$/i.test(step.slice(Math.max(0, m.index - 14), m.index))) continue;
+    for (const [w, idx] of shared) { const m = new RegExp('\\b' + plRe(w) + '\\b', 'i').exec(step); if (!m || overlaps(m.index, m.index + m[0].length)) continue;
+      const ex = EXPLICIT.exec(step.slice(Math.max(0, m.index - 30), m.index)); if (ex) { const k = idx.find(i => !used[i] && ing[i].q > 0); if (k != null) countExplicit(ex, k); continue; }
+      const bf = step.slice(Math.max(0, m.index - 28), m.index).toLowerCase(); const rest = /(?:the )?rest(?: of)?(?: the)?\s*$|remaining\s*$/.test(bf);
+      if (rest) { const k = idx.find(i => used[i] > 0 && used[i] < 1 && ing[i].q > 0); if (k != null) { const fr = 1 - used[k]; used[k] = 1; hits.push({ start: m.index, end: m.index + m[0].length, amt: amtOf(ing[k], fr) }); continue; } }
       let list = idx.filter(i => !used[i] && ing[i].q > 0 && !named[i]); if (!list.length) continue;
       if (new Set(list.map(i => ingShort(ing[i]))).size === 1) list = list.slice(0, 1);   /* same food split for two uses: the first one */
       list.forEach(i => { used[i] = 1; }); hits.push({ start: m.index, end: m.index + m[0].length, amt: list.map(i => amtOf(ing[i], 1, list.length > 1)).join(' + ') }); }
@@ -9424,7 +9434,24 @@ function stepsWithAmounts(r, f) {
   });
   out.used = used; return out;
 }
-const StepText = ({ parts }) => parts.map((p, i) => typeof p === 'string' ? p : html`<span key=${i} class="step-amt"> (${p.amt})</span>`);
+/* One action per line (Nov 11, Newt): a step's sentences, and ", then" inside a sentence, start new lines */
+const STEP_BREAK = /(?<=[.!?])\s+(?=[A-Z0-9“"(])|,\s+then\s+(?=[a-z])/;
+function stepLines(parts) {
+  const lines = [[]];
+  for (const p of parts) {
+    if (typeof p !== 'string') { lines[lines.length - 1].push(p); continue; }
+    let rest = p, m;
+    while ((m = STEP_BREAK.exec(rest))) {
+      const head = rest.slice(0, m.index); if (head) lines[lines.length - 1].push(head);
+      lines.push([]); rest = rest.slice(m.index + m[0].length);
+      if (/then/.test(m[0])) { rest = 'Then ' + rest; const L = lines[lines.length - 2]; const t = L[L.length - 1]; if (typeof t === 'string') L[L.length - 1] = t.replace(/\s*$/, '.'); else L.push('.'); }
+    }
+    if (rest) lines[lines.length - 1].push(rest);
+  }
+  return lines.filter(l => l.some(x => typeof x !== 'string' || x.trim()));
+}
+const StepBits = ({ parts }) => parts.map((p, i) => typeof p === 'string' ? p : html`<span key=${i} class="step-amt"> (${p.amt})</span>`);
+const StepText = ({ parts }) => { const lines = stepLines(parts); return lines.length < 2 ? html`<${StepBits} parts=${parts}/>` : lines.map((l, i) => html`<span key=${i} class="step-line"><${StepBits} parts=${l}/></span>`); };
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {

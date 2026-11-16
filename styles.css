@@ -910,3 +910,5 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .bg-bar{height:8px;border-radius:99px;background:var(--raised);overflow:hidden;margin:6px 0}.bg-bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
 .bg-warn{border-radius:12px;padding:10px 12px;background:var(--surface);border-left:4px solid var(--accent)}.bg-warn.bad{border-left-color:var(--stop)}.bg-warn.warn{border-left-color:var(--pr)}
 .bg-warn b{display:block;margin-bottom:2px}.bg-tips{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(15 * var(--u))}
+.day-plan-item{padding:10px 12px}.day-plan-list{margin:4px 0 0 16px;display:flex;flex-direction:column;gap:2px}
+.day-off-btn{display:flex;justify-content:space-between;align-items:center}.day-off-btn span{font-size:20px;transition:transform .15s;transform:rotate(90deg)}.day-off-btn.open span{transform:rotate(-90deg)}

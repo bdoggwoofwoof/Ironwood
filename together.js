@@ -9,6 +9,10 @@ function setAddon(id, on) {
 }
 function nextFor(r) {
   const list = sessionList();
+  /* Nov 16 (Newt): Up next → Change picks another day of the plan to do next; it holds until a workout of this plan is logged */
+  const pk = ((S.meta.settings.nextPick || {})[r.id]); const pd = pk && r.days.find(d => d.id === pk.day);
+  if (pd && !list.some(s => s.startedAt >= pk.at && (s.routineId === r.id || (s.addons || []).some(a => a.id === r.id)))) {
+    const last = list.slice().reverse().find(s => s.routineId === r.id) || null; return { day: pd, last, picked: true }; }
   for (let i = list.length - 1; i >= 0; i--) { const s = list[i];
     if (s.startedAt < progStartOf(r.id)) continue;
     const hit = s.routineId === r.id ? s.dayId : ((s.addons || []).find(a => a.id === r.id) || {}).dayId;
@@ -77,7 +81,21 @@ function AddonsSheet() {
     ${chs.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Challenges</div>${chs.map(c => html`<div key=${c.id} class="opt" style="cursor:default"><div style="flex:1;min-width:0"><div>${c.name}</div><div class="d">${c.days} days</div></div><button class="btn text" onClick=${() => { closeSheet(); UI.setTab('train'); UI.setView({ type: 'challenge', id: c.id }); }}>Open</button></div>`)}` : null}
     <div class="eyebrow" style="margin:16px 0 2px">Alongside</div>
     ${[...on].map(id => getRoutine(id)).filter(Boolean).map(row)}
-    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run; your times are optional.'}</div></div>${R && runActive() ? html`<span class="chip on">${I.check} On</span>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
+    <div class="opt" style="cursor:default" id="addon-run"><div style="flex:1"><div>Running plan</div><div class="d">${R && runActive() ? 'On · ' + R.runs + ' run' + (R.runs === 1 ? '' : 's') + ' a week, ' + planLen(R) + ' weeks. Its runs show in Train and Your week.' : 'Off. Set it up in Train → Run; your times are optional.'}</div></div>${R && runActive() ? html`<button class="btn text" id="run-off" onClick=${() => { stopPlan('run'); S.rerender(); }}>Turn off</button>` : R && R.off && R.start ? html`<button class="btn text" id="run-on" onClick=${() => { runCommit(r => { r.off = false; }); S.rerender(); showToast({ kind: 'info', text: 'Running plan back on.' }); }}>Turn on</button>` : html`<button class="btn text" onClick=${() => { closeSheet(); TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); S.rerender(); }}>Set up</button>`}</div>
     ${groups.map(([t, rs]) => [t, rs.filter(r => !on.has(r.id))]).filter(g => g[1].length).map(([t, rs]) => html`<div key=${t}><div class="eyebrow" style="margin:16px 0 2px">Add alongside: ${t}</div>${rs.map(row)}</div>`)}
     <button class="btn primary wide" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
+}
+
+/* Up next → Change: pick which day of your plan is next */
+function setNextPick(rid, dayId) {
+  commit(st => { const m = { ...(st.meta.settings.nextPick || {}) }; if (dayId) m[rid] = { day: dayId, at: Date.now() }; else delete m[rid]; st.meta.settings.nextPick = m; }, 'meta');
+}
+function PickNextSheet({ rid }) {
+  const r = getRoutine(rid); if (!r) return null; const nx = nextFor(r); const picked = !!nx.picked;
+  return html`<${Sheet} label="Pick the next day"><h2>Do a different day</h2>
+    <p class="note">Pick which day of ${r.name} is up next. After that the plan carries on in order from the day you did.</p>
+    <div style="margin-top:8px">${r.days.map(d => html`<button key=${d.id} id=${'pn-' + d.id} class=${'opt' + (nx.day.id === d.id ? ' on' : '')} aria-pressed=${nx.day.id === d.id} onClick=${() => { setNextPick(rid, d.id); closeSheet(); }}>
+      <div style="flex:1;min-width:0"><div>${d.name}</div><div class="d">${d.items.slice(0, 4).map(it => exName(it.ex)).join(', ')}${d.items.length > 4 ? ' and ' + (d.items.length - 4) + ' more' : ''}</div></div>${nx.day.id === d.id ? I.check : null}</button>`)}</div>
+    ${picked ? html`<button class="btn wide" id="pn-reset" style="margin-top:10px" onClick=${() => { setNextPick(rid, null); closeSheet(); }}>Back to the plan’s order</button>` : null}
+    <button class="btn text wide" id="pn-plan" style="margin-top:6px" onClick=${() => openSheet({ type: 'program' })}>Change plan instead</button><//>`;
 }

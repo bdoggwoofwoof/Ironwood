@@ -123,6 +123,30 @@ const CARE = [
         ['Doorway Chest Stretch', 2, '', 'Each side, elbow at shoulder height.', { dur: 30, judge: 'dur' }, 'timed'],
         ['Wall Slide with Lift-Off', 2, '10']]],
     ] },
+  /* Nov 16 (Newt): a general deep-stretch mobility plan. Long, relaxed holds for hips, legs, spine and shoulders. */
+  { id: 'bi-care-stretch', area: 'Full-body stretch', tag: 'Mobility', name: 'Deep Stretch Mobility', fit: 'Tight all over: deeper squats, looser hips and hamstrings, shoulders and upper back that move freely.',
+    builds: 'Hip, hamstring, groin, calf, spine and shoulder range, with long relaxed holds', week: '3× · 20–25 min', equip: 'A mat; a bench, a doorway and a bar to hang from', cost: 'Free',
+    strengths: ['Long holds (45–60 seconds) give tight muscles time to relax, so the stretch goes deeper than a quick warm-up stretch.', 'Covers the places lifting and sitting make tight: hip flexors, hips, groin, hamstrings, calves, upper back, chest and lats.', 'Day A is the lower body; day B is the spine and shoulders. Good after a workout or in the evening, when you’re warm.'],
+    result: 'Most people notice easier squats, toe touches and overhead reaching within 3–4 weeks of stretching 3 times a week. Range comes back slowly if you stop, so keep a day or two a week once you’re happy with it.',
+    watch: ['Ease in and breathe out slowly; a stretch should feel strong but never sharp. Back off to about 6–7 out of 10.', 'Don’t bounce, and don’t force a joint (knees especially) to get deeper.', 'Stretch warm: after a workout, a walk or a few minutes of easy movement.', 'Before heavy lifting, keep holds short (under 30 s) and do the long holds after.'],
+    red: ['Pins and needles, numbness or burning down an arm or a leg during a stretch', 'A joint that locks, catches or gives way'],
+    days: [
+      ['A: Hips and legs', [['90/90 Hip Switch', 2, '8', 'Each side. Sit tall with both knees bent at 90°, rotate the knees side to side without using your hands if you can.', null, 'bodyweight'],
+        ['Couch Stretch', 2, '', 'Each side. Back knee against a wall or couch, squeeze the glute of that leg and stay tall.', { dur: 60, judge: 'dur' }, 'timed'],
+        ['Deep Squat Hold', 2, '', 'Heels down, elbows pushing the knees out. Hold a post or a light weight in front to sink deeper.', { dur: 60, judge: 'dur' }, 'timed'],
+        ['Pigeon Stretch', 2, '', 'Each side. Square the hips; fold forward over the front leg as it eases.', { dur: 60, judge: 'dur' }, 'timed'],
+        ['Frog Stretch', 2, '', 'Knees wide, ankles in line with the knees, rock the hips back slowly.', { dur: 60, judge: 'dur' }, 'timed'],
+        ['Seated Forward Fold', 2, '', 'Legs straight, hinge from the hips with a long back; reach for the shins or toes.', { dur: 60, judge: 'dur' }, 'timed'],
+        ['Wall Calf Stretch', 2, '', 'Each side. Back heel down, knee straight, then bend the knee for the last 20 s.', { dur: 45, judge: 'dur' }, 'timed']]],
+      ['B: Spine and shoulders', [['Cat-Cow', 2, '10', 'Slow, moving one segment of the back at a time.', null, 'bodyweight'],
+        ['Thread the Needle', 2, '8', 'Each side. On hands and knees, reach one arm under, then open it to the ceiling.', null, 'bodyweight'],
+        ["Child's Pose Side Reach", 2, '', 'Each side. Walk both hands to one side to stretch the lats and side of the body.', { dur: 45, judge: 'dur' }, 'timed'],
+        ['Bench Lat Stretch', 2, '', 'Kneel, elbows on a bench, hands together behind your head, sink the chest down.', { dur: 45, judge: 'dur' }, 'timed'],
+        ['Doorway Chest Stretch', 2, '', 'Each side, elbow at shoulder height, step through gently.', { dur: 45, judge: 'dur' }, 'timed'],
+        ['Sphinx Stretch', 2, '', 'On forearms, hips down, relax the low back and breathe.', { dur: 45, judge: 'dur' }, 'timed'],
+        ['Dead Hang', 2, '', 'Relaxed hang, shoulders up by the ears; feet supported if needed.', { dur: 30, judge: 'dur' }],
+        ["World's Greatest Stretch", 2, '5', 'Each side. Lunge, elbow to the instep, then rotate the arm up.', null, 'bodyweight']]],
+    ] },
 ];
 /* New exercises get the kind each program gives them; existing ones keep theirs */
 function careEx(name, kind) {
@@ -135,11 +159,11 @@ if (!WTAGS.includes('Joint care')) WTAGS.splice(WTAGS.indexOf('Other'), 0, 'Join
 for (const P of CARE) {
   const days = P.days.map(([dn, items], i) => {
     items.forEach(([n, , , , , kind]) => careEx(n, kind));
-    const d = planDay(P.id, i + 1, dn, ['Joint care'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
+    const d = planDay(P.id, i + 1, dn, [P.tag || 'Joint care'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
     d.items.forEach((it, j) => { const tg = items[j][4]; if (tg) it.tg = { ...tg }; });
     return d;
   });
-  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: 'Joint care · 3 times a week', days, info: { ...P, care: true } });
+  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: (P.tag || 'Joint care') + ' · 3 times a week', days, info: { ...P, care: true } });
 }
 /* Routine page for a joint care program */
 function CareInfo({ r }) {

@@ -1,0 +1,77 @@
+"""Day sheet and running plan switch (Nov 16, Newt): tapping a day in This week shows what's planned that day, with one
+Mark as a day off button that opens to Rest day, Sick, Injured and Break; Your plan turns the running plan off in one tap."""
+import asyncio, subprocess, sys, time
+from playwright.async_api import async_playwright
+PORT = 8835
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+results = []
+def check(name, ok, detail=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + (' - ' + str(detail) if detail else ''))
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await b.new_page(viewport={'width': 390, 'height': 844})
+        errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.add_init_script("try{localStorage.setItem('liftbook.tourDone','1');localStorage.setItem('liftbook.setupOffered','1');localStorage.setItem('liftbook.bgOffered','1')}catch(e){}")
+        await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1000)
+        ev = pg.evaluate
+        # Plan every day so whichever day is tapped has a workout
+        await ev("setProgram('bi-5x5'); commit(st => { st.meta.settings.sched = { 'bi-5x5': [0, 1, 2, 3, 4, 5, 6] }; }, 'meta'); UI.setTab('train'); S.rerender()"); await pg.wait_for_timeout(300)
+        k = await ev("ymd(addDays(new Date(), 1))")
+        await ev(f"openSheet({{ type: 'day', k: '{k}' }})"); await pg.wait_for_timeout(300)
+        plan = await pg.inner_text('#day-plan')
+        check('the day shows what is planned, with the exercises', '5x5' in plan.replace('×', 'x') or 'Workout' in plan, plan[:200])
+        check('...exercises listed', await pg.locator('#day-plan li').count() >= 2)
+        check('day-off choices start closed behind one button', await pg.locator('#day-off').count() == 1 and await pg.locator('#day-off-opts').count() == 0)
+        check('the button is named Mark as a day off', 'Mark as a day off' in await pg.inner_text('#day-off'))
+        await pg.click('#day-off'); await pg.wait_for_timeout(150)
+        cs = [await pg.locator('#day-' + x).count() for x in ['rest', 'sick', 'injured', 'break']]
+        check('it opens to Rest day, Sick, Injured and Break', cs == [1, 1, 1, 1], cs)
+        await pg.click('#day-sick'); await pg.wait_for_timeout(300)
+        check('picking one marks the day', await ev(f"S.meta.dayMarks['{k}']") == 'sick')
+        await ev(f"openSheet({{ type: 'day', k: '{k}' }})"); await pg.wait_for_timeout(300)
+        check('a marked day says so, with Clear', 'Marked: Sick' in await pg.inner_text('#day-mark-now'))
+        check('...and the button reads Change the day off', 'Change the day off' in await pg.inner_text('#day-off'))
+        await pg.click('#day-clear'); await pg.wait_for_timeout(300)
+        check('Clear removes the mark', not await ev(f"S.meta.dayMarks['{k}']"))
+        await ev("commit(st => { st.meta.settings.sched = { 'bi-5x5': [] }; }, 'meta')")
+        await ev(f"openSheet({{ type: 'day', k: '{k}' }})"); await pg.wait_for_timeout(300)
+        check('a day with nothing planned says so', await pg.locator('#day-plan-none').count() == 1)
+        await ev("closeSheet()")
+        # Running plan: one tap off and back on
+        await ev("runCommit(r => { Object.assign(r, { t100: 16, t1: 540, t3: 1700, runs: 3, weeks: 8, start: ymd(startOfWeek(new Date())) }); })"); await pg.wait_for_timeout(200)
+        await ev("openSheet({ type: 'addons' })"); await pg.wait_for_timeout(300)
+        check('Your plan: the running plan has Turn off', await pg.locator('#run-off').count() == 1)
+        await pg.click('#run-off'); await pg.wait_for_timeout(300)
+        check('one tap turns it off', not await ev("!!runActive()") and 'Off' in await pg.inner_text('#addon-run'))
+        check('...and offers Turn on', await pg.locator('#run-on').count() == 1)
+        await pg.click('#run-on'); await pg.wait_for_timeout(300)
+        check('Turn on brings it back', await ev("!!runActive()"))
+        # Up next → Change picks another day; Change plan at the bottom
+        await ev("closeSheet(); setProgram('bi-ul4'); commit(st => { st.sessions = {}; }, 'sessions'); UI.setView(null); UI.setTab('train'); S.rerender()"); await pg.wait_for_timeout(300)
+        days = await ev("getRoutine('bi-ul4').days.map(d => d.id)")
+        await pg.click('#change-day'); await pg.wait_for_timeout(200)
+        check('Change lists the days of the plan', await pg.locator('.sheet .opt').count() == len(days) and len(days) >= 3, days)
+        await pg.click('#pn-' + days[2]); await pg.wait_for_timeout(300)
+        check('picking one makes it Up next', await ev("nextFor(getRoutine('bi-ul4')).day.id") == days[2])
+        name2 = await ev("getRoutine('bi-ul4').days[2].name")
+        check('...shown on Train', name2.lower() in (await pg.inner_text('.next-card')).lower(), name2)
+        await ev("startWorkout(getRoutine('bi-ul4'), getRoutine('bi-ul4').days[2])"); await pg.wait_for_timeout(200)
+        await ev("finishWorkout ? 0 : 0"); await ev("commit(st => { const a = st.active; st.sessions['x'] = { id: 'x', name: 'x', routineId: 'bi-ul4', dayId: a.dayId || getRoutine('bi-ul4').days[2].id, startedAt: Date.now() + 1000, endedAt: Date.now() + 2000, items: [] }; st.active = null; }, 'sessions')"); await pg.wait_for_timeout(200)
+        check('after doing it, the plan carries on from that day', await ev("nextFor(getRoutine('bi-ul4')).day.id") == days[3 % len(days)])
+        await ev("S.rerender()"); await pg.wait_for_timeout(200)
+        check('Change plan sits at the bottom of Train', await pg.locator('#change-program').count() == 1 and 'Change plan' in await pg.inner_text('#change-program'))
+        await pg.click('#change-program'); await pg.wait_for_timeout(200)
+        check('...and opens the plan picker', await pg.locator('.sheet').count() == 1)
+        # Deep Stretch Mobility (Nov 16)
+        st = await ev("(r => r && { days: r.days.map(d => d.name), tags: r.days.map(d => d.tags[0]), holds: r.days.flatMap(d => d.items.filter(i => i.tg && i.tg.dur).map(i => i.tg.dur)), kinds: r.days.flatMap(d => d.items.map(i => exKind(i.ex))) })(getRoutine('bi-care-stretch'))")
+        check('Deep Stretch Mobility: lower body day and spine/shoulders day', st and st['days'] == ['A: Hips and legs', 'B: Spine and shoulders'] and st['tags'] == ['Mobility', 'Mobility'], st)
+        check('...with long holds (45-60 s)', st and len(st['holds']) >= 10 and min(st['holds'][:-2] + [45]) >= 30 and max(st['holds']) == 60, st and st['holds'])
+        await ev("closeSheet(); UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-stretch' })"); await pg.wait_for_timeout(300)
+        info = await pg.inner_text('#care-info')
+        check('its page explains how to use it and when to stop', 'How to use it' in info and 'See a doctor if you have' in info and 'never sharp' in info)
+        await ev("setAddon('bi-care-stretch', true)"); await pg.wait_for_timeout(200)
+        check('it can go alongside the main plan', await ev("addonIds().includes('bi-care-stretch')"))
+        check('no page errors', not errs, errs[:2])
+        await b.close()
+asyncio.run(main()); srv.kill()
+print(f'{sum(results)}/{len(results)} passed')

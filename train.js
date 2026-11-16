@@ -10,6 +10,7 @@ const programRoutine = () => { const p = programId(); return p && p !== 'self' ?
 function nextUp() {
   const r = programRoutine(); if (!r || !r.days.length) return null;
   const list = sessionList();
+  if (typeof nextFor === 'function') { const n = nextFor(r); if (n.picked) return { routine: r, day: n.day, last: n.last, picked: true }; }
   for (let i = list.length - 1; i >= 0; i--) { const s = list[i]; if (s.routineId !== r.id || s.startedAt < progStartOf(r.id)) continue; const idx = r.days.findIndex(d => d.id === s.dayId); return { routine: r, day: r.days[(idx + 1) % r.days.length], last: s }; }
   return { routine: r, day: r.days[0], last: null };
 }
@@ -48,7 +49,7 @@ function TrainHome() {
   const weekBlock = html`<div class="section-h" style="margin-top:14px"><h2>This week</h2>${!pid && !Object.keys(S.sessions).length ? null : html`<span class="aside num">${weekTxt}</span>`}</div>
     <${WeekStrip}/>
     ${hasPlans ? html`<div class="row" style="justify-content:flex-end;margin-top:2px"><button class="btn text" id="plan-sched" onClick=${() => openSheet({ type: 'schedule' })}>${I.cal} Schedule</button></div>` : null}
-    <${Tip} id="week" style="margin-top:6px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
+    <${Tip} id="week" style="margin-top:6px">Tap a day to see what’s planned, mark it as a day off, or log an activity.<//>
     <${PhaseCheck}/>
     <${BodyGoalNudge}/>
     <${PlanCheckIn}/>`;
@@ -57,7 +58,7 @@ function TrainHome() {
     ${nx ? html`
       <div class="section-h" style="margin-top:10px"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'Next in your plan'}</span></div>
       <div class="next-card">
-        <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Change</button></div><h2>${nx.day.name}</h2></div>
+        <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-day" onClick=${() => openSheet({ type: 'pickNext', rid: routine.id })}>Change</button></div><h2>${nx.day.name}</h2></div>
         <div class="next-list">${nx.day.items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${repTxt(it.reps)}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
@@ -66,7 +67,8 @@ function TrainHome() {
       ${routine.days.length > 1 ? html`<div class="section-h"><h2>Or pick a day</h2><button class="btn text" onClick=${() => { UI.setTab('routines'); }}>All plans</button></div>` : html`<div style="height:12px"></div>`}
       <div class="stack">${routine.days.filter(d => d.id !== nx.day.id).map(d => html`<button key=${d.id} class="day-btn" onClick=${() => startWorkout(routine, d)}>
         <div><div class="t">${d.name}</div><div class="s">${d.items.length} exercises</div></div><span class="go">Start</span></button>`)}
-        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button></div>`
+        <button class="btn ghost wide" onClick=${() => startWorkout(null, null)}>${I.plus} Empty workout</button>
+        <button class="btn wide" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Change plan</button></div>`
     : pid === 'self' ? html`
       <div class="section-h"><h2>Self-log</h2><button class="btn text" id="change-program" onClick=${() => openSheet({ type: 'program' })}>Follow a plan</button></div>
       <div class="next-card"><h2>Log your own workout</h2><p class="note">Start an empty workout and add exercises as you go. Weights carry over from last time.</p>

@@ -1798,16 +1798,30 @@ function GroupSheet({ current, dayName, onPick, extra }) {
     <button class=${'opt' + (!current ? ' on' : '')} style="margin-top:8px" onClick=${() => onPick('')}><div style="flex:1"><div>No range</div><div class="d">One shared history wherever this exercise appears</div></div>${!current ? I.check : null}</button>
   <//>`;
 }
+/* Tap a day in the week strip (Nov 16, Newt): what's planned that day first, then one Mark as a day off button that
+   opens to Rest day, Sick, Injured and Break. */
+function dayPlanned(k) {
+  if (typeof planList !== 'function') return [];
+  const d = parseYmd(k); const today = ymd(new Date());
+  if (k >= today && typeof planEvents === 'function') return planEvents(Math.ceil(((d - startOfDay(new Date())) / 864e5 + 1) / 7)).filter(e => ymd(e.day) === k).map(e => ({ title: e.title, items: e.desc ? e.desc.split('\n').filter(Boolean) : [] }));
+  return planList().filter(p => p.days.includes(d.getDay())).map(p => ({ title: p.name, items: [] }));
+}
 function DaySheet({ k }) {
   const d = parseYmd(k); const m = (S.meta.dayMarks || {})[k] || ''; const ss = sessionList().filter(x => ymd(x.startedAt) === k);
-  const excuse = !!S.meta.settings.excuse;
+  const excuse = !!S.meta.settings.excuse; const [open, setOpen] = useState(false);
   const setM = v => { commit(x => { if (v) x.meta.dayMarks[k] = v; else delete x.meta.dayMarks[k]; }, 'meta', 800); closeSheet(); };
   const opts = [['rest', 'Rest day', 'A planned day off. Your weekly goal already allows for these.'], ['sick', 'Sick', ''], ['injured', 'Injured', ''], ['break', 'Break', 'Travel, vacation or a planned week off.']];
   const exTxt = excuse ? "Lowers that week's goal by one and pauses challenges, so streaks aren't broken." : 'Labeled only. Turn on "Sick, injured and break days pause streaks" in Profile to protect streaks.';
+  const plan = dayPlanned(k); const past = k < ymd(new Date()); const cur = opts.find(o => o[0] === m);
   return html`<${Sheet} label="Mark this day"><h2>${DOW_FULL[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}</h2>
     ${ss.length ? html`<p class="note">Logged: ${ss.map(x => x.name).join(', ')}</p>` : null}
-    <div style="margin-top:6px">${opts.map(([v, l, sub]) => html`<button key=${v} class=${'opt' + (m === v ? ' on' : '')} onClick=${() => setM(m === v ? '' : v)}><div style="flex:1"><div>${l}</div><div class="d">${sub || exTxt}</div></div>${m === v ? I.check : null}</button>`)}</div>
-    ${m ? html`<button class="btn wide" style="margin-top:12px" onClick=${() => setM('')}>Clear this day</button>` : null}
+    <div class="eyebrow" style="margin-top:10px">${past ? 'Planned that day' : 'Planned'}</div>
+    ${plan.length ? html`<div class="stack" id="day-plan" style="gap:8px;margin-top:6px">${plan.map((e, i) => html`<div key=${i} class="card day-plan-item"><b>${e.title}</b>
+        ${e.items.length ? html`<ul class="small muted day-plan-list">${e.items.map((t, j) => html`<li key=${j}>${t}</li>`)}</ul>` : null}</div>`)}</div>`
+      : html`<p class="note" id="day-plan-none" style="margin-top:4px">Nothing planned. A free day.</p>`}
+    ${cur ? html`<div class="opt on" style="margin-top:12px;cursor:default" id="day-mark-now"><div style="flex:1"><div>Marked: ${cur[1]}</div><div class="d">${cur[2] || exTxt}</div></div><button class="btn text" id="day-clear" onClick=${() => setM('')}>Clear</button></div>` : null}
+    <button class=${'btn wide day-off-btn' + (open ? ' open' : '')} id="day-off" style="margin-top:12px" aria-expanded=${open} onClick=${() => setOpen(!open)}>${cur ? 'Change the day off' : 'Mark as a day off'}<span aria-hidden="true">›</span></button>
+    ${open ? html`<div id="day-off-opts" style="margin-top:4px">${opts.map(([v, l, sub]) => html`<button key=${v} id=${'day-' + v} class=${'opt' + (m === v ? ' on' : '')} onClick=${() => setM(m === v ? '' : v)}><div style="flex:1"><div>${l}</div><div class="d">${sub || exTxt}</div></div>${m === v ? I.check : null}</button>`)}</div>` : null}
     ${k <= ymd(Date.now()) ? html`<button class="btn ghost wide" style="margin-top:12px" onClick=${() => openSheet({ type: 'activity', day: k })}>${I.plus} Log an activity on this day</button>` : null}<//>`;
 }
 function ChDaySheet({ id, k }) {
@@ -2066,6 +2080,7 @@ function SheetHost({ sheet }) {
     case 'measure': return html`<${MeasureSheet}/>`;
     case 'bodyScan': return html`<${BodyScanSheet}/>`;
     case 'bodyGoal': return html`<${BodyGoalSheet}/>`;
+    case 'pickNext': return html`<${PickNextSheet} rid=${sheet.rid}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
     case 'runDay': return html`<${RunDaySheet} ...${sheet}/>`;

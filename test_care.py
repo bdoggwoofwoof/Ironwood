@@ -14,8 +14,8 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
         progs = await ev("BUILTIN_ROUTINES.filter(r => r.info && r.info.care).map(r => ({ id: r.id, name: r.name, days: r.days.length, items: r.days.map(d => d.items.length), tags: r.days.map(d => d.tags[0]), red: r.info.red.length, kinds: r.days.flatMap(d => d.items.map(i => exKind(i.ex))) }))")
-        check('seven joint care programs, two days each', len(progs) == 7 and all(p['days'] == 2 and min(p['items']) >= 4 for p in progs), [p['name'] for p in progs])
-        check('tagged Joint care', all(t == 'Joint care' for p in progs for t in p['tags']))
+        check('seven joint care programs plus Deep Stretch Mobility, two days each', len(progs) == 8 and all(p['days'] == 2 and min(p['items']) >= 4 for p in progs), [p['name'] for p in progs])
+        check('tagged Joint care (the stretch plan Mobility)', all(t == ('Mobility' if p['id'] == 'bi-care-stretch' else 'Joint care') for p in progs for t in p['tags']))
         check('each lists signs to see a professional', all(p['red'] >= 2 for p in progs))
         check('no "Unknown exercise" and no odd kinds', await ev("BUILTIN_ROUTINES.filter(r => r.info && r.info.care).every(r => r.days.every(d => d.items.every(i => getEx(i.ex).name !== 'Unknown exercise')))") and all(k in ('bodyweight', 'dumbbell', 'other', 'cable', 'timed', 'carry', 'machine', 'barbell') for p in progs for k in p['kinds']))
         text = await ev("JSON.stringify(BUILTIN_ROUTINES.filter(r => r.info && r.info.care).map(r => [r.name, r.note, r.info, r.days])) + CARE_NOTE + NOT_ADVICE + CARE_PAIN + JSON.stringify(CARE_RED)")
@@ -24,7 +24,7 @@ async def main():
         check('says it is not medical advice or treatment', 'not medical advice' in text and 'isn’t a medical treatment' in text and 'physical therapist' not in text)
         # Routines finder → program page → start
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        check('finder on Routines lists the areas', await pg.locator('#care-finder .chip').count() == 7)
+        check('finder on Routines lists the areas', await pg.locator('#care-finder .chip').count() == 8)
         await pg.click('#care-ankle'); await pg.wait_for_timeout(300)
         info = await pg.locator('#care-info').inner_text()
         check('program page: how to use, what to expect, watch-outs, red flags', all(x in info for x in ['How to use it', 'What to expect', 'Watch out for', 'Pain rule', 'See a doctor if you have']))

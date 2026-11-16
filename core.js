@@ -976,6 +976,7 @@ function StatsOverall() {
     <div class="kpis">${kpi(ws.cur, 'Week streak')}${kpi(ws.longest, 'Longest streak')}${kpi(ws.daysSince == null ? '–' : ws.daysSince, 'Days since last')}</div>
     <div class="card" style="margin-top:8px"><${Heatmap}/>
       ${S.meta.settings.excuse && ws.paused ? html`<p class="small muted" style="margin-top:8px">${ws.paused} paused week${ws.paused === 1 ? '' : 's'} inside your current streak.</p>` : null}</div>
+    <${BodyGoalCard}/>
     <${BodyweightCard}/>
     <${MeasureCard}/>
     <${RunStatsCard}/>
@@ -2064,6 +2065,7 @@ function SheetHost({ sheet }) {
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
     case 'bodyScan': return html`<${BodyScanSheet}/>`;
+    case 'bodyGoal': return html`<${BodyGoalSheet}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
     case 'runDay': return html`<${RunDaySheet} ...${sheet}/>`;
@@ -2099,6 +2101,7 @@ function SheetHost({ sheet }) {
 /*@include mealdates.js*/
 
 /*@include cooking.js*/
+/*@include bodygoal.js*/
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {

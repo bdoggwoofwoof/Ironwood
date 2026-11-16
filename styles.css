@@ -906,3 +906,7 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .meas-det{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.meas-det>summary{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none}
 .meas-det>summary::-webkit-details-marker{display:none}.meas-det>summary::after{content:'›';font-size:20px;color:var(--ink-3);transform:rotate(90deg);transition:transform .15s}.meas-det[open]>summary::after{transform:rotate(-90deg)}
 .meas-det>summary b{flex:1}
+.bg-eat b.num{font-size:calc(34 * var(--u));font-family:var(--display);line-height:1.1}
+.bg-bar{height:8px;border-radius:99px;background:var(--raised);overflow:hidden;margin:6px 0}.bg-bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bg-warn{border-radius:12px;padding:10px 12px;background:var(--surface);border-left:4px solid var(--accent)}.bg-warn.bad{border-left-color:var(--stop)}.bg-warn.warn{border-left-color:var(--pr)}
+.bg-warn b{display:block;margin-bottom:2px}.bg-tips{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(15 * var(--u))}

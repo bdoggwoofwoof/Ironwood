@@ -50,6 +50,7 @@ function TrainHome() {
     ${hasPlans ? html`<div class="row" style="justify-content:flex-end;margin-top:2px"><button class="btn text" id="plan-sched" onClick=${() => openSheet({ type: 'schedule' })}>${I.cal} Schedule</button></div>` : null}
     <${Tip} id="week" style="margin-top:6px">Tap a day to mark rest, sick, injured or break, or to log an activity on that day.<//>
     <${PhaseCheck}/>
+    <${BodyGoalNudge}/>
     <${PlanCheckIn}/>`;
   return html`<div class="today">
     <div class="eyebrow" style="margin-top:4px">${DOW_FULL[now.getDay()]} · ${MON[now.getMonth()]} ${now.getDate()}</div>

@@ -912,3 +912,7 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .bg-warn b{display:block;margin-bottom:2px}.bg-tips{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(15 * var(--u))}
 .day-plan-item{padding:10px 12px}.day-plan-list{margin:4px 0 0 16px;display:flex;flex-direction:column;gap:2px}
 .day-off-btn{display:flex;justify-content:space-between;align-items:center}.day-off-btn span{font-size:20px;transition:transform .15s;transform:rotate(90deg)}.day-off-btn.open span{transform:rotate(-90deg)}
+.fab.over-rest{bottom:calc(var(--tabs-h, 66px) + var(--rest-h, 70px) + 14px)}
+.ql-row{align-items:center;gap:12px}.ql-ic{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--raised);color:var(--accent)}.ql-ic svg{width:18px;height:18px}
+.ql-days{padding:0 4px 8px 48px}.ql-day{min-height:40px}
+body:has(#quick-fab) main{padding-bottom:84px}

@@ -2080,6 +2080,7 @@ function SheetHost({ sheet }) {
     case 'measure': return html`<${MeasureSheet}/>`;
     case 'bodyScan': return html`<${BodyScanSheet}/>`;
     case 'bodyGoal': return html`<${BodyGoalSheet}/>`;
+    case 'quickLog': return html`<${QuickLogSheet}/>`;
     case 'pickNext': return html`<${PickNextSheet} rid=${sheet.rid}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
@@ -2117,6 +2118,7 @@ function SheetHost({ sheet }) {
 
 /*@include cooking.js*/
 /*@include bodygoal.js*/
+/*@include quicklog.js*/
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {
@@ -2247,6 +2249,7 @@ function App() {
     ${showMini ? html`<${IntervalMini}/>` : null}
     ${showFight ? html`<${FightMini}/>` : null}
     <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Profile'}</h1></div><p class="small muted tab-intro" style="margin:2px 0 8px">${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}</p>` : null}${body}<${HelpFoot}/></main>
+    <${QuickFab} tab=${tab} view=${view}/>
     <${Toast}/>
     <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}

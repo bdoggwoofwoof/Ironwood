@@ -211,7 +211,7 @@ const measUnit = k => ({ len: lenU(), mass: U(), '%': '%', kcal: 'cal/day', cm2:
 const lenConv = (v, from, to) => (!from || !to || from === to) ? v : from === 'cm' ? v / 2.54 : v * 2.54;
 const measVal = e => { const kd = measKind(e.k); return kd === 'len' ? r1(lenConv(+e.v, e.u, lenU())) : kd === 'mass' ? r1(conv(+e.v, e.u || U(), U())) : +e.v; };
 const measSorted = () => (S.meta.meas || []).slice().sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
-function MeasRow({ k, l, list }) {
+function MeasStatRow({ k, l, list }) {
   const es = list.filter(e => e.k === k); const last = es[es.length - 1], first = es[0]; const d = measVal(last) - measVal(first); const un = measUnit(k);
   return html`<div key=${k}><div style="min-width:0"><div style="font-weight:600">${l}</div><div class="small muted">${shortDate(+parseYmd(last.d))}${es.length > 1 ? ' · ' + (d >= 0 ? '+' : '−') + fmt(Math.abs(r1(d))) + (un ? ' ' + un : '') + ' since ' + shortDate(+parseYmd(first.d)) : ''}</div></div>
     ${es.length > 1 ? html`<${Sparkline} pts=${es.map(e => ({ t: +parseYmd(e.d), v: measVal(e) }))}/>` : null}<b class="num">${fmt(measVal(last))}${un ? ' ' + un : ''}</b></div>`;
@@ -222,8 +222,8 @@ function MeasureCard() {
   const more = shown.length - top.length; const scans = [...new Set(list.filter(e => !['basic'].includes((MEAS_DEF.find(x => x[0] === e.k) || [])[3])).map(e => e.d))];
   return html`<div id="measure-card"><div class="section-h"><h2>Measurements</h2><span class="row" style="gap:2px"><button class="btn text" id="scan-import" onClick=${() => openSheet({ type: 'bodyScan' })}>Add a scan</button><button class="btn text" id="log-meas" onClick=${() => openSheet({ type: 'measure' })}>+ Log</button></span></div>
     <div class="card">${!shown.length ? html`<p class="note">Waist, chest, arms and more, measured every few weeks, show changes the scale misses. Had a 3D body scan? Add a scan reads the report's PDF on your phone and tracks every number in it.</p>`
-      : all && more > 0 ? MEAS_GROUPS.map(([g, gl]) => { const rows = shown.filter(x => x[3] === g); return rows.length ? html`<div key=${g} class="meas-grp"><div class="meas-gh">${gl}</div><div class="prl">${rows.map(([k, l]) => html`<${MeasRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div></div>` : null; })
-      : html`<div class="prl">${(top.length ? top : shown.slice(0, 6)).map(([k, l]) => html`<${MeasRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div>`}
+      : all && more > 0 ? MEAS_GROUPS.map(([g, gl]) => { const rows = shown.filter(x => x[3] === g); return rows.length ? html`<div key=${g} class="meas-grp"><div class="meas-gh">${gl}</div><div class="prl">${rows.map(([k, l]) => html`<${MeasStatRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div></div>` : null; })
+      : html`<div class="prl">${(top.length ? top : shown.slice(0, 6)).map(([k, l]) => html`<${MeasStatRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div>`}
       ${more > 0 ? html`<button class="btn text" id="meas-all" onClick=${() => { lsSet('measAll', all ? '0' : '1'); S.rerender(); }}>${all ? 'Show fewer' : 'Show all ' + shown.length + ' numbers'}</button>` : null}
       ${scans.length ? html`<p class="small muted" style="margin-top:6px">${scans.length === 1 ? '1 scan' : scans.length + ' scans'}, last ${shortDate(+parseYmd(scans[scans.length - 1]))}. Scan numbers are the scanner's estimates, not medical advice.</p>` : null}</div></div>`;
 }

@@ -913,14 +913,7 @@ function PrepPane() {
   const withM = items.map(x => ({ ...x, m: macros(x.r) })).filter(x => x.m); const partial = withM.length < items.length || withM.some(x => x.m.missing.length);
   const perDay = Object.fromEntries(MACRO_KEYS.map(([k]) => [k, Math.round(withM.reduce((a, x) => a + x.m[k] * x.it.n, 0) / 7)]));
   const mins = items.reduce((a, x) => a + (+x.r.mins || 0), 0);
-  const usePrep = (pr, ok) => {
-    const bad = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length);
-    if (bad.length && !ok) return openSheet({ type: 'confirm', title: 'Some of ' + pr.name + ' goes against your food preferences', body: bad.map(([r]) => getRecipe(r).name + ' (' + recipeIssues(getRecipe(r)).block.join(', ') + ')').join('; ') + '.',
-      ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrep({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrep(pr, true), 60); } });
-    const apply = replace => { mealCommit(mm => { delete mm.plan.fromMenu; if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
-    if (!P.items.length) apply(true);
-    else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace this week’s cooking, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
-  };
+  const usePrep = usePrepFor;
   /* This week (Nov 10, meal audit M2, M3, M5): one place for what you'll eat and cook. Empty, it offers one main way in
      (Plan my week) and two others; filled, it shows the plan, then the cooking, people and weeks, and rotation. */
   const empty = !items.length && !(m.menu && m.menu.days && m.menu.days.length);
@@ -982,6 +975,32 @@ function PrepPane() {
     <${RotationCard}/>
     <${WeekTools}/>
   </div>`;
+}
+/* Use a saved or ready-made prep (shared by Meals → Week and Plans → Meal preps) */
+function usePrepFor(pr, ok) {
+  const P = ML().plan;
+    const bad = pr.items.filter(([r]) => getRecipe(r) && recipeIssues(getRecipe(r)).block.length);
+    if (bad.length && !ok) return openSheet({ type: 'confirm', title: 'Some of ' + pr.name + ' goes against your food preferences', body: bad.map(([r]) => getRecipe(r).name + ' (' + recipeIssues(getRecipe(r)).block.join(', ') + ')').join('; ') + '.',
+      ok: 'Leave those out', onOk: () => { closeSheet(); setTimeout(() => usePrepFor({ ...pr, items: pr.items.filter(x => !bad.includes(x)) }, true), 60); }, alt: 'Use all of it', onAlt: () => { closeSheet(); setTimeout(() => usePrepFor(pr, true), 60); } });
+    const apply = replace => { mealCommit(mm => { delete mm.plan.fromMenu; if (replace) mm.plan.items = []; for (const [r, n] of pr.items) { if (!getRecipe(r)) continue; const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); } }); closeSheet(); scrollTo(0, 0); };
+    if (!P.items.length) apply(true);
+    else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace this week’s cooking, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
+  }
+/* Plans → Meal preps (Nov 16, Newt: Plans splits into Training and Meal preps, like Train / Run / Fight) */
+function MealPrepLibrary() {
+  const [open, setOpen] = useState(null); const mine = Object.values(ML().preps); const list = readyPreps();
+  const go = pr => { usePrepFor(pr); setTimeout(() => { if (ML().plan.items.length) { UI.setTab('meals'); setMealsMode('plan'); } }, 80); };
+  const row = (pr, ready) => { const on = open === pr.id; const fit = ready && prepFits(pr);
+    return html`<div key=${pr.id} class=${'prep-card ready-row' + (on ? ' open' : '')} id=${'lib-prep-' + pr.id}>
+      <button class="ready-h" aria-expanded=${on} onClick=${() => setOpen(on ? null : pr.id)}><span style="flex:1;min-width:0"><b>${pr.name}</b>${fit ? html`<span class="fit-tag">Picked for your food preferences</span>` : null}<span class="small muted" style="display:block">${pr.items.length} recipes</span></span>${on ? I.up : I.down}</button>
+      ${on ? html`${pr.d ? html`<div class="small" style="margin:2px 0 6px">${pr.d}</div>` : null}<div class="small faint">${pr.items.map(([r]) => (getRecipe(r) || {}).name).filter(Boolean).join(' · ')}</div>
+        <div class="row" style="margin-top:8px;gap:8px"><button class="btn primary" style="flex:1" id=${'lib-use-' + pr.id} onClick=${() => go(pr)}>Use this prep</button><button class="btn" style="flex:1" onClick=${() => openUsePrep(pr)}>Swap recipes or plan it</button></div>` : null}</div>`; };
+  return html`<div id="meal-prep-lib">
+    ${mine.length ? html`<div class="section-h"><h2>Your preps</h2></div><div class="stack">${mine.map(pr => row(pr, false))}</div>` : null}
+    <div class="section-h"><h2>Ready-made preps</h2><span class="aside num">${list.length}</span></div>
+    <div class="ready-list">${list.map(pr => row(pr, true))}</div>
+    <${RotationCard}/>
+    <button class="btn wide" style="margin-top:12px" id="lib-to-week" onClick=${() => { UI.setTab('meals'); setMealsMode('plan'); }}>Go to this week’s meals</button></div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
    meals.preps: { id: { id, name, items: [[recipe id, times a week]] } } (preps you save). meals.rot: { ids: [prep ids, 2–4],

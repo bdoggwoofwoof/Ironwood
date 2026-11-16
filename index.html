@@ -920,7 +920,11 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .drop-lbl{font-weight:700;color:var(--accent);text-align:center}
 .drop-add{align-self:flex-start;min-height:36px;padding:4px 6px;font-size:calc(14 * var(--u))}
 .set-row .n .drop-d{display:block;font-size:calc(10 * var(--u));line-height:1;color:var(--accent);letter-spacing:.04em}
-.drop-hist{color:var(--ink-2)}</style>
+.drop-hist{color:var(--ink-2)}
+.meas-grp+.meas-grp{margin-top:12px}.meas-gh{font-size:calc(13 * var(--u));font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px}
+.meas-det{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.meas-det>summary{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none}
+.meas-det>summary::-webkit-details-marker{display:none}.meas-det>summary::after{content:'›';font-size:calc(20 * var(--u));color:var(--ink-3);transform:rotate(90deg);transition:transform .15s}.meas-det[open]>summary::after{transform:rotate(-90deg)}
+.meas-det>summary b{flex:1}</style>
 
 <div id="app"></div>
 
@@ -3316,7 +3320,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version bd4df97</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version b65ad8b</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4157,6 +4161,7 @@ function SheetHost({ sheet }) {
     case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
+    case 'bodyScan': return html`<${BodyScanSheet}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
     case 'runDay': return html`<${RunDaySheet} ...${sheet}/>`;
@@ -7164,29 +7169,167 @@ function saveSessionAsRoutine(id) {
   showToast({ kind: 'info', text: 'Saved as a plan. Edit it to change sets or reps.' });
 }
 
-/* ---- Body measurements, next to bodyweight ---- */
-const MEAS_KEYS = [['waist', 'Waist'], ['chest', 'Chest'], ['hips', 'Hips'], ['arm', 'Arm'], ['thigh', 'Thigh'], ['calf', 'Calf'], ['neck', 'Neck'], ['bf', 'Body fat']];
+/* ---- Body measurements and body scans, in Stats next to bodyweight ----
+   Nov 16 (Newt): track everything a 3D body scan report gives (Styku and similar): body fat, lean, fat and bone mass,
+   BMR, fat by area, lean by limb and left/right tape measurements. A scan PDF is read on the phone (pdf.js, loaded only
+   when used); nothing leaves the phone. Entries: S.meta.meas [{ id, d, k, v, u }]. */
+const MEAS_DEF = [
+  ['waist', 'Waist', 'len', 'basic'], ['chest', 'Chest', 'len', 'basic'], ['hips', 'Hips', 'len', 'basic'], ['arm', 'Arm', 'len', 'basic'],
+  ['thigh', 'Thigh', 'len', 'basic'], ['calf', 'Calf', 'len', 'basic'], ['neck', 'Neck', 'len', 'basic'], ['bf', 'Body fat', '%', 'basic'],
+  ['leanm', 'Lean mass', 'mass', 'comp'], ['fatm', 'Fat mass', 'mass', 'comp'], ['bonem', 'Bone mass', 'mass', 'comp'],
+  ['leanp', 'Lean mass %', '%', 'comp'], ['bonep', 'Bone mass %', '%', 'comp'], ['bmr', 'Resting burn (BMR)', 'kcal', 'comp'],
+  ['visc', 'Visceral fat', 'mass', 'fat'], ['subq', 'Subcutaneous fat', 'mass', 'fat'], ['android', 'Belly fat (android)', 'mass', 'fat'],
+  ['gynoid', 'Hip fat (gynoid)', 'mass', 'fat'], ['vfa', 'Visceral fat area', 'cm2', 'fat'],
+  ['lean_al', 'Left arm lean', 'mass', 'limb'], ['lean_ar', 'Right arm lean', 'mass', 'limb'], ['lean_ll', 'Left leg lean', 'mass', 'limb'],
+  ['lean_lr', 'Right leg lean', 'mass', 'limb'], ['alsti', 'Limb lean index (ALSTI)', 'idx', 'limb'], ['shape', 'Shape score', 'score', 'limb'],
+  ['waist_ab', 'Waist at belly button', 'len', 'tape'], ['waist_lo', 'Lower waist', 'len', 'tape'], ['hip_hi', 'High hip', 'len', 'tape'],
+  ['bicep_l', 'Bicep, left', 'len', 'tape'], ['bicep_r', 'Bicep, right', 'len', 'tape'], ['bicep_ll', 'Lower bicep, left', 'len', 'tape'],
+  ['bicep_lr', 'Lower bicep, right', 'len', 'tape'], ['fore_l', 'Forearm, left', 'len', 'tape'], ['fore_r', 'Forearm, right', 'len', 'tape'],
+  ['thigh_ul', 'Upper thigh, left', 'len', 'tape'], ['thigh_ur', 'Upper thigh, right', 'len', 'tape'], ['thigh_ml', 'Mid-thigh, left', 'len', 'tape'],
+  ['thigh_mr', 'Mid-thigh, right', 'len', 'tape'], ['thigh_ll', 'Lower thigh, left', 'len', 'tape'], ['thigh_lr', 'Lower thigh, right', 'len', 'tape'],
+  ['calf_l', 'Calf, left', 'len', 'tape'], ['calf_r', 'Calf, right', 'len', 'tape'],
+];
+const MEAS_GROUPS = [['basic', 'Basics'], ['comp', 'Body composition'], ['fat', 'Where the fat is'], ['limb', 'Lean by limb and scores'], ['tape', 'Scan measurements, left and right']];
+const MEAS_KEYS = MEAS_DEF.map(([k, l]) => [k, l]);
+const MEAS_TOP = ['bf', 'leanm', 'fatm', 'waist', 'chest', 'hips', 'arm', 'thigh', 'calf', 'neck'];
 const lenU = () => U() === 'kg' ? 'cm' : 'in';
-const measUnit = k => k === 'bf' ? '%' : lenU();
-const measVal = e => e.k === 'bf' ? +e.v : r1(e.u && e.u !== lenU() ? (e.u === 'cm' ? +e.v / 2.54 : +e.v * 2.54) : +e.v);
+const measKind = k => (MEAS_DEF.find(x => x[0] === k) || [])[2] || 'len';
+const measUnit = k => ({ len: lenU(), mass: U(), '%': '%', kcal: 'cal/day', cm2: 'cm²', idx: 'kg/m²', score: '' })[measKind(k)];
+const lenConv = (v, from, to) => (!from || !to || from === to) ? v : from === 'cm' ? v / 2.54 : v * 2.54;
+const measVal = e => { const kd = measKind(e.k); return kd === 'len' ? r1(lenConv(+e.v, e.u, lenU())) : kd === 'mass' ? r1(conv(+e.v, e.u || U(), U())) : +e.v; };
+const measSorted = () => (S.meta.meas || []).slice().sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+function MeasStatRow({ k, l, list }) {
+  const es = list.filter(e => e.k === k); const last = es[es.length - 1], first = es[0]; const d = measVal(last) - measVal(first); const un = measUnit(k);
+  return html`<div key=${k}><div style="min-width:0"><div style="font-weight:600">${l}</div><div class="small muted">${shortDate(+parseYmd(last.d))}${es.length > 1 ? ' · ' + (d >= 0 ? '+' : '−') + fmt(Math.abs(r1(d))) + (un ? ' ' + un : '') + ' since ' + shortDate(+parseYmd(first.d)) : ''}</div></div>
+    ${es.length > 1 ? html`<${Sparkline} pts=${es.map(e => ({ t: +parseYmd(e.d), v: measVal(e) }))}/>` : null}<b class="num">${fmt(measVal(last))}${un ? ' ' + un : ''}</b></div>`;
+}
 function MeasureCard() {
-  const list = (S.meta.meas || []).slice().sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
-  const keys = MEAS_KEYS.filter(([k]) => list.some(e => e.k === k));
-  return html`<div id="measure-card"><div class="section-h"><h2>Measurements</h2><button class="btn text" id="log-meas" onClick=${() => openSheet({ type: 'measure' })}>+ Log</button></div>
-    <div class="card">${!keys.length ? html`<p class="note">Waist, chest, arms and more, measured every few weeks, show changes the scale misses.</p>`
-      : html`<div class="prl">${keys.map(([k, l]) => { const es = list.filter(e => e.k === k); const last = es[es.length - 1], first = es[0]; const d = measVal(last) - measVal(first);
-        return html`<div key=${k}><div style="min-width:0"><div style="font-weight:600">${l}</div><div class="small muted">${shortDate(+parseYmd(last.d))}${es.length > 1 ? ' · ' + (d >= 0 ? '+' : '−') + fmt(Math.abs(r1(d))) + ' ' + measUnit(k) + ' since ' + shortDate(+parseYmd(first.d)) : ''}</div></div>
-          ${es.length > 1 ? html`<${Sparkline} pts=${es.map(e => ({ t: +parseYmd(e.d), v: measVal(e) }))}/>` : null}<b class="num">${fmt(measVal(last))} ${measUnit(k)}</b></div>`; })}</div>`}</div></div>`;
+  const list = measSorted(); const has = new Set(list.map(e => e.k)); const all = lsGet('measAll') === '1';
+  const shown = MEAS_DEF.filter(([k]) => has.has(k)); const top = MEAS_TOP.map(k => MEAS_DEF.find(x => x[0] === k)).filter(x => has.has(x[0]));
+  const more = shown.length - top.length; const scans = [...new Set(list.filter(e => !['basic'].includes((MEAS_DEF.find(x => x[0] === e.k) || [])[3])).map(e => e.d))];
+  return html`<div id="measure-card"><div class="section-h"><h2>Measurements</h2><span class="row" style="gap:2px"><button class="btn text" id="scan-import" onClick=${() => openSheet({ type: 'bodyScan' })}>Add a scan</button><button class="btn text" id="log-meas" onClick=${() => openSheet({ type: 'measure' })}>+ Log</button></span></div>
+    <div class="card">${!shown.length ? html`<p class="note">Waist, chest, arms and more, measured every few weeks, show changes the scale misses. Had a 3D body scan? Add a scan reads the report's PDF on your phone and tracks every number in it.</p>`
+      : all && more > 0 ? MEAS_GROUPS.map(([g, gl]) => { const rows = shown.filter(x => x[3] === g); return rows.length ? html`<div key=${g} class="meas-grp"><div class="meas-gh">${gl}</div><div class="prl">${rows.map(([k, l]) => html`<${MeasStatRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div></div>` : null; })
+      : html`<div class="prl">${(top.length ? top : shown.slice(0, 6)).map(([k, l]) => html`<${MeasStatRow} key=${k} k=${k} l=${l} list=${list}/>`)}</div>`}
+      ${more > 0 ? html`<button class="btn text" id="meas-all" onClick=${() => { lsSet('measAll', all ? '0' : '1'); S.rerender(); }}>${all ? 'Show fewer' : 'Show all ' + shown.length + ' numbers'}</button>` : null}
+      ${scans.length ? html`<p class="small muted" style="margin-top:6px">${scans.length === 1 ? '1 scan' : scans.length + ' scans'}, last ${shortDate(+parseYmd(scans[scans.length - 1]))}. Scan numbers are the scanner's estimates, not medical advice.</p>` : null}</div></div>`;
+}
+/* Fields for one date, grouped; groups with values (or the Basics) start open */
+function MeasFields({ v, setV, keys, openAll }) {
+  return MEAS_GROUPS.map(([g, gl]) => { const ks = MEAS_DEF.filter(x => x[3] === g && (!keys || keys.includes(x[0]))); if (!ks.length) return null;
+    const grid = html`<div class="me-grid" style="margin-top:8px">${ks.map(([k, l]) => html`<div key=${k}><label class="lbl" for=${'ms-' + k}>${l}${measUnit(k) ? ' (' + measUnit(k) + ')' : ''}</label><input class="field" id=${'ms-' + k} inputmode="decimal" value=${v[k] || ''} onFocus=${selAll} onInput=${e => setV({ ...v, [k]: e.target.value })}/></div>`)}</div>`;
+    const filled = ks.filter(([k]) => num(v[k]) > 0).length;
+    return g === 'basic' && !keys ? html`<div key=${g} style="margin-top:10px">${grid}</div>`
+      : html`<details key=${g} class="meas-det" id=${'mg-' + g} open=${openAll || filled > 0}><summary><b>${gl}</b><span class="small muted">${filled ? filled + ' filled' : ks.length + ' numbers'}</span></summary>${grid}</details>`; });
+}
+const measOn = d => { const o = {}; (S.meta.meas || []).filter(e => e.d === d).forEach(e => { o[e.k] = String(measVal(e)); }); return o; };
+/* Replace one date's numbers with these (an emptied field removes that number) */
+function saveMeas(d, v, keys) {
+  const ks = new Set(keys || MEAS_DEF.map(x => x[0]));
+  const add = Object.entries(v).filter(([k, x]) => ks.has(k) && num(x) > 0).map(([k, x]) => ({ id: uid('m'), d, k, v: measKind(k) === 'kcal' ? Math.round(num(x)) : r1(num(x)), u: measUnit(k) || '' }));
+  commit(st => { st.meta.meas = (st.meta.meas || []).filter(e => !(e.d === d && ks.has(e.k))).concat(add); }, 'meta', 600);
+  return add.length;
 }
 function MeasureSheet() {
-  const [d, setD] = useState(ymd(new Date())); const [v, setV] = useState({});
-  const any = Object.values(v).some(x => num(x) > 0);
-  const save = () => { const add = Object.entries(v).filter(([, x]) => num(x) > 0).map(([k, x]) => ({ id: uid('m'), d, k, v: r1(num(x)), u: measUnit(k) }));
-    commit(st => { const ks = new Set(add.map(a => a.k)); st.meta.meas = (st.meta.meas || []).filter(e => !(e.d === d && ks.has(e.k))).concat(add); }, 'meta', 600); closeSheet(); showToast({ kind: 'info', text: 'Measurements saved' }); };
-  return html`<${Sheet} label="Log measurements"><h2>Log measurements</h2><p class="note">Fill in any you measured. Same spot, same time of day, tape snug but not tight.</p>
-    <div style="margin-top:10px"><label class="lbl" for="ms-date">Date</label><input class="field" type="date" id="ms-date" max=${ymd(new Date())} value=${d} onChange=${e => e.target.value && setD(e.target.value)}/></div>
-    <div class="me-grid" style="margin-top:10px">${MEAS_KEYS.map(([k, l]) => html`<div key=${k}><label class="lbl" for=${'ms-' + k}>${l} (${measUnit(k)})</label><input class="field" id=${'ms-' + k} inputmode="decimal" value=${v[k] || ''} onInput=${e => setV({ ...v, [k]: e.target.value })}/></div>`)}</div>
-    <button class="btn primary wide" style="margin-top:14px" id="ms-save" disabled=${!any} onClick=${save}>Save</button><//>`;
+  const [d, setD] = useState(ymd(new Date())); const [v, setV] = useState(() => measOn(ymd(new Date())));
+  const had = (S.meta.meas || []).some(e => e.d === d); const any = Object.values(v).some(x => num(x) > 0);
+  const save = () => { saveMeas(d, v); closeSheet(); showToast({ kind: 'info', text: 'Measurements saved' }); };
+  return html`<${Sheet} label="Log measurements"><h2>Log measurements</h2><p class="note">Fill in any you measured. Same spot, same time of day, tape snug but not tight.${had ? ' This date already has numbers: change them here, or empty a box to remove it.' : ''}</p>
+    <div style="margin-top:10px"><label class="lbl" for="ms-date">Date</label><input class="field" type="date" id="ms-date" max=${ymd(new Date())} value=${d} onChange=${e => { if (e.target.value) { setD(e.target.value); setV(measOn(e.target.value)); } }}/></div>
+    <${MeasFields} v=${v} setV=${setV}/>
+    <button class="btn text" id="ms-scan" style="margin-top:6px" onClick=${() => openSheet({ type: 'bodyScan' })}>Have a body scan report? Add it from the PDF</button>
+    <button class="btn primary wide" style="margin-top:10px" id="ms-save" disabled=${!any && !had} onClick=${save}>Save</button><//>`;
+}
+
+/* ---- Reading a body scan report ----
+   Labels as scan reports print them (Styku first; a few common InBody/DEXA names too). Longest labels are matched first
+   and taken out of the text, so "High Hip 35.8" is never read as Hip, or "Mid-Thigh Left" as another thigh. */
+const SCAN_LABELS = [
+  ['Body Fat %', 'bf'], ['Percent Body Fat', 'bf'], ['Body Fat Percentage', 'bf'], ['PBF', 'bf'], ['Lean Mass %', 'leanp'], ['Bone Mass %', 'bonep'],
+  ['Fat Mass', 'fatm'], ['Body Fat Mass', 'fatm'], ['Lean Mass', 'leanm'], ['Lean Body Mass', 'leanm'], ['Fat Free Mass', 'leanm'], ['Bone Mass', 'bonem'],
+  ['BMR', 'bmr'], ['Basal Metabolic Rate', 'bmr'], ['Android Mass', 'android'], ['Gynoid Mass', 'gynoid'], ['Visceral Fat Area', 'vfa'],
+  ['Visceral Fat', 'visc'], ['Subcutaneous Fat', 'subq'], ['Shape Score', 'shape'], ['Appendicular Lean Soft Tissue Index', 'alsti'], ['ALSTI', 'alsti'],
+  ['Bicep Left Lower', 'bicep_ll'], ['Bicep Left', 'bicep_l'], ['Bicep Right Lower', 'bicep_lr'], ['Bicep Right', 'bicep_r'],
+  ['Calf Left', 'calf_l'], ['Calf Right', 'calf_r'], ['Chest', 'chest'], ['Forearm Left', 'fore_l'], ['Forearm Right', 'fore_r'],
+  ['High Hip', 'hip_hi'], ['Hip', 'hips'], ['Hips', 'hips'], ['Neck', 'neck'],
+  ['Thigh Left Lower', 'thigh_ll'], ['Mid-Thigh Left', 'thigh_ml'], ['Thigh Left Upper', 'thigh_ul'], ['Thigh Right Lower', 'thigh_lr'],
+  ['Mid-Thigh Right', 'thigh_mr'], ['Thigh Right Upper', 'thigh_ur'],
+  ['Waist (Abdominal)', 'waist_ab'], ['Waist (Lower)', 'waist_lo'], ['Waist (Narrowest)', 'waist'], ['Waist', 'waist'],
+].sort((a, b) => b[0].length - a[0].length);
+/* text → { vals: { key: number in the report's units }, d: 'YYYY-MM-DD' | null, mu: 'lb'|'kg', lu: 'in'|'cm', bw: number | null } */
+function parseScan(text) {
+  let t = ' ' + String(text || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ') + ' ';
+  const hu = t.match(/\(\s*(lbs?|kg)\s*,\s*(in|cm)\s*\)/i);
+  const mu = hu ? (/kg/i.test(hu[1]) ? 'kg' : 'lb') : /\d\s*kg\b/i.test(t) && !/\d\s*lbs?\b/i.test(t) ? 'kg' : 'lb';
+  const lu = hu ? hu[2].toLowerCase() : mu === 'kg' ? 'cm' : 'in';
+  let d = null; const dm = t.match(/(?:Scan|Test|Exam)\s*Date\s*:?\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i) || t.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if (dm) { const y = +dm[3] < 100 ? 2000 + +dm[3] : +dm[3]; const dt = new Date(y, +dm[1] - 1, +dm[2]); if (!isNaN(dt) && dt.getDate() === +dm[2]) d = ymd(dt); }
+  const wm = t.match(/Weight\b[^\n]{0,40}?(\d+(?:\.\d+)?)\s*(lbs?|kg)\b/i); const bw = wm ? +wm[1] : null; const bwU = wm ? (/kg/i.test(wm[2]) ? 'kg' : 'lb') : mu;
+  const vals = {};
+  for (const [lab, k] of SCAN_LABELS) {
+    const re = new RegExp('(^|[^A-Za-z-])' + reEsc(lab) + '\\s*:?\\s*(\\d+(?:\\.\\d+)?)', 'i');
+    let m; while ((m = t.match(re))) { if (vals[k] == null) vals[k] = +m[2]; t = t.slice(0, m.index) + m[1] + ' ' + t.slice(m.index + m[0].length); }
+  }
+  return { vals, d, mu, lu, bw, bwU };
+}
+/* The report's numbers in the app's units, as strings for the review boxes */
+function scanToFields(P) {
+  const o = {}; for (const [k, x] of Object.entries(P.vals)) { const kd = measKind(k);
+    o[k] = String(kd === 'len' ? r1(lenConv(x, P.lu, lenU())) : kd === 'mass' ? r1(conv(x, P.mu, U())) : x); }
+  return o;
+}
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load')); document.head.appendChild(s); });
+/* A PDF's text, line by line (pieces on the same line joined left to right) */
+async function pdfText(file) {
+  if (!window.pdfjsLib) await loadScript('vendor/pdf/pdf.min.js');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf/pdf.worker.min.js', location.href).href;
+  const doc = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+  const out = [];
+  for (let i = 1; i <= Math.min(doc.numPages, 12); i++) {
+    const tc = await (await doc.getPage(i)).getTextContent(); const rows = [];
+    for (const it of tc.items) { if (!it.str || !it.str.trim()) continue; const y = it.transform[5], x = it.transform[4];
+      let r = rows.find(q => Math.abs(q.y - y) < 3); if (!r) rows.push(r = { y, p: [] }); r.p.push([x, it.str]); }
+    rows.sort((a, b) => b.y - a.y).forEach(r => out.push(r.p.sort((a, b) => a[0] - b[0]).map(q => q[1]).join(' ').replace(/\s+/g, ' ').trim()));
+  }
+  try { doc.destroy(); } catch (e) {}
+  return out.join('\n');
+}
+/* Numbers scan reports often show only as pictures, so they are typed in by hand */
+const SCAN_PICTURE_KEYS = ['shape', 'alsti', 'vfa', 'lean_al', 'lean_ar', 'lean_ll', 'lean_lr'];
+function BodyScanSheet() {
+  const [st, setSt] = useState({ stage: 'pick' }); const [paste, setPaste] = useState(''); const set = o => setSt(s => ({ ...s, ...o }));
+  const read = P => { const n = Object.keys(P.vals).length;
+    if (!n) return set({ stage: 'pick', err: 'No body scan numbers found in that. Try the report PDF itself, or paste its text below.' });
+    set({ stage: 'review', P, v: scanToFields(P), d: P.d && P.d <= ymd(new Date()) ? P.d : ymd(new Date()), bwOn: !!P.bw, err: '' }); };
+  const onFile = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; set({ stage: 'reading', err: '' });
+    try { read(parseScan(await pdfText(f))); } catch (x) { set({ stage: 'pick', err: 'That file could not be read as a PDF. You can paste the report text instead.' }); } };
+  if (st.stage === 'review') {
+    const { P, v, d } = st; const found = Object.keys(P.vals); const pic = SCAN_PICTURE_KEYS.filter(k => !found.includes(k));
+    const bwShow = P.bw ? r1(conv(P.bw, P.bwU, U())) : 0; const prior = (S.meta.meas || []).some(e => e.d === d && found.concat(pic).includes(e.k));
+    const save = () => { const keys = found.concat(pic.filter(k => num(v[k]) > 0)); const n = saveMeas(d, v, keys);
+      if (st.bwOn && bwShow > 0) commit(x => { x.meta.bw = (x.meta.bw || []).filter(y => y.d !== d).concat([{ id: uid('b'), d, w: bwShow, u: U() }]); }, 'meta', 600);
+      lsSet('measAll', '1'); closeSheet(); showToast({ kind: 'info', text: n + ' numbers saved from your scan' + (st.bwOn && bwShow > 0 ? ', plus your weight' : '') + '.' }); };
+    return html`<${Sheet} label="Check your scan"><h2>Check your scan</h2>
+      <p class="note">Found ${found.length} numbers${P.d ? ' from the scan on ' + shortDate(+parseYmd(P.d)) : ''}. Fix any that look wrong, then save.${U() !== P.mu ? ' Converted to ' + U() + ' and ' + lenU() + '.' : ''}</p>
+      <div style="margin-top:10px"><label class="lbl" for="bs-date">Scan date</label><input class="field" type="date" id="bs-date" max=${ymd(new Date())} value=${d} onChange=${e => e.target.value && set({ d: e.target.value })}/></div>
+      ${prior ? html`<p class="small muted" style="margin-top:6px">This date already has scan numbers. Saving replaces them.</p>` : null}
+      ${P.bw ? html`<label class="toggle-row" for="bs-bw" style="margin-top:10px"><span><span>Also log my weight, ${fmt(bwShow)} ${U()}</span><span class="d">Adds it to Bodyweight for this date.</span></span><input type="checkbox" role="switch" id="bs-bw" checked=${st.bwOn} onChange=${e => set({ bwOn: e.target.checked })}/></label>` : null}
+      <${MeasFields} v=${v} setV=${nv => set({ v: nv })} keys=${found} openAll=${true}/>
+      ${pic.length ? html`<details class="meas-det" id="mg-pics"><summary><b>Numbers in the report's pictures</b><span class="small muted">Optional</span></summary>
+        <p class="small muted" style="margin-top:6px">Reports often show these only as charts, so they can't be read from the file. Type in any you want to track.</p>
+        <${MeasFields} v=${v} setV=${nv => set({ v: nv })} keys=${pic} openAll=${true}/></details>` : null}
+      <p class="small muted" style="margin-top:8px">Read on your phone; the report never leaves it. Scan numbers are the scanner's estimates, not medical advice.</p>
+      <button class="btn primary wide" style="margin-top:10px" id="bs-save" onClick=${save}>Save ${found.length} numbers</button><//>`;
+  }
+  return html`<${Sheet} label="Add a body scan"><h2>Add a body scan</h2>
+    <p class="note">Choose the report PDF from your scan (Styku and similar). Ironwood reads it on your phone, shows you what it found, and tracks each number in Stats. The file never leaves your phone.</p>
+    ${st.err ? html`<p class="note" role="alert" style="margin-top:8px;color:var(--red-text)">${st.err}</p>` : null}
+    <div class="stack" style="margin-top:12px"><label class="btn primary wide" for="bs-file" aria-disabled=${st.stage === 'reading'}>${st.stage === 'reading' ? 'Reading your report…' : 'Choose the PDF'}</label>
+      <input id="bs-file" type="file" accept="application/pdf,.pdf" hidden onChange=${onFile}/></div>
+    <details class="meas-det" id="bs-paste-box" style="margin-top:12px"><summary><b>Or paste the report's text</b></summary>
+      <textarea class="field" id="bs-paste" rows="6" style="margin-top:8px" placeholder="Body Fat % 18.4&#10;Lean Mass 141.2&#10;Waist (Narrowest) 30.2" value=${paste} onInput=${e => setPaste(e.target.value)}></textarea>
+      <button class="btn wide" id="bs-read" style="margin-top:8px" disabled=${!paste.trim()} onClick=${() => read(parseScan(paste))}>Read it</button></details>
+    <button class="btn text" style="margin-top:8px" onClick=${() => openSheet({ type: 'measure' })}>Type numbers in instead</button><//>`;
 }
 
 /* ---- Share a finished workout as a picture (nothing leaves the phone unless you share it) ---- */

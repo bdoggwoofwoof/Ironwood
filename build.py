@@ -117,6 +117,9 @@ os.makedirs(os.path.join(OUT, 'vendor'), exist_ok=True)
 for f in ('barcode-ponyfill.js', 'zxing_reader.wasm'):
     shutil.copy(os.path.join('vendor', f), os.path.join(OUT, 'vendor', f))
 # Label reader (Tesseract.js, Apache-2.0, English model): loaded only when you read a label, then cached; runs on the phone
+os.makedirs(os.path.join(OUT, 'vendor', 'pdf'), exist_ok=True)
+for f in os.listdir(os.path.join('vendor', 'pdf')):
+    shutil.copy(os.path.join('vendor', 'pdf', f), os.path.join(OUT, 'vendor', 'pdf', f))
 os.makedirs(os.path.join(OUT, 'vendor', 'ocr'), exist_ok=True)
 for f in os.listdir(os.path.join('vendor', 'ocr')):
     shutil.copy(os.path.join('vendor', 'ocr', f), os.path.join(OUT, 'vendor', 'ocr', f))

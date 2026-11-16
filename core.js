@@ -2063,6 +2063,7 @@ function SheetHost({ sheet }) {
     case 'schedule': return html`<${Sheet} label="Your schedule"><${PlanWeekCard}/><button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Done</button><//>`;
     case 'exJump': return html`<${ExJumpSheet} ...${sheet}/>`;
     case 'measure': return html`<${MeasureSheet}/>`;
+    case 'bodyScan': return html`<${BodyScanSheet}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
     case 'runDay': return html`<${RunDaySheet} ...${sheet}/>`;

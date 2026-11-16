@@ -902,3 +902,7 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .drop-add{align-self:flex-start;min-height:36px;padding:4px 6px;font-size:calc(14 * var(--u))}
 .set-row .n .drop-d{display:block;font-size:calc(10 * var(--u));line-height:1;color:var(--accent);letter-spacing:.04em}
 .drop-hist{color:var(--ink-2)}
+.meas-grp+.meas-grp{margin-top:12px}.meas-gh{font-size:calc(13 * var(--u));font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px}
+.meas-det{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.meas-det>summary{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none}
+.meas-det>summary::-webkit-details-marker{display:none}.meas-det>summary::after{content:'›';font-size:20px;color:var(--ink-3);transform:rotate(90deg);transition:transform .15s}.meas-det[open]>summary::after{transform:rotate(-90deg)}
+.meas-det>summary b{flex:1}

@@ -25,7 +25,7 @@ async def main():
         await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         allnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
         pnames = [n for n in allnames if n not in names]
-        check('12 one-day plans and 37 longer plans (10 + 6 conditioning + 7 joint care + Deep Stretch Mobility + 7 fight + 6 goal plans)', len(names) == 12 and len(pnames) == 37, (len(names), len(pnames)))
+        check('12 one-day plans and 39 longer plans (10 + 2 intensity + 6 conditioning + 7 joint care + Deep Stretch Mobility + 7 fight + 6 goal plans)', len(names) == 13 and len(pnames) == 39, (len(names), len(pnames)))
         check("4-Day Split first among plans; Efficient PPL is one plan", pnames[0].upper() == "NEWT'S 4-DAY SPLIT" and pnames[1].upper() == 'EFFICIENT PUSH/PULL/LEGS', pnames[:3])
         page = await pg.inner_text('body')
         hits = [w for w in ('From RepCount', 'Ready to run', 'Your plan') if w in page]; check('no source labels', not hits, [page[max(0, page.find(w) - 120):page.find(w) + 40] for w in hits])
@@ -43,7 +43,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('plans still 49, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 49 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('plans still 52, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 52 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)

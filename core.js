@@ -660,7 +660,7 @@ const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 /* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
    chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
-const PLAN_FILTERS = [['all', 'All'], ['mine', 'Yours'], ['lift', 'Lifting'], ['one', 'One-day'], ['goal', 'Goal plans'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['type', 'By type']];
+const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Yours'], ['lift', 'Lifting'], ['one', 'One-day'], ['goal', 'Goal plans'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['type', 'By type']];
 const PLAN_MORE = {};
 function setPlanFilter(f) { lsSet('rtFilter', f); }
 function RoutineList() {
@@ -670,15 +670,16 @@ function RoutineList() {
   const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
   const pid = programId();
   const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
-    return html`<button key=${r.id} class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
+    return html`<div key=${r.id} class="r-wrap"><button class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
     ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
-    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r), 3)}</button>`; };
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r), 3)}</button><${PlanStar} r=${r} id=${'pstar-' + r.id}/></div>`; };
   const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] });
   const actions = html`<div class="row"><button class="btn primary" style="flex:1" id="plan-new" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} New plan</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
   const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed plan${hidden.length === 1 ? '' : 's'}</button>` : null;
   const multi = r => r.days.length > 1;
   const SECS = [
+    ['starred', 'Starred', [...mine, ...lib].filter(r => isStarPlan(r.id))],
     ['mine', 'Yours', mine],
     ['lift', 'Lifting', lib.filter(r => multi(r) && !r.info && !r.goalPlan)],
     ['one', 'One-day', lib.filter(r => !multi(r) && !r.info)],
@@ -702,7 +703,7 @@ function RoutineList() {
   if (fl === 'ch') return html`<div>${top}<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/></div>`;
   const sec = ([k, t, rs]) => {
     if (fl !== 'all' && fl !== k) return null;
-    const extra = k === 'run' ? 1 : 0; if (!rs.length && !extra && k !== 'mine') return null;
+    const extra = k === 'run' ? 1 : 0; if (k === 'starred' && !rs.length) return fl === 'starred' ? html`<p key="st" class="note" style="margin-top:12px" id="ps-starred-none">Tap the star on any plan to keep it here.</p>` : null; if (!rs.length && !extra && k !== 'mine') return null;
     const cap = fl === 'all' && !PLAN_MORE[k] ? 3 : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
     return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > 3 ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
       ${k === 'care' ? html`<${CareFinder}/>` : null}
@@ -740,7 +741,7 @@ function RoutineView({ id }) {
     onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
   return html`<div>
     <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
-    <h2 class="wo-title" style="margin:2px 0 6px">${r.name}</h2>
+    <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
@@ -949,7 +950,7 @@ function StatsScreen({ view }) {
     <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['numbers', 'Numbers'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'numbers' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
-    ${tab === 'history' ? html`<div><p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p><${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${StatsCategories}/></div>`}
+    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${StatsCategories}/></div>`}
   </div>`;
 }
 function StatsOverall() {
@@ -1042,14 +1043,14 @@ function CategoryView({ cat, mode }) {
   </div>`;
 }
 function StatsExercises() {
-  const rows0 = liftRows(); const rows = rows0.filter(r => !isMeasured(exKind(r.ex))); const mrows = rows0.filter(r => isMeasured(exKind(r.ex)) && entries(r.ex).length); const now = Date.now();
+  const rows0 = liftRows().slice().sort((a, b) => isStarEx(b.ex) - isStarEx(a.ex)); const rows = rows0.filter(r => !isMeasured(exKind(r.ex))); const mrows = rows0.filter(r => isMeasured(exKind(r.ex)) && entries(r.ex).length); const now = Date.now();
   const recentPRs = sessionList().slice().reverse().flatMap(x => noE1(x.prs).map(p => ({ ...p, t: x.startedAt }))).slice(0, 6);
   return html`<div>
     <div class="section-h" style="margin-top:14px"><h2>Strength</h2><span class="aside">Now → 8 weeks</span></div>
     ${rows.length ? html`<div>${rows.map(r => { const kind = exKind(r.ex); const m = defaultMetric(kind); const pts = seriesFor(r.ex, r.group, m); const pj = project(pts, now);
       const k = pj ? pj.keep(HORIZON) : 0;
       return html`<button key=${r.ex + r.group} class="lift-row" onClick=${() => UI.setView({ type: 'exercise', ex: r.ex, group: r.group })}>
-        <div style="min-width:0"><div class="nm">${exName(r.ex)}</div><div class="sub">${groupChip(r.group)}<span>${CATS[exCat(r.ex)]} · ${METRICS[m]}${m === 'reps' ? '' : ', ' + U()}</span></div></div>
+        <div style="min-width:0"><div class="nm">${isStarEx(r.ex) ? html`<span class="star-mark" aria-label="Starred">★ </span>` : null}${exName(r.ex)}</div><div class="sub">${groupChip(r.group)}<span>${CATS[exCat(r.ex)]} · ${METRICS[m]}${m === 'reps' ? '' : ', ' + U()}</span></div></div>
         <${Sparkline} pts=${pts}/>
         <div class="v">${pj ? html`<b>${fmt(pj.today)}</b><span class=${k >= pj.today ? 'up-c' : 'down-c'}>${k >= pj.today ? '↑' : '↓'} ${fmt(k)}</span>` : '–'}</div></button>`; })}</div>`
     : html`<div class="card note">Log a workout to see your lifts here, each with a chart and an 8-week projection.</div>`}
@@ -1058,7 +1059,7 @@ function StatsExercises() {
       <div class="card prl">${recentPRs.map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${shortDate(p.t)} · ${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>` : null}
   </div>`;
 }
-function ExerciseStats(p) { return isMeasured(exKind(p.ex)) ? html`<${MeasuredStats} ex=${p.ex}/>` : html`<${LiftStats} ...${p}/>`; }
+function ExerciseStats(p) { return html`<div><div class="row" style="justify-content:flex-end;margin-bottom:-36px;position:relative;z-index:2"><${ExStar} ex=${p.ex} big=${true} id="ex-star"/></div>${isMeasured(exKind(p.ex)) ? html`<${MeasuredStats} ex=${p.ex}/>` : html`<${LiftStats} ...${p}/>`}</div>`; }
 function LiftStats({ ex, group }) {
   const kind = exKind(ex); const [metric, setMetric] = useState(defaultMetric(kind)); const now = Date.now();
   const groups = [...new Set(entries(ex).map(e => e.group))];
@@ -1776,13 +1777,13 @@ function PhotoSheet({ id }) {
 /* ---------- SHEETS ---------- */
 function PickSheet({ title, onPick }) {
   const [q, setQ] = useState(''); const [kind, setKind] = useState(''); const [cat, setCat] = useState('');
-  const list = Object.values(allEx()).filter(e => !q || norm(e.name).includes(norm(q))).sort((a, b) => a.name.localeCompare(b.name));
+  const list = Object.values(allEx()).filter(e => !q || norm(e.name).includes(norm(q))).sort((a, b) => (isStarEx(b.id) - isStarEx(a.id)) || a.name.localeCompare(b.name));
   const exact = q.trim() && findEx(q);
   const create = () => { const name = titleCase(q); const ex = { id: 'u-' + slug(name) + '-' + Math.random().toString(36).slice(2, 5), name, kind: kind || guessKind(name), cat: cat || guessCat(name) }; commit(s => { s.meta.exercises[ex.id] = ex; }, 'meta'); onPick(ex); };
   return html`<${Sheet} label=${title}><h2>${title}</h2>
     <input class="field" id="pick-q" placeholder="Search or type a new exercise" value=${q} onInput=${e => setQ(e.target.value)} autocomplete="off"/>
     ${q.trim() && !exact ? html`<div class="row wrap" style="margin-top:10px"><select class="field" id="pick-kind" aria-label="Equipment" style="flex:1;min-width:120px" value=${kind || guessKind(q)} onChange=${e => setKind(e.target.value)}>${Object.entries(KINDS).map(([k, l]) => html`<option value=${k}>${l}</option>`)}</select><select class="field" id="pick-cat" aria-label="Category" style="flex:1;min-width:120px" value=${cat || guessCat(q)} onChange=${e => setCat(e.target.value)}>${Object.entries(CATS).map(([k, l]) => html`<option value=${k}>${l}</option>`)}</select><button class="btn primary" onClick=${create}>${I.plus} Create “${titleCase(q)}”</button></div>` : null}
-    <div class="pick-list">${list.map(e => html`<button key=${e.id} class="opt" onClick=${() => onPick(e)}><span style="flex:1">${e.name}</span><span class="d">${KINDS[e.kind] || ''}</span></button>`)}
+    <div class="pick-list">${list.map(e => html`<div key=${e.id} class="pick-row"><button class="opt" onClick=${() => onPick(e)}><span style="flex:1">${e.name}</span><span class="d">${KINDS[e.kind] || ''}</span></button><${ExStar} ex=${e.id} id=${'xstar-' + e.id}/></div>`)}
       ${!list.length ? html`<p class="note" style="padding:12px 4px">No match. Create it above.</p>` : null}</div>
   <//>`;
 }
@@ -2120,6 +2121,7 @@ function SheetHost({ sheet }) {
 /*@include cooking.js*/
 /*@include bodygoal.js*/
 /*@include quicklog.js*/
+/*@include stars.js*/
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {

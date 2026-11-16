@@ -495,7 +495,7 @@ span.chip.wtag{color:var(--ink-2);background:rgba(127,127,127,.16)}
 .tip-card{display:flex;align-items:flex-start;gap:6px;background:var(--surface);border-radius:12px;padding:10px 6px 10px 14px;font-size:calc(14 * var(--u));color:var(--ink-2);line-height:1.4}
 .tip-x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3);flex:none;margin-top:-5px}
 .tip-x svg{width:16px;height:16px}
-.help-foot{display:flex;justify-content:center;gap:18px;margin:28px 0 4px}
+.help-foot{display:flex;flex-direction:column;align-items:center;gap:2px;margin:28px 0 4px}
 .help-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;font-size:calc(12 * var(--u));font-weight:700;line-height:1}
 .sync-line{margin:10px 0 0;font-size:calc(13.5 * var(--u))}
 .pal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -918,3 +918,8 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 body:has(#quick-fab) main{padding-bottom:84px}
 .settings-btn svg{width:18px;height:18px;margin-right:4px;vertical-align:-3px}
 .intro-x{display:flex;align-items:center;gap:6px;margin:2px 0 8px}.intro-x p{flex:1;min-width:0;margin:0}.intro-x .tip-x{min-width:36px;min-height:36px;flex:none}
+/* Nov 16 (Newt): side-scrolling rows move side to side only, never up and down */
+.chips,.plan-chips,.topsw,.topsw.four,.tbl-wrap,.cat-pick{overflow-y:hidden;overscroll-behavior-x:contain}
+.plan-chips{padding-block:4px}
+.r-wrap{position:relative}.r-wrap>.rec-star{position:absolute;top:6px;right:4px}.r-wrap>.r-card{padding-right:48px;width:100%}
+.pick-row{display:flex;align-items:center}.pick-row>.opt{flex:1;min-width:0}.star-mark{color:#e3a008}

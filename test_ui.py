@@ -30,7 +30,7 @@ async def main():
         check('Up next follows the chosen plan', await pg.locator('.next-card h2').inner_text() == 'PUSH' or (await pg.locator('.next-card h2').inner_text()).upper() == 'PUSH', await pg.locator('.next-card h2').inner_text())
         # History and save status
         await pg.evaluate("(() => { lsSet('statsTab', 'history'); UI.setTab('stats'); })()"); await pg.wait_for_timeout(300)
-        check('History shows a labeled save status', await pg.locator('.sync-line').count() == 1, await pg.locator('.sync-line').inner_text())
+        check('History shows a dismissible save status', await pg.locator('#intro-sync .tip-x').count() == 1, await pg.locator('#intro-sync').inner_text())
         await pg.locator('.tabs button', has_text='Train').click(); await pg.wait_for_timeout(200)
         # Sheet handle: drag up = full height, drag down = smaller, drag further = close, tap toggles
         async def drag(dy):

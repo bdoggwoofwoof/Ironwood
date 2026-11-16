@@ -121,7 +121,7 @@ function ProgramSheet() {
 const ERRS = []; addEventListener('error', e => { ERRS.push(String(e.message || e.error || 'error').slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
 addEventListener('unhandledrejection', e => { ERRS.push(('Promise: ' + (e.reason && (e.reason.message || e.reason))).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
 const SUPPORT = 'https://github.com/bdoggwoofwoof/ironwood/issues';
-function HelpFoot() { return html`<div class="help-foot"><button class="btn text" id="help-btn" onClick=${() => openSheet({ type: 'help' })}><span class="help-q" aria-hidden="true">?</span> Help</button>${(lsGet('tab') || 'train') !== 'profile' ? html`<button class="btn text settings-btn" id="settings-btn" onClick=${() => UI.setTab('profile')}>${I.gear} Settings</button>` : null}</div>`; }
+function HelpFoot() { return html`<div class="help-foot"><button class="btn text" id="help-btn" onClick=${() => openSheet({ type: 'help' })}><span class="help-q" aria-hidden="true">?</span> Help</button>${(lsGet('tab') || 'train') === 'meals' ? html`<button class="btn text" id="meals-tour-btn" onClick=${() => startTour('meals')}>How Meals works</button>` : null}${(lsGet('tab') || 'train') !== 'profile' ? html`<button class="btn text settings-btn" id="settings-btn" onClick=${() => UI.setTab('profile')}>${I.gear} Settings</button>` : null}</div>`; }
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>

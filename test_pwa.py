@@ -60,7 +60,7 @@ async def main():
         await pg.screenshot(path='shot-log-offline.png')
 
         # Profile: sync line and backup file
-        await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(400)
+        await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(400)
         sync = await pg.locator('.sync').first.inner_text()
         check('profile says saved on this phone', 'this phone' in sync, sync)
         async with pg.expect_download() as dl:

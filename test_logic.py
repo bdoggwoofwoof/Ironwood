@@ -28,7 +28,7 @@ async def main():
         check('Show more reveals the rest', await pg.locator('.log-item').count() == 40 and await pg.locator('#log-more').count() == 0)
         # Unit switch: 185 lb stays 185 lb (84 kg), custom bar weight kept
         await pg.evaluate("commit(x => { x.meta.settings.bar = 35; }, 'meta')")
-        await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(300)
         await pg.locator('.seg button', has_text='kg').first.click(); await pg.wait_for_timeout(400)
         st = await pg.evaluate("({ u: S.sessions.s5.items[0].u, bw: S.meta.bw[0].u, bar: S.meta.settings.bar, inc: S.meta.settings.inc, unit: S.meta.settings.unit, main: toMain(S.sessions.s5.items[0].sets, S.sessions.s5.items[0].u)[0].w })")
         check('old entries stamped with lb on switch to kg', st['u'] == 'lb' and st['bw'] == 'lb' and st['unit'] == 'kg', st)
@@ -77,7 +77,7 @@ async def main():
         check('rest timer survives a reload', await pg.evaluate("!!S.rest && S.rest.until > Date.now()"))
         check('0.4 reps does not count as a set', await pg.evaluate("isDone({ w: '100', r: '0.4' }) === false && isDone({ w: '100', r: '0.6' }) === true"))
         # Sheets are real modals: page behind is inert, focus moves in and comes back
-        await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(300)
         await pg.locator('#pal-custom').click(); await pg.wait_for_timeout(300)
         inside = await pg.evaluate("document.querySelector('.sheet').contains(document.activeElement)")
         check('sheet takes focus and the page behind is inert', inside and await pg.evaluate("document.querySelector('#app > main').inert === true"))

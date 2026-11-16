@@ -31,7 +31,7 @@ COUNT_PHOTOS = """() => new Promise(res => { const rq = indexedDB.open('liftbook
     r.onsuccess = () => res(r.result.map(p => ({ id: p.id, pose: p.pose, size: p.blob && p.blob.size, type: p.blob && p.blob.type }))); }; })"""
 
 async def profile(pg):
-    await pg.locator('.tab', has_text='Profile').click(); await pg.wait_for_timeout(300)
+    await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(300)
 
 async def main():
     async with async_playwright() as p:

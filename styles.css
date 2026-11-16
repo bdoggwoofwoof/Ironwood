@@ -55,7 +55,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .pill-btn.accent{background:var(--accent-bg);color:var(--accent-ink)}
 main{max-width:640px;margin:0 auto;padding-inline:var(--gut);padding-block:8px calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + 42px)}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
-.tabs-in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
+.tabs-in{display:grid;grid-template-columns:repeat(4,1fr);max-width:640px;margin:0 auto}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--ink-3);font-size:calc(11.5 * var(--u));font-weight:600;letter-spacing:.02em;border-radius:12px}
 .tab svg{width:24px;height:24px}
 .tab.on{color:var(--accent)}
@@ -495,7 +495,7 @@ span.chip.wtag{color:var(--ink-2);background:rgba(127,127,127,.16)}
 .tip-card{display:flex;align-items:flex-start;gap:6px;background:var(--surface);border-radius:12px;padding:10px 6px 10px 14px;font-size:calc(14 * var(--u));color:var(--ink-2);line-height:1.4}
 .tip-x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3);flex:none;margin-top:-5px}
 .tip-x svg{width:16px;height:16px}
-.help-foot{display:flex;justify-content:center;margin:28px 0 4px}
+.help-foot{display:flex;justify-content:center;gap:18px;margin:28px 0 4px}
 .help-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;font-size:calc(12 * var(--u));font-weight:700;line-height:1}
 .sync-line{margin:10px 0 0;font-size:calc(13.5 * var(--u))}
 .pal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -916,3 +916,5 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 .ql-row{align-items:center;gap:12px}.ql-ic{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--raised);color:var(--accent)}.ql-ic svg{width:18px;height:18px}
 .ql-days{padding:0 4px 8px 48px}.ql-day{min-height:40px}
 body:has(#quick-fab) main{padding-bottom:84px}
+.settings-btn svg{width:18px;height:18px;margin-right:4px;vertical-align:-3px}
+.intro-x{display:flex;align-items:center;gap:6px;margin:2px 0 8px}.intro-x p{flex:1;min-width:0;margin:0}.intro-x .tip-x{min-width:36px;min-height:36px;flex:none}

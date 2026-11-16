@@ -25,6 +25,11 @@ function Tip({ id, children, style, slot }) {
   if (TIP_FRAME[k] && TIP_FRAME[k] !== id) return null; TIP_FRAME[k] = id;
   return html`<div class="tip-card" style=${style}><div style="flex:1;min-width:0">${children}</div><button class="tip-x" aria-label="Hide this tip" onClick=${() => commit(st => { st.meta.settings.tipsOff = { ...(st.meta.settings.tipsOff || {}), [id]: 1 }; }, 'meta')}>${I.x}</button></div>`;
 }
+/* A page's one-line intro under its title (Nov 16, Newt: dismissible). Hidden ones come back with Help → Show tips again. */
+function Intro({ id, children }) {
+  if (tipOff(id)) return null;
+  return html`<div class="tab-intro intro-x" id=${id}><p class="small muted">${children}</p><button class="tip-x" aria-label="Hide this line" onClick=${() => commit(st => { st.meta.settings.tipsOff = { ...(st.meta.settings.tipsOff || {}), [id]: 1 }; }, 'meta')}>${I.x}</button></div>`;
+}
 function TopSwitch({ value, options, onChange }) {
   return html`<div class=${'topsw' + (options.length > 3 ? ' four' : '')} role="tablist">${options.map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${value === k} class=${value === k ? 'on' : ''} onClick=${() => onChange(k)}>${l}</button>`)}</div>`;
 }
@@ -33,7 +38,7 @@ function TrainSwitch() {
   const pick = m => { TRAIN.mode = m; lsSet('trainMode', m); S.rerender(); scrollTo(0, 0); };
   if (TRAIN.mode === 'history') { TRAIN.mode = 'train'; lsSet('trainMode', 'train'); }
   return html`<div><${TopSwitch} value=${TRAIN.mode} options=${[['train', 'Train'], ['run', 'Run'], ['fight', 'Fight']]} onChange=${pick}/>
-    <p class="small muted tab-intro" style="margin:2px 0 8px">${TRAIN.mode === 'run' ? 'Your running plan, paces and conditioning.' : TRAIN.mode === 'fight' ? 'Coached rounds, combos and drills.' : 'Today’s training: what’s next and your week.'}</p>
+    <${Intro} id=${'intro-' + TRAIN.mode}>${TRAIN.mode === 'run' ? 'Your running plan, paces and conditioning.' : TRAIN.mode === 'fight' ? 'Coached rounds, combos and drills.' : 'Today’s training: what’s next and your week.'}<//>
     ${TRAIN.mode === 'run' ? html`<${RunScreen}/>` : TRAIN.mode === 'fight' ? html`<${FightScreen}/>` : html`<${TrainHome}/>`}</div>`;
 }
 function TrainHome() {
@@ -116,7 +121,7 @@ function ProgramSheet() {
 const ERRS = []; addEventListener('error', e => { ERRS.push(String(e.message || e.error || 'error').slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
 addEventListener('unhandledrejection', e => { ERRS.push(('Promise: ' + (e.reason && (e.reason.message || e.reason))).slice(0, 200)); if (ERRS.length > 5) ERRS.shift(); });
 const SUPPORT = 'https://github.com/bdoggwoofwoof/ironwood/issues';
-function HelpFoot() { return html`<div class="help-foot"><button class="btn text" id="help-btn" onClick=${() => openSheet({ type: 'help' })}><span class="help-q" aria-hidden="true">?</span> Help</button></div>`; }
+function HelpFoot() { return html`<div class="help-foot"><button class="btn text" id="help-btn" onClick=${() => openSheet({ type: 'help' })}><span class="help-q" aria-hidden="true">?</span> Help</button>${(lsGet('tab') || 'train') !== 'profile' ? html`<button class="btn text settings-btn" id="settings-btn" onClick=${() => UI.setTab('profile')}>${I.gear} Settings</button>` : null}</div>`; }
 function HelpSheet() {
   const hidden = Object.keys(S.meta.settings.tipsOff || {}).length;
   return html`<${Sheet} label="Help"><h2>Help</h2>
@@ -135,7 +140,7 @@ const TOUR = [
   ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: lifting, one-day plans, goal plans, running, fight and joint care. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
   ['stats', null, '.lift-row', 'Progress', 'Your history, numbers, each lift’s chart and records, and progress photos. These are sample numbers for the tour; they go away when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
-  ['profile', null, '#backup-file', 'Profile', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
+  ['profile', null, '#backup-file', 'Settings', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
 ];
 /* The full walkthrough (the 22-stop tour from before Nov 10), from Help → Full tour */
 const TOUR_FULL = [
@@ -163,7 +168,7 @@ const TOUR_FULL = [
   ['train', 'train', null, 'You’re set', 'Time to train.'],
 ];
 /* Each page's own tour (Nov 10, Newt): the full tour's stops for the page you're on, plus a closing card */
-const PAGE_NAMES = { train: 'Train', run: 'Run', fight: 'Fight', routines: 'Plans', stats: 'Progress', meals: 'Meals', profile: 'Profile' };
+const PAGE_NAMES = { train: 'Train', run: 'Run', fight: 'Fight', routines: 'Plans', stats: 'Progress', meals: 'Meals', profile: 'Settings' };
 function pageTour() {
   const tab = lsGet('tab') || 'train'; const mode = tab === 'train' ? TRAIN.mode : null;
   const steps = TOUR_FULL.filter(t => t[0] === tab && t[2] && (tab !== 'train' || t[1] === mode));

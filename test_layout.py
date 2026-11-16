@@ -13,7 +13,7 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
         heads = []
-        for t in ['Train', 'Plans', 'Meals', 'Progress', 'Profile']:
+        for t in ['Train', 'Plans', 'Meals', 'Progress']:
             await pg.locator('.tabs button', has_text=t).click(); await pg.wait_for_timeout(250)
             heads.append(await ev("(() => { const e = document.querySelector('main .topsw button.on, main .page-title'); const r = e.getBoundingClientRect(); return [getComputedStyle(e).fontSize, Math.round(r.top), Math.round(r.height)]; })()"))
         check('same header size and position on all five pages', len({tuple(h) for h in heads}) == 1, heads)

@@ -14,7 +14,7 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         tabs = await pg.locator('.tabs .tab').all_inner_texts()
-        check('five tabs, no Log', [t.strip() for t in tabs] == ['Train', 'Plans', 'Meals', 'Progress', 'Profile'], tabs)
+        check('four tabs, Settings off the bar', [t.strip() for t in tabs] == ['Train', 'Plans', 'Meals', 'Progress'], tabs)
         check('no program by default', await pg.locator('#get-started').count() == 1 and await pg.locator('.next-card', has_text="Newt's").count() == 0)
         # Self-log
         await pg.get_by_role('button', name='Choose a plan').click(); await pg.wait_for_timeout(300)
@@ -61,9 +61,9 @@ async def main():
         await pg.locator('#help-btn').click(); await pg.locator('#help-tour').click(); await pg.wait_for_timeout(300)
         seen = []
         for _ in range(22):
-            await pg.wait_for_timeout(250); seen.append((await pg.locator('.tab.on').inner_text()).strip())
+            await pg.wait_for_timeout(250); seen.append(await pg.evaluate("(document.querySelector('.tab.on') || { textContent: 'Settings' }).textContent.trim()"))
             await pg.locator('#tour-next').click(); await pg.wait_for_timeout(250)
-        check('tour walks through each page', seen == ['Train'] * 10 + ['Plans'] * 2 + ['Progress'] * 3 + ['Meals'] * 3 + ['Profile'] * 2 + ['Train'] * 2, seen)
+        check('tour walks through each page', seen == ['Train'] * 10 + ['Plans'] * 2 + ['Progress'] * 3 + ['Meals'] * 3 + ['Settings'] * 2 + ['Train'] * 2, seen)
         check('tour closes', await pg.locator('.tour').count() == 0)
         # Feedback
         await pg.locator('#help-btn').click(); await pg.locator('#help-feedback').click(); await pg.wait_for_timeout(300)
@@ -73,7 +73,7 @@ async def main():
         await pg.keyboard.press('Escape')
         # Colors
         before = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
-        await pg.locator('.tabs button', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(300)
         await pg.locator('.pal', has_text='Color-blind friendly').click(); await pg.wait_for_timeout(200)
         check('color-blind friendly offers two kinds', await pg.locator('#pal-cb button').count() == 2)
         check('only Classic, Forest, Color-blind friendly and Custom', await pg.locator('.pal').count() == 4)
@@ -82,10 +82,10 @@ async def main():
         await pg.reload(); await pg.wait_for_timeout(1500)
         kept = await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()")
         check('color theme kept after reload', kept == after, kept)
-        await pg.locator('.tabs button', has_text='Profile').click(); await pg.locator('.pal', has_text='Classic').click(); await pg.wait_for_timeout(200)
+        await pg.evaluate("UI.setTab('profile')"); await pg.locator('.pal', has_text='Classic').click(); await pg.wait_for_timeout(200)
         check('back to classic', await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == before)
         # Custom colors from the wheel
-        await pg.locator('.tabs button', has_text='Profile').click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("UI.setTab('profile')"); await pg.wait_for_timeout(300)
         await pg.locator('#pal-custom').click(); await pg.wait_for_timeout(400)
         w = await pg.locator('#color-wheel').bounding_box(); cx, cy = w['x'] + w['width'] / 2, w['y'] + w['height'] / 2
         await pg.mouse.move(cx, cy); await pg.mouse.down(); await pg.mouse.move(cx + 90, cy - 30, steps=6); await pg.mouse.up(); await pg.wait_for_timeout(200)
@@ -134,7 +134,7 @@ async def main():
         check('nothing fake saved', await q.evaluate("Object.keys(JSON.parse(localStorage.getItem('liftbook.v1') || '{\"sessions\":{}}').sessions || {}).length") == 0)
         await q.reload(); await q.wait_for_timeout(2200)
         check('tour does not reopen', await q.locator('.tour').count() == 0)
-        await q.locator('.tabs button', has_text='Profile').click(); await q.wait_for_timeout(300)
+        await q.evaluate("UI.setTab('profile')"); await q.wait_for_timeout(300)
         await q.locator('#profile-tour').click(); await q.wait_for_timeout(300)
         check('tour can be redone from Profile', await q.locator('.tour', has_text='Welcome to Ironwood').count() == 1)
         await q.screenshot(path='shot-tour.png')

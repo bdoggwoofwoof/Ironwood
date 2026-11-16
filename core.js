@@ -374,7 +374,7 @@ function finishWorkout(opts = {}) {
     return;
   }
   const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
-    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; return o; }) })).filter(it => it.sets.length);
+    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
@@ -444,7 +444,7 @@ function ActiveWorkout() {
     <div class="small muted num" style="margin-top:6px">${done} of ${total} sets done</div>
     <${WorkoutExtras} a=${a}/>
     <${FightWorkoutBtn} a=${a}/>
-    ${lsGet('swiped') !== '1' && Object.values(S.sessions).filter(x => x.kind !== 'activity').length < 2 ? html`<p class="swipe-hint">Swipe a set right to log it as shown, or tap its number for Log, Copy and Delete. Typing the reps logs it too.</p>` : null}
+    ${lsGet('swiped') !== '1' && Object.values(S.sessions).filter(x => x.kind !== 'activity').length < 2 ? html`<p class="swipe-hint">Swipe a set right to log it as shown, or tap its number for Log, Drop set, Copy and Delete. Typing the reps logs it too.</p>` : null}
     ${a.items.map((it, i) => html`<${SlotCard} key=${it.id} it=${it} i=${i} nextSS=${!!(a.items[i + 1] && a.items[i + 1].ss)}/>`)}
     ${!a.items.length ? html`<div class="empty"><h3>Empty workout</h3><p>Add the first exercise below.</p></div>` : null}
     <div class="stack" style="margin-top:16px">
@@ -518,13 +518,13 @@ function SetRow({ it, s, j, kind }) {
       <div class="ur" ref=${urR}>${act('del', I.trash, 'Delete', () => deleteSet(it, s))}</div>
     </div>
     <div ref=${ref} class=${'set-row' + (done ? ' done' : '')} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${cancel} onClickCapture=${clickCap}>
-      <button type="button" class=${'n' + (s.pr && done ? ' pr' : '')} id=${'sn-' + s.id} aria-label=${'Set ' + (j + 1) + (done ? ', logged' : '') + '. Actions'} onClick=${() => openSheet({ type: 'setActs', it, s })}>${j + 1}</button>
+      <button type="button" class=${'n' + (s.pr && done ? ' pr' : '')} id=${'sn-' + s.id} aria-label=${'Set ' + (j + 1) + (done ? ', logged' : '') + ((s.drops || []).length ? ', drop set' : '') + '. Actions'} onClick=${() => openSheet({ type: 'setActs', it, s })}>${j + 1}${(s.drops || []).length ? html`<small class="drop-d" aria-hidden="true">D</small>` : null}</button>
       <input id=${'w-' + s.id} type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value=${s.w} placeholder=${s.gw || (kind === 'bodyweight' ? '0' : '–')} aria-label=${'Set ' + (j + 1) + ' ' + wLbl}
         onFocus=${e => { selAll(e); setFoc('w'); }} onBlur=${() => setFoc(f => f === 'w' ? null : f)} onInput=${e => { s.w = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <div class="last-note">${!ne && prevSetText(it, j, kind) ? html`<span class="prev num" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>
-    </div></div>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div><${DropRows} it=${it} s=${s} j=${j} kind=${kind}/>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -871,7 +871,10 @@ function demoData(now) {
   for (let t = start; t < now - 9 * DAY; t += 3.5 * DAY) { v += 1.6 + Math.sin(t / 5e8) * 1.4; pts.push({ t, v: Math.round(v), sets: [{ w: Math.round(v / 1.17), r: 5 }] }); }
   return pts;
 }
-function itemVolume(it) { const k = exKind(it.ex); if (k === 'bodyweight' || k === 'assisted') return 0; return toMain(it.sets, it.u).reduce((a, x) => a + (+x.w || 0) * (+x.r || 0), 0); }
+function itemVolume(it) { const k = exKind(it.ex); if (k === 'bodyweight' || k === 'assisted') return 0; return toMain(it.sets, it.u).reduce((a, x) => a + (+x.w || 0) * (+x.r || 0) + dropVol(x, it.u), 0); }
+/* Drop sets (Nov 16, Newt): a set's drops are extra mini-sets right after it at a lower weight, no rest between */
+const dropVol = (x, u) => (x.dr || x.drops || []).reduce((a, d) => a + ((!u || u === U()) ? +d.w || 0 : r1(conv(+d.w || 0, u, U()))) * (Math.round(+d.r) || 0), 0);
+const dropText = (x, u) => (x.dr || []).map(d => fmt(d.w) + '×' + d.r).join(', ');
 const PERIODS = [['1w', '1 week'], ['4w', '1 month'], ['3m', '3 months'], ['1y', 'Year'], ['all', 'All time']];
 function periodStart(p) { const t = startOfDay(new Date()); return p === '1w' ? addDays(t, -6) : p === '4w' ? addDays(t, -27) : p === '3m' ? addDays(t, -90) : p === '1y' ? addDays(t, -364) : new Date(0); }
 function overallStats(p) {
@@ -1953,7 +1956,7 @@ function SessionSheet({ id }) {
           <input id=${'er-' + i + '-' + j} inputmode="numeric" aria-label="Reps" value=${x.r} onInput=${e => { x.r = e.target.value; }}/>
           <input id=${'eno-' + i + '-' + j} class="note" aria-label="Set note" placeholder="Note" value=${x.n || ''} onInput=${e => { x.n = e.target.value; }}/>
           <button class="icon-btn" aria-label="Remove set" onClick=${() => { it.sets.splice(j, 1); setEdit({ ...edit }); }}>${I.x}</button></div>`)
-        : html`<div class="set-tbl">${it.sets.map((x, j) => html`<span class="faint">${j + 1}</span><span>${isMeasured(kind) ? measLabel(x, kind, u) : kind === 'bodyweight' && !x.w ? x.r + ' reps' : fmt(x.w) + ' ' + u + ' × ' + x.r}${x.n ? html`<span class="set-note"> · ${x.n}</span>` : null}</span><span class="faint">${kind === 'bodyweight' || kind === 'assisted' || isMeasured(kind) ? '' : '≈ ' + fmt(r05(epley(x.w, x.r)))}</span>${noE1(x.p).length ? html`<span class="pr-line tbl">${noE1(x.p).map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</span>` : null}`)}</div>`}
+        : html`<div class="set-tbl">${it.sets.map((x, j) => html`<span class="faint">${j + 1}</span><span>${isMeasured(kind) ? measLabel(x, kind, u) : kind === 'bodyweight' && !x.w ? x.r + ' reps' : fmt(x.w) + ' ' + u + ' × ' + x.r}${x.dr && x.dr.length ? html`<span class="drop-hist"> ↓ drop ${dropText(x, u)}</span>` : null}${x.n ? html`<span class="set-note"> · ${x.n}</span>` : null}</span><span class="faint">${kind === 'bodyweight' || kind === 'assisted' || isMeasured(kind) ? '' : '≈ ' + fmt(r05(epley(x.w, x.r)))}</span>${noE1(x.p).length ? html`<span class="pr-line tbl">${noE1(x.p).map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</span>` : null}`)}</div>`}
       ${!edit ? noE1(s.prs).filter(p => p.ex === it.ex && p.group === (it.group || '') || (p.ex === it.ex && !p.group)).map((p, k) => html`<span key=${k} class="pr-badge" style="margin:6px 6px 0 0">${I.plate} ${p.label}</span>`) : null}
     </div>`; })}
     <div class="stack" style="margin-top:16px">
@@ -2153,12 +2156,32 @@ if (window.visualViewport) { const vv = window.visualViewport; const on = () => 
 
 /*@include about.js*/
 
+/* A drop starts at about 80% of the weight before it, rounded to the plate step */
+function addDrop(it, s) {
+  const prev = (s.drops || []).slice(-1)[0] || s; const w0 = num(prev.w || prev.gw); const u = it.u || U(); const step = u === 'kg' ? 2.5 : 5;
+  const gw = w0 > 0 ? String(Math.max(0, Math.round(w0 * 0.8 / step) * step)) : '';
+  s.drops = [...(s.drops || []), { id: uid('d'), w: '', r: '', gw, gr: prev.r || prev.gr || '' }]; touch(); S.rerender();
+  setTimeout(() => { const e = document.getElementById('dw-' + s.drops[s.drops.length - 1].id); if (e) e.focus(); }, 60);
+}
+function DropRows({ it, s, j, kind }) {
+  if (!(s.drops || []).length) return null; const u = it.u || U();
+  return html`<div class="drops" role="group" aria-label=${'Set ' + (j + 1) + ' drops'}>${s.drops.map((d, k) => html`<div key=${d.id} class=${'drop-row' + (Math.round(num(d.r)) >= 1 ? ' done' : '')}>
+    <span class="drop-lbl" aria-hidden="true">↓</span>
+    <input id=${'dw-' + d.id} type="text" inputmode="decimal" autocomplete="off" value=${d.w} placeholder=${d.gw || '–'} aria-label=${'Set ' + (j + 1) + ' drop ' + (k + 1) + ' ' + (kind === 'assisted' ? 'assist ' : '') + u}
+      onFocus=${selAll} onInput=${e => { d.w = e.target.value; touch(); }} onKeyDown=${enterBlur}/>
+    <input id=${'dr-' + d.id} type="text" inputmode="numeric" autocomplete="off" value=${d.r} placeholder=${d.gr || '–'} aria-label=${'Set ' + (j + 1) + ' drop ' + (k + 1) + ' reps'}
+      onFocus=${selAll} onInput=${e => { d.r = e.target.value; touch(); }} onChange=${() => S.rerender()} onKeyDown=${enterBlur}/>
+    <span class="small muted">Drop ${k + 1}</span>
+    <button class="tip-x" aria-label=${'Remove drop ' + (k + 1) + ' from set ' + (j + 1)} onClick=${() => { s.drops = s.drops.filter(x => x !== d); touch(); S.rerender(); }}>${I.x}</button></div>`)}
+    <button class="btn text drop-add" id=${'da-' + s.id} onClick=${() => addDrop(it, s)}>+ Another drop</button></div>`;
+}
 function SetActsSheet({ it, s }) {
   const j = it.sets.indexOf(s); if (j < 0) return null; const done = isDone(s);
   const go = fn => { closeSheet(); fn(); };
   return html`<${Sheet} label=${'Set ' + (j + 1)}><h2>Set ${j + 1}</h2><p class="note">${exName(it.ex)}${done ? ' · logged' : ''}</p>
     <div class="stack" style="margin-top:12px">
       <button class="btn wide" id="sa-log" onClick=${() => go(() => { if (done) uncompleteSet(it, s, false); else completeSet(it, s, false); S.rerender(); })}>${done ? 'Clear this set' : 'Log this set'}</button>
+      ${isMeasured(exKind(it.ex)) ? null : html`<button class="btn wide" id="sa-drop" onClick=${() => go(() => addDrop(it, s))}>${(s.drops || []).length ? 'Add another drop' : 'Make it a drop set'}</button>`}
       <button class="btn wide" id="sa-copy" onClick=${() => go(() => copySet(it, s))}>Copy set</button>
       <button class="btn wide danger" id="sa-del" onClick=${() => go(() => deleteSet(it, s))}>Delete set</button>
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;

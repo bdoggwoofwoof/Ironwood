@@ -344,7 +344,7 @@ function cleanSession(k, s) {
   const o = { ...s, id: typeof s.id === 'string' && s.id ? s.id : String(k), startedAt: +s.startedAt || t };
   if (!isFinite(+o.endedAt)) o.endedAt = o.startedAt;
   o.items = (Array.isArray(s.items) ? s.items : []).filter(it => it && typeof it.ex === 'string').map(it => ({ ...it, ex: exIdNow(it.ex),
-    sets: (Array.isArray(it.sets) ? it.sets : []).filter(x => x && typeof x === 'object' && isFinite(+x.w) && isFinite(+x.r)).map(x => ({ ...x, w: +x.w, r: Math.round(+x.r) })) }));
+    sets: (Array.isArray(it.sets) ? it.sets : []).filter(x => x && typeof x === 'object' && isFinite(+x.w) && isFinite(+x.r)).map(x => { const o = { ...x, w: +x.w, r: Math.round(+x.r) }; if (o.dr) { o.dr = (Array.isArray(o.dr) ? o.dr : []).filter(d => d && isFinite(+d.w) && +d.r >= 1).map(d => ({ w: +d.w, r: Math.round(+d.r) })); if (!o.dr.length) delete o.dr; } return o; }) }));
   if (!Array.isArray(o.prs)) o.prs = [];
   return o;
 }

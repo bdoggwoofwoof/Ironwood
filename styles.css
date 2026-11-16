@@ -894,3 +894,11 @@ main:has(.fab:not([hidden])){padding-bottom:84px}
 #cook-start svg{width:18px;height:18px;margin-right:4px}
 .step-amt{font-weight:700;color:var(--ink)}
 .step-line{display:block}.step-line+.step-line{margin-top:6px}
+.drops{margin:2px 0 4px 26px;display:flex;flex-direction:column;gap:4px}
+.drop-row{display:grid;grid-template-columns:18px 70px 56px minmax(0,1fr) 36px;gap:8px;align-items:center;padding:3px 4px;border-radius:10px;background:var(--surface);border-left:3px solid var(--accent)}
+.drop-row input{width:100%;text-align:center;background:var(--raised);border:1.5px solid transparent;border-radius:9px;padding:7px 4px;font-size:calc(16 * var(--u));font-weight:600;font-variant-numeric:tabular-nums}
+.drop-row input:focus{border-color:var(--accent);outline:none}.drop-row.done input{color:var(--accent)}
+.drop-lbl{font-weight:700;color:var(--accent);text-align:center}
+.drop-add{align-self:flex-start;min-height:36px;padding:4px 6px;font-size:calc(14 * var(--u))}
+.set-row .n .drop-d{display:block;font-size:calc(10 * var(--u));line-height:1;color:var(--accent);letter-spacing:.04em}
+.drop-hist{color:var(--ink-2)}

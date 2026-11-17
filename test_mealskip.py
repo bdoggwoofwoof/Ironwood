@@ -21,12 +21,13 @@ async def main():
         check('Log food sits above the fold', await ev("document.querySelector('#log-add').getBoundingClientRect().bottom < 600"))
         for mode in ['log', 'plan', 'recipes', 'list']:
             await ev(f"setMealsMode('{mode}'); S.rerender()"); await pg.wait_for_timeout(400)
-            want = 1  # Nov 16: the Quick log button is on every Meals page
+            want = 0 if mode == 'list' else 1  # Nov 16: the Quick log button is on every Meals page except Shopping (audit D5)
             try:
                 await pg.wait_for_function(f"document.querySelectorAll('#quick-fab:not([hidden])').length === {want}", timeout=3000)
             except Exception:
                 pass
             check('+ button on ' + mode, await pg.locator('#quick-fab:not([hidden])').count() == want, await ev("[MEALS.mode, document.querySelector('#quick-fab') && [...document.querySelectorAll('#quick-fab')].map(e => e.outerHTML.slice(0, 120)).join(' ;; ')]"))
+        await ev("setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.click('#quick-fab'); await pg.wait_for_timeout(300); await pg.click('#ql-food'); await pg.wait_for_timeout(300)
         check('+ opens Log food', await pg.locator('#lf-num-go').count() == 1)
         await ev("closeSheet()"); await pg.wait_for_timeout(300)

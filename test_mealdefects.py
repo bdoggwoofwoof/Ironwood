@@ -90,6 +90,13 @@ async def main():
         snap2 = await ev("JSON.stringify(ML().menu.days)")
         await pg.wait_for_timeout(300)
         check('D6: removing one leaves the plan until you ask', snap2 == await ev("JSON.stringify(ML().menu.days)") and await pg.locator('#menu-stale').count() == 1)
+        # D5: no + over the rows on Start cooking and Shopping; still there on the other Meals pages
+        await ev("UI.setTab('meals'); UI.setView(null); setMealsMode('list'); S.rerender()"); await pg.wait_for_timeout(250)
+        check('D5: no + button on the Shopping list', await pg.locator('#quick-fab').count() == 0)
+        await ev("UI.setView({ type: 'cook' })"); await pg.wait_for_timeout(250)
+        check('D5: no + button on Start cooking', await pg.locator('#quick-fab').count() == 0)
+        await ev("UI.setView(null); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(250)
+        check('D5: the + button stays on Week', await pg.locator('#quick-fab').count() == 1)
         check('no page errors', not errs, errs[:3]); await b.close()
 try: asyncio.run(main())
 finally: srv.terminate()

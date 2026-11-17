@@ -30,6 +30,8 @@ function QuickLogSheet() {
 /* The button itself: hidden on Profile and on the workout screen while you lift */
 function QuickFab({ tab, view }) {
   if (tab === 'profile') return null;
+  /* Nov 16 (meal audit D5, Newt's pick): no + over the rows on Start cooking and the Shopping list */
+  if (tab === 'meals' && ((view && view.type === 'cook') || (!view && typeof MEALS !== 'undefined' && MEALS.mode === 'list'))) return null;
   if (tab === 'train' && (S.active || view) && !(view && view.type === 'challenge')) return null;
   return html`<button class=${'fab' + (S.rest ? ' over-rest' : '')} id="quick-fab" aria-label="Quick log: train, log exercise or food" onClick=${() => openSheet({ type: 'quickLog' })}>${I.plus}</button>`;
 }

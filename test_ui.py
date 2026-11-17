@@ -19,7 +19,7 @@ async def main():
         # Self-log
         await pg.get_by_role('button', name='Choose a plan').click(); await pg.wait_for_timeout(300)
         opts = await pg.locator('.opt > div > div:first-child').all_inner_texts()
-        check('picker: Self-log, Build my plan, Create, then the 4-Day Split first', opts[0] == 'Self-log' and opts[1] == 'Build my plan' and 'Create a new plan' in opts[2] and opts[3] == "Newt's 4-Day Split", opts[:4])
+        check('picker: Self-log, Build my plan, Create, then Heartwood Split (Personal first)', opts[0] == 'Self-log' and opts[1] == 'Build my plan' and 'Create a new plan' in opts[2] and opts[3] == 'Heartwood Split', opts[:4])
         await pg.locator('#pick-self').click(); await pg.wait_for_timeout(300)
         check('Self-log card', await pg.locator('.next-card', has_text='Log your own workout').count() == 1)
         # Follow a plan from its page

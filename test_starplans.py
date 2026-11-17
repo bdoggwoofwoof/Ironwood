@@ -18,7 +18,7 @@ async def main():
         await pg.click('#pf-starred'); await pg.wait_for_timeout(200)
         check('Starred with none says how', await pg.locator('#ps-starred-none').count() == 1)
         await pg.click('#pf-all'); await pg.wait_for_timeout(200)
-        sid = await ev("document.querySelector('#ps-lift .r-wrap .rec-star').id.slice(6)")
+        sid = await ev("document.querySelector('#ps-fb .r-wrap .rec-star').id.slice(6)")
         await pg.click('#pstar-' + sid); await pg.wait_for_timeout(200)
         check('tapping the star stars the plan without opening it', await ev(f"isStarPlan('{sid}')") and await ev("lsGet('tab')") == 'routines' and await pg.locator('#rv-star').count() == 0)
         check('All shows a Starred section first', await pg.locator('#ps-starred').count() == 1 and await ev("document.querySelector('#ps-starred').compareDocumentPosition(document.querySelector('#ps-mine')) & 4"))

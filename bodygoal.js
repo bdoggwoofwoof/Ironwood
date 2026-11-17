@@ -161,7 +161,10 @@ function BodyGoalSheet() {
   const save = () => {
     const same = g0.goal === d.goal;
     commit(st => { st.meta.settings.body = { goal: d.goal, pace: d.pace, ...(twKg ? { twKg } : {}), ...(G.tbf ? { tbf: G.tbf } : {}), from: same && g0.from ? g0.from : ymd(new Date()), w0Kg: same && g0.w0Kg ? g0.w0Kg : N.wLb / LB }; st.meta.settings.goal = d.days; }, 'meta');
-    closeSheet(); showToast({ kind: 'info', text: bgName(d.goal) + ' set.' });
+    /* Body goal sets Daily goals by itself (Nov 16, audit P1): one set of numbers for Meals and the meal plan */
+    const R2 = typeof ML === 'function' ? bgCalc(bgSet(), bodyNow()) : null; let moved = false;
+    if (R2 && R2.kcal > 0) { mealCommit(m => { m.goals = { ...(m.goals || {}), kcal: R2.kcal, p: R2.p, c: R2.c, f: R2.f }; }); moved = syncPlanTargets(); }
+    closeSheet(); showToast({ kind: 'info', ms: R2 ? 6000 : 4000, text: bgName(d.goal) + ' set.' + (R2 && R2.kcal > 0 ? ' Your daily meal goals are now ' + fmt(R2.kcal) + ' cal and ' + R2.p + ' g protein' + (moved ? ', and your meal plan’s portions follow from today on.' : '.') : '') });
   };
   const showPace = d.goal === 'bulk' || d.goal === 'cut';
   return html`<${Sheet} label="Body goal"><h2>Body goal</h2>

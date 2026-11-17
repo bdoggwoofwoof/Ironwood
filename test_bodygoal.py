@@ -42,8 +42,9 @@ async def main():
         check('no warnings when training is on track', await pg.locator('#bg-warns').count() == 0)
         await pg.click('#bg-tips summary'); await pg.wait_for_timeout(100)
         check('tips for bulking', 'surplus' in await pg.inner_text('#bg-tips'))
-        await pg.click('#bg-use'); await pg.wait_for_timeout(200)
-        check('Use these as my meal targets sets the meal goals', await ev("ML().goals.kcal") == R['kcal'] and await ev("ML().goals.p") == R['p'])
+        # Nov 16 (audit P1): saving the body goal sets Daily goals by itself; the button just confirms it
+        check('saving the body goal sets the meal goals', await ev("ML().goals.kcal") == R['kcal'] and await ev("ML().goals.p") == R['p'], [await ev("ML().goals"), R['kcal']])
+        check('...and the button says they are your meal targets', 'These are your meal targets' in await pg.inner_text('#bg-use') and await pg.is_disabled('#bg-use'))
         # Missed workouts on a bulk
         await ev(SESS + "(3)"); await pg.wait_for_timeout(300)
         check('bulk + missed workouts warns', await pg.locator('#bgw-miss').count() == 1 and '3 of 8' in await pg.inner_text('#bgw-miss'))

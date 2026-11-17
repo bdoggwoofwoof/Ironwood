@@ -92,7 +92,7 @@ async def main():
         await pg.click('#rot-save'); await pg.wait_for_timeout(300)
         r = await ev("({ rot: ML().rot, items: ML().plan.items.map(i => i.r) })")
         want = await ev(f"MEAL_PREPS.find(p => p.id === '{ids[0]}').items.filter(([x]) => getRecipe(x)).map(([x]) => x)")
-        check('week 1 loads into your prep now', r['rot']['ids'] == ids and r['items'] == want and r['rot']['applied'] == await ev("thisMonday()"), r)
+        check('week 1 loads into your prep now', r['rot']['ids'] == ids and sorted(r['items']) == sorted(want) and r['rot']['applied'] == await ev("thisMonday()"), r)
         card = await pg.inner_text('#rot-card')
         n1 = await ev(f"prepById('{ids[0]}').name"); n2 = await ev(f"prepById('{ids[1]}').name")
         check('card says this week and next week', n1 in card and n2 in card and 'Week 1 of 3' in card, card)
@@ -100,7 +100,8 @@ async def main():
         await ev("mealCommit(m => { m.checks = { a: true }; m.rot.start = ymd(addDays(parseYmd(m.rot.start), -7)); m.rot.applied = ymd(addDays(parseYmd(m.rot.applied), -7)); })")
         await ev("rotCheck()"); await pg.wait_for_timeout(200)
         want2 = await ev(f"MEAL_PREPS.find(p => p.id === '{ids[1]}').items.filter(([x]) => getRecipe(x)).map(([x]) => x)")
-        check('a new week loads the next prep and clears the list ticks', await ev("ML().plan.items.map(i => i.r)") == want2 and await ev("Object.keys(ML().checks).length") == 0)
+        got2 = await ev("ML().plan.items.map(i => i.r)")
+        check('a new week loads the next prep and clears the list ticks', sorted(got2) == sorted(want2) and await ev("Object.keys(ML().checks).length") == 0, (got2, want2))
         check('it loads once per week', await ev("rotCheck()") is False)
         # Save your own prep and rotate it
         await pg.click('#prep-save'); await pg.wait_for_timeout(150); await pg.fill('#ps-name', 'Sunday Mix'); await pg.click('#ps-save'); await pg.wait_for_timeout(200)

@@ -7,7 +7,7 @@ srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'd
 results = []
 def check(name, ok, detail=''):
     results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + (' - ' + str(detail) if detail else ''))
-MENU_IDS = "[...new Set(ML().menu.days.flatMap(d => d.map(x => x.r)))]"
+MENU_IDS = "[...new Set(planYmds().filter(d => d >= ymd(new Date())).flatMap(d => dayMeals(d)).filter(x => x.slot !== 'x').map(x => x.r))]"
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); pg = await b.new_page(viewport={'width': 390, 'height': 844})
@@ -39,12 +39,12 @@ async def main():
         await ev("toggleStar('m-sc-honey-garlic')"); await pg.wait_for_timeout(300)
         ids2 = await ev(MENU_IDS)
         check('unstarring a recipe takes it out of the plan', 'm-sc-honey-garlic' not in ids2, ids2)
-        check('...and out of what you cook', not await ev("ML().plan.items.some(i => i.r === 'm-sc-honey-garlic')"))
+        check('...from today on (past days stay as they were)', not await ev("planYmds().filter(d => d >= ymd(new Date())).flatMap(d => dayMeals(d)).some(x => x.r === 'm-sc-honey-garlic')"))
         await ev("toggleStar('m-sc-salsa-chicken')"); await pg.wait_for_timeout(300)
         check('starring one adds it to the plan', 'm-sc-salsa-chicken' in await ev(MENU_IDS))
         # Too few stars in a slot: other recipes fill it
         await ev("mealCommit(m => { m.stars = { 'm-sc-tikka': true }; }); toggleStar('m-sc-shawarma')"); await pg.wait_for_timeout(300)
-        b_ids = await ev("[...new Set(ML().menu.days.flatMap(d => d.filter(x => x.slot === 'b').map(x => x.r)))]")
+        b_ids = await ev("[...new Set(planYmds().filter(d => d >= ymd(new Date())).flatMap(d => dayMeals(d)).filter(x => x.slot === 'b').map(x => x.r))]")
         check('with no starred breakfast, breakfasts come from the rest', len(b_ids) >= 1, b_ids)
         await ev("openSheet({ type: 'mealTargets', step: 2 })"); await pg.wait_for_timeout(300)
         check('How you eat has the starred switch, on', await ev("document.querySelector('#hb-starred').checked"))

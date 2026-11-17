@@ -1602,8 +1602,8 @@ function restoreInto(st, d) {
     for (const f of ['exUnit', 'exRest', 'exCat', 'dayMarks', 'challenges', 'exJump', 'liftGoals', 'monthNotes', 'exSide', 'machines']) { st.meta[f] = st.meta[f] || {}; for (const [k, v] of Object.entries(m[f] || {})) if (!(k in st.meta[f])) st.meta[f][k] = v; }
     const mIds = new Set((st.meta.meas || []).map(x => x.id)); st.meta.meas = (st.meta.meas || []).concat((m.meas || []).filter(x => x && !mIds.has(x.id)));
     const bwDays = new Set((st.meta.bw || []).map(x => x.d)); st.meta.bw = (st.meta.bw || []).concat((m.bw || []).filter(x => x && !bwDays.has(x.d)));
-    if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) a.plan = b.plan;
-      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.habits && b.habits) a.habits = b.habits; if (!a.menu && b.menu) a.menu = b.menu; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
+    if (d.meta.meals) { const a = st.meta.meals = normMeals(st.meta.meals), b = normMeals(d.meta.meals); for (const [k, r] of Object.entries(b.recipes)) if (!a.recipes[k]) a.recipes[k] = r; if (!a.plan.items.length && b.plan.items.length) { a.plan = b.plan; a.days = { ...b.days, ...a.days }; if (!a.gen && b.gen) a.gen = b.gen; if (!a.rules && b.rules) a.rules = b.rules; a.plan.items = deriveItems(a); }
+      for (const [k, f] of Object.entries(b.foods)) if (!a.foods[k]) a.foods[k] = f; for (const [k, q] of Object.entries(b.preps || {})) if (!a.preps[k]) a.preps[k] = q; for (const [k, q] of Object.entries(b.saved || {})) if (!a.saved[k]) a.saved[k] = q; if (!a.cats && b.cats) a.cats = b.cats; if (!a.rot && b.rot) a.rot = b.rot; if (!a.me && b.me) a.me = b.me; if (!a.prefs && b.prefs) a.prefs = b.prefs; if (!a.habits && b.habits) a.habits = b.habits; if (!a.units && b.units) a.units = b.units; if (!Object.keys(a.goals).length) a.goals = b.goals;
       for (const [d, l] of Object.entries(b.log)) { const have = new Set((a.log[d] || []).map(e => e.id)); const add = l.filter(e => !have.has(e.id)); if (add.length) a.log[d] = (a.log[d] || []).concat(add); } }
     if (m.run && !(st.meta.run && st.meta.run.t1)) st.meta.run = m.run;
     if (m.fight && !st.meta.fight) st.meta.fight = m.fight;
@@ -1614,9 +1614,9 @@ function restoreInto(st, d) {
     if (m.meals && typeof m.meals === 'object') { const A = st.meta.meals = st.meta.meals || {}; const B = m.meals;
       for (const f of ['recipes', 'preps', 'foods', 'saved']) if (B[f] && typeof B[f] === 'object') { A[f] = A[f] || {}; for (const [k, v] of Object.entries(B[f])) if (!(k in A[f])) A[f][k] = v; }
       if (B.log && typeof B.log === 'object') { A.log = A.log || {}; for (const [d, l] of Object.entries(B.log)) { const have = new Set((A.log[d] || []).map(e => e && e.id)); A.log[d] = (A.log[d] || []).concat((Array.isArray(l) ? l : []).filter(e => e && !have.has(e.id))); } }
-      for (const f of ['me', 'menu', 'prefs', 'habits', 'units', 'rot', 'cats']) if (A[f] == null && B[f] != null) A[f] = B[f];
+      for (const f of ['me', 'gen', 'rules', 'prefs', 'habits', 'units', 'rot', 'cats']) if (A[f] == null && B[f] != null) A[f] = B[f]; if (A.v == null && B.v === 2) A.v = 2;
       if ((!A.goals || !Object.keys(A.goals).length) && B.goals) A.goals = B.goals;
-      if ((!A.plan || !(A.plan.items || []).length) && B.plan) A.plan = B.plan;
+      if ((!A.plan || !(A.plan.items || []).length) && B.plan) { A.plan = B.plan; A.days = { ...(B.days || {}), ...(A.days || {}) }; }
       st.meta.meals = normMeals(A); }
   }
   if (fresh && d.display && typeof d.display === 'object') restoreDisplay(d.display);
@@ -2124,6 +2124,7 @@ function SheetHost({ sheet }) {
 /*@include mealplan.js*/
 
 /*@include mealdates.js*/
+/*@include mealday.js*/
 
 /*@include cooking.js*/
 /*@include bodygoal.js*/

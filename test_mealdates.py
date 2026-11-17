@@ -66,9 +66,9 @@ async def main():
         check('weeks start on the prep day', await ev("ymd(prepWeekStart(new Date(2026, 10, 11)))") == '2026-11-08' and await ev("(mealCommit(m => { m.prepDay = 1; }), ymd(prepWeekStart(new Date(2026, 10, 11))))") == '2026-11-09')
         await ev("mealCommit(m => { m.prepDay = 0; })")
         # the meal plan counts only the planned days
-        await ev("mealCommit(m => { m.me = { h: 178, w: 80, age: 30, sex: 'm', act: 2, goal: 'keep', pace: 'gentle' }; m.menu = buildMenu(targetsFor(m.me), 42); m.plan.start = '2026-11-11'; m.plan.days = 4; delete m.plan.src; })")
+        await ev("mealCommit(m => { m.me = { h: 178, w: 80, age: 30, sex: 'm', act: 2, goal: 'keep', pace: 'gentle' }; const t = targetsFor(m.me); m.goals = { kcal: t.kcal, p: t.p, c: t.c, f: t.f }; delete m.plan.src; }); setPlanDates(new Date(2026, 10, 11), 4); genFill(42, { auto: true })")
         await ev("usePlanForPrep(true, true)"); await pg.wait_for_timeout(200)
-        want = await ev("(() => { const w = {}; for (let k = 0; k < 4; k++) { const di = menuDayIdx(addDays(new Date(2026, 10, 11), k)); for (const x of ML().menu.days[di]) w[x.r] = (w[x.r] || 0) + x.sv; } return Object.fromEntries(Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)])); })()")
+        want = await ev("(() => { const P = genPattern(); const w = {}; for (let k = 0; k < 4; k++) { const di = menuDayIdx(addDays(new Date(2026, 10, 11), k)); for (const x of P[di]) w[x.r] = (w[x.r] || 0) + x.sv; } return Object.fromEntries(Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)])); })()")
         got = await ev("Object.fromEntries(ML().plan.items.map(i => [i.r, servingsFor(i)]))")
         check('a 4-day meal plan cooks 4 days of food', got == want, (got, want))
         check('the plan tabs show the dated days', await pg.locator('.menu-days.dated .chip').count() == 4)

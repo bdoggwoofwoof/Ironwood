@@ -263,7 +263,7 @@ function switchPhase(to) {
   commit(st => { const g = st.meta.settings.plan; g.season = { ...g.season, cur: to }; }, 'meta');
   const g = S.meta.settings.plan; const me = ML().me; let meals = false, plan = false;
   if (me && me.h) { const mg = mealGoalFor(g); const m2 = { ...me, ...mg }; const t = targetsFor(m2);
-    if (t) { meals = true; mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; if (m.menu) m.menu = buildMenu(t, m.menu.seed || Date.now() % 1e6); }); } }
+    if (t) { meals = true; mealCommit(m => { m.me = m2; m.goals = { ...m.goals, kcal: t.kcal, p: t.p, c: t.c, f: t.f, fib: t.fib, na: t.na }; }); syncPlanTargets(); } }
   /* Only your own Build my plan copy is rebuilt; a program you picked yourself is never replaced */
   if (programId() === 'gp-mine') { const r = buildGoalPlan(g); commit(st => { st.meta.routines[r.id] = r; }, 'meta'); plan = true; }
   const what = to === 'cut' ? 'Cut started' : to === 'bulk' ? 'Bulk started' : 'Back to maintaining';

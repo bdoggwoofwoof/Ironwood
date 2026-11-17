@@ -18,9 +18,7 @@ const round2 = v => Math.round(v * 100) / 100;
 /* How many servings a rate makes over a stretch (0.02 absorbs rounding in stored rates) */
 const servingsOver = (n, days, people = 1) => Math.max(1, Math.ceil(n * people * days / 7 - 0.02));
 const planEnded = (P = ML().plan) => { const s = planSpan(P); return !!(s.end && ymd(s.end) < ymd(new Date())); };
-function setPlanDates(start, days) {
-  mealCommit(mm => { if (start) mm.plan.start = ymd(start); else delete mm.plan.start; mm.plan.days = clampInt(days, 1, 28, 7); mm.plan.weeks = Math.max(1, Math.min(4, Math.round(mm.plan.days / 7))); });
-}
+/* setPlanDates is in mealday.js: dates now always exist and the dated meals move with them (Nov 16, audit phase 2) */
 /* The stretch after the current one: from the day after it ends (or today), up to your prep day */
 function nextStretch() {
   const q = ML().next || []; const last = q.reduce((a, x) => { const e = addDays(parseYmd(x.start), x.days); return !a || e > a ? e : a; }, null);
@@ -68,7 +66,6 @@ function PlanDatesSheet({ start: s0, days: d0 }) {
       <div class="card small" id="pd-sum" style="font-weight:600">${rangeText(st, days)}</div>
       <${PrepDayPick}/>
       <button class="btn primary wide" id="pd-save" onClick=${save}>Use these dates</button>
-      ${ML().plan.start ? html`<button class="btn text" id="pd-clear" onClick=${() => { setPlanDates(null, 7); closeSheet(); }}>Clear the dates</button>` : null}
       <button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;
 }
 function DatesBar() {
@@ -100,10 +97,8 @@ function swapPlanItem(itId) {
     /* Nov 16 (audit D6): the swap happens in place. The meal plan swaps the same recipe on the same days and meals, and
        everything else stays as it was; nothing is re-rolled. */
     const old = r.id;
-    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id;
-      if (mm.menu && Array.isArray(mm.menu.days)) mm.menu.days = mm.menu.days.map(d => d.map(y => y.r === old ? { ...y, r: id } : y)); });
-    if (ML().menu && !ML().plan.fromMenu) mealCommit(mm => { mm.menu = { ...mm.menu, pk: picksKey() }; });
-    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + (ML().menu ? ' on the same days and meals' : '') + '. The shopping list is updated.' }); } });
+    mealCommit(mm => { const o = placeOpts(mm); for (const d of o.dates) for (const y of mm.days[d] || []) if (y.r === old && !o.eaten.has(y.id)) { y.r = id; y.by = 'you'; } });
+    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + (ML().gen ? ' on the same days and meals' : '') + '. The shopping list is updated.' }); } });
 }
 /* ---- using a prep: swap recipes, pick dates, now or later ---- */
 const PREP_DRAFT = { d: null };
@@ -127,9 +122,8 @@ function UsePrepSheet() {
       mealCommit(mm => { mm.next = (mm.next || []).concat({ id: uid('nx'), name: D.name, start: ymd(D.start), days: D.days, items }).sort((a, b) => a.start < b.start ? -1 : 1); });
       closeSheet(); PREP_DRAFT.d = null; showToast({ kind: 'info', ms: 6000, text: D.name + ' is planned for ' + rangeText(D.start, D.days) + '. It loads that morning with a fresh shopping list.' }); return;
     }
-    mealCommit(mm => { delete mm.plan.fromMenu; delete mm.plan.src; if (D.mode === 'replace' || !mm.plan.items.length) mm.plan.items = []; for (const [r, n] of items) { const ex = mm.plan.items.find(i => i.r === r); if (ex) ex.n = n; else mm.plan.items.push({ id: uid('mp'), r, n }); }
-      if (D.when === 'later' || D.dated) { mm.plan.start = ymd(D.start); mm.plan.days = D.days; mm.plan.weeks = Math.max(1, Math.min(4, Math.round(D.days / 7))); }
-      if (D.mode === 'replace') mm.checks = {}; });
+    if (D.when === 'later' || D.dated) setPlanDates(D.start, D.days);
+    mealCommit(mm => { delete mm.plan.src; const rp = D.mode === 'replace' || !mm.plan.items.length; placePrep(mm, items, rp); if (rp) { mm.checks = {}; delete mm.rot; } });
     closeSheet(); PREP_DRAFT.d = null; PREP_UI.open = null; scrollTo(0, 0); showToast({ kind: 'info', text: D.name + ' is in What you’ll cook. Your shopping list is ready.' });
   };
   return html`<${Sheet} label=${'Use ' + D.name}><h2>${D.name}</h2>
@@ -171,8 +165,9 @@ function ComingUp() {
 function nextCheck() {
   const m = ML(); const q = m.next || []; const today = ymd(new Date()); const due = q.filter(x => x.start <= today); if (!due.length) return false;
   const cur = due.filter(x => ymd(addDays(parseYmd(x.start), x.days - 1)) >= today).sort((a, b) => a.start < b.start ? 1 : -1)[0];
+  if (cur) setPlanDates(parseYmd(cur.start), cur.days);
   mealCommit(mm => { mm.next = (mm.next || []).filter(x => x.start > today);
-    if (cur) { mm.plan.items = cur.items.filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n })); mm.plan.start = cur.start; mm.plan.days = cur.days; mm.plan.weeks = Math.max(1, Math.min(4, Math.round(cur.days / 7))); mm.plan.src = 'next'; delete mm.plan.fromMenu; mm.checks = {}; } });
+    if (cur) { placePrep(mm, cur.items.filter(([r]) => getRecipe(r)), true); mm.plan.src = 'next'; mm.checks = {}; } });
   if (cur) showToast({ kind: 'info', ms: 6000, text: 'Today starts ' + cur.name + ' (' + rangeText(parseYmd(cur.start), cur.days) + '). Your shopping list is ready.' });
   return !!cur;
 }
@@ -183,7 +178,7 @@ function toggleStar(id) {
   const on = !isStarred(id); mealCommit(mm => { mm.stars = { ...(mm.stars || {}) }; if (on) mm.stars[id] = true; else delete mm.stars[id]; });
   /* Plan from my starred recipes on: the week rebuilds itself (Nov 11, App features chat) */
   let rebuilt = false;
-  if (mealHabits().starred && ML().menu && ML().menu.t) { const nm = buildMenu(ML().menu.t, ML().menu.seed); if (nm) { mealCommit(m => { m.menu = nm; }); rebuilt = true; if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true); } }
+  if (mealHabits().starred && ML().gen && ML().plan.fromMenu) rebuilt = refreshPlan();
   const r = getRecipe(id); showToast({ kind: 'info', text: (on ? (r ? r.name : 'Recipe') + ' starred.' + (rebuilt ? '' : ' Find it under Recipes → Starred.') : 'Unstarred.') + (rebuilt ? ' Your meal plan was updated.' : '') });
 }
 function StarBtn({ id, name, big }) {

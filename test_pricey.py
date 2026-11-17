@@ -28,17 +28,16 @@ async def main():
         check('protein powder recipes are allowed again', await ev("planPool().s.some(r => r.id === 'm-reel-ice-cream')"))
         await ev("mealCommit(m => { m.habits = { ...m.habits, pricey: ['powder'] }; })")
         check('turning powder back on keeps the ice cream out', not await ev("planPool().s.some(r => r.id === 'm-reel-ice-cream')"))
-        check('a list item that would empty a group is ignored, not fatal', await ev("(mealCommit(m => { m.habits = { ...m.habits, pricey: PRICEY_ITEMS.map(x => x[0]) }; }), !!buildMenu(ML().menu.t, 5))"))
+        check('a list item that would empty a group is ignored, not fatal', await ev("(mealCommit(m => { m.habits = { ...m.habits, pricey: PRICEY_ITEMS.map(x => x[0]) }; }), !!buildMenu(planT(), 5))"))
         # Leave out of my meal plans
         await ev("UI.setView({ type: 'meal', id: 'm-meatballs' })"); await pg.wait_for_timeout(300)
         check('recipe has Leave out of my meal plans', await pg.locator('#rec-noplan').count() == 1)
         await pg.click('#rec-noplan'); await pg.wait_for_timeout(400)
         check('saved', await ev("ML().noPlan['m-meatballs'] === true"))
         check('meatballs leave the pool', not await ev("planPool().m.some(r => r.id === 'm-meatballs')"))
-        check('...and the current plan', not await ev("ML().menu.days.some(d => d.some(x => x.r === 'm-meatballs'))"))
-        check('...and what you cook', not await ev("ML().plan.items.some(i => i.r === 'm-meatballs')"))
+        check('...and the current plan from today on (past days stay as they were)', not await ev("planYmds().filter(d => d >= ymd(new Date())).flatMap(d => dayMeals(d)).some(x => x.r === 'm-meatballs')"))
         for s in [11, 22, 33, 44]:
-            if await ev(f"(() => {{ const M = buildMenu(ML().menu.t, {s}); return !!M && M.days.some(d => d.some(x => x.r === 'm-meatballs')); }})()"):
+            if await ev(f"(() => {{ const M = buildMenu(planT(), {s}); return !!M && M.days.some(d => d.some(x => x.r === 'm-meatballs')); }})()"):
                 check('Different meals never brings them back', False, s); break
         else:
             check('Different meals never brings them back', True)

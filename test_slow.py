@@ -35,7 +35,7 @@ async def main():
         check('How you eat has Favor slow-cooker recipes', await pg.locator('#hb-slow').count() == 1)
         await pg.click('#hb-slow'); await pg.click('#tg-save'); await pg.wait_for_timeout(600)
         check('saved', await ev("ML().habits.slow === true"))
-        mains = await ev("[...new Set(ML().menu.days.flatMap(d => d.filter(x => x.slot === 'l' || x.slot === 'd').map(x => x.r)))]")
+        mains = await ev("[...new Set(planYmds().flatMap(d => dayMeals(d)).filter(x => x.slot === 'l' || x.slot === 'd').map(x => x.r))]")
         check('lunches and dinners are slow-cooker recipes', mains and await ev(f"{mains}.every(id => isSlowRecipe(getRecipe(id)))"), mains)  # any slow-cooker recipe, incl. the reel ones (Nov 11)
         await ev("PREP_UI.all = true; S.rerender()"); await pg.wait_for_timeout(200)
         first = await ev("[...document.querySelectorAll('#ready-preps .ready-row b')].map(b => b.textContent)")

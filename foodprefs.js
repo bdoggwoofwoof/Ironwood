@@ -190,7 +190,7 @@ function SwapFields({ v, set }) {
 }
 function PrefsSheet() {
   const [v, setV] = useState(prefsOf());
-  const save = () => { mealCommit(m => { m.prefs = savePrefs(v); if (m.menu && m.menu.t) m.menu = buildMenu(m.menu.t, m.menu.seed); }); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (ML().menu ? '. Your meal plan was updated.' : '') }); };
+  const save = () => { mealCommit(m => { m.prefs = savePrefs(v); }); const moved = ML().plan.fromMenu && refreshPlan(); closeSheet(); showToast({ kind: 'info', text: 'Food preferences saved' + (moved ? '. Your meal plan was updated from today on.' : '') }); };
   return html`<${Sheet} label="Food preferences"><h2>Food preferences</h2><p class="note">So Ironwood never suggests something you can’t or won’t eat.</p>
     <div style="margin-top:12px"><${PrefsFields} v=${v} set=${setV}/></div>
     <div class="stack" style="margin-top:14px"><button class="btn primary wide" id="pf-save" onClick=${save}>Save</button><button class="btn wide" onClick=${closeSheet}>Cancel</button></div><//>`;

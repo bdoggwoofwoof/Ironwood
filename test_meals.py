@@ -47,7 +47,7 @@ async def main():
         check('eggs scale to 5 servings of 2', await pg.evaluate("(() => { const e = shoppingList().find(x => x.key === 'egg'); return e && e.qty === '10' && e.from.length === 1; })()"))
         # shopping list ticks and extras
         await pg.locator('.topsw button', has_text='Shop').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.shop-row').first.click(); await pg.wait_for_timeout(200)
+        await pg.locator('.shop-tick').first.click(); await pg.wait_for_timeout(200)   # Nov 17: the box ticks; the row opens its sheet
         await pg.locator('#extra-item').fill('coffee'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(200)
         check('tick an item and add your own', await pg.locator('.shop-row.on').count() == 1 and await pg.locator('.shop-row', has_text='coffee').count() == 1)
         txt = await pg.evaluate("listText()")
@@ -59,7 +59,7 @@ async def main():
         for _ in range(8): await pg.locator('button[aria-label="More servings"]').click()
         after = await pg.locator('.ing-list li').first.locator('.q').inner_text()
         check('servings stepper scales the recipe', before == '2 lb' and after == '4 lb', (before, after))
-        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200)
+        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200); await pg.click('#ar-spread'); await pg.wait_for_timeout(200)
         check('add to prep from a recipe', await pg.evaluate("!!planItemFor('m-turkey-chili')"))
         # your own recipe
         await pg.locator('.pill-btn', has_text='Back').click(); await pg.wait_for_timeout(200)
@@ -75,7 +75,7 @@ async def main():
         own = [r for r in saved['recipes'].values() if r['name'] == 'Lemon Pepper Chicken']
         check('recipe page shows macros', await pg.locator('#recipe-macros .mac').count() == 4 and 'Not counted' not in await pg.locator('#recipe-macros').inner_text())
         check('your recipe is stored', len(own) == 1 and len(own[0]['ing']) == 3 and own[0]['ing'][2]['a'] == 'frozen', own)
-        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200)
+        await pg.locator('#add-to-prep').click(); await pg.wait_for_timeout(200); await pg.click('#ar-spread'); await pg.wait_for_timeout(200)
         # editing a built-in keeps the id and can be reset
         await pg.evaluate("UI.setView({ type: 'meal', id: 'm-rice' })"); await pg.wait_for_timeout(200)
         await pg.locator('button', has_text='Edit').first.click(); await pg.wait_for_timeout(200)
@@ -149,8 +149,8 @@ async def main():
         check('Recipes opens with the Mix & match bases', await pg.locator('#mix-list .mix-base').count() == 8)
         await pg.locator('.mix-base', has_text='Baked Chicken').click(); await pg.wait_for_timeout(200)
         check('base page lists its flavors', await pg.locator('.mix-flavor').count() == await pg.evaluate("flavorsFor(MIX_BASE['b-chicken']).length"))
-        await pg.locator('.mix-flavor', has_text='Shawarma Chicken').locator('.meal-add').click()
-        await pg.locator('.mix-flavor', has_text='Teriyaki Chicken').locator('.meal-add').click(); await pg.wait_for_timeout(200)
+        await pg.locator('.mix-flavor', has_text='Shawarma Chicken').locator('.meal-add').click(); await pg.wait_for_timeout(200); await pg.click('#ar-spread'); await pg.wait_for_timeout(200)
+        await pg.locator('.mix-flavor', has_text='Teriyaki Chicken').locator('.meal-add').click(); await pg.wait_for_timeout(200); await pg.click('#ar-spread'); await pg.wait_for_timeout(200)
         await pg.locator('.mix-flavor .main', has_text='Teriyaki Chicken').click(); await pg.wait_for_timeout(200)
         check('pairing page shows base and sauce ingredients and links', await pg.locator('.ing-list .ing-h').all_inner_texts() == ['BASE', 'TERIYAKI SAUCE'] or [t.upper() for t in await pg.locator('.ing-list .ing-h').all_inner_texts()] == ['BASE', 'TERIYAKI SAUCE'])
         check('goes-with links', await pg.locator('.chip.goes').count() == 2)

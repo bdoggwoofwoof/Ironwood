@@ -571,6 +571,7 @@ function normMeals(x) {
     ...(Array.isArray(x.next) ? { next: x.next.filter(e => e && /^\d{4}-\d\d-\d\d$/.test(e.start) && Array.isArray(e.items)).map(e => ({ id: String(e.id || uid('nx')), name: String(e.name || 'Planned prep'), start: e.start, days: clampInt(e.days, 1, 28, 7), items: e.items.filter(x => Array.isArray(x) && typeof x[0] === 'string').map(([r, n]) => [r, +n > 0 ? +n : 3]) })) } : {}),
     ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
     checks: x.checks && typeof x.checks === 'object' ? x.checks : {},
+    ...(x.shop && typeof x.shop === 'object' && Object.keys(x.shop).length ? { shop: x.shop } : {}),
     preps: Object.fromEntries(Object.entries(x.preps && typeof x.preps === 'object' ? x.preps : {}).filter(([, p]) => p && p.name && Array.isArray(p.items))),
     ...(x.rot && Array.isArray(x.rot.ids) && x.rot.ids.length >= 2 && /^\d{4}-\d\d-\d\d$/.test(x.rot.start) ? { rot: { ids: x.rot.ids.map(String), start: x.rot.start, applied: x.rot.applied || null } } : {}),
     extras: (Array.isArray(x.extras) ? x.extras : []).filter(e => e && e.t).map(e => ({ id: String(e.id || uid('mx')), t: String(e.t), c: !!e.c })),
@@ -584,7 +585,8 @@ function normMeals(x) {
     ...(x.prefs && typeof x.prefs === 'object' ? { prefs: { allergies: Array.isArray(x.prefs.allergies) ? x.prefs.allergies.map(String) : [], diet: String(x.prefs.diet || 'none'), ...(Array.isArray(x.prefs.diets) ? { diets: x.prefs.diets.map(String) } : {}), ...(Array.isArray(x.prefs.lactose) ? { lactose: x.prefs.lactose.map(String) } : {}), dislikes: String(x.prefs.dislikes || '') } } : {}),
     ...(x.habits && typeof x.habits === 'object' ? { habits: { meals: clampInt(x.habits.meals, 2, 5, 4), prep: ['once', 'few', 'fresh'].includes(x.habits.prep) ? x.habits.prep : 'few', cheap: !!x.habits.cheap, quick: !!x.habits.quick, ...(Array.isArray(x.habits.pricey) ? { pricey: x.habits.pricey.filter(k => typeof k === 'string') } : {}), ...(Array.isArray(x.habits.gear) ? { gear: x.habits.gear.filter(k => typeof k === 'string') } : {}), ...(x.habits.slow ? { slow: true } : {}), ...(x.habits.starred ? { starred: true } : {}) } } : {}),
     ...(x.stars && typeof x.stars === 'object' && Object.keys(x.stars).length ? { stars: Object.fromEntries(Object.keys(x.stars).filter(k => x.stars[k]).map(k => [k, true])) } : {}),
-    ...(x.cook && typeof x.cook === 'object' ? { cook: { start: +x.cook.start || 0, done: x.cook.done && typeof x.cook.done === 'object' ? x.cook.done : {} } } : {}),
+    ...(x.cook && typeof x.cook === 'object' ? { cook: { start: +x.cook.start || 0, done: x.cook.done && typeof x.cook.done === 'object' ? x.cook.done : {}, ...(Array.isArray(x.cook.timers) && x.cook.timers.length ? { timers: x.cook.timers.filter(t => t && t.key && +t.until > 0).map(t => ({ key: String(t.key), label: String(t.label || 'Timer'), until: +t.until })) } : {}) } } : {}),
+    ...(Array.isArray(x.cooked) && x.cooked.length ? { cooked: x.cooked.filter(b => b && +b.at > 0 && Array.isArray(b.items)).slice(-30) } : {}),
     ...(x.noPlan && typeof x.noPlan === 'object' && Object.keys(x.noPlan).length ? { noPlan: Object.fromEntries(Object.keys(x.noPlan).filter(k => x.noPlan[k]).map(k => [k, true])) } : {}),
     goals: Object.fromEntries(Object.entries(x.goals && typeof x.goals === 'object' ? x.goals : {}).filter(([k, v]) => NUT.some(n => n[0] === k) && +v > 0).map(([k, v]) => [k, +v])),
   };
@@ -837,8 +839,18 @@ const removeFromPlan = id => mealCommit(m => { const o = placeOpts(m); dRemove(m
 function servingsFor(it) { const P = ML().plan; return it.sv != null ? Math.max(1, Math.ceil(it.sv * P.people - 0.02)) : servingsOver(it.n, spanDays(P), P.people); }
 /* The times stepper on What you'll cook and the recipe page: servings per person over the dates */
 const setTimes = (r, n) => setRecipeCount(r, Math.max(1, n));
-function shoppingList() {
-  const P = ML().plan; const map = new Map();
+/* One line of the list as you'd buy it */
+function shopFmt(e) {
+  const ez = easyShop(e); if (ez) return { qty: ez.qty, label: ez.label };
+  const parts = Object.values(e.fams).map(x => measure(x.total, x.fam, true));
+  const qty = parts.map(([v, u, dec]) => qtyText(v, u, dec)).join(' + ');
+  return { qty, label: parts.length === 1 && !parts[0][1] ? nameFor(e.name, parts[0][0], '') : e.name };
+}
+/* The shopping list. Nov 17 (audit phase 4): a tick remembers the amounts bought, so a bigger plan reopens the row with
+   "Need … more"; meals.shop = { key: { have: 1 (at home), edit: 'your amount', hide: 1 (off this list), a: aisle } }.
+   st: 'open' | 'done' | 'more' | 'have'. Removed rows only come back with all: true. */
+function shoppingList(all) {
+  const P = ML().plan; const map = new Map(); const SH = ML().shop || {}; const C = ML().checks || {};
   for (const it of P.items) {
     const r = getRecipe(it.r); if (!r) continue; const f = servingsFor(it) / (r.serves || 1);
     for (const g of r.ing || []) {
@@ -850,17 +862,22 @@ function shoppingList() {
     }
   }
   return [...map.values()].map(e => {
-    const ez = easyShop(e); if (ez) return { ...e, qty: ez.qty, label: ez.label };
-    const parts = Object.values(e.fams).map(x => measure(x.total, x.fam, true));
-    const qty = parts.map(([v, u, dec]) => qtyText(v, u, dec)).join(' + ');
-    const name = parts.length === 1 && !parts[0][1] ? nameFor(e.name, parts[0][0], '') : e.name;
-    return { ...e, qty, label: name };
-  });
+    const s = SH[e.key] || {}; const c = C[e.key]; const out = { ...e, ...shopFmt(e), ...(s.a ? { a: s.a } : {}), ...(s.edit ? { qty: s.edit, edited: true } : {}), hide: !!s.hide, st: 'open' };
+    if (s.have) out.st = 'have';
+    else if (c) { out.st = 'done';
+      if (c.f && !s.edit) { const diff = {}; for (const [k, x] of Object.entries(e.fams)) { const was = +c.f[k] || 0; if (x.total > was * 1.01 + 1e-6) diff[k] = { fam: x.fam, total: x.total - was }; }
+        if (Object.keys(diff).length) { out.st = 'more'; const d = shopFmt({ ...e, fams: diff }); out.more = d.qty ? d.qty + ' more' : 'more'; } } }
+    return out;
+  }).filter(x => all || !x.hide);
 }
+/* Tick a row: remembers what the plan needed then */
+const shopSnap = key => { const x = shoppingList(true).find(y => y.key === key); return x ? { f: Object.fromEntries(Object.entries(x.fams).map(([k, v]) => [k, Math.round(v.total * 1000) / 1000])) } : 1; };
+const shopSet = (key, o) => mealCommit(mm => { mm.shop = { ...(mm.shop || {}) }; const s = { ...(mm.shop[key] || {}), ...o }; for (const k of Object.keys(s)) if (s[k] == null || s[k] === false || s[k] === '') delete s[k]; if (Object.keys(s).length) mm.shop[key] = s; else delete mm.shop[key]; if (!Object.keys(mm.shop).length) delete mm.shop; });
+const shopOpen = x => x.st === 'open' || x.st === 'more';
 function listText() {
   const P = ML().plan; const items = shoppingList(); const m = ML(); const out = ['Ironwood shopping list · ' + P.people + (P.people === 1 ? ' person' : ' people') + ' · ' + (P.start ? rangeText(parseYmd(P.start), spanDays(P)) : daysTxt(spanDays(P)))];
   for (const [a, label] of AISLES) {
-    const rows = items.filter(x => x.a === a && !m.checks[x.key]).map(x => '- ' + (x.qty ? x.qty + ' ' : '') + x.label);
+    const rows = items.filter(x => x.a === a && shopOpen(x)).map(x => '- ' + (x.st === 'more' ? x.more + ' ' : x.qty ? x.qty + ' ' : '') + x.label);
     const ex = a === 'other' ? m.extras.filter(e => !e.c).map(e => '- ' + e.t) : [];
     if (rows.length || ex.length) out.push('', label.toUpperCase(), ...rows, ...ex);
   }
@@ -873,7 +890,12 @@ async function shareList() {
 }
 
 /* ---- screens ---- */
-const MEALS = { mode: ['log', 'plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null };
+const MEALS = { mode: ['log', 'plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null, f: {} };
+/* Recipe filters (Nov 17, audit phase 4): quick, high protein, freezes well. Recently viewed recipes, newest first. */
+const REC_FILTERS = [['quick', '30 min or less', r => +r.mins > 0 && +r.mins <= 30], ['protein', 'High protein', r => { const m = macros(r); return !!m && m.p >= 25 && m.p * 4 >= m.kcal * 0.25; }], ['freezes', 'Freezes well', r => !!r.freezes]];
+const recFilter = r => REC_FILTERS.every(([k, , f]) => !MEALS.f[k] || f(r));
+const recentRecipes = () => { try { return (JSON.parse(lsGet('recentRecipes') || '[]') || []).filter(id => getRecipe(id)); } catch (e) { return []; } };
+const noteRecipeView = id => { const l = recentRecipes().filter(x => x !== id); l.unshift(id); lsSet('recentRecipes', JSON.stringify(l.slice(0, 8))); };
 const setMealsMode = m => { MEALS.mode = m; lsSet('mealsMode', m); S.rerender(); scrollTo(0, 0); };
 function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
   return html`<div class="mstep" role="group" aria-label=${label}>
@@ -907,7 +929,7 @@ const PREP_UI = { ready: false, open: null, all: false };
 function clearMealPlan() {
   openSheet({ type: 'confirm', danger: true, title: 'Clear everything and start over?', body: 'This can’t be undone. It clears your meal plan, what you’ll cook, the shopping list and your extra items' + (ML().rot ? ', and stops your rotation' : '') + '. Saved preps, your recipes, stars, answers, food preferences and skipped meals stay. To change one thing instead, close this and use the options above it.', ok: 'Clear everything', onOk: () => {
     mealCommit(mm => { const o = placeOpts(mm); dClear(mm, o); const today = ymd(new Date()); for (const d of Object.keys(mm.days)) if (d >= today) { const l = mm.days[d].filter(x => o.eaten.has(x.id)); if (l.length) mm.days[d] = l; else delete mm.days[d]; }
-      delete mm.gen; delete mm.rot; delete mm.plan.fromMenu; mm.checks = {}; mm.extras = []; });
+      delete mm.gen; delete mm.rot; delete mm.plan.fromMenu; mm.checks = {}; delete mm.shop; mm.extras = []; });
     closeSheet(); PREP_UI.open = null; showToast({ kind: 'info', text: 'Cleared. Plan my week starts fresh.' }); } });
 }
 /* Nov 16 (audit phase 3): the Week page and its Change or clear card became the Plan page and More planning tools (mealplanpage.js) */
@@ -1015,34 +1037,37 @@ function RecipesPane() {
   const term = q.trim().toLowerCase();
   const st = ML().stars || {};
   const list = cat === 'mix' ? [] : (cat === 'starred' ? Object.keys(st).map(getRecipe).filter(Boolean) : allRecipes()).filter(r => (cat === 'all' || cat === 'starred' || (cat === 'mine' ? own[r.id] && !r.builtin : cat === 'reels' ? fromReel(r) : r.cat === cat)) && (!term || (r.name + ' ' + (r.ing || []).map(g => g.n).join(' ')).toLowerCase().includes(term)));
-  const mine = list.filter(r => !r.builtin); const lib = list.filter(r => r.builtin);
-  const combos = term ? allCombos().filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
+  const anyF = REC_FILTERS.some(([k]) => MEALS.f[k]); const listF = list.filter(recFilter);
+  const mine = listF.filter(r => !r.builtin); const lib = listF.filter(r => r.builtin); const recent = !term && cat === 'all' && !anyF ? recentRecipes().slice(0, 4).map(getRecipe) : [];
+  const combos = term ? allCombos().filter(recFilter).filter(r => (cat === 'all' || r.cat === cat) && (r.name + ' ' + r.ing.map(g => g.n).join(' ')).toLowerCase().includes(term)) : [];
   const pick = c => { MEALS.cat = c; setCat(c); };
   const row = r => { const inP = planItemFor(r.id);
     return html`<div key=${r.id} class="meal-row"><button class="main" onClick=${() => UI.setView({ type: 'meal', id: r.id })}><div class="t">${r.name}</div>${fromReel(r) ? html`<span class="reel-tag">From a reel${r.src.by ? ' · ' + r.src.by : ''}</span>` : null}${avoidRecipe(r) ? html`<${IssueLine} r=${r}/>` : null}
       <div class="s num">${[macroLine(macros(r)), r.mins ? r.mins + ' min' : '', 'serves ' + r.serves, r.freezes ? 'freezes' : ''].filter(Boolean).join(' · ')}</div></button>
       <${StarBtn} id=${r.id} name=${r.name}/>
-      <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(r.id) : addToPlan(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
+      <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(r.id) : askAddRecipe(r.id)}>${inP ? I.check : I.plus}</button></div>`; };
   const newRecipe = paste => UI.setView({ type: 'mealEdit', isNew: true, paste: paste === true, draft: { id: uid('m'), name: '', cat: ['breakfast', 'main', 'snack', 'base'].includes(cat) ? cat : 'main', serves: 4, keeps: 4, freezes: false, macros: {}, mins: '', ing: [], steps: [], note: '' } });
   return html`<div>
     <input class="field" type="search" id="meal-search" placeholder="Search recipes or ingredients" value=${q} onInput=${e => { MEALS.q = e.target.value; setQ(e.target.value); }} style="margin-top:6px"/>
     <div class="chips" role="group" aria-label="Recipe type" style="margin-top:10px">${[['all', 'All'], ['starred', '★ Starred'], ['mix', 'Mix & match'], ...MEAL_CATS, ['reels', 'From reels'], ['mine', 'Mine']].map(([k, l]) => html`<button key=${k} id=${'rchip-' + k} class=${'chip' + (cat === k ? ' on' : '')} aria-pressed=${cat === k} onClick=${() => pick(k)}>${l}</button>`)}</div>
+    ${cat === 'mix' ? null : html`<div class="chips" role="group" aria-label="Filters" id="rec-filters" style="margin-top:6px">${REC_FILTERS.map(([k, l]) => html`<button key=${k} id=${'rf-' + k} class=${'chip' + (MEALS.f[k] ? ' on' : '')} aria-pressed=${!!MEALS.f[k]} onClick=${() => { MEALS.f = { ...MEALS.f, [k]: !MEALS.f[k] }; re(); }}>${l}</button>`)}</div>`}
     <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="new-recipe" onClick=${() => newRecipe()}>${I.plus} New recipe</button><button class="btn ghost" style="flex:1" id="my-foods" onClick=${() => UI.setView({ type: 'foods' })}>My foods</button></div>
     ${cat === 'starred' && !list.length ? html`<div class="card note" style="margin-top:14px" id="starred-empty">No starred recipes yet. Tap ☆ on any recipe to keep it here.</div>` : null}
-    ${cat === 'mix' ? null : cat === 'starred' ? (list.length ? html`<div class="section-h"><h2>Starred</h2><span class="aside">${list.length}</span></div><div class="stack" id="starred-list">${list.map(row)}</div>` : null) : html`<div>
+    ${cat === 'mix' ? null : cat === 'starred' ? (list.length ? html`<div class="section-h"><h2>Starred</h2><span class="aside">${listF.length}</span></div><div class="stack" id="starred-list">${listF.map(row)}</div>` : null) : html`<div>
+    ${recent.length ? html`<div id="recent-recipes"><div class="section-h"><h2>Recently viewed</h2></div><div class="stack">${recent.map(row)}</div></div>` : null}
     ${mine.length ? html`<div class="section-h"><h2>My recipes</h2></div><div class="stack">${mine.map(row)}</div>` : null}
     ${combos.length ? html`<div class="section-h"><h2>Mix & match</h2><span class="aside">${combos.length} match${combos.length === 1 ? '' : 'es'}</span></div><div class="stack">${combos.slice(0, 30).map(row)}</div>` : null}
     ${MEAL_CATS.map(([c, label]) => { const rs = lib.filter(r => r.cat === c); if (!rs.length) return null;
       /* In All, each group shows 3 with Show all (Nov 10, meal audit M8) */
       const capped = cat === 'all' && !term && !REC_MORE[c] && rs.length > 3;
       return html`<div key=${c} id=${'rg-' + c}><div class="section-h"><h2>${label}</h2>${cat === 'all' && !term && rs.length > 3 ? html`<button class="btn text" id=${'rmore-' + c} onClick=${() => { REC_MORE[c] = !REC_MORE[c]; re(); }}>${REC_MORE[c] ? 'Show fewer' : 'Show all ' + rs.length}</button>` : null}</div><div class="stack">${(capped ? rs.slice(0, 3) : rs).map(row)}</div></div>`; })}
-    ${!list.length && !combos.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}</div>`}
+    ${!listF.length && !combos.length ? html`<div class="card note" style="margin-top:14px">No recipes match. Try another word, or make it a new recipe.</div>` : null}</div>`}
     ${!term && (cat === 'all' || cat === 'mix') ? html`<div id="rg-mix"><div class="section-h"><h2>Mix & match</h2></div>
       <p class="note" style="margin:-4px 0 10px">Cook one plain base, then make it a different meal with a sauce or spice mix.</p><${MixList}/></div>` : null}
   </div>`;
 }
 function RecipeView({ id }) {
-  const r = getRecipe(id); const it = planItemFor(id);
+  const r = getRecipe(id); const it = planItemFor(id); useEffect(() => { if (r) noteRecipeView(id); }, [id]);
   const [sv, setSv] = useState(() => r ? (it ? servingsFor(it) : r.serves) : 1);
   if (!r) return html`<div class="card note" style="margin-top:12px">This recipe was deleted.</div>`;
   const f = sv / (r.serves || 1);
@@ -1058,7 +1083,7 @@ function RecipeView({ id }) {
     <div class="row wrap" style="gap:6px;margin-top:8px">
       <span class="chip">Fridge: ${r.keeps || 4} days</span>${r.freezes ? html`<span class="chip">Freezes well</span>` : null}</div>
     <div class="card mp-scale" style="margin-top:14px">
-      <div style="flex:1;min-width:0"><div style="font-weight:700">Servings</div><div class="small muted num">${Math.abs(f - 1) < 0.01 ? 'Original recipe' : fracStr(f) + ' × the recipe (makes ' + r.serves + ')'}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700">Servings</div><div class="small muted num">${Math.abs(f - 1) < 0.01 ? 'Original recipe' : fracStr(f) + ' × the recipe (makes ' + r.serves + ')'}</div><div class="small muted" id="rv-preview">Preview, doesn’t change your plan${it ? ' (' + servingsFor(it) + ' on your plan)' : ''}</div></div>
       <${MStep} label="servings" value=${sv} min=${1} max=${99} onChange=${setSv}/></div>
     ${(() => { const m = macros(r); return m ? html`<div class="section-h"><h2>Per serving</h2>${r.size ? html`<span class="aside">${r.size}</span>` : null}</div>
       <div class="card" id="recipe-macros"><${MacroTiles} m=${m}/><${ExtraLine} m=${m}/>
@@ -1080,7 +1105,7 @@ function RecipeView({ id }) {
           ? html`<${MStep} label=${'times in these days'} value=${Math.max(1, Math.ceil(it.sv - 0.02))} min=${1} max=${Math.max(1, Math.floor(3 * dd))} onChange=${v => setTimes(id, v)}/>`
           : html`<${MStep} label="times a week" value=${Math.max(1, Math.round(it.n))} min=${1} max=${21} onChange=${v => setTimes(id, Math.max(1, Math.ceil(v * dd / 7 - 0.02)))}/>`}</div>`; })()}
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
-      : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
+      : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => askAddRecipe(id)}>${I.plus} Add to my plan</button>`}
     ${['breakfast', 'main', 'snack'].includes(r.cat) ? html`<label class="toggle-row" for="rec-noplan" style="margin-top:8px"><span><span>Leave out of my meal plans</span><span class="d">Plan my week and Different meals won’t pick it. You can still add it yourself.</span></span>
       <input type="checkbox" role="switch" id="rec-noplan" checked=${!!(ML().noPlan || {})[id]} onChange=${e => setNoPlan(id, e.target.checked)}/></label>` : null}
     <div class="row wrap" style="margin-top:14px">
@@ -1142,33 +1167,7 @@ function RecipeEditor({ view }) {
     <button class="btn wide" onClick=${() => UI.setView(view.isNew ? null : { type: 'meal', id: d.id })}>Cancel</button>
   </div>`;
 }
-function ShopPane() {
-  const m = ML(); const P = m.plan; const items = shoppingList(); const [txt, setTxt] = useState('');
-  const toggle = k => mealCommit(mm => { if (mm.checks[k]) delete mm.checks[k]; else mm.checks[k] = 1; });
-  const got = items.filter(x => m.checks[x.key]).length + m.extras.filter(e => e.c).length; const all = items.length + m.extras.length;
-  const addExtra = () => { const t = txt.trim(); if (!t) return; mealCommit(mm => { mm.extras.push({ id: uid('mx'), t, c: false }); }); setTxt(''); };
-  const box = on => html`<span class="box" aria-hidden="true">${on ? I.check : null}</span>`;
-  return html`<div>
-    ${P.items.length ? html`<div style="margin-top:8px"><${UnitsSeg}/></div>` : null}
-    ${P.items.length ? html`<p class="small muted num" style="margin-top:6px">For ${P.people} ${P.people === 1 ? 'person' : 'people'} · ${P.start ? rangeText(parseYmd(P.start), spanDays(P)) : daysTxt(spanDays(P))} · ${P.items.length} recipe${P.items.length === 1 ? '' : 's'}${all ? ' · ' + got + ' of ' + all + ' in the cart' : ''}</p>`
-      : html`<div class="card stack" style="margin-top:8px"><p class="note">Your shopping list fills in from your week’s meals, added up and sorted by aisle.</p>
-        ${ML().gen ? html`<button class="btn primary wide" id="list-from-plan" onClick=${() => usePlanForPrep(false)}>Fill it from my meal plan</button>` : html`<button class="btn primary wide" id="list-plan" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan my week</button>`}
-        <button class="btn wide" onClick=${() => setMealsMode('recipes')}>Pick recipes myself</button></div>`}
-    ${all ? html`<div class="row" style="margin-top:10px"><button class="btn primary" style="flex:1" id="share-list" onClick=${shareList}>${I.copy} Share or copy</button>${got ? html`<button class="btn" style="flex:1" onClick=${() => mealCommit(mm => { mm.checks = {}; mm.extras.forEach(e => { e.c = false; }); })}>Untick all</button>` : null}</div>` : null}
-    ${AISLES.map(([a, label]) => {
-      const rows = items.filter(x => x.a === a).sort((x, y) => (+!!m.checks[x.key] - +!!m.checks[y.key]) || x.label.localeCompare(y.label));
-      const ex = a === 'other' ? m.extras : [];
-      if (!rows.length && !ex.length) return null;
-      return html`<div key=${a}><div class="aisle-h">${label}</div>${a === 'pantry' ? html`<p class="small faint" style="margin:0 0 2px">You may have these already.</p>` : null}
-        <div class="card shop-card">${rows.map(x => { const on = !!m.checks[x.key]; return html`<button key=${x.key} class=${'shop-row' + (on ? ' on' : '')} role="checkbox" aria-checked=${on} onClick=${() => toggle(x.key)}>${box(on)}
-          <span style="flex:1;min-width:0"><span class="nm">${x.qty ? html`<b class="num">${x.qty}</b> ` : null}${x.label}${x.loose && x.qty ? ' (+ to taste)' : ''}</span><span class="from">${x.from.join(' · ')}</span></span></button>`; })}
-          ${ex.map(e => html`<div key=${e.id} class=${'shop-row' + (e.c ? ' on' : '')}><button class="shop-x" role="checkbox" aria-checked=${e.c} onClick=${() => mealCommit(mm => { const y = mm.extras.find(z => z.id === e.id); if (y) y.c = !y.c; })}>${box(e.c)}<span class="nm" style="flex:1;text-align:left">${e.t}</span></button>
-            <button class="tip-x" aria-label=${'Remove ' + e.t} onClick=${() => mealCommit(mm => { mm.extras = mm.extras.filter(z => z.id !== e.id); })}>${I.x}</button></div>`)}</div></div>`; })}
-    <div class="section-h"><h2>Add an item</h2></div>
-    <div class="row"><input class="field" id="extra-item" placeholder="e.g. coffee, paper towels" value=${txt} onInput=${e => setTxt(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') addExtra(); }}/><button class="btn primary" aria-label="Add to the list" disabled=${!txt.trim()} onClick=${addExtra}>${I.plus}</button></div>
-  </div>`;
-}
-
+/* ShopPane is in mealshop.js (Nov 17, audit phase 4) */
 /* ---- your own foods ---- */
 const SV_UNITS = ['g', 'oz', 'serving', 'cup', 'tbsp', 'tsp', 'piece', 'scoop', 'slice', 'can', 'package'];
 function FoodList({ current, q, onPick, onNew }) {
@@ -1249,7 +1248,7 @@ function logRecipe(day, r, sv, link) { const m1 = macros(r); if (!m1) return nul
 function weekServings(day) { const s = startOfWeek(parseYmd(day)); const out = {}; const L = ML().log; for (let i = 0; i < 7; i++) for (const e of L[ymd(addDays(s, i))] || []) if (e.r) out[e.r] = (out[e.r] || 0) + (+e.sv || 0); return out; }
 function GoalBar({ k, label, unit, v, goal }) {
   const lim = LIMITS[k]; const over = v - goal; const pct = Math.min(100, v / goal * 100);
-  const note = lim ? (over > 0 ? fmtNut(k, over) + unit + ' over your limit' : fmtNut(k, -over) + unit + ' under your limit') : over >= 0 ? (Math.round(over) ? fmtNut(k, over) + unit + ' past your goal' : 'Goal reached') : fmtNut(k, -over) + unit + ' to go';
+  const note = lim ? (over > 0 ? fmtNut(k, over) + unit + ' over your limit' : fmtNut(k, -over) + unit + ' under your limit') : over >= 0 ? (Math.round(over) ? fmtNut(k, over) + unit + ' above your goal' : 'Goal reached') : fmtNut(k, -over) + unit + ' to go';
   return html`<div class="goal-row"><div class="row" style="gap:8px"><span class="gl">${label}${lim ? ' (limit)' : ''}</span><span class="gv num"><b>${fmtNut(k, v)}</b> / ${fmtNut(k, goal)}${unit}</span></div>
     <div class=${'goal-bar' + (lim && over > 0 ? ' over' : '')} role="progressbar" aria-label=${label} aria-valuenow=${Math.round(v)} aria-valuemin="0" aria-valuemax=${goal}><i style=${{ width: pct + '%' }}></i></div>
     <div class="small muted num">${note}</div></div>`;
@@ -1274,7 +1273,12 @@ function LogPane() {
     <div class="day-nav"><button class="pill-btn" aria-label="Previous day" onClick=${() => go(-1)}>${I.back}</button><div class="t" aria-live="polite">${logDayName(day)}</div>
       <button class="pill-btn flip" aria-label="Next day" disabled=${day === today} onClick=${() => go(1)}>${I.back}</button></div>
     <div class="card" id="log-totals">
+      <div class="eyebrow" style="margin-bottom:6px">Logged</div>
       ${gk.length ? html`<${GoalTiles} tot=${tot} G=${G}/>` : html`<${MacroTiles} m=${tot}/><${ExtraLine} m=${tot}/>`}
+      ${(() => { /* Planned beside Logged (Nov 17, audit phase 4, P7): estimates from the plan, never mixed into what you logged */
+        const rows = dayRows(dayMeals(day)).filter(({ x }) => x.r && !x.off && getRecipe(x.r)); if (!rows.length) return null;
+        const pt = dayTotals(rows.map(({ x }) => x)); const ea = eatenIds(m); const n = rows.filter(({ x }) => ea.has(x.id)).length;
+        return html`<p class="small muted num" id="log-planned" style="margin-top:8px">Planned for ${day === today ? 'today' : 'this day'}: ${fmt(pt.kcal)} cal · ${pt.p} g protein · ${n} of ${rows.length} planned meal${rows.length === 1 ? '' : 's'} eaten</p>`; })()}
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     <${TodayMenu} day=${day}/>
@@ -1631,7 +1635,7 @@ function BaseView({ id }) {
         <div class="s">${f.d}${f.kind === 'rub' && b.fam !== 'eggs' && b.fam !== 'oats' && b.fam !== 'salad' ? ' · spice rub' : f.kind === 'sauce' && (b.fam === 'protein' || b.fam === 'veg') ? ' · sauce' : ''}</div>
         <div class="s faint">Adds ${f.ing.map(x => shopName(parseIng(x).n).replace(/\s*\(.*\)$/, '')).join(', ')}</div>
         ${m ? html`<div class="s num">${macroLine(m)} a serving</div>` : null}<${IssueLine} r=${r}/></button>
-        <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(cid) : addToPlan(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
+        <button class=${'meal-add' + (inP ? ' on' : '')} aria-label=${inP ? r.name + ' is in this week. Remove it' : 'Add ' + r.name + ' to this week'} onClick=${() => inP ? removeFromPlan(cid) : askAddRecipe(cid)}>${inP ? I.check : I.plus}</button></div>`; })}</div>
     <p class="small faint" style="margin-top:14px">Add two or three flavors to your prep and the shopping list buys the base once, in the total amount.</p>
   </div>`;
 }

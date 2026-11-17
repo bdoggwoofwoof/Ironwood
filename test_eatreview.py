@@ -39,7 +39,7 @@ async def main():
         n0 = await ev("ML().plan.items.length")
         btn = pg.locator('#tip-protein button', has_text='Add to prep').first
         if await btn.count():
-            await btn.click(); await pg.wait_for_timeout(200)
+            await btn.click(); await pg.wait_for_timeout(200); await pg.click('#ar-spread'); await pg.wait_for_timeout(200)   # Nov 17: adding asks how
         check('a suggested recipe goes into the prep', await ev("ML().plan.items.length") == n0 + 1)
         await ev("mealCommit(m => { m.prefs = { allergies: ['dairy'], diet: 'none', dislikes: '' }; })"); await pg.wait_for_timeout(200)
         bad = await ev("[...document.querySelectorAll('#er-tips .card')].flatMap(c => [...c.querySelectorAll('button')].map(b => b.textContent))")

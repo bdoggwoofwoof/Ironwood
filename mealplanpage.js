@@ -12,9 +12,9 @@ function planDayRows(d, m = ML()) {
   return keys.map(k => { const r = rows.find(y => y.key === k); return { x: r ? r.x : null, key: k, label: k[0] === 's' ? (two ? 'Snack ' + (k === 's' ? 1 : k.slice(1)) : 'Snack') : SLOT_NAME[k] }; });
 }
 /* Status of a spot: [word, chip class] or null for plain Planned */
-function spotStatus(row, ea) {
+function spotStatus(row, ea, ck) {
   const x = row.x; if (!x) return row.key[0] === 's' ? ['Not planned', 'st-none'] : ['Needs a recipe', 'st-need'];
-  if (x.off) return ['Eating elsewhere', 'st-none']; if (ea.has(x.id)) return ['Eaten', 'st-eaten']; return null;
+  if (x.off) return ['Eating elsewhere', 'st-none']; if (ea.has(x.id)) return ['Eaten', 'st-eaten']; if (ck && x.r && ck.has(x.r)) return ['Cooked', 'st-cooked']; return null;
 }
 /* Counts for the summary line */
 function planCounts(m = ML()) {
@@ -28,7 +28,7 @@ const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 
 function PlanSummary() {
   const m = ML(); const c = planCounts(m); const list = c.planned ? shoppingList() : [];
-  const ticked = list.filter(x => m.checks[x.key]).length; const bought = list.length > 0 && ticked === list.length;
+  const ticked = list.filter(x => !shopOpen(x)).length; const bought = list.length > 0 && ticked === list.length;
   const bits = [c.need ? c.need + ' need' + (c.need === 1 ? 's' : '') + ' a recipe' : '', c.away ? c.away + ' eating elsewhere' : '', c.eaten ? c.eaten + ' eaten' : '',
     !c.planned ? '' : bought ? 'everything bought' : ticked ? ticked + ' of ' + list.length + ' bought' : 'shopping list ready'].filter(Boolean);
   const rot = m.rot; const nx = m.next || [];
@@ -49,11 +49,11 @@ function PlanSummary() {
       : html`<button class="btn primary wide" id="plan-list" onClick=${() => setMealsMode('list')}>Shopping list</button>
       <button class="btn text wide" id="cook-start" style="margin-top:2px" onClick=${() => UI.setView({ type: 'cook' })}>or Start cooking</button>`}</div>`;
 }
-function PlanDay({ d, ea, t }) {
+function PlanDay({ d, ea, t, ck }) {
   const rows = planDayRows(d); const today = ymd(new Date()); const dt = parseYmd(d);
   const eat = rows.filter(r => r.x && r.x.r && !r.x.off && getRecipe(r.x.r)).map(r => r.x); const tot = dayTotals(eat);
   return html`<div id=${'day-' + d}><div class="section-h"><h2>${dayLbl(dt)}</h2>${d === today ? html`<span class="aside">Today</span>` : null}</div>
-    <div class="card menu-list" style="padding:4px 14px">${rows.map(row => { const x = row.x; const r = x && x.r ? getRecipe(x.r) : null; const st = spotStatus(row, ea);
+    <div class="card menu-list" style="padding:4px 14px">${rows.map(row => { const x = row.x; const r = x && x.r ? getRecipe(x.r) : null; const st = spotStatus(row, ea, ck);
       const name = !x ? (row.key[0] === 's' ? 'Add a meal' : 'Pick a recipe') : x.off ? (r ? r.name : x.name || 'Eating elsewhere') : r ? r.name : x.name || 'A meal';
       const sub = !x ? '' : x.off ? 'Not in your cooking or shopping' : r ? portionText(r, x.sv) : 'A note, no recipe';
       return html`<div key=${row.key} class=${'menu-item' + (x && x.off ? ' off' : '')}><button class=${'menu-row' + (x ? '' : ' empty')} id=${'pm-' + d + '-' + row.key} aria-label=${dayLbl(dt) + ', ' + row.label + ': ' + name + (st ? ', ' + st[0] : '')}
@@ -74,14 +74,14 @@ function CookForDates() {
     <button class="btn primary wide" id="cook-start-2" style="margin-top:12px" onClick=${() => UI.setView({ type: 'cook' })}>${I.timer} Start cooking</button></div>`;
 }
 function PlanPage() {
-  const m = ML(); const ea = eatenIds(m); const ds = planYmds(); const any = ds.some(d => dayMeals(d).length) || !!m.gen; const t = planT();
+  const m = ML(); const ea = eatenIds(m); const ck = cookedRecipes(m); const ds = planYmds(); const any = ds.some(d => dayMeals(d).length) || !!m.gen; const t = planT();
   return html`<div>
     ${m.migErr ? html`<div class="tip-card" id="meals-mig-err" role="note" style="margin-bottom:10px;padding-right:14px"><div style="flex:1;min-width:0"><div>Your meal plan couldn’t move to dates in full, so what you’ll cook is kept as a list. Nothing was lost. A backup file helps if you report it.</div>
       <button class="btn" style="margin-top:8px" onClick=${async () => showToast({ kind: 'info', text: await saveBackupFile() })}>Save backup file</button></div></div>` : null}
     <${DatesBar}/>
     <${PlanSummary}/>
     ${any ? html`<${Tip} id="plan-meals" style="margin-top:10px">Tap any meal to change just that meal: replace it, move or copy it, change its servings, or mark it eaten.<//>
-      ${ds.map(d => html`<${PlanDay} key=${d} d=${d} ea=${ea} t=${t}/>`)}` : null}
+      ${ds.map(d => html`<${PlanDay} key=${d} d=${d} ea=${ea} t=${t} ck=${ck}/>`)}` : null}
     <${CookForDates}/>
     <button class="btn wide" id="plan-tools" style="margin-top:14px" onClick=${openPlanTools}>More planning tools</button>
     <p class="small muted" style="text-align:center;margin-top:4px">Different meals, saved plans, rotation, plan settings, clear</p>
@@ -224,4 +224,22 @@ function openPlanTools() {
     (m.gen || P.items.length) && ['plan-clear', 'Clear everything and start over', 'Asks first. Saved preps, recipes and preferences stay.', () => clearMealPlan(), true],
   ].filter(Boolean);
   openSheet({ type: 'planMore', title: 'More planning tools', acts });
+}
+
+/* ---- adding a recipe from Recipes (Nov 17, audit phase 4): spread it over the dates, or put it on one day's meal ---- */
+const askAddRecipe = id => openSheet({ type: 'addRecipe', r: id });
+function AddRecipeSheet({ r: rid }) {
+  const r = getRecipe(rid); const [n, setN] = useState(() => (r && r.week) || 3); if (!r) return null;
+  const today = ymd(new Date()); const ea = eatenIds(ML()); const slots = CAT_SLOTS[r.cat] || [];
+  const spots = planYmds().filter(d => d >= today).flatMap(d => planDayRows(d).filter(rw => slots.includes(rw.key[0]) && !(rw.x && ea.has(rw.x.id))).map(rw => ({ d, rw })));
+  const dd = spanDays(); const per = Math.max(1, Math.ceil(n * dd / 7 - 0.02));
+  return html`<${Sheet} label=${'Add ' + r.name}><h2>Add ${r.name}</h2><p class="note">Spread it over your dates, or put it on one meal.</p>
+    <div class="card" style="margin-top:10px"><div class="row"><span style="flex:1;font-weight:600">Times a week</span><${MStep} label=${'times a week for ' + r.name} value=${n} min=${1} max=${21} onChange=${setN}/></div>
+      <button class="btn primary wide" id="ar-spread" style="margin-top:8px" onClick=${() => { closeSheet(); addToPlan(rid, n); }}>Add ${pl(per, 'serving')} over ${dd === 7 ? 'the week' : 'these ' + dd + ' days'}</button>
+      <p class="small muted" style="margin-top:4px">Goes into free ${slots.length ? slots.map(s => SLOT_NAME[s].toLowerCase()).join(' and ') + ' spots' : 'room as extra food'} first.</p></div>
+    ${spots.length ? html`<div class="section-h"><h2>Or one meal</h2></div><div class="stack" style="gap:4px" id="ar-spots">${spots.slice(0, 21).map(({ d, rw }) => { const now = rw.x ? (rw.x.r ? (getRecipe(rw.x.r) || {}).name : rw.x.name) : 'empty';
+        return html`<button key=${d + rw.key} class="opt" id=${'ar-' + d + '-' + rw.key} onClick=${() => { const s0 = daysSnap(); mealCommit(mm => { putInSpot(mm, d, rw.key, { r: rid, sv: 1 }, eatenIds(mm)); }); closeSheet();
+            showToast({ kind: 'info', text: r.name + ' for ' + dayLbl(parseYmd(d)) + ' ' + rw.label.toLowerCase() + '.', action: 'Undo', ms: 5000, fn: () => daysRestore(s0) }); }}>
+          <div style="flex:1;min-width:0"><div>${dayLbl(parseYmd(d))} · ${rw.label}</div><div class="d">Now: ${now}</div></div></button>`; })}</div>` : null}
+    <button class="btn wide" style="margin-top:10px" onClick=${closeSheet}>Cancel</button><//>`;
 }

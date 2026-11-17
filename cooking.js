@@ -75,41 +75,109 @@ function knifeList(items) {
 }
 const minsText = m => m >= 60 ? Math.floor(m / 60) + ' hr' + (m % 60 ? ' ' + Math.round(m % 60) + ' min' : '') : Math.max(1, Math.round(m)) + ' min';
 const clockAt = (start, m) => new Date(start + m * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-function cookState() { const c = ML().cook || {}; return { start: c.start || 0, done: c.done || {} }; }
+function cookState() { const c = ML().cook || {}; return { start: c.start || 0, done: c.done || {}, timers: Array.isArray(c.timers) ? c.timers : [] }; }
 const cookTick = key => mealCommit(m => { const c = m.cook || { done: {} }; const done = { ...(c.done || {}) }; if (done[key]) delete done[key]; else done[key] = true; m.cook = { ...c, done }; });
+/* Nov 17 (audit phase 4, Newt's call D): Cards by default, with a pinned Now card, "I'm behind", running timers in the
+   rest-timer bar and 44-point tick areas; or Step by step, one large step at a time. The screen stays on. Mark as cooked
+   records what was made (meals.cooked); it never logs food by itself. */
+const COOK = { mode: lsGet('cookMode') === 'steps' ? 'steps' : 'cards', i: null };
+const cookBeeped = new Set();
+/* Every step in the order you do them: set-and-forget starts, the chopping, then the timed plan */
+function cookSeq(S2, knives) {
+  const seq = [];
+  for (const rc of S2.longFirst) { const k = rc.steps.findIndex(s => s.passive && (s.run > 120 || s.overnight)); const setup = rc.steps.slice(0, k + 1);
+    seq.push({ key: rc.r.id + ':long', r: rc.r, label: 'Set and forget', parts: setup.flatMap((s, i) => i ? [' ', ...s.parts] : s.parts), run: setup[k].overnight ? 0 : setup[k].run }); }
+  for (const k of knives) seq.push({ key: 'knife:' + k.name, label: 'Chop once', text: k.name.replace(/^./, c => c.toUpperCase()) + ', ' + [...k.cuts].join(' and ') });
+  for (const s of S2.plan) seq.push({ key: s.key, r: s.r, at: s.at, parts: s.parts, run: s.passive ? s.run : 0 });
+  return seq;
+}
+function cookDone(st, x) {   /* tick a step; a hands-off step starts its timer */
+  mealCommit(m => { const c = m.cook || { start: Date.now(), done: {} }; const done = { ...(c.done || {}) }; const was = !!done[x.key]; if (was) delete done[x.key]; else done[x.key] = true;
+    let timers = (c.timers || []).filter(t => t.key !== x.key);
+    if (!was && x.run > 0) timers = timers.concat({ key: x.key, label: (x.r ? x.r.name : 'Timer'), until: Date.now() + x.run * 60000 });
+    m.cook = { ...c, start: c.start || Date.now(), done, timers }; });
+}
+function CookTimers() {
+  const [, tick] = useState(0); const ts = cookState().timers;
+  useEffect(() => { const iv = setInterval(() => { tick(x => x + 1);
+    for (const t of cookState().timers) if (t.until <= Date.now() && !cookBeeped.has(t.key + t.until)) { cookBeeped.add(t.key + t.until); if (S.meta.settings.beep !== false) beep(990, 600, 0.35); try { navigator.vibrate && navigator.vibrate([300, 120, 300]); } catch (e) {} announce(t.label + ' is ready'); } }, 500);
+    return () => clearInterval(iv); }, []);
+  if (!ts.length) return null;
+  const upd = fn => mealCommit(m => { if (m.cook) m.cook = { ...m.cook, timers: fn(m.cook.timers || []) }; });
+  return html`<div class="restbar" role="timer" id="cook-timers"><div class="restbar-in" style="flex-direction:column;align-items:stretch;gap:6px">${ts.map(t => { const left = Math.ceil((t.until - Date.now()) / 1000);
+    return html`<div key=${t.key} class="row" style="gap:10px"><span class="lbl2" style="flex:1;min-width:0">${t.label}</span><span class="t" style="font-size:calc(22 * var(--u))">${left > 0 ? clock(left) : 'Ready'}</span>
+      <button aria-label=${'One more minute for ' + t.label} onClick=${() => upd(l => l.map(x => x.key === t.key ? { ...x, until: Math.max(Date.now(), x.until) + 60000 } : x))}>+1 min</button>
+      <button aria-label=${'Dismiss the timer for ' + t.label} onClick=${() => upd(l => l.filter(x => x.key !== t.key))}>Done</button></div>`; })}</div></div>`;
+}
+function markCooked(items) {
+  mealCommit(m => { const b = { id: uid('ck'), at: Date.now(), items: items.map(({ it, r }) => { const mm = macros(r) || {}; const { missing, manual, est, ...per } = mm; return { r: r.id, sv: servingsFor(it), m: per }; }) };
+    m.cooked = (m.cooked || []).concat(b).slice(-30); delete m.cook; });
+  UI.setView(null); setMealsMode('plan');
+  showToast({ kind: 'info', ms: 8000, text: 'Marked as cooked. Your planned meals show Cooked.', action: 'Log a portion', fn: () => setMealsMode('log') });
+}
+/* Recipes cooked for the plan's dates (a batch made from the day before the dates start) */
+function cookedRecipes(m = ML()) { const from = +addDays(parseYmd(m.plan.start), -1); const s = new Set(); for (const b of m.cooked || []) if (b.at >= from) for (const x of b.items || []) s.add(x.r); return s; }
 function CookView() {
+  useWake();
   const items = ML().plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && (x.r.steps || []).length);
-  const st = cookState();
-  if (!items.length) return html`<div class="card note" style="margin-top:12px">Add recipes to what you’ll cook first.</div>`;
-  const S2 = cookSchedule(items); const knives = knifeList(items);
-  const tick = key => html`<input type="checkbox" class="cook-box" aria-label="Done" checked=${!!st.done[key]} onChange=${() => cookTick(key)}/>`;
+  const st = cookState(); const [, setT] = useState(0); const re = () => setT(x => x + 1);
+  if (!items.length) return html`<div class="card note" style="margin-top:12px">Add recipes to your plan first.</div>`;
+  const S2 = cookSchedule(items); const knives = knifeList(items); const seq = cookSeq(S2, knives);
+  const tick = key => html`<label class="cook-tick" style="width:44px;height:44px;margin:-10px -6px -10px -10px;display:grid;place-items:center;flex:none"><input type="checkbox" class="cook-box" aria-label="Done" checked=${!!st.done[key]} onChange=${() => { const x = seq.find(y => y.key === key); if (x) cookDone(st, x); else cookTick(key); }}/></label>`;
   const when = m => st.start ? clockAt(st.start, m) : (m ? '+' + minsText(m) : 'Start');
-  const doneN = Object.keys(st.done).length; const total = S2.plan.length + knives.length + S2.longFirst.length;
+  const doneN = seq.filter(x => st.done[x.key]).length; const total = seq.length;
+  const nowI = seq.findIndex(x => !st.done[x.key]); const now = seq[nowI]; const next = nowI >= 0 ? seq.slice(nowI + 1).find(x => !st.done[x.key]) : null;
+  const say = x => x.text || stepLines(x.parts).map(l => l.map(p => typeof p === 'string' ? p : ' (' + p.amt + ')').join('')).join(' ');
+  const behind = () => { mealCommit(m => { if (m.cook) m.cook = { ...m.cook, start: (m.cook.start || Date.now()) + 5 * 60000 }; }); showToast({ kind: 'info', text: 'The rest of the times moved 5 minutes later.' }); };
+  const start = () => mealCommit(m => { m.cook = { start: Date.now(), done: {}, timers: [] }; });
+  const modeSeg = html`<div class="seg wide" role="group" aria-label="How to show the steps" id="cook-mode" style="margin-top:10px">${[['cards', 'Cards'], ['steps', 'Step by step']].map(([k, l]) => html`<button key=${k} id=${'cook-mode-' + k} class=${COOK.mode === k ? 'on' : ''} aria-pressed=${COOK.mode === k} onClick=${() => { COOK.mode = k; lsSet('cookMode', k); re(); }}>${l}</button>`)}</div>`;
+  const allDone = nowI < 0;
+  const finish = html`<button class=${'btn wide' + (allDone ? ' primary' : '')} id="cook-cooked" style="margin-top:14px" onClick=${() => markCooked(items)}>${allDone ? 'Mark as cooked' : 'Done cooking? Mark as cooked'}</button>`;
+  if (COOK.mode === 'steps') {
+    const i = COOK.i != null && seq[COOK.i] ? COOK.i : Math.max(0, nowI); const x = seq[i]; const nx = seq[i + 1];
+    return html`<div class="cook-view" id="cook-view">${modeSeg}
+      ${!st.start ? html`<button class="btn primary wide" id="cook-go" style="margin-top:12px" onClick=${start}>I’m starting now</button>` : null}
+      <div class="eyebrow" style="margin-top:22px" id="cook-step-n">Step ${i + 1} of ${total}${x.r ? ' · ' + x.r.name : x.label ? ' · ' + x.label : ''}${x.at != null ? ' · ' + when(x.at) : ''}</div>
+      <div class="cook-big" id="cook-big">${x.parts ? html`<${StepText} parts=${x.parts}/>` : x.text}</div>
+      ${x.run > 0 ? html`<p class="muted cook-big-sub">${I.timer} Cooks about ${minsText(x.run)} on its own. Done starts a timer.</p>` : null}
+      ${nx ? html`<div class="card" style="margin-top:22px"><div class="eyebrow">Next</div><div class="cook-big-next">${nx.r ? nx.r.name + ': ' : ''}${say(nx)}</div></div>` : null}
+      <div class="row" style="gap:10px;margin-top:26px"><button class="btn cook-big-btn" style="flex:1" id="cook-back" disabled=${i === 0} onClick=${() => { COOK.i = i - 1; re(); }}>Back</button>
+        <button class="btn primary cook-big-btn" style="flex:2" id="cook-next" onClick=${() => { if (!st.done[x.key]) cookDone(st, x); COOK.i = i + 1 < total ? i + 1 : i; re(); }}>${st.done[x.key] ? 'Next' : 'Done, next'}</button></div>
+      <p class="small muted" style="text-align:center;margin-top:10px">${doneN} of ${total} done · the screen stays on</p>
+      ${finish}<${CookTimers}/></div>`;
+  }
   return html`<div class="cook-view" id="cook-view">
     <h2 class="meal-title" style="margin-top:4px">Cook it all in one go</h2>
     <p class="small muted" id="cook-sum">About ${minsText(S2.end)} of cooking, instead of about ${minsText(S2.serial)} one recipe after another. Long things start first; the rest fits in while they cook.</p>
-    <div class="row" style="gap:8px;margin-top:10px">${st.start ? html`<span class="small" style="flex:1">Started at ${clockAt(st.start, 0)} · ${doneN} of ${total} done</span><button class="btn" id="cook-reset" onClick=${() => mealCommit(m => { delete m.cook; })}>Start over</button>`
-      : html`<button class="btn primary" style="flex:1" id="cook-go" onClick=${() => mealCommit(m => { m.cook = { start: Date.now(), done: {} }; })}>I’m starting now</button>`}</div>
+    ${modeSeg}
+    ${st.start && now ? html`<div class="card cook-now" id="cook-now" style="margin-top:10px"><div class="eyebrow">Now${now.r ? ' · ' + now.r.name : now.label ? ' · ' + now.label : ''}</div>
+        <div style="font-weight:700;margin-top:2px">${now.parts ? html`<${StepText} parts=${now.parts}/>` : now.text}</div>
+        ${next ? html`<div class="small muted" style="margin-top:8px">Next${next.r ? ' · ' + next.r.name : ''}: ${say(next)}</div>` : null}
+        <div class="row" style="gap:8px;margin-top:10px"><button class="btn primary" style="flex:2" id="cook-now-done" onClick=${() => cookDone(st, now)}>Done, next step</button><button class="btn" style="flex:1" id="cook-behind" onClick=${behind}>I’m behind</button></div></div>` : null}
+    <div class="row" style="gap:8px;margin-top:10px">${st.start ? html`<span class="small" style="flex:1">Started at ${clockAt(st.start, 0)} · ${doneN} of ${total} done${S2.end ? ' · finishing about ' + clockAt(st.start, S2.end) : ''}</span><button class="btn" id="cook-reset" onClick=${() => mealCommit(m => { delete m.cook; })}>Start over</button>`
+      : html`<button class="btn primary" style="flex:1" id="cook-go" onClick=${start}>I’m starting now</button>`}</div>
     ${S2.longFirst.length ? html`<div class="section-h"><h2>Set and forget first</h2></div>
       <p class="small muted" style="margin:-4px 0 8px">These cook on their own for hours. Start them before anything else${S2.longFirst.filter(rc => /slow cooker/i.test(rc.steps.map(s => s.text).join(' '))).length > 1 ? '. More than one needs the slow cooker: start one now and the other tomorrow, or use a second cooker or an Instant Pot' : ''}.</p>
       <div class="stack" id="cook-long">${S2.longFirst.map(rc => { const k = rc.steps.findIndex(s => s.passive && (s.run > 120 || s.overnight)); const setup = rc.steps.slice(0, k + 1); const after = rc.steps.slice(k + 1);
-        return html`<div key=${rc.r.id} class="card cook-step"><div class="row" style="align-items:flex-start;gap:10px">${tick(rc.r.id + ':long')}<div style="flex:1;min-width:0"><div style="font-weight:700">${rc.r.name}${Math.abs(rc.f - 1) > 0.01 ? html`<span class="small muted"> · ${fracStr(rc.f)} × recipe</span>` : null}</div>
+        return html`<div key=${rc.r.id} class=${'card cook-step' + (st.done[rc.r.id + ':long'] ? ' done' : '')}><div class="row" style="align-items:flex-start;gap:10px">${tick(rc.r.id + ':long')}<div style="flex:1;min-width:0"><div style="font-weight:700">${rc.r.name}${Math.abs(rc.f - 1) > 0.01 ? html`<span class="small muted"> · ${fracStr(rc.f)} × recipe</span>` : null}</div>
           <ol class="small" style="margin:4px 0 0;padding-left:18px">${setup.map(s => html`<li key=${s.i}><${StepText} parts=${s.parts}/></li>`)}</ol>
           ${after.length ? html`<div class="small muted" style="margin-top:4px">When it’s done (${setup[k].overnight ? 'next day' : 'in about ' + minsText(setup[k].run)}): ${after.map(s => s.text).join(' ')}</div>` : null}</div></div></div>`; })}</div>` : null}
     ${knives.length ? html`<div class="section-h"><h2>Chop once for everything</h2></div>
       <p class="small muted" style="margin:-4px 0 8px">Do all the cutting before the heat goes on, then nothing waits on the knife.</p>
-      <div class="card stack" id="cook-knife" style="gap:6px">${knives.map(k => html`<label key=${k.name} class="row cook-knife" style="gap:10px;align-items:flex-start">${tick('knife:' + k.name)}<span style="flex:1;min-width:0"><b>${k.name.replace(/^./, c => c.toUpperCase())}</b>, ${[...k.cuts].join(' and ')}<span class="small muted" style="display:block">${k.lines.filter(Boolean).join(' + ') || 'as the recipes say'} · ${[...k.recipes].join(', ')}</span></span></label>`)}</div>` : null}
+      <div class="card stack" id="cook-knife" style="gap:6px">${knives.map(k => html`<div key=${k.name} class="row cook-knife" style="gap:10px;align-items:flex-start">${tick('knife:' + k.name)}<span style="flex:1;min-width:0"><b>${k.name.replace(/^./, c => c.toUpperCase())}</b>, ${[...k.cuts].join(' and ')}<span class="small muted" style="display:block">${k.lines.filter(Boolean).join(' + ') || 'as the recipes say'} · ${[...k.recipes].join(', ')}</span></span></div>`)}</div>` : null}
     <div class="section-h"><h2>Cook in this order</h2></div>
     ${S2.notes.map(n => html`<p key=${n} class="small" style="margin:-4px 0 8px">${n}</p>`)}
     <div class="stack" id="cook-plan" style="gap:8px">${S2.plan.map((s, n) => html`<div key=${s.key} class=${'card cook-step' + (s.passive ? ' passive' : '') + (st.done[s.key] ? ' done' : '')}>
       <div class="row" style="align-items:flex-start;gap:10px">${tick(s.key)}<div style="flex:1;min-width:0">
         <div class="small muted num">${when(s.at)} · ${s.r.name}</div>
         <div><${StepText} parts=${s.parts}/></div>
-        ${s.passive ? html`<div class="small cook-run">${I.timer} Runs about ${minsText(s.run)} on its own · ready ${st.start ? 'at ' + clockAt(st.start, s.at + s.work + s.run) : 'at +' + minsText(s.at + s.work + s.run)}. Go on to the next step.</div>` : null}
+        ${s.passive ? html`<div class="small cook-run">${I.timer} Runs about ${minsText(s.run)} on its own · ready ${st.start ? 'at ' + clockAt(st.start, s.at + s.work + s.run) : 'at +' + minsText(s.at + s.work + s.run)}. Tick it and a timer starts; go on to the next step.</div>` : null}
         ${!s.passive && s.while.length ? html`<div class="small muted">While ${s.while.join(' and ')} ${s.while.length > 1 ? 'cook' : 'cooks'}</div>` : null}</div></div></div>`)}</div>
     <div class="section-h"><h2>Finish and pack</h2></div>
     <ul class="small" style="padding-left:18px;margin-top:0" id="cook-finish"><li>Let food cool a little, then refrigerate within 2 hours.</li><li>Portion into containers by meal; label anything you freeze with the name and date.</li><li>Keep sauces and crunchy toppings in separate small containers.</li><li>Wash as you go while things simmer, so cleanup is short.</li></ul>
+    ${finish}
     <p class="small faint">Times are estimates read from the recipes. ${NOT_ADVICE}</p>
+    <${CookTimers}/>
   </div>`;
 }
 /* ---- Amounts inside the steps (Nov 11, Newt: "what does half of the garlic mean?") ----

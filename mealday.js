@@ -155,7 +155,7 @@ function planMealFor(day, rid) {
 const pickedIds = () => { const s = new Set(); for (const d of planYmds()) for (const x of dayMeals(d)) if (x.by === 'you' && x.r && !x.off && getRecipe(x.r)) s.add(x.r); return [...s]; };
 /* Put a prep's recipes on the plan ("times a week" each). replace: everything not eaten on the dates comes off first. */
 function placePrep(mm, items, replace) {
-  const o = placeOpts(mm); if (replace) dClear(mm, o); const n = o.dates.length;
+  const o = placeOpts(mm); if (replace) { dClear(mm, o); delete mm.shop; } const n = o.dates.length;
   for (const [r, k] of items) { if (!getRecipe(r)) continue; const want = Math.max(1, Math.ceil(k * n / 7 - 0.02)); const have = recipeCount(r, mm);
     if (want > have) dPlace(mm, r, want - have, o); else if (!replace && want < have) dRemove(mm, r, have - want, o); }
   delete mm.plan.fromMenu;

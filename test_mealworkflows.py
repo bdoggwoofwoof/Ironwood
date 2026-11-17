@@ -1,0 +1,116 @@
+"""Meal planning audit, phase 4 (Nov 17): each workflow. Log shows Planned beside Logged; Recipes has filters, recently
+viewed, and adding asks how (spread or one meal); Shop edits by the ⋯ sheet, swipe or tap, with amount-aware ticks and
+coloured badges; Start cooking has Cards with a Now card and timers, Step by step, and Mark as cooked."""
+import asyncio, subprocess, sys, time, json
+from playwright.async_api import async_playwright
+PORT = 8844
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+results = []
+def check(name, ok, info=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + ('' if ok else '  ' + str(info)[:400]))
+SEED = """mealCommit(m => { m.me = { h: 178, w: 79, age: 27, sex: 'm', act: 2, goal: 'gain', pace: 'gentle', us: true }; m.habits = { ...mealHabits(), meals: 4, prep: 'few' };
+  const t = targetsFor(m.me); m.goals = { kcal: t.kcal, p: t.p, c: t.c, f: t.f }; });
+setPlanDates(new Date(), 5); genFill(4242, { auto: true });"""
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await b.new_page(viewport={'width': 390, 'height': 844}); errs = []
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.add_init_script("try{localStorage.setItem('liftbook.tourDone','1');localStorage.setItem('liftbook.setupOffered','1');localStorage.setItem('liftbook.bgOffered','1')}catch(e){}")
+        await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1200)
+        ev = pg.evaluate
+        await ev(SEED); await pg.wait_for_timeout(300)
+        today = await ev("ymd(new Date())")
+        # ---- Log: Planned beside Logged
+        await ev("UI.setTab('meals'); UI.setView(null); setMealsMode('log'); S.rerender()"); await pg.wait_for_timeout(300)
+        pl = await pg.inner_text('#log-planned')
+        check('Log shows what is planned for today beside what is logged', 'Planned for today' in pl and 'cal' in pl and '0 of' in pl, pl)
+        check('...and the tiles say they are what you logged', 'LOGGED' in (await pg.inner_text('#log-totals')).upper())
+        await pg.click('#menu-log-b'); await pg.wait_for_timeout(300)
+        check('Ate it counts toward the planned meals eaten', '1 of' in await pg.inner_text('#log-planned'))
+        check('goal wording: above your goal, not past it', await ev("GoalBar.toString().includes('above your goal') && !GoalBar.toString().includes('past your goal')"))
+        # ---- Recipes
+        await ev("setMealsMode('recipes'); MEALS.cat = 'all'; S.rerender()"); await pg.wait_for_timeout(300)
+        n_all = await ev("allRecipes().filter(recFilter).length")
+        await pg.click('#rf-quick'); await pg.wait_for_timeout(200)
+        check('30 min or less narrows the list', await ev("allRecipes().filter(recFilter).length") < n_all and await ev("allRecipes().filter(recFilter).every(r => +r.mins > 0 && +r.mins <= 30)") and await pg.locator('#rf-quick.on').count() == 1)
+        await pg.click('#rf-quick'); await pg.click('#rf-protein'); await pg.click('#rf-freezes'); await pg.wait_for_timeout(200)
+        ok = await ev("allRecipes().filter(recFilter).every(r => r.freezes && macros(r).p >= 25)")
+        check('High protein and Freezes well combine', ok and await ev("allRecipes().filter(recFilter).length") > 0)
+        await pg.click('#rf-protein'); await pg.click('#rf-freezes'); await pg.wait_for_timeout(200)
+        await ev("UI.setView({ type: 'meal', id: 'm-sheet-pan' })"); await pg.wait_for_timeout(300)
+        check('the recipe page says its servings are a preview', 'Preview, doesn’t change your plan' in await pg.inner_text('#rv-preview'))
+        await pg.click('#add-to-prep'); await pg.wait_for_timeout(250)
+        check('Add to my plan asks how: spread, or one meal', await pg.locator('.sheet #ar-spread').count() == 1 and await pg.locator('.sheet [id^="ar-2"]').count() > 3)
+        spot = await ev("document.querySelector('.sheet [id^=\"ar-2\"]').id.slice(3)"); d, key = spot[:10], spot[11:]
+        await pg.click('#ar-' + spot); await pg.wait_for_timeout(300)
+        check('...one meal puts it there and nothing else', await ev(f"dayRows(dayMeals('{d}')).find(r => r.key === '{key}').x.r") == 'm-sheet-pan' and await ev("recipeCount('m-sheet-pan')") >= 1)
+        await ev("UI.setView(null); setMealsMode('recipes'); S.rerender()"); await pg.wait_for_timeout(300)
+        check('Recently viewed shows the recipe you opened', 'Sheet-Pan' in await pg.inner_text('#recent-recipes'))
+        # ---- Shop
+        await ev("setMealsMode('list'); S.rerender()"); await pg.wait_for_timeout(300)
+        k0 = await ev("shoppingList().find(x => x.fams && Object.keys(x.fams).length && /chicken/.test(x.key)).key")
+        rid = await ev(f"ML().plan.items.find(i => getRecipe(i.r).ing.some(g => ingKey(g.n) === '{k0}')).r")
+        sel = '#shop-' + __import__('re').sub(r'[^a-z0-9]+', '-', k0, flags=__import__('re').I)
+        await pg.click(sel + ' .shop-tick'); await pg.wait_for_timeout(200)
+        check('the box ticks it and remembers the amount', await ev(f"!!(ML().checks['{k0}'] && ML().checks['{k0}'].f)") and await ev(f"shoppingList().find(x => x.key === '{k0}').st") == 'done')
+        await ev(f"setRecipeCount('{rid}', recipeCount('{rid}') + 3)"); await pg.wait_for_timeout(300)
+        x = await ev(f"shoppingList().find(x => x.key === '{k0}')")
+        check('a bigger plan reopens it with a Need … more badge (H)', x['st'] == 'more' and await pg.locator(sel + ' .chip.st-need').count() == 1 and 'more' in x['more'], x.get('st'))
+        check('...and the shared list asks for just the rest', x['more'] in await ev("listText()"))
+        await pg.click(sel + ' .shop-body'); await pg.wait_for_timeout(250)
+        check('tapping the row opens its sheet: needs, bought, edits (F)', await pg.locator('.sheet #si-card').count() == 1 and 'Bought' in await pg.inner_text('.sheet #si-card') and await pg.locator('.sheet #si-rm').count() == 1)
+        await pg.click('#si-tick'); await pg.wait_for_timeout(200)
+        check('Bought the rest ticks it again', await ev(f"shoppingList().find(x => x.key === '{k0}').st") == 'done')
+        # I have it, by swipe
+        k1 = await ev(f"shoppingList().filter(x => x.st === 'open')[0].key"); s1 = '#shop-' + __import__('re').sub(r'[^a-z0-9]+', '-', k1, flags=__import__('re').I)
+        await pg.locator(s1).scroll_into_view_if_needed(); await pg.wait_for_timeout(150)
+        box = await pg.locator(s1 + ' .shop-body').bounding_box()
+        await pg.mouse.move(box['x'] + 200, box['y'] + 15); await pg.mouse.down(); await pg.mouse.move(box['x'] + 120, box['y'] + 16, steps=4); await pg.mouse.move(box['x'] + 10, box['y'] + 16, steps=4); await pg.mouse.up(); await pg.wait_for_timeout(300)
+        check('swiping left shows Amount, I have it and Remove', await ev("SHOP_UI.open") == k1)
+        await pg.click(s1 + ' .sa-have'); await pg.wait_for_timeout(250)
+        check('I have it: a You have it badge, and it counts as done', await ev(f"shoppingList().find(x => x.key === '{k1}').st") == 'have' and await pg.locator(s1 + ' .chip.st-eaten', has_text='You have it').count() == 1)
+        lab = await ev(f"shoppingList().find(x => x.key === '{k1}').label"); lines = (await ev("listText()")).split('\n')
+        check('...and it is left off the shared list', not any(l.startswith('- ') and l.endswith(' ' + lab) for l in lines), lab)
+        # ⋯: change the amount, move aisle, remove and put back
+        k2 = await ev(f"shoppingList().filter(x => x.st === 'open')[0].key"); s2 = '#shop-' + __import__('re').sub(r'[^a-z0-9]+', '-', k2, flags=__import__('re').I)
+        await pg.click(s2 + ' .shop-more'); await pg.wait_for_timeout(250); await pg.click('#si-amt-btn'); await pg.wait_for_timeout(150)
+        await pg.fill('#si-amt', '1 big bag'); await pg.click('#si-amt-save'); await pg.wait_for_timeout(250)
+        check('Change the amount: your amount shows on the list', '1 big bag' in await pg.inner_text(s2))
+        await pg.click(s2 + ' .shop-more'); await pg.wait_for_timeout(250); await pg.click('#si-aisle'); await pg.wait_for_timeout(150); await pg.click('#si-a-frozen'); await pg.wait_for_timeout(250)
+        check('Move to another aisle', await ev(f"shoppingList().find(x => x.key === '{k2}').a") == 'frozen')
+        await pg.click(s2 + ' .shop-more'); await pg.wait_for_timeout(250); await pg.click('#si-rm'); await pg.wait_for_timeout(250)
+        check('Remove takes it off this list', await ev(f"!shoppingList().some(x => x.key === '{k2}')") and await pg.locator('#shop-removed').count() == 1)
+        await pg.click('#shop-removed'); await pg.wait_for_timeout(200); await pg.locator('button', has_text='Put back').first.click(); await pg.wait_for_timeout(250)
+        check('...and Put back brings it back', await ev(f"shoppingList().some(x => x.key === '{k2}')"))
+        check('the plan summary counts have and bought', 'bought' in await ev("(setMealsMode('plan'), S.rerender(), new Promise(r => setTimeout(() => r(document.querySelector('#plan-sum').innerText), 200)))"))
+        # ---- Start cooking
+        await ev("UI.setView({ type: 'cook' }); S.rerender()"); await pg.wait_for_timeout(400)
+        check('Start cooking: Cards and Step by step (D)', await pg.locator('#cook-mode-cards.on').count() == 1 and await pg.locator('#cook-mode-steps').count() == 1)
+        await pg.click('#cook-go'); await pg.wait_for_timeout(250)
+        n0 = await ev("Object.keys(cookState().done).length")
+        await pg.click('#cook-now-done'); await pg.wait_for_timeout(200)
+        check('the Now card: Done, next step ticks the current step', await ev("Object.keys(cookState().done).length") == n0 + 1)
+        st0 = await ev("cookState().start"); await pg.click('#cook-behind'); await pg.wait_for_timeout(200)
+        check("I'm behind moves the rest of the times 5 minutes", await ev("cookState().start") - st0 == 300000)
+        pas = await ev("(() => { const items = ML().plan.items.map(it => ({ it, r: getRecipe(it.r) })).filter(x => x.r && (x.r.steps || []).length); const sq = cookSeq(cookSchedule(items), knifeList(items)); const x = sq.find(y => y.run > 0 && !cookState().done[y.key]); if (x) cookDone(cookState(), x); return x ? [x.key, x.run] : null; })()")
+        await pg.wait_for_timeout(300)
+        check('ticking a hands-off step starts its timer in the rest bar', pas and await pg.locator('#cook-timers').count() == 1 and await ev("cookState().timers.length") == 1, pas)
+        u0 = await ev("cookState().timers[0].until"); await pg.locator('#cook-timers button', has_text='+1 min').click(); await pg.wait_for_timeout(200)
+        check('+1 min adds a minute', await ev("cookState().timers[0].until") - u0 >= 59000)
+        await ev("mealCommit(m => { m.cook.timers[0].until = Date.now() - 1000; })"); await pg.wait_for_timeout(900)
+        check('a finished timer says Ready', 'Ready' in await pg.inner_text('#cook-timers'))
+        await pg.locator('#cook-timers button', has_text='Done').click(); await pg.wait_for_timeout(200)
+        check('Done dismisses it', await pg.locator('#cook-timers').count() == 0)
+        await pg.click('#cook-mode-steps'); await pg.wait_for_timeout(250)
+        check('Step by step: one large step, Back and Done', await pg.locator('#cook-big').count() == 1 and await pg.locator('#cook-next').count() == 1 and await pg.locator('#cook-back').count() == 1)
+        a = await pg.inner_text('#cook-step-n'); await pg.click('#cook-next'); await pg.wait_for_timeout(200)
+        check('...Done moves on', await pg.inner_text('#cook-step-n') != a)
+        logs0 = await ev(f"(ML().log['{today}'] || []).length")
+        await pg.click('#cook-cooked'); await pg.wait_for_timeout(400)
+        check('Mark as cooked records the batch and never logs food', await ev("(ML().cooked || []).length") == 1 and await ev(f"(ML().log['{today}'] || []).length") == logs0 and await ev("!ML().cook"))
+        check('...and Plan shows Cooked on those meals', await pg.locator('.chip.st-cooked', has_text='Cooked').count() > 0)
+        await ev("COOK.mode = 'cards'; lsSet('cookMode', 'cards')")
+        check('no page errors', not errs, errs[:3]); await b.close()
+try: asyncio.run(main())
+finally: srv.terminate()
+print(f'{sum(results)}/{len(results)} passed'); sys.exit(0 if all(results) else 1)

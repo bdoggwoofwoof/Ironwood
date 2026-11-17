@@ -318,7 +318,7 @@ function usePlanForPrep(sure, quiet) {
   const apply = () => { const t = planT(); if (!t) return; const s0 = daysSnap();
     mealCommit(mm => { const o = placeOpts(mm); dClear(mm, o); });   /* first, so your old picks don't steer the new pattern */
     const nm = buildMenu(t, g.seed); if (!nm) return daysRestore(s0);
-    mealCommit(mm => { const o = placeOpts(mm); o.from = o.dates[0]; dFillPattern(mm, nm.days, o, true); mm.gen = { ...mm.gen, t: { kcal: t.kcal, p: t.p, c: t.c, f: t.f } }; mm.plan.fromMenu = true; delete mm.plan.src; mm.checks = {}; delete mm.rot; });
+    mealCommit(mm => { const o = placeOpts(mm); o.from = o.dates[0]; dFillPattern(mm, nm.days, o, true); mm.gen = { ...mm.gen, t: { kcal: t.kcal, p: t.p, c: t.c, f: t.f } }; mm.plan.fromMenu = true; delete mm.plan.src; mm.checks = {}; delete mm.shop; delete mm.rot; });
     if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
   if (sure || !own) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for these dates?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }

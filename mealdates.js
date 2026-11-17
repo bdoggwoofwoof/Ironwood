@@ -97,10 +97,14 @@ function RecipePickSheet({ cat, title, cur, onPick, back }) {
 function swapPlanItem(itId) {
   const it = ML().plan.items.find(i => i.id === itId); const r = it && getRecipe(it.r); if (!r) return;
   openSheet({ type: 'recipePick', cat: r.cat, cur: r.id, title: 'Swap ' + r.name, onPick: id => {
-    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id; delete mm.plan.fromMenu; });
-    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + '. The shopping list is updated.' }); } });
+    /* Nov 16 (audit D6): the swap happens in place. The meal plan swaps the same recipe on the same days and meals, and
+       everything else stays as it was; nothing is re-rolled. */
+    const old = r.id;
+    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id;
+      if (mm.menu && Array.isArray(mm.menu.days)) mm.menu.days = mm.menu.days.map(d => d.map(y => y.r === old ? { ...y, r: id } : y)); });
+    if (ML().menu && !ML().plan.fromMenu) mealCommit(mm => { mm.menu = { ...mm.menu, pk: picksKey() }; });
+    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + (ML().menu ? ' on the same days and meals' : '') + '. The shopping list is updated.' }); } });
 }
-
 /* ---- using a prep: swap recipes, pick dates, now or later ---- */
 const PREP_DRAFT = { d: null };
 function openUsePrep(pr, later) {

@@ -146,7 +146,8 @@ function bgHold(on) {
 }
 function bgUseTargets(R) {
   mealCommit(m => { m.goals = { ...(m.goals || {}), kcal: R.kcal, p: R.p, c: R.c, f: R.f }; });
-  showToast({ kind: 'info', text: 'Meal targets set: ' + fmt(R.kcal) + ' cal, ' + R.p + ' g protein.' });
+  const moved = typeof syncPlanTargets === 'function' && syncPlanTargets();
+  showToast({ kind: 'info', text: 'Meal targets set: ' + fmt(R.kcal) + ' cal, ' + R.p + ' g protein.' + (moved ? ' Your meal plan’s portions and snacks now aim for this too; the meals stay the same.' : '') });
 }
 function BodyGoalSheet() {
   const g0 = bgSet() || {}; const N = bodyNow(); const ab = typeof aboutYou === 'function' ? aboutYou() : {};

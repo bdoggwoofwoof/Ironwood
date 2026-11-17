@@ -861,7 +861,6 @@ function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
 }
 function MealsScreen({ view }) {
   useEffect(() => { rotCheck(); }, []);
-  useEffect(() => { syncMenuToPicks(); });
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
@@ -1139,7 +1138,10 @@ function RecipeView({ id }) {
     ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
       <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
-    ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">This week · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
+    ${it ? html`<div class="card stack">${(() => { const dd = spanDays(ML().plan); const short = dd < 7; const setN = n => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = n; });
+        return html`<div class="row"><span style="flex:1;font-weight:600">${short ? 'Times in these ' + dd + ' days' : 'Times a week'}</span>${short
+          ? html`<${MStep} label=${'times in these days'} value=${servingsOver(it.n, dd)} min=${1} max=${Math.max(1, Math.floor(3 * dd))} onChange=${v => setN(round2(v * 7 / dd))}/>`
+          : html`<${MStep} label="times a week" value=${Math.max(1, Math.round(it.n))} min=${1} max=${21} onChange=${setN}/>`}</div>`; })()}
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
     ${['breakfast', 'main', 'snack'].includes(r.cat) ? html`<label class="toggle-row" for="rec-noplan" style="margin-top:8px"><span><span>Leave out of my meal plans</span><span class="d">Plan my week and Different meals won’t pick it. You can still add it yourself.</span></span>
@@ -1300,7 +1302,7 @@ const sumNut = list => { const t = {}; for (const [k] of NUT) t[k] = 0; for (con
 const scaleNut = (m, f) => roundNut(Object.fromEntries(NUT.map(([k]) => [k, (+m[k] || 0) * f])));
 const logDayName = k => { if (k === ymd(new Date())) return 'Today'; if (k === ymd(addDays(new Date(), -1))) return 'Yesterday'; const d = parseYmd(k); return DOW_FULL[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate(); };
 const hhmm = t => { const d = new Date(t || Date.now()); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-function addLog(day, e) { const entry = { id: uid('l'), at: Date.now(), ...e }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
+function addLog(day, e) { const slot = e.k === 'recipe' && !e.slot && typeof planSlotFor === 'function' ? planSlotFor(day, e.r) : null; const entry = { id: uid('l'), at: Date.now(), ...e, ...(slot ? { slot } : {}) }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
 const dropLog = (day, id) => mealCommit(m => { m.log[day] = (m.log[day] || []).filter(x => x.id !== id); if (!m.log[day].length) delete m.log[day]; });
 function removeLog(day, id) {
   const gone = (ML().log[day] || []).find(x => x.id === id); if (!gone) return; dropLog(day, id);
@@ -1365,7 +1367,7 @@ function LogRecipe({ day, r0 }) {
     <div class="row"><div style="flex:1;min-width:0"><div style="font-weight:700">${r.name}</div><div class="small muted">${r.size ? 'A serving is ' + r.size : 'The recipe makes ' + r.serves}</div></div><button class="btn text" onClick=${() => setSel(null)}>Change</button></div>
     <div class="row"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>
     <${MacroTiles} m=${scaleNut(m, sv)}/>
-    <button class="btn primary wide" id="log-save" onClick=${() => { logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' }); }}>Log it</button></div>`;
+    <button class="btn primary wide" id="log-save" onClick=${() => { const e = logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' + (e && e.slot ? ', counted as your planned ' + ((PLAN_SLOTS.find(p => p[0] === e.slot[0]) || [, 'meal'])[1]).toLowerCase() : '') }); }}>Log it</button></div>`;
   const prepMix = ML().plan.items.map(i => i.r).filter(x => !MEAL_BUILTIN[x] && !ML().recipes[x]).map(getRecipe).filter(Boolean);
   const pool = term ? allRecipes().concat(allCombos().filter(c => !prepMix.includes(c))).concat(prepMix) : allRecipes().concat(prepMix);
   const list = pool.filter(x => macros(x) && (!term || x.name.toLowerCase().includes(term))).sort((a, b) => (inPrep.has(b.id) ? 1 : 0) - (inPrep.has(a.id) ? 1 : 0));
@@ -1450,7 +1452,7 @@ function LogEntrySheet({ day, id }) {
 }
 function GoalsSheet() {
   const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));
-  const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); };
+  const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); if (syncPlanTargets()) showToast({ kind: 'info', text: 'Goals saved. Your meal plan’s portions and snacks now aim for ' + fmt(ML().goals.kcal) + ' cal.' }); };
   return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
     <button class="btn ghost wide" id="goal-calc" style="margin-top:10px" onClick=${() => openSheet({ type: 'mealTargets' })}>Work them out from my height, weight and goal</button>
     <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>

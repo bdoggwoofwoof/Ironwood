@@ -3355,7 +3355,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version deb9158</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 6d4735d</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -5085,7 +5085,6 @@ function MStep({ value, min, max, onChange, label, unit, step = 1 }) {
 }
 function MealsScreen({ view }) {
   useEffect(() => { rotCheck(); }, []);
-  useEffect(() => { syncMenuToPicks(); });
   const vt = view && view.type;
   if (vt === 'meal') return html`<${RecipeView} key=${view.id} id=${view.id}/>`;
   if (vt === 'mealEdit') return html`<${RecipeEditor} view=${view}/>`;
@@ -5363,7 +5362,10 @@ function RecipeView({ id }) {
     ${r.mix && r.mix.flavor && (MIX_FLAVOR[r.mix.flavor].goes || []).some(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length) ? html`<div class="section-h"><h2>Goes with</h2></div>
       <div class="row wrap" style="gap:8px">${MIX_FLAVOR[r.mix.flavor].goes.filter(g => comboRecipe(g) && !recipeIssues(comboRecipe(g)).block.length).map(g => html`<button key=${g} class="chip goes" onClick=${() => UI.setView({ type: 'meal', id: g, from: { type: 'meal', id } })}>${comboName(g)}</button>`)}</div>` : null}
     <div class="section-h"><h2>Prep</h2></div>
-    ${it ? html`<div class="card stack"><div class="row"><span style="flex:1;font-weight:600">This week · times a week</span><${MStep} label="times a week" value=${it.n} min=${1} max=${21} onChange=${v => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = v; })}/></div>
+    ${it ? html`<div class="card stack">${(() => { const dd = spanDays(ML().plan); const short = dd < 7; const setN = n => mealCommit(m => { const x = m.plan.items.find(i => i.r === id); if (x) x.n = n; });
+        return html`<div class="row"><span style="flex:1;font-weight:600">${short ? 'Times in these ' + dd + ' days' : 'Times a week'}</span>${short
+          ? html`<${MStep} label=${'times in these days'} value=${servingsOver(it.n, dd)} min=${1} max=${Math.max(1, Math.floor(3 * dd))} onChange=${v => setN(round2(v * 7 / dd))}/>`
+          : html`<${MStep} label="times a week" value=${Math.max(1, Math.round(it.n))} min=${1} max=${21} onChange=${setN}/>`}</div>`; })()}
         <div class="row"><button class="btn" style="flex:1" onClick=${() => { MEALS.mode = 'plan'; lsSet('mealsMode', 'plan'); UI.setView(null); }}>See prep</button><button class="btn text" style="color:var(--stop)" onClick=${() => removeFromPlan(id)}>Remove</button></div></div>`
       : html`<button class="btn primary wide" id="add-to-prep" onClick=${() => addToPlan(id)}>${I.plus} Add to my prep</button>`}
     ${['breakfast', 'main', 'snack'].includes(r.cat) ? html`<label class="toggle-row" for="rec-noplan" style="margin-top:8px"><span><span>Leave out of my meal plans</span><span class="d">Plan my week and Different meals won’t pick it. You can still add it yourself.</span></span>
@@ -5524,7 +5526,7 @@ const sumNut = list => { const t = {}; for (const [k] of NUT) t[k] = 0; for (con
 const scaleNut = (m, f) => roundNut(Object.fromEntries(NUT.map(([k]) => [k, (+m[k] || 0) * f])));
 const logDayName = k => { if (k === ymd(new Date())) return 'Today'; if (k === ymd(addDays(new Date(), -1))) return 'Yesterday'; const d = parseYmd(k); return DOW_FULL[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate(); };
 const hhmm = t => { const d = new Date(t || Date.now()); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-function addLog(day, e) { const entry = { id: uid('l'), at: Date.now(), ...e }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
+function addLog(day, e) { const slot = e.k === 'recipe' && !e.slot && typeof planSlotFor === 'function' ? planSlotFor(day, e.r) : null; const entry = { id: uid('l'), at: Date.now(), ...e, ...(slot ? { slot } : {}) }; mealCommit(m => { (m.log[day] = m.log[day] || []).push(entry); }); return entry; }
 const dropLog = (day, id) => mealCommit(m => { m.log[day] = (m.log[day] || []).filter(x => x.id !== id); if (!m.log[day].length) delete m.log[day]; });
 function removeLog(day, id) {
   const gone = (ML().log[day] || []).find(x => x.id === id); if (!gone) return; dropLog(day, id);
@@ -5589,7 +5591,7 @@ function LogRecipe({ day, r0 }) {
     <div class="row"><div style="flex:1;min-width:0"><div style="font-weight:700">${r.name}</div><div class="small muted">${r.size ? 'A serving is ' + r.size : 'The recipe makes ' + r.serves}</div></div><button class="btn text" onClick=${() => setSel(null)}>Change</button></div>
     <div class="row"><span style="flex:1;font-weight:600">Servings</span><${MStep} label="servings eaten" value=${sv} min=${0.5} max=${10} step=${0.5} onChange=${setSv}/></div>
     <${MacroTiles} m=${scaleNut(m, sv)}/>
-    <button class="btn primary wide" id="log-save" onClick=${() => { logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' }); }}>Log it</button></div>`;
+    <button class="btn primary wide" id="log-save" onClick=${() => { const e = logRecipe(day, r, sv); closeSheet(); showToast({ kind: 'info', text: r.name + ' logged' + (e && e.slot ? ', counted as your planned ' + ((PLAN_SLOTS.find(p => p[0] === e.slot[0]) || [, 'meal'])[1]).toLowerCase() : '') }); }}>Log it</button></div>`;
   const prepMix = ML().plan.items.map(i => i.r).filter(x => !MEAL_BUILTIN[x] && !ML().recipes[x]).map(getRecipe).filter(Boolean);
   const pool = term ? allRecipes().concat(allCombos().filter(c => !prepMix.includes(c))).concat(prepMix) : allRecipes().concat(prepMix);
   const list = pool.filter(x => macros(x) && (!term || x.name.toLowerCase().includes(term))).sort((a, b) => (inPrep.has(b.id) ? 1 : 0) - (inPrep.has(a.id) ? 1 : 0));
@@ -5674,7 +5676,7 @@ function LogEntrySheet({ day, id }) {
 }
 function GoalsSheet() {
   const G = ML().goals; const [d, setD] = useState(() => Object.fromEntries(NUT.map(([k]) => [k, G[k] != null ? String(G[k]) : ''])));
-  const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); };
+  const save = () => { mealCommit(m => { m.goals = Object.fromEntries(NUT.filter(([k]) => +d[k] > 0).map(([k]) => [k, +d[k]])); }); closeSheet(); if (syncPlanTargets()) showToast({ kind: 'info', text: 'Goals saved. Your meal plan’s portions and snacks now aim for ' + fmt(ML().goals.kcal) + ' cal.' }); };
   return html`<${Sheet} label="Daily goals"><h2>Daily goals</h2><p class="note">Fill in only what you want to track. Sugar and sodium are limits to stay under.</p>
     <button class="btn ghost wide" id="goal-calc" style="margin-top:10px" onClick=${() => openSheet({ type: 'mealTargets' })}>Work them out from my height, weight and goal</button>
     <div class="me-mac" style="margin-top:12px">${NUT.map(([k, l, u]) => html`<div key=${k}><label class="small muted" for=${'goal-' + k}>${l}${LIMITS[k] ? ' max' : ''}${u ? ' (' + u.trim() + ')' : ''}</label><input class="field" id=${'goal-' + k} inputmode="numeric" value=${d[k]} onInput=${e => setD({ ...d, [k]: e.target.value.replace(/\D/g, '') })}/></div>`)}</div>
@@ -9034,11 +9036,33 @@ function setNoPlan(id, on) {
 }
 const pickedIds = () => { const P = ML().plan; return P.fromMenu ? [] : P.items.map(i => i.r).filter(id => getRecipe(id)); };
 const picksKey = () => (mealHabits().starred ? 's:' + Object.keys(ML().stars || {}).sort().join(',') : 'p:' + pickedIds().slice().sort().join(','));
-/* Keep the day-by-day plan in step with what you picked: rebuild (same seed) when the picks change */
+/* Rebuild the day-by-day plan around what you picked (same seed). Nov 16 (audit D6): no longer automatic. Changing one
+   recipe used to re-roll every day; now the meal plan card says the plan is out of step and offers this as a button. */
 function syncMenuToPicks() {
-  const mn = ML().menu; if (!mn || !mn.t || ML().plan.fromMenu || ML().rot) return;
-  const k = picksKey(); if (mn.pk === k) return;
-  const nm = buildMenu(mn.t, mn.seed); if (nm) mealCommit(m => { m.menu = { ...nm, pk: k }; });
+  const mn = ML().menu; if (!mn || !mn.t || ML().plan.fromMenu || ML().rot) return false;
+  const k = picksKey();
+  const nm = buildMenu(mn.t, mn.seed); if (!nm) return false; mealCommit(m => { m.menu = { ...nm, pk: k }; }); return true;
+}
+/* The plan was built from other picks than What you'll cook holds now (only when you picked by hand) */
+const menuStale = () => { const mn = ML().menu; return !!(mn && mn.t && mn.pk != null && !ML().plan.fromMenu && !ML().rot && !mealHabits().starred && pickedIds().length && mn.pk !== picksKey()); };
+/* One set of meal targets (Nov 16, audit D1): when Daily goals change (by hand or from Body goal), the meal plan's own
+   copy follows, and its portions are re-sized to it. Same seed, so the same meals; only amounts move. */
+function syncPlanTargets() {
+  const m = ML(); const mn = m.menu; const G = m.goals || {}; if (!mn || !mn.t || !(G.kcal > 0)) return false;
+  const t = { ...mn.t, kcal: G.kcal, ...(G.p > 0 ? { p: G.p } : {}), ...(G.c > 0 ? { c: G.c } : {}), ...(G.f > 0 ? { f: G.f } : {}) };
+  if (['kcal', 'p', 'c', 'f'].every(k => t[k] === mn.t[k])) return false;
+  const nm = buildMenu(t, mn.seed); if (!nm) return false;
+  mealCommit(mm => { mm.menu = { ...nm, pk: mn.pk }; });
+  if (ML().plan.fromMenu && !ML().rot) usePlanForPrep(true, true);
+  return true;
+}
+/* Which planned meal today a logged recipe counts as (audit D3): the first meal on that day's plan with this recipe
+   that isn't skipped or already logged. Lets Log food, Recent and From your prep tick off the plan like Ate it does. */
+function planSlotFor(day, rid) {
+  const mn = ML().menu; if (!mn || !mn.days || !rid) return null;
+  const di = menuDayIdx(parseYmd(day)); const taken = new Set((ML().log[day] || []).filter(e => e.k === 'recipe' && e.slot).map(e => e.r + ':' + e.slot));
+  for (const { x, key } of menuRows(mn.days[di] || [])) if (x.r === rid && !isSkipped(di, key) && !taken.has(rid + ':' + key)) return key;
+  return null;
 }
 function planPool() {
   const ok = r => { const m = macros(r); return m && m.kcal > 0 && !(m.missing && m.missing.length > 1); };
@@ -9106,7 +9130,7 @@ function buildMenu(t, seed) {
     for (let k = 0; k < 2 && topUp; k++) { T = tot(); if (t.kcal - T.kcal < t.kcal * 0.1) break; addSnack(day, topUp); }
     days.push(day);
   }
-  return { seed, t, days, at: Date.now(), h: H };
+  return { seed, t, days, at: Date.now(), h: H, pk: picksKey() };
 }
 function HabitsFields({ v, set }) {
   const seg = (k, opts, id) => html`<div class="seg wide" role="group" style="margin-top:6px">${opts.map(([x, l]) => html`<button key=${x} id=${'hb-' + id + '-' + x} class=${v[k] === x ? 'on' : ''} aria-pressed=${v[k] === x} onClick=${() => set({ ...v, [k]: x })}>${l}</button>`)}</div>`;
@@ -9248,7 +9272,7 @@ function usePlanForPrep(sure, quiet) {
   /* Counts the meals on the days you planned (Nov 11): a 4-day plan makes 4 days of food. n stays a rate per week. */
   const sp = planSpan(); const week = {};
   for (let k = 0; k < sp.days; k++) { const di = sp.start ? menuDayIdx(addDays(sp.start, k)) : k % 7; for (const { x, key } of menuRows(mn.days[di] || [])) if (!isSkipped(di, key)) week[x.r] = (week[x.r] || 0) + x.sv; }
-  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: round2(Math.max(1, Math.ceil(n - 1e-6)) * 7 / sp.days) })); mm.plan.people = 1; if (!mm.plan.start) { mm.plan.weeks = 1; mm.plan.days = 7; } mm.plan.fromMenu = true; delete mm.plan.src; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
+  const apply = () => { mealCommit(mm => { mm.plan.items = Object.entries(week).filter(([r]) => getRecipe(r)).map(([r, n]) => ({ id: uid('mp'), r, n: round2(Math.max(1, Math.ceil(n - 1e-6)) * 7 / sp.days) })); if (!mm.plan.start) { mm.plan.weeks = 1; mm.plan.days = 7; } mm.plan.fromMenu = true; delete mm.plan.src; mm.checks = {}; delete mm.rot; }); if (quiet) return; closeSheet(); showToast({ kind: 'info', text: 'What you’ll cook and your shopping list now match this plan.' }); };
   if (sure || (m.plan.fromMenu && !m.rot) || (!m.plan.items.length && !m.rot)) apply(); else openSheet({ type: 'confirm', title: 'Use this plan for this week?', body: 'It replaces what you picked to cook' + (m.rot ? ' and stops your rotation' : '') + ', and the shopping list starts fresh.', ok: 'Use this plan', onOk: apply });
 }
 function MenuCard() {
@@ -9265,6 +9289,8 @@ function MenuCard() {
       <button class="btn text" id="plan-edit" onClick=${() => openSheet({ type: 'mealTargets' })}>Plan settings</button></div>
     <button class="btn text" id="plan-prefs" style="padding-left:0" onClick=${() => openSheet({ type: 'mealPrefs' })}>Food preferences${prefsOf().allergies.length || prefsOf().diets.length || prefsOf().dislikes ? ' (set)' : ''}</button>
     ${!mealHabits().starred && Object.keys(ML().stars || {}).length ? html`<button class="btn text" id="plan-use-stars" style="padding-left:0;display:block" onClick=${planFromStars}>Plan from my ${Object.keys(ML().stars).length} starred recipes</button>` : null}
+    ${menuStale() ? html`<div class="tip-card" id="menu-stale" style="margin:8px 0;padding-right:14px"><div style="flex:1;min-width:0"><div>What you’ll cook changed, so these days may still show the old meals. Nothing was reshuffled.</div>
+      <button class="btn" id="menu-resync" style="margin-top:8px" onClick=${() => { if (syncMenuToPicks()) showToast({ kind: 'info', text: 'Meal plan rebuilt around what you’ll cook.' }); }}>Update the meal plan</button></div></div>` : null}
     ${(() => { const sp = planSpan(); /* with dates set, the days of your plan in order, with their dates (Nov 11) */
       const tabs = sp.start ? Array.from({ length: Math.min(7, sp.days) }, (_, k) => { const d = addDays(sp.start, k); return [menuDayIdx(d), DOW[d.getDay()][0], d.getDate()]; }) : ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => [i, l, null]);
       return html`<div class=${'menu-days' + (sp.start ? ' dated' : '')} role="tablist">${tabs.map(([i, l, n]) => html`<button key=${i} role="tab" aria-selected=${di === i} class=${'chip' + (di === i ? ' on' : '')} id=${'menu-d' + i} onClick=${() => setDi(i)}>${l}${n ? html`<small>${n}</small>` : null}</button>`)}</div>`; })()}
@@ -9389,10 +9415,14 @@ function RecipePickSheet({ cat, title, cur, onPick, back }) {
 function swapPlanItem(itId) {
   const it = ML().plan.items.find(i => i.id === itId); const r = it && getRecipe(it.r); if (!r) return;
   openSheet({ type: 'recipePick', cat: r.cat, cur: r.id, title: 'Swap ' + r.name, onPick: id => {
-    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id; delete mm.plan.fromMenu; });
-    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + '. The shopping list is updated.' }); } });
+    /* Nov 16 (audit D6): the swap happens in place. The meal plan swaps the same recipe on the same days and meals, and
+       everything else stays as it was; nothing is re-rolled. */
+    const old = r.id;
+    mealCommit(mm => { const dup = mm.plan.items.find(i => i.r === id); const x = mm.plan.items.find(i => i.id === itId); if (!x) return; if (dup && dup !== x) { dup.n = round2(dup.n + x.n); mm.plan.items = mm.plan.items.filter(i => i !== x); } else x.r = id;
+      if (mm.menu && Array.isArray(mm.menu.days)) mm.menu.days = mm.menu.days.map(d => d.map(y => y.r === old ? { ...y, r: id } : y)); });
+    if (ML().menu && !ML().plan.fromMenu) mealCommit(mm => { mm.menu = { ...mm.menu, pk: picksKey() }; });
+    showToast({ kind: 'info', text: 'Swapped in ' + getRecipe(id).name + (ML().menu ? ' on the same days and meals' : '') + '. The shopping list is updated.' }); } });
 }
-
 /* ---- using a prep: swap recipes, pick dates, now or later ---- */
 const PREP_DRAFT = { d: null };
 function openUsePrep(pr, later) {
@@ -9865,7 +9895,8 @@ function bgHold(on) {
 }
 function bgUseTargets(R) {
   mealCommit(m => { m.goals = { ...(m.goals || {}), kcal: R.kcal, p: R.p, c: R.c, f: R.f }; });
-  showToast({ kind: 'info', text: 'Meal targets set: ' + fmt(R.kcal) + ' cal, ' + R.p + ' g protein.' });
+  const moved = typeof syncPlanTargets === 'function' && syncPlanTargets();
+  showToast({ kind: 'info', text: 'Meal targets set: ' + fmt(R.kcal) + ' cal, ' + R.p + ' g protein.' + (moved ? ' Your meal plan’s portions and snacks now aim for this too; the meals stay the same.' : '') });
 }
 function BodyGoalSheet() {
   const g0 = bgSet() || {}; const N = bodyNow(); const ab = typeof aboutYou === 'function' ? aboutYou() : {};

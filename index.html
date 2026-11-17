@@ -3051,12 +3051,9 @@ const tagChips = (tags, max) => { const n = max || tags.length; const shown = ta
 function RoutinesScreen({ view }) {
   if (view && view.type === 'routine') return html`<${RoutineView} id=${view.id}/>`;
   if (view && view.type === 'edit') return html`<${RoutineEditor} view=${view}/>`;
-  if (plansMode() === 'meals' && typeof MealPrepLibrary === 'function') return html`<div><${PlansSwitch}/><${Intro} id="intro-plans-meals">Weeks of cooking to use, swap or rotate.<//><${MealPrepLibrary}/></div>`;
   return html`<${RoutineList}/>`;
 }
-/* Plans splits into Training and Meal preps (Nov 16, Newt), like Train / Run / Fight */
-const plansMode = () => lsGet('plansMode') === 'meals' ? 'meals' : 'train';
-function PlansSwitch() { return html`<${TopSwitch} value=${plansMode()} options=${[['train', 'Training'], ['meals', 'Meal preps']]} onChange=${k => { lsSet('plansMode', k); S.rerender(); scrollTo(0, 0); }}/>`; }
+/* Nov 17 (Newt): Meal preps moved from Plans to Meals → Preps; Plans is training only again */
 const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 /* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
@@ -3097,8 +3094,7 @@ function RoutineList() {
     ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
     ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
-  const top = html`<${PlansSwitch}/>
-    <${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
+  const top = html`<${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
     <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
     ${inLib ? html`<${LibFilters} re=${re}/>` : null}
@@ -3646,7 +3642,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 4e43bd5</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version c41f98d</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -5415,7 +5411,7 @@ async function shareList() {
 }
 
 /* ---- screens ---- */
-const MEALS = { mode: ['log', 'plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null, f: {} };
+const MEALS = { mode: ['log', 'plan', 'recipes', 'preps', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null, f: {} };
 /* Recipe filters (Nov 17, audit phase 4): quick, high protein, freezes well. Recently viewed recipes, newest first. */
 const REC_FILTERS = [['quick', '30 min or less', r => +r.mins > 0 && +r.mins <= 30], ['protein', 'High protein', r => { const m = macros(r); return !!m && m.p >= 25 && m.p * 4 >= m.kcal * 0.25; }], ['freezes', 'Freezes well', r => !!r.freezes]];
 const recFilter = r => REC_FILTERS.every(([k, , f]) => !MEALS.f[k] || f(r));
@@ -5437,8 +5433,8 @@ function MealsScreen({ view }) {
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   if (vt === 'cook') return html`<${CookView}/>`;
-  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Plan'], ['recipes', 'Recipes'], ['list', 'Shop']]} onChange=${setMealsMode}/>
-    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PlanPage}/>`}
+  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Plan'], ['recipes', 'Recipes'], ['preps', 'Preps'], ['list', 'Shop']]} onChange=${setMealsMode}/>
+    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : MEALS.mode === 'preps' ? html`<div><${Intro} id="intro-meal-preps">Weeks of cooking to use now, plan for later dates, or rotate.<//><${MealPrepLibrary}/></div>` : html`<${PlanPage}/>`}
 </div>`;
 }
 function keepNote(r, it) {
@@ -5468,7 +5464,7 @@ function usePrepFor(pr, ok) {
     if (!P.items.length) apply(true);
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace this week’s cooking, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
   }
-/* Plans → Meal preps (Nov 16, Newt: Plans splits into Training and Meal preps, like Train / Run / Fight) */
+/* Meals → Preps (Nov 17, Newt: moved here from Plans → Meal preps) */
 function MealPrepLibrary() {
   const [open, setOpen] = useState(null); const mine = Object.values(ML().preps); const list = readyPreps();
   const go = pr => { usePrepFor(pr); setTimeout(() => { if (ML().plan.items.length) { UI.setTab('meals'); setMealsMode('plan'); } }, 80); };
@@ -5484,7 +5480,7 @@ function MealPrepLibrary() {
     <div class="ready-list">${list.map(pr => row(pr, true))}</div>
     <${ComingUp}/>
     <${RotationCard}/>
-    <button class="btn wide" style="margin-top:12px" id="lib-to-week" onClick=${() => { UI.setTab('meals'); setMealsMode('plan'); }}>Go to this week’s meals</button></div>`;
+    <button class="btn wide" style="margin-top:12px" id="lib-to-week" onClick=${() => { UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); }}>Go to Plan</button></div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
    meals.preps: { id: { id, name, items: [[recipe id, times a week]] } } (preps you save). meals.rot: { ids: [prep ids, 2–4],
@@ -9703,11 +9699,12 @@ function StarBtn({ id, name, big }) {
 
 /* ---- the Meals tour: what to do, in the order most people do it ---- */
 const MEALS_TOUR = [   /* rewritten for the Plan page (Nov 16, audit phase 3) */
-  ['meals', null, null, 'How Meals works', 'Meals has four tabs: Plan your dates, Shop for them, cook, then Log what you eat. Recipes is where you find and save meals. This takes about a minute.', { meals: 'plan' }],
+  ['meals', null, null, 'How Meals works', 'Meals has five tabs: Plan your dates, Shop for them, cook, then Log what you eat. Recipes and Preps are where you find meals and whole weeks of cooking. This takes about a minute.', { meals: 'plan' }],
   ['meals', null, '#plan-dates', '1. Your dates', 'Plan covers real dates. Tap Change to pick them on a calendar: the first day, then the last, or “Until Sunday” (your prep day) for a short first stretch.', { meals: 'plan' }],
   ['meals', null, '#plan-cta, #plan-sum', '2. One main button', 'With nothing planned it says Plan my week: a few questions, then meals with portions for your dates. After that it points to the shopping list, and once you’ve bought everything, to Start cooking.', { meals: 'plan' }],
   ['meals', null, '[id^="day-"], #plan-cta', '3. Each day', 'One card per date. A chip shows what needs attention: Needs a recipe, Eaten, Eating elsewhere. Tap any meal to replace it, move or copy it, change its servings or mark it eaten. Only that meal changes.', { meals: 'plan' }],
   ['meals', null, '#cook-for, #plan-cta', '4. Cook for these dates', 'Everything to cook, worked out from the meals above, for the people you cook for. Change a meal and this follows. Start cooking puts it in one session.', { meals: 'plan' }],
+  ['meals', null, '#meal-prep-lib', 'Preps', 'Whole weeks of cooking: your saved preps and ready-made ones. Use one now, plan it for later dates, or rotate 2 to 4 of them week by week.', { meals: 'preps' }],
   ['meals', null, '#plan-tools', 'More planning tools', 'Different meals for the days you pick, plan settings, food preferences, people, saved and ready-made preps, planning ahead, rotation, and clearing.', { meals: 'plan' }],
   ['meals', null, '#meal-search', 'Recipes', 'Search by name or ingredient. The filters narrow it to breakfasts, mains, snacks, reels, your own recipes or Starred. The + adds a recipe to your plan.', { meals: 'recipes' }],
   ['meals', null, '#rchip-starred', 'Star your favorites', 'Tap ☆ on any recipe to star it. Starred keeps them in one place, and they come first when you pick a recipe for a meal.', { meals: 'recipes' }],
@@ -9995,7 +9992,7 @@ function planCounts(m = ML()) {
     if (!x) { if (row.key[0] !== 's') c.need++; continue; } if (x.off) c.away++; else { c.planned++; if (ea.has(x.id)) c.eaten++; } }
   return c;
 }
-const openMealPreps = () => { lsSet('plansMode', 'meals'); UI.setView(null); UI.setTab('routines'); scrollTo(0, 0); };
+const openMealPreps = () => { UI.setTab('meals'); UI.setView(null); setMealsMode('preps'); };   /* Meals → Preps (Nov 17) */
 const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 
 function PlanSummary() {
@@ -12564,7 +12561,7 @@ function App() {
     ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}
     ${showMini ? html`<${IntervalMini}/>` : null}
     ${showFight ? html`<${FightMini}/>` : null}
-    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : null}${body}<${HelpFoot}/></main>
+    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : !view && tab === 'routines' ? html`<div class="topsw"><h1 class="page-title">Plans</h1></div>` : null}${body}<${HelpFoot}/></main>
     <${QuickFab} tab=${tab} view=${view}/>
     <${Toast}/>
     <${Announcer}/>

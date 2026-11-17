@@ -22,6 +22,7 @@ const PROG_INFO = {
   'bi-ppl6': { fam: 'ppl', variant: 'Main', goal: 'size', level: 'Intermediate' },
   'bi-ppl3': { fam: 'ppl', variant: '3-day rotating', goal: 'size', level: 'Beginner to intermediate' },
   'bi-heartwood': { goal: 'size', level: 'Intermediate' }, 'bi-growth-rings': { goal: 'size', level: 'Beginner to intermediate' },
+  'bi-sapwood': { goal: 'size', level: 'Intermediate' },
   'bi-three-ring': { goal: 'size', level: 'Beginner to intermediate' }, 'bi-easy-grain': { goal: 'size', level: 'Beginner' },
   'bi-newt-4day': { goal: 'both', level: 'Intermediate' },
 };

@@ -349,6 +349,23 @@ const PERSONAL_PLANS = [
     ['Lower A', ['Lower'], [['Leg Press', 3, '8-12'], ['Leg Press Calf Raise', 3, '12-15', 'Stay in the leg press: legs straight, balls of the feet on the bottom edge.'], ['Seated Leg Curl', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Cable Crunch', 2, '10-15']]],
     ['Upper B', ['Upper'], [['Seated Dumbbell Overhead Press', 3, '8-10'], ['Assisted Pull-Up', 3, '6-10'], ['Dumbbell Bench Press', 3, '8-12'], ['Machine Row', 2, '10-12'], ['Face Pulls', 2, '12-15'], ['Tricep Pushdowns', 2, '10-12'], ['Hammer Curls', 2, '10-12']]],
     ['Lower B', ['Lower'], [['Dumbbell Romanian Deadlift', 3, '8-10'], ['Leg Press', 2, '10-15'], ['Leg Press Calf Raise', 3, '12-15'], ['Seated Leg Curl', 2, '10-12'], ['Hanging Knee Raise', 2, '10-15']]]]],
+  /* Sapwood (Nov 17, Newt: "a Newt plan that is hypertrophic", with dismissible tips). Sapwood is the living layer of a
+     trunk where new growth happens. Newt's four days and his supersets, sized for growth: 9–12 hard sets a week for every
+     major muscle, chest and arms twice a week, and a short second leg hit (curls and calves) at the end of Day 2.
+     Item: [exercise, sets, reps, cue, superset with the one above, rest seconds]. The tips sit in one card on the plan page, read once
+     and hidden with one tap (Newt: "just once to understand how it works"). */
+  ['bi-sapwood', 'Sapwood Hypertrophy', null, "Newt's 4-Day Split built for muscle growth: the same four days and supersets, more total work for every muscle, and a short second leg hit on Day 2.", [
+    ['Day 1 - Chest / Side Delts', ['Chest', 'Push'], [['Decline Chest Press', 3, '6-10', '', 0, 150], ['Incline Reverse-Grip Squeeze Press', 3, '8-12', '', 0, 120], ['Cable Fly', 3, '10-15', '', 0, 75], ['Tricep Pushdowns', 3, '10-12', '', 1, 75], ['Behind-the-Back Cable Lateral Raise', 3, '12-15', '', 0, 75], ['Cable Crunch', 3, '10-15', '', 1, 75]]],
+    ['Day 2 - Back / Rear Delts', ['Back', 'Pull'], [['Barbell Row', 3, '6-10', 'Keep the torso still; pull to the lower ribs.', 0, 150], ['Lat Pulldown', 3, '8-12', '', 0, 120], ['Seated Cable Row', 3, '10-12', '', 0, 90], ['Face Pulls', 3, '12-15', '', 0, 75], ['Hybrid Curls', 3, '8-12', '', 1, 75], ['Seated Leg Curl', 3, '10-12', '', 0, 75], ['Calf Raises', 3, '10-15', '', 1, 75]]],
+    ['Day 3 - Shoulders / Arms', ['Shoulders', 'Arms'], [['Overhead Barbell Press', 3, '6-10', '', 0, 150], ['Incline Dumbbell Press', 3, '8-12', '', 0, 120], ['Behind-the-Back Cable Lateral Raise', 3, '12-15', '', 0, 75], ['Cuban Press', 2, '10-12', 'Light. Smooth reps, no swinging.', 1, 75], ['Overhead Cable Tricep Extension', 3, '10-15', '', 0, 75], ['Cable Curl', 3, '10-12', '', 1, 75], ['Hanging Leg Raises', 3, '8-12', '', 0, 75]]],
+    ['Day 4 - Legs', ['Legs'], [['Back Squat', 3, '6-10', '', 0, 180], ['Romanian Deadlift', 3, '8-10', 'Push the hips back until you feel the hamstrings, then stand up.', 0, 120], ['Leg Press', 2, '10-15', '', 0, 120], ['Seated Leg Curl', 3, '10-12', '', 0, 75], ['Leg Extension', 3, '12-15', '', 1, 75], ['Calf Raises', 4, '10-15', '', 0, 60]]]],
+    { tips: [
+      'How hard: end most sets with 1–3 good reps left. Take the last set of small lifts (flies, raises, curls, pushdowns) close to failure. Hard sets build muscle; easy extra sets only tire you.',
+      'How it progresses: each lift has a rep range, like 8–12. Keep the weight until every set reaches the top of the range, then add weight and start again near the bottom. Ironwood suggests the next weight for you.',
+      'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
+      'Supersets: a bar on the left means do one set of each, back to back, then rest. They pair muscles that don’t compete, so you lose no reps and save time.',
+      'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. The curls and calves at the end of Day 2 give your legs a second hit each week.',
+      'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights and half the sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'] }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
     ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
     ['Full Body B', ['Full Body'], [['Romanian Deadlift', 3, '8-10'], ['Seated Dumbbell Overhead Press', 3, '8-10'], ['Seated Cable Row', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Hybrid Curls', 2, '10-12'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
@@ -362,17 +379,17 @@ const PERSONAL_PLANS = [
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
 const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips|bench dips|inverted rows?|reverse crunch(es)?|chin ?ups?|mountain climbers?|bear crawls?)\b/;
 function planDay(rid, i, name, tags, items) {
-  return { id: `${rid}-d${i}`, name, tags, items: items.map(([nm, sets, reps, cue, ss], j) => {
+  return { id: `${rid}-d${i}`, name, tags, items: items.map(([nm, sets, reps, cue, ss, rest], j) => {
     let ex = findIn(BUILTIN_EX)(nm);
     if (!ex) { const n = norm(nm); ex = { id: 'b-' + slug(nm), name: nm, kind: BW_EX.test(n) && !/assist/.test(n) ? 'bodyweight' : /kettle ?bell|wall ?ball/.test(n) || COND_EX.test(n) ? 'other' : tags[0] === 'Mobility' && !/weighted|dumbbell|barbell/.test(n) ? 'bodyweight' : guessKind(nm) };
       if (COND_EX.test(n)) ex.cat = 'cardio'; else if (tags[0] === 'Core') ex.cat = 'core'; else if (tags[0] === 'Mobility') ex.cat = 'other'; else if (/rear delt row/.test(n)) ex.cat = 'back';
       BUILTIN_EX[ex.id] = ex; }
-    return { id: `${rid}-d${i}-${j + 1}`, ex: ex.id, sets, reps: reps || '', group: '', ss: !!ss && j > 0, note: cue || '' }; }) };
+    return Object.assign({ id: `${rid}-d${i}-${j + 1}`, ex: ex.id, sets, reps: reps || '', group: '', ss: !!ss && j > 0, note: cue || '' }, rest ? { rest } : {}); }) };
 }
 /* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
-function builtinPlan([rid, name, tags, note, items]) {
+function builtinPlan([rid, name, tags, note, items, extra]) {
   const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
-  return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days };
+  return Object.assign({ id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days }, extra && extra.tips ? { tips: extra.tips } : {});
 }
 const BUILTIN_ROUTINES = [
   ...PERSONAL_PLANS.map(builtinPlan),

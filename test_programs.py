@@ -29,14 +29,15 @@ async def main():
 
         # ---- Personal programs ----
         names = await ev("personalPlans().slice(0, 5).map(r => r.name)")
-        check('personal order: Heartwood, Growth Rings, Three-Ring, Easy Grain, then the original split', names == ['Heartwood Split', 'Growth Rings Upper/Lower', 'Three-Ring Full Body', 'Easy Grain 4-Day', "Newt's 4-Day Split"], names)
+        names = await ev("personalPlans().slice(0, 6).map(r => r.name)")
+        check('personal order: Heartwood, Growth Rings, Sapwood, Three-Ring, Easy Grain, then the original split', names == ['Heartwood Split', 'Growth Rings Upper/Lower', 'Sapwood Hypertrophy', 'Three-Ring Full Body', 'Easy Grain 4-Day', "Newt's 4-Day Split"], names)
         newt = await ev("getRoutine('bi-newt-4day').days.map(d => d.items.map(i => exName(i.ex)))")
         sets = await ev("getRoutine('bi-newt-4day').days.flatMap(d => d.items.map(i => i.sets + 'x' + i.reps + (i.ss ? 'ss' : ''))).join(' ')")
         orig = await ev("parseProgram(NEWT_TEXT).flatMap(d => d.items.map(i => i.sets + 'x' + i.reps + (i.ss ? 'ss' : ''))).join(' ')")
         check("Newt's 4-Day Split keeps every exercise, set and rep", newt == NEWT and sets == orig, (newt, sets))
         lib_has_personal = await ev("libRoutines().filter(r => r.personal && planGroup(r) !== 'mine').length")
         check('personal routines are not on library shelves', lib_has_personal == 0)
-        cov = await ev("""['bi-heartwood', 'bi-growth-rings', 'bi-three-ring', 'bi-easy-grain'].map(id => { const r = getRoutine(id); const w = weeklySets(r);
+        cov = await ev("""['bi-heartwood', 'bi-growth-rings', 'bi-sapwood', 'bi-three-ring', 'bi-easy-grain'].map(id => { const r = getRoutine(id); const w = weeklySets(r);
           const pats = new Set(r.days.flatMap(d => d.items.flatMap(i => getEx(i.ex).pat || [])));
           return [id, COVER_ROWS.filter(([k]) => !(w[k] >= 2)).map(x => x[0]), ['hpush', 'vpull', 'hpull', 'kneeflex', 'calf', 'hinge'].filter(x => !pats.has(x)), pats.has('squat') || pats.has('legpress'), pats.has('vpush') || pats.has('latraise')]; })""")
         check('every personal program trains each major muscle at least 2 sets a week', all(not c[1] for c in cov), cov)
@@ -130,6 +131,24 @@ async def main():
         await ev("UI.setView(null); UI.setTab('train')"); await pg.wait_for_timeout(300)
         check('Up next shows how long the workout takes', 'min ·' in await pg.inner_text('#next-mins'))
 
+        # ---- Sapwood Hypertrophy (Nov 17): growth volume, known exercises, rest times, tips ----
+        sw = await ev("""(() => { const r = getRoutine('bi-sapwood'); const w = weeklySets(r);
+          return { low: COVER_ROWS.filter(([k]) => ['chest', 'back', 'sdelt', 'quads', 'hams', 'triceps', 'biceps'].includes(k) && !(w[k] >= 8)).map(([k]) => k + ':' + w[k]),
+            keys: COVER_ROWS.map(x => x[0]), unknown: r.days.flatMap(d => d.items.filter(i => !(getEx(i.ex).pat || []).length).map(i => exName(i.ex))),
+            norest: r.days.flatMap(d => d.items.filter(i => !i.rest).map(i => exName(i.ex))), tips: (r.tips || []).length, dayTips: r.days.filter(d => d.tip).length,
+            mins: r.days.map(d => Math.round(dayMinutes(d))), legs2: r.days.filter(d => d.items.some(i => (getEx(i.ex).pat || []).includes('kneeflex'))).length }; })()""")
+        check('Sapwood: 8+ weekly sets for chest, back, side delts, quads, hamstrings, triceps and biceps', not sw['low'], sw)
+        check('Sapwood: every exercise has muscle data and a rest time; hamstrings twice a week', not sw['unknown'] and not sw['norest'] and sw['legs2'] == 2, sw)
+        check('Sapwood: 6 tips, no day over an hour', sw['tips'] == 6 and sw['dayTips'] == 0 and max(sw['mins']) <= 60, sw)
+        await ev("UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-sapwood' })"); await pg.wait_for_timeout(400)
+        t1 = await pg.inner_text('#plan-tips')
+        check('Sapwood tips sit together in one card on the plan page', 'How to use this plan' in t1 and all(w in t1 for w in ('How hard', 'progresses', 'Rest', 'Supersets', 'Your week', 'Bad days')), t1[:80])
+        await pg.click('.tip-card .tip-x'); await pg.wait_for_timeout(300)
+        check('one tap hides the tips for good', await pg.locator('#plan-tips').count() == 0 and await ev("tipOff('pt-bi-sapwood')"))
+        await ev("startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[1])"); await pg.wait_for_timeout(500)
+        rest0 = await ev("S.active.items[0].target.rest")
+        check('Sapwood workout uses the plan rest time and shows no tip card', rest0 == 150 and await pg.locator('.tip-card').count() == 0, rest0)
+        await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)
         # ---- Accessibility: automated check on the new screens ----
         axe = os.path.join('node_modules', 'axe-core', 'axe.min.js')
         if os.path.exists(axe):

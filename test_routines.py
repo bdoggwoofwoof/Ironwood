@@ -24,9 +24,9 @@ async def main():
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
         await pg.evaluate("lsSet('rtFilter', 'all'); Object.keys(PLAN_MORE).concat(['mine','fb','ul','ppl','lift','one','run','fight','care','arch']).forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         allnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        check('every plan once: 19 personal, 32 library, 7 archived; One-day holds the finisher', len(allnames) == 58 and len(set(allnames)) == 58 and [n.upper() for n in names] == ['ARM AND SHOULDER DROP SET FINISHER'], (len(allnames), names))
+        check('every plan once: 20 personal, 32 library, 7 archived; One-day holds the finisher', len(allnames) == 59 and len(set(allnames)) == 59 and [n.upper() for n in names] == ['ARM AND SHOULDER DROP SET FINISHER'], (len(allnames), names))
         mine = [n.upper() for n in await pg.locator('#ps-mine .r-card h3').all_inner_texts()]
-        check("Personal: Heartwood first, the 4-Day Split fifth, Efficient PPL after", mine[:5] == ['HEARTWOOD SPLIT', 'GROWTH RINGS UPPER/LOWER', 'THREE-RING FULL BODY', 'EASY GRAIN 4-DAY', "NEWT'S 4-DAY SPLIT"] and mine[5] == 'EFFICIENT PUSH/PULL/LEGS', mine[:6])
+        check("Personal: Heartwood first, Sapwood third, the 4-Day Split sixth, Efficient PPL after", mine[:6] == ['HEARTWOOD SPLIT', 'GROWTH RINGS UPPER/LOWER', 'SAPWOOD HYPERTROPHY', 'THREE-RING FULL BODY', 'EASY GRAIN 4-DAY', "NEWT'S 4-DAY SPLIT"] and mine[6] == 'EFFICIENT PUSH/PULL/LEGS', mine[:7])
         page = await pg.inner_text('body')
         hits = [w for w in ('From RepCount', 'Ready to run', 'Your plan') if w in page]; check('no source labels', not hits, [page[max(0, page.find(w) - 120):page.find(w) + 40] for w in hits])
         await pg.screenshot(path='shot-routines.png', full_page=True)
@@ -43,7 +43,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('plans still 58, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 58 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('plans still 59, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 59 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)

@@ -1053,6 +1053,161 @@ function parseProgram(text) {
 
 /* Built-in content */
 const BUILTIN_EX = {};
+/* ============ Exercise library data (Nov 17, 2026) ============
+   One canonical record per lifting exercise: what it trains, how it moves, what it needs, how fiddly it is to set up.
+   Used by the swap suggestions, program coverage, equipment lists, session times and weight jumps.
+   Row: [name, kind, cat, muscles, patterns, equipment, setup, how-to, also-known-as]
+     muscles: 'quads glutes/.5' = quads count 1 set, glutes half a set (indirect work)
+     patterns: first one is the main movement; swaps keep it
+     setup: 1 = pick it up or sit down, 2 = a bench, a pin or a cable attachment, 3 = load a barbell in a rack
+   Old ids for the same movement point here through EX_RENAMED, so history, prefills and PRs follow the movement. */
+const MUSCLES = { chest: 'Chest', uchest: 'Upper chest', lats: 'Lats', upperback: 'Upper back', erectors: 'Lower back', frontdelt: 'Front delts', sidedelt: 'Side delts', reardelt: 'Rear delts',
+  biceps: 'Biceps', triceps: 'Triceps', forearms: 'Forearms and grip', quads: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes', adductors: 'Adductors', calves: 'Calves', abs: 'Abs and core' };
+const PATTERNS = { hpush: 'chest press', incline: 'incline press', vpush: 'overhead press', fly: 'chest fly', dip: 'dip', hpull: 'row', vpull: 'pull-down or pull-up', pullover: 'straight-arm pull',
+  shrug: 'shrug', latraise: 'lateral raise', reardelt: 'rear-delt pull', squat: 'squat', legpress: 'leg press', lunge: 'single-leg squat or lunge', hinge: 'hip hinge', hipext: 'hip thrust or bridge',
+  kneeext: 'knee extension', kneeflex: 'knee flexion (leg curl)', calf: 'calf raise', elbowflex: 'curl', elbowext: 'triceps extension', trunkflex: 'ab crunch or leg raise', antiext: 'core bracing',
+  antirot: 'anti-rotation', latflex: 'side bend', carry: 'loaded carry', grip: 'grip hold' };
+/* Close cousins: offered after exact matches, never instead of them */
+const PATTERN_NEAR = { squat: ['legpress', 'lunge'], legpress: ['squat', 'lunge'], lunge: ['squat', 'legpress'], hpush: ['incline', 'dip'], incline: ['hpush'], dip: ['hpush', 'elbowext'],
+  hinge: ['hipext'], hipext: ['hinge'], vpull: ['pullover'], pullover: ['vpull'], antiext: ['trunkflex', 'antirot'], trunkflex: ['antiext'], antirot: ['antiext', 'latflex'], latflex: ['antirot'], shrug: ['carry'] };
+const EQUIP = { barbell: 'Barbell', dumbbell: 'Dumbbells', cable: 'Cable', machine: 'Machine', bench: 'Bench', rack: 'Rack', bar: 'Pull-up bar', bodyweight: 'Bodyweight', kettlebell: 'Kettlebell', band: 'Band' };
+const SETUP = { 1: 'Easy setup', 2: 'Some setup', 3: 'More setup' };
+const EX_LIB = [
+  /* Chest */
+  ['Bench Press', 'barbell', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'barbell bench rack', 3, 'Lie on a flat bench, feet planted, shoulder blades pinched. Lower the bar to mid-chest, press back up over the shoulders.'],
+  ['Dumbbell Bench Press', 'dumbbell', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'dumbbell bench', 2, 'Flat bench, a dumbbell in each hand over the chest. Lower until the elbows are a little below the bench, press back up.'],
+  ['Machine Chest Press', 'machine', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'machine', 1, 'Set the seat so the handles line up with mid-chest. Press out, stop just short of locking the elbows, return under control.'],
+  ['Decline Chest Press', 'machine', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'machine', 1, 'Decline press machine (or decline bench). Press down and out toward the lower chest line, return slowly.'],
+  ['Push-Ups', 'bodyweight', 'chest', 'chest triceps/.5 frontdelt/.5 abs/.5', 'hpush', 'bodyweight', 1, 'Hands a little wider than the shoulders, body in one straight line. Lower the chest to just above the floor, push back up.', ['Push-Up']],
+  ['Dumbbell Floor Press', 'dumbbell', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'dumbbell', 1, 'Lie on the floor with knees bent. Lower the dumbbells until the upper arms touch the floor, press back up.'],
+  ['Smith Machine Bench Press', 'machine', 'chest', 'chest triceps/.5 frontdelt/.5', 'hpush', 'machine bench', 2, 'Bench under a Smith machine so the bar lands on mid-chest. Unhook, lower under control, press up.'],
+  ['Incline Barbell Bench Press', 'barbell', 'chest', 'chest uchest frontdelt/.5 triceps/.5', 'incline hpush', 'barbell bench rack', 3, 'Bench at about 30 degrees. Lower the bar to the upper chest, press back up over the shoulders.'],
+  ['Incline Dumbbell Press', 'dumbbell', 'chest', 'chest uchest frontdelt/.5 triceps/.5', 'incline hpush', 'dumbbell bench', 2, 'Bench at about 30 degrees. Lower the dumbbells to the sides of the upper chest, press up and slightly in.'],
+  ['Incline Machine Press', 'machine', 'chest', 'chest uchest frontdelt/.5 triceps/.5', 'incline hpush', 'machine', 1, 'Incline press machine. Seat so the handles line up with the upper chest; press up and out, return slowly.'],
+  ['Incline Reverse-Grip Squeeze Press', 'dumbbell', 'chest', 'chest uchest triceps/.5', 'incline hpush', 'dumbbell bench', 2, 'Incline bench. Hold the dumbbells pressed together, palms toward your face, pinkie-side touching. Press up only until the chest finishes the work, not the tris.'],
+  ['Cable Fly', 'cable', 'chest', 'chest', 'fly', 'cable', 2, 'Handles at shoulder height, a step forward, slight bend in the elbows. Bring the hands together in a hugging arc, open back to a stretch.', ['Cable Crossover', 'Cable Flye']],
+  ['Low-to-High Cable Fly', 'cable', 'chest', 'chest uchest', 'fly incline', 'cable', 2, 'Handles low. Sweep up and in to eye level with soft elbows, lower back to a stretch.'],
+  ['Pec Deck', 'machine', 'chest', 'chest', 'fly', 'machine', 1, 'Seat so the handles are at chest height. Bring the arms together in an arc, open slowly to a comfortable stretch.', ['Machine Fly']],
+  ['Dumbbell Fly', 'dumbbell', 'chest', 'chest', 'fly', 'dumbbell bench', 2, 'Flat bench, arms over the chest, slight bend in the elbows. Open wide to a stretch, bring the dumbbells back together.'],
+  ['Dips', 'bodyweight', 'chest', 'chest triceps frontdelt/.5', 'dip elbowext', 'bar', 1, 'Parallel bars. Lean slightly forward, lower until the shoulders are a little below the elbows, press back up.'],
+  ['Assisted Dips', 'assisted', 'chest', 'chest triceps frontdelt/.5', 'dip elbowext', 'machine', 1, 'Assisted dip machine: more assistance makes it easier. Lower under control, press back up.'],
+  ['Bench Dips', 'bodyweight', 'triceps', 'triceps chest/.5', 'dip elbowext', 'bench', 1, 'Hands on a bench behind you, legs out. Bend the elbows to about 90 degrees, press back up.'],
+  /* Shoulders */
+  ['Overhead Barbell Press', 'barbell', 'shoulders', 'frontdelt sidedelt/.5 triceps/.5', 'vpush', 'barbell rack', 3, 'Standing, bar on the front of the shoulders. Squeeze glutes and abs, press straight up, head through at the top.', ['Standing Overhead Press', 'Overhead Press', 'Military Press']],
+  ['Seated Dumbbell Overhead Press', 'dumbbell', 'shoulders', 'frontdelt sidedelt/.5 triceps/.5', 'vpush', 'dumbbell bench', 2, 'Bench upright. Dumbbells at shoulder height, press up until the arms are straight, lower to the shoulders.', ['Dumbbell Shoulder Press']],
+  ['Machine Shoulder Press', 'machine', 'shoulders', 'frontdelt sidedelt/.5 triceps/.5', 'vpush', 'machine', 1, 'Seat so the handles start at shoulder height. Press up, lower slowly.'],
+  ['Arnold Press', 'dumbbell', 'shoulders', 'frontdelt sidedelt/.5 triceps/.5', 'vpush', 'dumbbell bench', 2, 'Start with palms facing you at the shoulders. Rotate the palms out as you press up, reverse on the way down.'],
+  ['Lateral Raises', 'dumbbell', 'shoulders', 'sidedelt', 'latraise', 'dumbbell', 1, 'Slight lean forward, soft elbows. Raise the dumbbells out to the sides to shoulder height, lower slowly.', ['Dumbbell Lateral Raise', 'Side Raise']],
+  ['Cable Lateral Raise', 'cable', 'shoulders', 'sidedelt', 'latraise', 'cable', 2, 'Stand beside a low cable, handle in the far hand. Raise the arm out to the side to shoulder height, lower slowly.'],
+  ['Behind-the-Back Cable Lateral Raise', 'cable', 'shoulders', 'sidedelt', 'latraise', 'cable', 2, 'Stand beside a low cable with the handle behind your back in the far hand. Raise the arm out to the side to shoulder height, then lower slowly.'],
+  ['Cable Lateral Raise Toss', 'cable', 'shoulders', 'sidedelt', 'latraise', 'cable', 2, 'Lateral raise on a low cable done fast, as if tossing the handle out to the side; let it come back under control.'],
+  ['Machine Lateral Raise', 'machine', 'shoulders', 'sidedelt', 'latraise', 'machine', 1, 'Pads on the outside of the upper arms. Raise to shoulder height, lower slowly.'],
+  ['Barbell Upright Row', 'barbell', 'shoulders', 'sidedelt upperback/.5 biceps/.5', 'latraise shrug', 'barbell', 2, 'Hands shoulder-width. Pull the bar up the body leading with the elbows to about chest height, lower slowly.'],
+  ['Face Pulls', 'cable', 'shoulders', 'reardelt upperback/.5', 'reardelt', 'cable', 2, 'Rope at face height. Pull toward the eyes, elbows high and wide, rotate the hands back at the end.', ['Face Pull']],
+  ['Dumbbell Rear Delt Fly', 'dumbbell', 'shoulders', 'reardelt upperback/.5', 'reardelt', 'dumbbell', 1, 'Hinge forward with a flat back. Raise the dumbbells out to the sides with soft elbows, lower slowly.', ['Rear Delt Fly']],
+  ['Reverse Pec Deck', 'machine', 'shoulders', 'reardelt upperback/.5', 'reardelt', 'machine', 1, 'Face the pec deck, handles at shoulder height. Open the arms back in an arc, return slowly.', ['Reverse Fly Machine']],
+  ['Cuban Press', 'dumbbell', 'shoulders', 'reardelt/.5 sidedelt/.5', 'reardelt vpush', 'dumbbell', 1, 'Light dumbbells. Row to chest height with elbows out, rotate the forearms up until vertical, press overhead, then reverse it on the way down.'],
+  /* Back */
+  ['Lat Pulldown', 'cable', 'back', 'lats biceps/.5 upperback/.5', 'vpull', 'cable machine', 1, 'Thighs under the pad, hands a little wider than the shoulders. Pull the bar to the upper chest, elbows down and back.'],
+  ['Pull-Up', 'bodyweight', 'back', 'lats biceps/.5 upperback/.5', 'vpull', 'bar', 1, 'Hang with hands a little wider than the shoulders. Pull until the chin clears the bar, lower all the way.', ['Pull-Ups', 'Pullup']],
+  ['Assisted Pull-Up', 'assisted', 'back', 'lats biceps/.5 upperback/.5', 'vpull', 'machine', 1, 'Assisted pull-up machine: more assistance makes it easier. Pull the chin over the bar, lower all the way.'],
+  ['Chin-Up', 'bodyweight', 'back', 'lats biceps upperback/.5', 'vpull elbowflex', 'bar', 1, 'Palms facing you, shoulder-width. Pull the chin over the bar, lower all the way.', ['Chin-Ups']],
+  ['Single-Arm Cable Pulldown', 'cable', 'back', 'lats biceps/.5', 'vpull', 'cable', 2, 'Kneel or sit under a high cable. Pull the handle down to the side of the chest, elbow toward the hip, let it stretch back up.'],
+  ['Barbell Row', 'barbell', 'back', 'upperback lats reardelt/.5 biceps/.5 erectors/.5', 'hpull', 'barbell', 3, 'Hinge to about 45 degrees with a flat back. Row the bar to the lower ribs, lower under control.', ['Bent-Over Barbell Rows', 'Bent-Over Barbell Row', 'Standing Barbell Row', 'Bent Over Row']],
+  ['Dumbbell Row', 'dumbbell', 'back', 'upperback lats reardelt/.5 biceps/.5', 'hpull', 'dumbbell bench', 1, 'One hand and knee on a bench. Row the dumbbell toward the hip, lower to a stretch.', ['One-Arm Dumbbell Row']],
+  ['Chest-Supported Dumbbell Row', 'dumbbell', 'back', 'upperback lats reardelt/.5 biceps/.5', 'hpull', 'dumbbell bench', 2, 'Lie chest-down on an incline bench. Row both dumbbells up, squeeze the shoulder blades, lower to a stretch.'],
+  ['Seated Cable Row', 'cable', 'back', 'upperback lats reardelt/.5 biceps/.5', 'hpull', 'cable', 1, 'Sit tall, feet on the platform. Row the handle to the stomach, squeeze the shoulder blades, let the arms stretch forward.'],
+  ['Machine Row', 'machine', 'back', 'upperback lats reardelt/.5 biceps/.5', 'hpull', 'machine', 1, 'Chest on the pad, handles in reach. Row back, squeeze the shoulder blades, return slowly.', ['Seated Machine Row']],
+  ['T-Bar Row', 'barbell', 'back', 'upperback lats reardelt/.5 biceps/.5 erectors/.5', 'hpull', 'barbell', 3, 'Straddle the bar with a V-handle. Hinge with a flat back, row to the chest, lower under control.'],
+  ['Inverted Row', 'bodyweight', 'back', 'upperback lats/.5 reardelt/.5 biceps/.5', 'hpull', 'bar rack', 2, 'Hang under a bar set at hip height, body straight. Pull the chest to the bar, lower slowly.'],
+  ['Rear Delt Rows', 'barbell', 'back', 'reardelt upperback biceps/.5', 'hpull reardelt', 'barbell', 2, 'Like bent rows but elbows out and lighter, pulling to the upper chest rather than the ribs or waist.'],
+  ['Dumbbell Pullover', 'dumbbell', 'back', 'lats chest/.5', 'pullover', 'dumbbell bench', 2, 'Lie across or along a bench, one dumbbell over the chest. Lower it behind the head with slightly bent arms, pull back over.'],
+  ['Straight-Arm Cable Pulldown', 'cable', 'back', 'lats', 'pullover', 'cable', 1, 'High cable, straight bar or rope. Arms nearly straight, sweep the handle down to the thighs, let it rise slowly.'],
+  ['Barbell Shrugs', 'barbell', 'back', 'upperback forearms/.5', 'shrug', 'barbell', 2, 'Hold the bar at arm\'s length. Shrug the shoulders straight up toward the ears, pause, lower.'],
+  ['Dumbbell Shrugs', 'dumbbell', 'back', 'upperback forearms/.5', 'shrug', 'dumbbell', 1, 'Dumbbells at your sides. Shrug straight up, pause, lower.'],
+  ['Scapular Shrugs', 'dumbbell', 'back', 'upperback', 'shrug', 'dumbbell', 1, 'Dumbbells at your sides, arms straight. Shrug the shoulder blades up and down without bending the elbows.'],
+  /* Arms */
+  ['Barbell Curl', 'barbell', 'biceps', 'biceps forearms/.5', 'elbowflex', 'barbell', 1, 'Shoulder-width grip, elbows at your sides. Curl up, lower all the way without swinging.', ['Barbell Bicep Curl', 'Barbell Biceps Curl']],
+  ['Dumbbell Curl', 'dumbbell', 'biceps', 'biceps forearms/.5', 'elbowflex', 'dumbbell', 1, 'Palms forward, elbows at your sides. Curl up, lower all the way.', ['Dumbbell Bicep Curl']],
+  ['Hammer Curls', 'dumbbell', 'biceps', 'biceps forearms/.5', 'elbowflex', 'dumbbell', 1, 'Palms facing each other the whole rep. Curl up, lower all the way.', ['Hammer Curl']],
+  ['Hybrid Curls', 'dumbbell', 'biceps', 'biceps forearms/.5', 'elbowflex', 'dumbbell', 1, 'A mix of hammer curls and Zottman curls. Hammer: palms facing each other the whole rep. Zottman: curl up palms up, turn the palms down at the top, lower slowly.'],
+  ['Cable Curl', 'cable', 'biceps', 'biceps forearms/.5', 'elbowflex', 'cable', 1, 'Low cable, straight or EZ bar. Elbows at your sides, curl up, lower slowly.'],
+  ['Preacher Curl', 'machine', 'biceps', 'biceps', 'elbowflex', 'machine', 1, 'Upper arms on the pad. Curl up, lower slowly to almost straight.', ['Machine Preacher Curl']],
+  ['Incline Dumbbell Curl', 'dumbbell', 'biceps', 'biceps', 'elbowflex', 'dumbbell bench', 2, 'Lie back on a 45-60 degree bench, arms hanging. Curl up without moving the elbows forward, lower to a full stretch.'],
+  ['Tricep Pushdowns', 'cable', 'triceps', 'triceps', 'elbowext', 'cable', 1, 'High cable, bar or rope. Elbows pinned at your sides, push down until straight, let it come back to about 90 degrees.', ['Tricep Pushdown', 'Triceps Pushdown', 'Cable Pushdown']],
+  ['Overhead Cable Tricep Extension', 'cable', 'triceps', 'triceps', 'elbowext', 'cable', 2, 'Face away from a cable with the rope behind your head. Straighten the arms overhead, lower back to a deep stretch.', ['Overhead Tricep Extension']],
+  ['Dumbbell Overhead Tricep Extension', 'dumbbell', 'triceps', 'triceps', 'elbowext', 'dumbbell', 1, 'Hold one dumbbell overhead with both hands. Lower it behind the head, straighten back up.'],
+  ['Skull Crushers', 'other', 'triceps', 'triceps', 'elbowext', 'barbell bench', 2, 'Lie on a bench, EZ bar over the forehead. Bend only the elbows to lower it toward the head, straighten back up.', ['Lying Tricep Extension']],
+  ['Dumbbell Kickback', 'dumbbell', 'triceps', 'triceps', 'elbowext', 'dumbbell bench', 1, 'Hinge forward, upper arm by your side. Straighten the elbow back, lower slowly.'],
+  /* Legs */
+  ['Back Squat', 'barbell', 'legs', 'quads glutes adductors/.5 erectors/.5', 'squat', 'barbell rack', 3, 'Bar on the upper back, feet about shoulder-width. Sit down between the heels as deep as you can with a flat back, stand up.', ['Squat', 'Barbell Squat', 'Squats']],
+  ['Front Squat', 'barbell', 'legs', 'quads glutes adductors/.5', 'squat', 'barbell rack', 3, 'Bar on the front of the shoulders, elbows high. Squat down with an upright chest, stand up.'],
+  ['Goblet Squat', 'dumbbell', 'legs', 'quads glutes adductors/.5', 'squat', 'dumbbell', 1, 'Hold one dumbbell at the chest. Squat down between the heels, elbows inside the knees, stand up.'],
+  ['Box Squat', 'barbell', 'legs', 'quads glutes adductors/.5', 'squat', 'barbell rack bench', 3, 'Squat back to a box at or above knee height, touch, stand up.'],
+  ['Hack Squat', 'machine', 'legs', 'quads glutes/.5', 'squat legpress', 'machine', 1, 'Back on the pad, feet shoulder-width. Lower as deep as is comfortable, press back up.'],
+  ['Smith Machine Squat', 'machine', 'legs', 'quads glutes adductors/.5', 'squat', 'machine', 2, 'Bar on the upper back, feet slightly forward. Squat down, stand up.'],
+  ['Leg Press', 'machine', 'legs', 'quads glutes/.5 adductors/.5', 'legpress squat', 'machine', 1, 'Feet shoulder-width in the middle of the platform. Lower until the knees are well bent without the low back lifting, press back up.'],
+  ['Bulgarian Split Squat', 'dumbbell', 'legs', 'quads glutes adductors/.5', 'lunge', 'dumbbell bench', 2, 'Back foot on a bench, dumbbells at your sides. Lower until the front thigh is about level, drive back up. Each leg.'],
+  ['Dumbbell Split Squat', 'dumbbell', 'legs', 'quads glutes adductors/.5', 'lunge', 'dumbbell', 1, 'Long stance, dumbbells at your sides. Lower the back knee toward the floor, drive up through the front foot. Each leg.'],
+  ['Reverse Lunge', 'dumbbell', 'legs', 'quads glutes adductors/.5', 'lunge', 'dumbbell', 1, 'Step back into a lunge, lower the back knee toward the floor, push through the front foot to stand. Each leg.'],
+  ['Dumbbell Step-Up', 'dumbbell', 'legs', 'quads glutes', 'lunge', 'dumbbell bench', 2, 'Foot on a knee-height box or bench. Step up through that foot, lower slowly. Each leg.'],
+  ['Weighted Walking Lunge', 'dumbbell', 'legs', 'quads glutes adductors/.5', 'lunge', 'dumbbell', 1, 'Dumbbells at your sides. Lunge forward, lower the back knee toward the floor, step through into the next lunge.'],
+  ['Bodyweight Bulgarian Split Squat', 'bodyweight', 'legs', 'quads glutes', 'lunge', 'bench', 1, 'Back foot on a bench. Lower until the front thigh is about level, drive back up. Each leg.'],
+  ['Leg Extension', 'machine', 'legs', 'quads', 'kneeext', 'machine', 1, 'Pad on the lower shins, knees in line with the machine\'s pivot. Straighten the knees, lower slowly.', ['Leg Extensions']],
+  ['Single-Leg Leg Extension', 'machine', 'legs', 'quads', 'kneeext', 'machine', 1, 'Leg extension one leg at a time; use about half the weight.'],
+  ['Sissy Squat', 'bodyweight', 'legs', 'quads', 'kneeext', 'bodyweight', 2, 'Hold a post, rise onto the toes and lean back as the knees travel forward and down. Go only as deep as feels fine, stand back up.'],
+  ['Reverse Nordic', 'bodyweight', 'legs', 'quads', 'kneeext', 'bodyweight', 1, 'Kneel upright on a pad. Lean the whole body back from the knees as far as you can control, return upright.'],
+  ['Leg Curl', 'machine', 'legs', 'hamstrings', 'kneeflex', 'machine', 1, 'Lying or seated leg curl machine. Curl the heels toward you, lower slowly. Seated versions stretch the hamstrings more.', ['Leg Curls', 'Lying Leg Curl', 'Lying Leg Curls', 'Hamstring Curl']],
+  ['Seated Leg Curl', 'machine', 'legs', 'hamstrings', 'kneeflex', 'machine', 1, 'Sit tall with the thigh pad snug. Curl the heels down and back, return slowly to a full stretch.', ['Seated Hamstring Curl']],
+  ['Nordic Hamstring Curl', 'bodyweight', 'legs', 'hamstrings', 'kneeflex', 'bodyweight', 2, 'Kneel with the heels anchored. Lower the body forward as slowly as you can, catch with the hands, pull back up.', ['Nordic Curl']],
+  ['Slider Hamstring Curl', 'bodyweight', 'legs', 'hamstrings glutes/.5', 'kneeflex', 'bodyweight', 1, 'Lie on your back with heels on sliders or towels. Lift the hips, curl the heels in, slide back out.'],
+  ['Romanian Deadlift', 'barbell', 'legs', 'hamstrings glutes erectors/.5 forearms/.5', 'hinge', 'barbell', 2, 'Soft knees, push the hips back with a flat back until you feel a deep hamstring stretch, stand up by driving the hips forward.', ['RDL']],
+  ['Dumbbell Romanian Deadlift', 'dumbbell', 'legs', 'hamstrings glutes erectors/.5 forearms/.5', 'hinge', 'dumbbell', 1, 'Dumbbells in front of the thighs. Push the hips back with a flat back to a deep hamstring stretch, stand up.', ['Dumbbell RDL']],
+  ['Stiff-Leg Deadlift', 'barbell', 'legs', 'hamstrings glutes erectors/.5 forearms/.5', 'hinge', 'barbell', 2, 'Like a Romanian deadlift with straighter knees, lowering the bar a little further.'],
+  ['Deadlift', 'barbell', 'back', 'glutes erectors hamstrings/.5 quads/.5 upperback/.5 forearms/.5', 'hinge', 'barbell', 3, 'Bar over mid-foot, flat back, arms straight. Push the floor away and stand tall, lower the bar back along the legs.', ['Conventional Deadlift']],
+  ['Back Extension', 'machine', 'legs', 'glutes hamstrings erectors/.5', 'hinge hipext', 'machine', 1, '45-degree back extension bench. Hinge down at the hips, raise back up to a straight line.', ['45 Degree Back Extension', 'Hyperextension']],
+  ['Cable Pull-Through', 'cable', 'legs', 'glutes hamstrings/.5', 'hipext hinge', 'cable', 2, 'Face away from a low cable, rope between the legs. Hinge back, then drive the hips forward to stand tall.'],
+  ['Dumbbell Hip Thrust', 'dumbbell', 'legs', 'glutes hamstrings/.5', 'hipext', 'dumbbell bench', 2, 'Upper back on a bench, dumbbell on the hips. Drive the hips up until the body is straight from knees to shoulders, lower.'],
+  ['Barbell Hip Thrust', 'barbell', 'legs', 'glutes hamstrings/.5', 'hipext', 'barbell bench', 3, 'Upper back on a bench, padded bar on the hips. Drive the hips up, pause, lower.', ['Hip Thrust']],
+  ['Hip Thrust Machine', 'machine', 'legs', 'glutes hamstrings/.5', 'hipext', 'machine', 1, 'Belt or pad across the hips. Drive the hips up, pause, lower.', ['Glute Drive']],
+  ['Glute Bridge', 'bodyweight', 'legs', 'glutes hamstrings/.5', 'hipext', 'bodyweight', 1, 'Lie on your back, knees bent. Drive the hips up, squeeze, lower.'],
+  ['Single-Leg Glute Bridge', 'bodyweight', 'legs', 'glutes hamstrings/.5', 'hipext', 'bodyweight', 1, 'Glute bridge with one foot down and the other leg raised. Each leg.'],
+  ['Calf Raises', 'machine', 'legs', 'calves', 'calf', 'machine', 1, 'Standing calf machine or a step. Rise high onto the toes, lower slowly to a full stretch with a short pause.', ['Calf Raise', 'Standing Calf Raise']],
+  ['Seated Calf Raise', 'machine', 'legs', 'calves', 'calf', 'machine', 1, 'Pad on the thighs, balls of the feet on the bar. Rise up, lower to a full stretch.'],
+  ['Leg Press Calf Raise', 'machine', 'legs', 'calves', 'calf', 'machine', 1, 'In the leg press with legs straight, balls of the feet on the bottom edge. Push through the toes, lower to a stretch.'],
+  ['Single-Leg Calf Raise', 'dumbbell', 'legs', 'calves', 'calf', 'dumbbell', 1, 'One foot on a step, a dumbbell in the same-side hand. Rise up, lower to a full stretch. Each leg.'],
+  /* Core */
+  ['Cable Crunch', 'cable', 'core', 'abs', 'trunkflex', 'cable', 1, 'Kneel facing a high cable, rope by the head. Curl the ribs down toward the hips, return slowly.'],
+  ['Machine Crunch', 'machine', 'core', 'abs', 'trunkflex', 'machine', 1, 'Ab crunch machine. Curl the chest toward the hips, return slowly.', ['Ab Crunch Machine']],
+  ['Hanging Leg Raises', 'bodyweight', 'core', 'abs', 'trunkflex', 'bar', 1, 'Hang from a bar. Raise the legs by curling the hips up, lower without swinging.', ['Hanging Leg Raise']],
+  ['Hanging Knee Raise', 'bodyweight', 'core', 'abs', 'trunkflex', 'bar', 1, 'Hang from a bar or use the captain\'s chair. Bring the knees up toward the chest, lower slowly.', ['Captain\'s Chair Knee Raise']],
+  ['Reverse Crunch', 'bodyweight', 'core', 'abs', 'trunkflex', 'bodyweight', 1, 'Lie on your back, knees bent. Curl the hips off the floor toward the chest, lower slowly.'],
+  ['Weighted Decline Sit-Ups', 'bodyweight', 'core', 'abs', 'trunkflex', 'bench', 2, 'Decline bench, a weight held at the chest. Curl up, lower slowly.'],
+  ['Sit-Ups', 'bodyweight', 'core', 'abs', 'trunkflex', 'bodyweight', 1, 'Lie on your back, knees bent, feet anchored. Curl all the way up, lower slowly.', ['Sit-Up']],
+  ['Bicycle Crunches', 'bodyweight', 'core', 'abs', 'trunkflex antirot', 'bodyweight', 1, 'On your back, hands by the head. Bring one elbow toward the opposite knee as the other leg straightens, switch.', ['Bicycles']],
+  ['Russian Twists', 'bodyweight', 'core', 'abs', 'antirot trunkflex', 'bodyweight', 1, 'Sit leaning back with the feet up or down. Turn the shoulders side to side, touching the floor (or a weight) by each hip.'],
+  ['Ab Wheel Rollout', 'bodyweight', 'core', 'abs', 'antiext', 'bodyweight', 1, 'Kneel with the wheel under the shoulders. Roll forward as far as you can with a flat back, pull back.'],
+  ['Plank', 'timed', 'core', 'abs', 'antiext', 'bodyweight', 1, 'Forearms and toes, body in a straight line, squeeze glutes and abs.'],
+  ['Dead Bug', 'timed', 'core', 'abs', 'antiext', 'bodyweight', 1, 'On your back, arms up, knees over hips. Lower opposite arm and leg slowly with the low back flat, switch.'],
+  ['Pallof Press', 'cable', 'core', 'abs', 'antirot', 'cable', 2, 'Stand side-on to a cable at chest height. Press the handle straight out and hold without letting it turn you.'],
+  ['Side Plank', 'timed', 'core', 'abs', 'latflex antiext', 'bodyweight', 1, 'On one forearm, body in a straight line, hips up. Each side.'],
+  ['Dumbbell Side Bend', 'dumbbell', 'core', 'abs', 'latflex', 'dumbbell', 1, 'Dumbbell in one hand (or a low cable). Lean away from it, then pull back up with the opposite side.'],
+  ["Farmer's Carry", 'carry', 'other', 'forearms upperback/.5 abs/.5', 'carry grip', 'dumbbell', 1, 'Heavy dumbbells or handles at your sides. Walk tall with short steps.'],
+  ['Dead Hang', 'timed', 'other', 'forearms', 'grip', 'bar', 1, 'Hang from a bar with straight arms, shoulders active.'],
+];
+/* name → canonical name, from every also-known-as */
+const EX_ALIAS = {};
+const muscleMap = s => Object.fromEntries(String(s || '').split(/\s+/).filter(Boolean).map(t => { const [k, w] = t.split('/'); return [k, w ? +w : 1]; }));
+for (const [name, kind, cat, m, pat, eq, setup, how, aka] of EX_LIB) {
+  const id = 'b-' + slug(name);
+  BUILTIN_EX[id] = { id, name, kind, cat, m: muscleMap(m), pat: pat.split(' '), eq: eq.split(' '), setup, how };
+  for (const a of aka || []) EX_ALIAS[nameKey(a)] = name;
+}
+const resolveExName = nm => EX_ALIAS[nameKey(nm)] || nm;
+/* Saved ids of merged duplicates → the canonical exercise (added to EX_RENAMED below) */
+const EX_MERGED = {
+  'b-squat': 'b-back-squat', 'b-bent-over-barbell-rows': 'b-barbell-row', 'b-standing-barbell-row': 'b-barbell-row', 'b-leg-curls': 'b-leg-curl', 'b-lying-leg-curl': 'b-leg-curl',
+  'b-barbell-bicep-curl': 'b-barbell-curl', 'b-standing-overhead-press': 'b-overhead-barbell-press', 'b-dumbbell-shoulder-press': 'b-seated-dumbbell-overhead-press', 'b-cable-crossover': 'b-cable-fly' };
 const NEWT_TEXT = `Day 1 - Chest Focus
 3x5-8 Decline Chest Press
 3x5-8 Incline Reverse-Grip Squeeze Press
@@ -1082,7 +1237,7 @@ Day 4 - Legs
 3x5-8 x Romanian Deadlift
 3x5-8 Leg Curls
 3x10-12 x Calf Raises`;
-const findIn = (...stores) => name => { const k = nameKey(name); for (const st of stores) { const hit = Object.values(st).find(e => nameKey(e.name) === k); if (hit) return hit; } return null; };
+const findIn = (...stores) => name => { const k = nameKey(resolveExName(name)); for (const st of stores) { const hit = Object.values(st).find(e => nameKey(e.name) === k); if (hit) return hit; } return null; };
 function builtinRoutine(rid, name, note, text) {
   const days = parseProgram(text).map((d, i) => ({
     id: `${rid}-d${i + 1}`, name: d.name,
@@ -1154,6 +1309,7 @@ Day 2 - Full Body B
 3x10-15 Dumbbell Hip Thrust
 3x10-15 Dumbbell Overhead Tricep Extension
 3x10-15 Dumbbell Curl
+3x12-15 Single-Leg Calf Raise
 Day 3 - Full Body C
 3x8-12 Dumbbell Step-Up
 3x8-12 Incline Dumbbell Press
@@ -1174,6 +1330,7 @@ Day 2 - Lower Heavy
 3x10-15 Leg Press
 3x6-10 Leg Curls
 4x6-10 Calf Raises
+3x10-15 Cable Crunch
 Day 3 - Upper Volume
 4x8-12 Incline Dumbbell Press
 4x8-12 Cable Fly
@@ -1187,7 +1344,8 @@ Day 4 - Lower Volume
 3x8-12 Bulgarian Split Squat
 3x10-15 Leg Extension
 3x10-15 Leg Curls
-4x10-15 Calf Raises`],
+4x10-15 Calf Raises
+3x10-15 Cable Crunch`],
   ['bi-ppl6', 'Push / Pull / Legs', 'Intermediate · 6 days a week', 'Pull, push, legs, then the B versions, then a rest day. Make the last set of the 5×5 and the 1×5 as many reps as you can. Main lifts go up 5 lb a session; accessories go up once every set reaches the top of the range.', `Day 1 - Pull A
 1x5 Deadlift
 3x8-12 Lat Pulldown
@@ -1208,6 +1366,7 @@ Day 3 - Legs A
 3x8-12 Leg Press
 3x8-12 Leg Curls
 5x8-12 Calf Raises
+3x10-15 Hanging Leg Raises
 Day 4 - Pull B
 5x5 Bent-Over Barbell Rows
 3x8-12 Pull-Up
@@ -1227,7 +1386,8 @@ Day 6 - Legs B
 3x8-12 Romanian Deadlift
 3x8-12 Leg Press
 3x8-12 Leg Curls
-5x8-12 Calf Raises`],
+5x8-12 Calf Raises
+3x10-15 Hanging Leg Raises`],
   ['bi-split5', '5-Day Body-Part Split', 'Intermediate · 5 days a week', 'One muscle group a day with plenty of sets for each. Add weight once every set reaches the top of the range.', `Day 1 - Chest
 4x6-10 Bench Press
 3x8-12 Incline Dumbbell Press
@@ -1258,6 +1418,49 @@ Day 5 - Arms
 3x10-15 Tricep Pushdowns
 3x12-15 Cable Curl
 3x12-15 Overhead Cable Tricep Extension`],
+  ['bi-ul4-strength', 'Upper / Lower Strength', 'Intermediate · 4 days a week', 'Two strength days with low reps on the big lifts, then two lighter days to build the muscle behind them. Rest 2–3 minutes on the first two lifts of each day, 1–2 minutes on the rest. Add weight once every set reaches the top of the range.', `Day 1 - Upper Strength
+4x3-5 Bench Press
+4x5-8 Barbell Row
+3x6-8 Overhead Barbell Press
+3x6-10 Pull-Up
+2x10-12 Hammer Curls
+Day 2 - Lower Strength
+4x3-5 Back Squat
+3x5-8 Romanian Deadlift
+3x8-12 Leg Curl
+3x8-12 Calf Raises
+2x10-15 Cable Crunch
+Day 3 - Upper Volume
+3x6-8 Incline Barbell Bench Press
+3x8-10 Seated Cable Row
+3x8-10 Seated Dumbbell Overhead Press
+3x8-12 Lat Pulldown
+2x10-12 Tricep Pushdowns
+Day 4 - Lower Volume
+3x3-5 Deadlift
+3x6-8 Front Squat
+3x8-10 Bulgarian Split Squat
+3x10-12 Calf Raises
+2x10-15 Hanging Leg Raises`],
+  ['bi-ppl3', 'Push / Pull / Legs 3-Day', 'Beginner to intermediate · 3 days a week', 'Push, pull and legs in order on any three days. Miss a day and the next workout simply picks up where you left off. Add weight once every set reaches the top of the range.', `Day 1 - Push
+3x6-10 Bench Press
+3x8-12 Incline Dumbbell Press
+3x8-12 Seated Dumbbell Overhead Press
+3x12-15 Lateral Raises
+3x10-15 Overhead Cable Tricep Extension
+Day 2 - Pull
+3x8-12 Lat Pulldown
+3x8-12 Seated Cable Row
+3x12-15 Face Pulls
+3x8-12 Dumbbell Curl
+2x10-12 Hammer Curls
+Day 3 - Legs
+3x6-10 Back Squat
+3x8-10 Romanian Deadlift
+3x10-12 Leg Press
+3x10-12 Leg Curl
+4x10-15 Calf Raises
+2x10-15 Cable Crunch`],
 ];
 /* Newt's own routines from RepCount: one workout each, with the notes he kept on each exercise.
    Item: [exercise, sets, reps, note, superset with the one above] */
@@ -1283,6 +1486,30 @@ const MY_PLANS = [
     ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Hybrid Curls', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
     ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
+/* Newt's personal programs (Nov 17, 2026). Hypertrophy first, commercial-gym equipment, simple familiar lifts, few
+   equipment changes. Heartwood keeps the shape of Newt's 4-Day Split with one complete leg day; Growth Rings splits the
+   legs over two short days. Item: [exercise, sets, reps, note, superset with the one above] */
+const PERSONAL_PLANS = [
+  ['bi-heartwood', 'Heartwood Split', null, "Newt's 4-Day Split rebuilt for size: the same chest, back, shoulders-and-arms and legs days, with every major muscle covered and one complete leg day.", [
+    ['Day 1 - Chest Focus', ['Chest', 'Push'], [['Decline Chest Press', 3, '6-10'], ['Incline Reverse-Grip Squeeze Press', 3, '8-12'], ['Cable Fly', 3, '10-15'], ['Behind-the-Back Cable Lateral Raise', 3, '12-15'], ['Tricep Pushdowns', 3, '10-12'], ['Cable Crunch', 3, '10-15']]],
+    ['Day 2 - Back / Rear Delts', ['Back', 'Pull'], [['Lat Pulldown', 3, '8-12'], ['Barbell Row', 3, '6-10'], ['Seated Cable Row', 2, '10-12'], ['Face Pulls', 3, '12-15'], ['Hybrid Curls', 3, '8-12'], ['Scapular Shrugs', 2, '10-15']]],
+    ['Day 3 - Shoulders / Arms', ['Shoulders', 'Arms'], [['Overhead Barbell Press', 3, '6-10'], ['Behind-the-Back Cable Lateral Raise', 3, '12-15'], ['Cuban Press', 2, '10-12'], ['Overhead Cable Tricep Extension', 3, '10-15'], ['Hybrid Curls', 3, '8-12', '', 1], ['Hanging Leg Raises', 3, '8-12']]],
+    ['Day 4 - Legs', ['Legs'], [['Back Squat', 3, '6-10'], ['Romanian Deadlift', 3, '8-10'], ['Seated Leg Curl', 3, '10-12'], ['Leg Extension', 3, '12-15'], ['Calf Raises', 4, '10-15']]]]],
+  ['bi-growth-rings', 'Growth Rings Upper/Lower', null, 'Two upper days and two short lower days. Lower work is split in half so neither leg day is long or draining; Lower B is the shortest workout of the week.', [
+    ['Upper A', ['Upper'], [['Incline Dumbbell Press', 3, '8-12'], ['Lat Pulldown', 3, '8-12'], ['Machine Chest Press', 2, '10-12'], ['Seated Cable Row', 3, '10-12'], ['Lateral Raises', 3, '12-15'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Dumbbell Curl', 2, '10-12']]],
+    ['Lower A', ['Lower'], [['Leg Press', 3, '8-12'], ['Leg Press Calf Raise', 3, '12-15', 'Stay in the leg press: legs straight, balls of the feet on the bottom edge.'], ['Seated Leg Curl', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Upper B', ['Upper'], [['Seated Dumbbell Overhead Press', 3, '8-10'], ['Assisted Pull-Up', 3, '6-10'], ['Dumbbell Bench Press', 3, '8-12'], ['Machine Row', 2, '10-12'], ['Face Pulls', 2, '12-15'], ['Tricep Pushdowns', 2, '10-12'], ['Hammer Curls', 2, '10-12']]],
+    ['Lower B', ['Lower'], [['Dumbbell Romanian Deadlift', 3, '8-10'], ['Leg Press', 2, '10-15'], ['Leg Press Calf Raise', 3, '12-15'], ['Seated Leg Curl', 2, '10-12'], ['Hanging Knee Raise', 2, '10-15']]]]],
+  ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
+    ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Full Body B', ['Full Body'], [['Romanian Deadlift', 3, '8-10'], ['Seated Dumbbell Overhead Press', 3, '8-10'], ['Seated Cable Row', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Hybrid Curls', 2, '10-12'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Full Body C', ['Full Body'], [['Leg Press', 3, '10-12'], ['Incline Dumbbell Press', 3, '8-12'], ['Assisted Pull-Up', 3, '6-10'], ['Calf Raises', 3, '10-15'], ['Face Pulls', 2, '12-15'], ['Tricep Pushdowns', 2, '10-12']]]]],
+  ['bi-easy-grain', 'Easy Grain 4-Day', null, 'The low-effort-to-start version: four or five exercises a day, mostly machines and cables, the same order every time, simple rep targets and no supersets. Still covers every major muscle each week.', [
+    ['Upper A', ['Upper'], [['Machine Chest Press', 3, '8-12'], ['Lat Pulldown', 3, '8-12'], ['Lateral Raises', 3, '12-15'], ['Tricep Pushdowns', 2, '10-12'], ['Cable Curl', 2, '10-12']]],
+    ['Lower A', ['Lower'], [['Leg Press', 3, '10-12'], ['Leg Press Calf Raise', 3, '12-15'], ['Seated Leg Curl', 3, '10-12'], ['Cable Crunch', 2, '10-15']]],
+    ['Upper B', ['Upper'], [['Incline Machine Press', 3, '8-12'], ['Seated Cable Row', 3, '10-12'], ['Face Pulls', 2, '12-15'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Hammer Curls', 2, '10-12']]],
+    ['Lower B', ['Lower'], [['Leg Extension', 3, '12-15'], ['Dumbbell Romanian Deadlift', 3, '10-12'], ['Calf Raises', 3, '12-15']]]]],
+];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
 const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips|bench dips|inverted rows?|reverse crunch(es)?|chin ?ups?|mountain climbers?|bear crawls?)\b/;
 function planDay(rid, i, name, tags, items) {
@@ -1299,10 +1526,14 @@ function builtinPlan([rid, name, tags, note, items]) {
   return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days };
 }
 const BUILTIN_ROUTINES = [
+  ...PERSONAL_PLANS.map(builtinPlan),
   Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Exercises marked with a bar on the left are supersets with the one above.', NEWT_TEXT), { meta: '4 days a week', shelf: 'plans' }),
   ...MY_PLANS.map(builtinPlan),
   ...LIB_PROGRAMS.map(([id, name, meta, note, text]) => Object.assign(builtinRoutine(id, name, note, text), { meta, shelf: 'programs' })),
 ];
+/* Personal: Newt's own programs and routines, kept apart from the general library (Nov 17) */
+const PERSONAL_IDS = new Set([...PERSONAL_PLANS.map(p => p[0]), 'bi-newt-4day', ...MY_PLANS.map(p => p[0])]);
+BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id)) r.personal = true; });
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
@@ -1351,15 +1582,19 @@ const EX_RENAMED = {
   'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-lateral-raise', 'b-behind-the-back-cable-fly': 'b-behind-the-back-cable-lateral-raise',
   'b-zottman-curl': 'b-hybrid-curls', 'b-cable-lateral-raise-tosses': 'b-cable-lateral-raise-toss', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
   'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
-  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
+  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers', ...EX_MERGED };
 const exIdNow = id => EX_RENAMED[id] || id;
 function migrateExIds(st) {
   const keys = Object.keys(EX_RENAMED); if (!keys.length) return;
-  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; };
+  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; if (it && EX_RENAMED[it.planned]) it.planned = EX_RENAMED[it.planned]; };
   for (const s of Object.values(st.sessions || {})) (s.items || []).forEach(fix);
   if (st.active) (st.active.items || []).forEach(fix);
   for (const r of Object.values(st.meta.routines || {})) for (const d of r.days || []) (d.items || []).forEach(fix);
-  for (const f of ['exUnit', 'exRest', 'exCat']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o && !(b in o)) { o[b] = o[a]; delete o[a]; } }
+  for (const f of ['exUnit', 'exRest', 'exCat', 'exJump', 'exSide']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o) { if (!(b in o)) o[b] = o[a]; delete o[a]; } }
+  /* Nov 17: merged duplicates also carry their machines, stars and goals */
+  const mc = st.meta.machines || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in mc) { mc[b] = [...new Set([...(mc[b] || []), ...(mc[a] || [])])]; delete mc[a]; }
+  const se = (st.meta.settings || {}).starEx || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in se) { se[b] = se[a]; delete se[a]; }
+  for (const g of Object.values(st.meta.liftGoals || {})) if (g && EX_RENAMED[g.ex]) g.ex = EX_RENAMED[g.ex];
 }
 function cleanSessions(obj) {
   const out = {}; let skipped = 0;
@@ -1402,7 +1637,7 @@ const exKind = id => getEx(id).kind || 'other';
 const findEx = name => findIn(S.meta.exercises, BUILTIN_EX)(name);
 const isHidden = id => (S.meta.hidden || []).includes(id);
 const libBase = id => BUILTIN_ROUTINES.find(r => r.id === id) || null;
-const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base && !r.archived).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 const routineKey = r => JSON.stringify([r.name, r.days.map(d => [d.id, d.name, d.tags && d.tags.length ? d.tags : null, d.items.map(i => [i.id, i.ex, +i.sets, i.reps || '', !!i.ss, i.group || '', i.note || ''])])]);
 /* An edit of a library routine counts only while it differs from the library version. */
 const libOver = id => { const o = S.meta.routines[id], b = libBase(id); return o && b && routineKey(o) !== routineKey(b) ? o : null; };
@@ -1510,7 +1745,7 @@ function refill(it, occ) {
 }
 function makeSlot(item, occ) {
   const n = item.sets || 3;
-  const it = { id: uid('i'), slot: item.id || null, ex: item.ex, group: item.group || '', ss: !!item.ss, u: slotUnit(item.ex), note: '', target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),
+  const it = { id: uid('i'), slot: item.id || null, ex: item.ex, group: item.group || '', ss: !!item.ss, u: slotUnit(item.ex), note: '', target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, item.rest ? { rest: item.rest } : {}, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),
     sets: Array.from({ length: n }, () => ({ id: uid('t'), w: '', r: '', n: '' })) };
   refill(it, occ || 0); initMachine(it); return it;
 }
@@ -2084,7 +2319,7 @@ function startRest(it) {
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
   if (inSS && st.ssMode === 'round' && linkedNext) return;
-  const exR = S.meta.exRest[it.ex];
+  const exR = S.meta.exRest[it.ex] != null ? S.meta.exRest[it.ex] : it.target && it.target.rest ? it.target.rest : null; /* Nov 17: Rep focus sets rest too */
   const kind = exR != null ? 'ex' : inSS ? 'ss' : 'solo';
   const secs = Math.max(0, +(exR != null ? exR : inSS ? st.restSS : st.rest) || 0);
   if (secs > 0) { S.rest = { until: Date.now() + secs * 1000, total: secs, kind, ex: it.ex, beeped: {} }; bgRest(); offerBgAudio(); }
@@ -2116,7 +2351,7 @@ function finishWorkout(opts = {}) {
     openSheet({ type: 'confirm', title: 'Finished a while ago?', body: 'The last set was logged at ' + when + '. Save the workout as ending then, so its time isn’t counted up to now?', ok: 'End at ' + when, onOk: () => { closeSheet(); finishWorkout({ endedAt: lastSet + 60000 }); }, alt: 'End now', onAlt: () => { closeSheet(); finishWorkout({ endedAt: Date.now() }); } });
     return;
   }
-  const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
+  const items = a.items.map(it => ({ ex: it.ex, ...(it.planned && it.planned !== it.ex ? { planned: it.planned } : {}), group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
     sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
@@ -2241,7 +2476,7 @@ function TrainHome() {
     ${nx ? html`
       <div class="section-h" style="margin-top:10px"><h2>Up next</h2><span class="aside">${nx.last ? 'Last: ' + dayLabel({ name: nx.last.name }) : 'Next in your plan'}</span></div>
       <div class="next-card">
-        <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-day" onClick=${() => openSheet({ type: 'pickNext', rid: routine.id })}>Change</button></div><h2>${nx.day.name}</h2></div>
+        <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-day" onClick=${() => openSheet({ type: 'pickNext', rid: routine.id })}>Change</button></div><h2>${nx.day.name}</h2><div class="small muted" id="next-mins">About ${Math.round(dayMinutes(focusDay(routine, nx.day)) / 5) * 5} min · ${nx.day.items.length} exercise${nx.day.items.length === 1 ? '' : 's'}</div></div>
         <div class="next-list">${focusDay(routine, nx.day).items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${repTxt(it.reps)}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
       </div>
@@ -2282,17 +2517,22 @@ function TrainHome() {
   </div>`;
 }
 function ProgramSheet() {
-  const cur = programId(); const all = allRoutines();
-  const plans = all.filter(r => r.days.length > 1), singles = all.filter(r => r.days.length === 1);
+  const cur = programId();
+  /* Nov 17: Personal first (Newt's programs, then yours), then the library families, then the specialty plans */
+  const lib = libRoutines().filter(r => !r.personal && !isRetired(r.id));
+  const personal = personalPlans().filter(r => r.days.length > 1), famPlans = lib.filter(r => FAMILIES.some(f => f[0] === planGroup(r)) || planGroup(r) === 'lift').sort((a, b) => FAMILIES.findIndex(f => f[0] === planGroup(a)) - FAMILIES.findIndex(f => f[0] === planGroup(b)) || Object.keys(PROG_INFO).indexOf(a.id) - Object.keys(PROG_INFO).indexOf(b.id));
+  const other = lib.filter(r => r.days.length > 1 && !famPlans.includes(r)), singles = [...personalPlans(), ...lib].filter(r => r.days.length === 1);
   const choose = id => { setProgram(id); closeSheet(); TRAIN.mode = 'train'; UI.setTab('train'); showToast(followToast(id)); };
-  const row = r => html`<button key=${r.id} class=${'opt' + (cur === r.id ? ' on' : '')} onClick=${() => choose(r.id)}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' + r.days.map(dayLabel).join(', ') : r.days[0].items.length + ' exercises'}</div></div>${cur === r.id ? I.check : null}</button>`;
+  const row = r => html`<button key=${r.id} class=${'opt' + (cur === r.id ? ' on' : '')} onClick=${() => choose(r.id)}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' + r.days.map(dayLabel).join(', ') : r.days[0].items.length + ' exercises'}${isLiftPlan(r) ? ' · ' + minutesText(r) : ''}</div></div>${cur === r.id ? I.check : null}</button>`;
   const create = () => { closeSheet(); UI.setTab('routines'); UI.setView({ type: 'edit', draft: { id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }, { id: uid('d'), name: 'Day 2', items: [] }] }, isNew: true, follow: true }); };
   return html`<${Sheet} label="Choose a plan"><h2>Choose a plan</h2>
     <p class="note" style="margin-bottom:6px">Train shows the next day of the plan you pick. You can change it any time.</p>
     <button class=${'opt' + (cur === 'self' ? ' on' : '')} id="pick-self" onClick=${() => choose('self')}><div style="flex:1"><div>Self-log</div><div class="d">No plan. Start an empty workout and add exercises as you go.</div></div>${cur === 'self' ? I.check : null}</button>
     <button class="opt" id="pick-goal" onClick=${() => openSheet({ type: 'goalSetup' })}><div style="flex:1"><div>Build my plan</div><div class="d">A few questions about your goal, time and gear, and Ironwood fits a plan to you.</div></div></button>
     <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new plan</div><div class="d">Build your own days and exercises.</div></div></button>
-    <div class="eyebrow" style="margin:16px 0 2px">Plans</div>${plans.map(row)}
+    <div class="eyebrow" style="margin:16px 0 2px">Personal</div>${personal.map(row)}
+    <div class="eyebrow" style="margin:16px 0 2px">Library</div>${famPlans.map(row)}
+    ${other.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Running, fight and joint care</div>${other.map(row)}` : null}
     ${singles.length ? html`<div class="eyebrow" style="margin:16px 0 2px">One-day plans</div>${singles.map(row)}` : null}<//>`;
 }
 /* ---------- Help, tour, feedback ---------- */
@@ -2315,7 +2555,7 @@ function HelpSheet() {
 const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'Six quick stops, one for each tab. Skip any time; Help at the bottom of every page brings it back.'],
   ['train', 'train', '#get-started, .next-card', 'Train', 'Your next workout and its Start button sit at the top. During a workout, swipe a set right to log it, or tap its number. Hit the top of the rep range on every set and the next workout adds weight. Run and Fight live in the switch above.'],
-  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: lifting, one-day plans, goal plans, running, fight and joint care. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#plan-filters', 'Plans', 'Your personal programs first, then the library: full body, upper / lower and push / pull / legs, plus running, fight and joint care. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
   ['stats', null, '.lift-row', 'Progress', 'Your history, numbers, each lift’s chart and records, and progress photos. These are sample numbers for the tour; they go away when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
   ['profile', null, '#backup-file', 'Settings', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
@@ -2332,7 +2572,7 @@ const TOUR_FULL = [
   ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
-  ['routines', null, '#plan-filters', 'Plans', 'Every plan in one list: yours, lifting, one-day plans, goal plans, running, fight, joint care and challenges. Search or tap a filter. A plan’s page lets you follow it, add it alongside, and choose where its last-time numbers come from.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#plan-filters', 'Plans', 'Personal programs, the library (full body, upper / lower, push / pull / legs), one-day plans, running, fight, joint care, challenges and an Archived shelf. A plan’s page shows its goal, time, equipment, muscle coverage and how to progress, then lets you follow it or add it alongside.', { ls: { rtFilter: 'all' } }],
   ['routines', null, '#ps-care', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
   ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a plan or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
   ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
@@ -2718,7 +2958,7 @@ function RestBar() {
   const left = Math.ceil((r.until - Date.now()) / 1000);
   if (left <= -4) { S.rest = null; return null; }
   const st = S.meta.settings; const key = r.kind === 'ss' ? 'restSS' : 'rest';
-  const def = r.kind === 'ex' ? +S.meta.exRest[r.ex] : +st[key] || 0;
+  const def = r.kind === 'ex' ? +(S.meta.exRest[r.ex] != null ? S.meta.exRest[r.ex] : r.total) : +st[key] || 0;
   const adjust = d => { const t = Math.max(15, r.total + d); r.until += (t - r.total) * 1000; r.total = t; r.beeped = {}; bgRest(); S.rerender(); };
   const label = left > 0 ? (r.kind === 'ss' ? 'Superset rest' : r.kind === 'ex' ? exName(r.ex) + ' rest' : 'Rest') : 'Go';
   const saveTxt = r.kind === 'ss' ? 'supersets' : r.kind === 'ex' ? exName(r.ex) : 'single exercises';
@@ -2813,57 +3053,70 @@ const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 /* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
    chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
-const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Yours'], ['lift', 'Lifting'], ['one', 'One-day'], ['goal', 'Goal plans'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['type', 'By type']];
+/* Nov 17: Personal / Library (three families) / specialty shelves / Archived. Goal, days and equipment are filters on
+   the library, not separate plans. */
+const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
 const PLAN_MORE = {};
 function setPlanFilter(f) { lsSet('rtFilter', f); }
+/* Personal order: Newt's programs, then plans you made, then Newt's other routines */
+function personalPlans() {
+  const lib = libRoutines().filter(r => r.personal); const top = lib.filter(r => PROG_INFO[r.id]); const rest = lib.filter(r => !PROG_INFO[r.id]);
+  return [...top, ...myRoutines(), ...rest];
+}
 function RoutineList() {
   const fl = PLAN_FILTERS.some(x => x[0] === lsGet('rtFilter')) ? lsGet('rtFilter') : 'all';
   const [q, setQ] = useState(''); const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const pickF = f => { setPlanFilter(f); re(); };
-  const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
+  const mine = personalPlans(); const lib = libRoutines().filter(r => !r.personal && !isRetired(r.id)); const arch = archivedRoutines();
   const pid = programId();
-  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
+  const card = (r, archived) => { const info = PROG_INFO[r.id] || {}; const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', addonIds().includes(r.id) ? 'Alongside' : '', info.fam ? info.variant : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
+    const mins = isLiftPlan(r) ? ' · ' + minutesText(r) : '';
     return html`<div key=${r.id} class="r-wrap"><button class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
     ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
-    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r), 3)}</button><${PlanStar} r=${r} id=${'pstar-' + r.id}/></div>`; };
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}${mins}</span>${tagChips(routineTags(r), 3)}</button>${archived ? html`<button class="pill-btn accent" id=${'restore-' + r.id} aria-label=${'Restore ' + r.name} onClick=${() => { restorePlan(r); re(); }}>Restore</button>` : html`<${PlanStar} r=${r} id=${'pstar-' + r.id}/>`}</div>`; };
   const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] });
   const actions = html`<div class="row"><button class="btn primary" style="flex:1" id="plan-new" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} New plan</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
-  const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed plan${hidden.length === 1 ? '' : 's'}</button>` : null;
-  const multi = r => r.days.length > 1;
+  const inLib = fl === 'lift'; const ord = Object.keys(PROG_INFO); const fam = k => lib.filter(r => planGroup(r) === k && (!inLib || libPass(r))).sort((a, b) => ord.indexOf(a.id) - ord.indexOf(b.id));
   const SECS = [
     ['starred', 'Starred', [...mine, ...lib].filter(r => isStarPlan(r.id))],
-    ['mine', 'Yours', mine],
-    ['lift', 'Lifting', lib.filter(r => multi(r) && !r.info && !r.goalPlan)],
-    ['one', 'One-day', lib.filter(r => !multi(r) && !r.info)],
-    ['goal', 'Goal plans', lib.filter(r => r.goalPlan)],
-    ['run', 'Running and conditioning', lib.filter(r => r.info && !r.info.care && !r.info.fight)],
-    ['fight', 'Fight', lib.filter(r => r.info && r.info.fight)],
-    ['care', 'Joint care', lib.filter(r => r.info && r.info.care)]];
+    ['mine', 'Personal', mine],
+    ...FAMILIES.map(([k, t, d]) => [k, t, fam(k), d]),
+    ['lift', 'More lifting plans', lib.filter(r => planGroup(r) === 'lift' && (!inLib || libPass(r)))],
+    ['one', 'One-day', lib.filter(r => planGroup(r) === 'one')],
+    ['run', 'Running and conditioning', lib.filter(r => planGroup(r) === 'run')],
+    ['fight', 'Fight', lib.filter(r => planGroup(r) === 'fight')],
+    ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
+    ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
   const top = html`<${PlansSwitch}/>
     <${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
     <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
+    ${inLib ? html`<${LibFilters} re=${re}/>` : null}
     <${Tip} id="plans-lib" style="margin-top:10px">Follow a plan from its page and Train lines up the next day for you. A one-day plan is a single workout you can start any time.<//>`;
   const norm = t => String(t).toLowerCase().replace(/×/g, 'x'); const term = norm(q.trim());
   if (term) {
-    const hits = [...mine, ...lib].filter(r => norm(r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).includes(term));
-    return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(card)}</div>
+    const hits = [...mine, ...lib, ...arch].filter(r => norm(r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).includes(term));
+    return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(r => card(r, arch.includes(r)))}</div>
       ${hits.length ? null : html`<p class="note">Try fewer letters, or clear the search to browse.</p>`}</div>`;
   }
-  if (fl === 'type') return html`<div>${top}<${ByTypeList} rs=${[...mine, ...lib]}/><div class="stack" style="margin-top:18px">${actions}${bring}</div></div>`;
+  if (fl === 'type') return html`<div>${top}<${ByTypeList} rs=${[...mine, ...lib]}/><div class="stack" style="margin-top:18px">${actions}</div></div>`;
   if (fl === 'ch') return html`<div>${top}<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/></div>`;
-  const sec = ([k, t, rs]) => {
-    if (fl !== 'all' && fl !== k) return null;
-    const extra = k === 'run' ? 1 : 0; if (k === 'starred' && !rs.length) return fl === 'starred' ? html`<p key="st" class="note" style="margin-top:12px" id="ps-starred-none">Tap the star on any plan to keep it here.</p>` : null; if (!rs.length && !extra && k !== 'mine') return null;
-    const cap = fl === 'all' && !PLAN_MORE[k] ? 3 : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
-    return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > 3 ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
+  const famKeys = FAMILIES.map(x => x[0]);
+  const sec = ([k, t, rs, desc]) => {
+    const show = fl === 'all' || fl === k || (fl === 'lift' && (famKeys.includes(k) || k === 'lift'));
+    if (!show) return null;
+    const extra = k === 'run' ? 1 : 0; if (k === 'starred' && !rs.length) return fl === 'starred' ? html`<p key="st" class="note" style="margin-top:12px" id="ps-starred-none">Tap the star on any plan to keep it here.</p>` : null;
+    if (!rs.length && !extra && k !== 'mine') return k === 'arch' && fl === 'arch' ? html`<p key="arn" class="note" style="margin-top:12px">Nothing archived.</p>` : famKeys.includes(k) && inLib ? html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2></div><p class="note">No ${t} plan matches these filters.</p></div>` : null;
+    const capN = k === 'mine' ? 5 : 3; const cap = fl === 'all' && !PLAN_MORE[k] ? capN : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
+    return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > capN ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
+      ${desc && (fl !== 'all' || famKeys.includes(k)) ? html`<p class="small muted" style="margin:-4px 0 8px">${desc}</p>` : null}
       ${k === 'care' ? html`<${CareFinder}/>` : null}
-      <div class="stack">${k === 'mine' && !rs.length ? html`<p class="note">Plans you build, copy or import show here.</p>` : null}${k === 'run' ? runRow : null}${list.map(card)}${k === 'mine' ? actions : null}</div></div>`; };
+      <div class="stack">${k === 'run' ? runRow : null}${list.map(r => card(r, k === 'arch'))}${k === 'mine' && (fl === 'mine' || PLAN_MORE.mine || rs.length <= capN) ? actions : null}</div>
+      ${k === 'mine' && fl === 'all' && !PLAN_MORE.mine && rs.length > capN ? html`<div style="margin-top:8px">${actions}</div>` : null}</div>`; };
   return html`<div>${top}${SECS.map(sec)}
-    ${fl === 'all' ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${() => pickF('ch')}>Show all</button></div><${ChallengeFinder} where="routines"/>` : null}
-    <div class="stack" style="margin-top:10px">${bring}</div></div>`;
+    ${fl === 'all' ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${() => pickF('ch')}>Show all</button></div><${ChallengeFinder} where="routines"/>` : null}</div>`;
 }
 /* Every workout sorted by its type, in sections you open and close */
 function ByTypeList({ rs }) {
@@ -2884,20 +3137,23 @@ function ByTypeList({ rs }) {
       ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}</div>`;
 }
 function RoutineView({ id }) {
-  const r = getRoutine(id); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
-  const lib = !!libBase(r.id); const builtin = r.source === 'builtin';
+  const r = getRoutine(id) || (isHidden(id) ? (libOver(id) || libBase(id)) : null); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
+  const lib = !!libBase(r.id); const builtin = r.source === 'builtin'; const archived = planGroup(r) === 'arch' || isHidden(r.id);
   const copy = () => { const c = clone(r); delete c.base; delete c.meta; delete c.shelf; c.id = uid('r'); c.source = 'mine'; c.name = r.name + ' (copy)'; c.createdAt = Date.now(); c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
     commit(st => { st.meta.routines[c.id] = c; }, 'meta'); UI.setView({ type: 'routine', id: c.id }); };
   const edit = () => UI.setView({ type: 'edit', draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
   const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this plan are undone. Logged workouts stay in your history.', ok: 'Reset plan', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
-  const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Plans. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove plan' : 'Delete plan', danger: true,
-    onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
+  const del = () => openSheet({ type: 'confirm', title: 'Delete ' + r.name + '?', body: 'The plan is gone for good; Archive keeps it instead. Logged workouts stay in your history.', ok: 'Delete plan', danger: true,
+    onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); UI.setView(null); } });
+  const archive = () => { closeSheet(); archivePlan(r); UI.setView(null); };
   return html`<div>
-    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
+    <div class="eyebrow" style="margin-top:6px">${[archived ? 'Archived' : r.personal || !lib ? 'Personal' : '', (PROG_INFO[r.id] || {}).fam ? FAMILIES.find(f => f[0] === PROG_INFO[r.id].fam)[1] + ': ' + PROG_INFO[r.id].variant : '', r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
     <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
+    ${archived ? html`<div class="card" id="plan-archived" style="margin-top:10px"><p class="small">${RETIRED[r.id] && isRetired(r.id) ? 'Retired from the library. ' + RETIRED[r.id] : 'Archived.'} It still works if you follow it, and its workouts stay in your history.</p><button class="btn" style="margin-top:8px" id="plan-restore" onClick=${() => restorePlan(r)}>Restore to Plans</button></div>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
+    <${ProgramFacts} r=${r}/>
     <div class="row wrap" style="margin:14px 0 4px">
       ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
@@ -2907,13 +3163,16 @@ function RoutineView({ id }) {
         programId() === r.id || addonIds().includes(r.id) ? ['plan-restart', 'Restart from day 1', '', () => { closeSheet(); restartProgram(r.id); }] : null,
         programId() === r.id ? ['plan-stop', 'Stop following', 'Train goes back to asking what you follow.', () => { closeSheet(); stopPlan(r.id); }] : null,
         r.base ? ['plan-reset', 'Reset', 'Undo your changes to this plan.', reset] : null,
-        ['plan-del', lib ? 'Remove from Plans' : 'Delete plan', lib ? 'You can bring it back at the bottom of Plans.' : 'Logged workouts stay in your history.', del, true]].filter(Boolean) })}>${I.more}</button>
+        archived ? null : ['plan-archive', 'Archive', 'Moves it to Plans → Archived. Restore it any time; logged workouts stay in your history.', archive],
+        !lib ? ['plan-del', 'Delete plan', 'Gone for good. Logged workouts stay in your history.', del, true] : null].filter(Boolean) })}>${I.more}</button>
     </div>
-    <${PrefillRow} r=${r}/>
-    <${FocusRow} r=${r}/>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
       <ul class="r-items">${focusDay(r, d).items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
+    <${ProgramGuide} r=${r}/>
+    <div class="section-h" id="plan-settings-h"><h2>Plan settings</h2></div>
+    <${PrefillRow} r=${r}/>
+    <${FocusRow} r=${r}/>
   </div>`;
 }
 function RoutineEditor({ view }) {
@@ -2930,7 +3189,7 @@ function RoutineEditor({ view }) {
       <div><div class="lbl">Workout type</div><div class="ed-tags" role="group" aria-label="Workout type">${WTAGS.map(t => { const on = (day.tags || []).includes(t); return html`<button key=${t} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => { const s = new Set(day.tags || []); if (on) s.delete(t); else s.add(t); day.tags = WTAGS.filter(x => s.has(x)); re(); }}>${t}</button>`; })}</div>
         ${day.tags && day.tags.length ? null : html`<p class="small faint" style="margin-top:6px">Automatic: ${autoTags(day, d).join(', ')}. Tap a type to set your own.</p>`}</div>
       ${day.items.map((it, ii) => html`<div key=${it.id} class=${'ed-item' + (it.ss ? ' ssi' : '')}>
-        <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'pick', title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
+        <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
           <button class="icon-btn" aria-label="Move up" onClick=${() => move(day.items, ii, -1)}>${I.up}</button>
           <button class="icon-btn" aria-label="Move down" onClick=${() => move(day.items, ii, 1)}>${I.down}</button>
           <button class="icon-btn" aria-label="Remove exercise" onClick=${() => { day.items.splice(ii, 1); re(); }}>${I.x}</button></div>
@@ -3379,7 +3638,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version b3ee0fe</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 689766e</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4027,8 +4286,8 @@ function SlotSheet({ it }) {
     : a.routineId && getRoutine(a.routineId) && getRoutine(a.routineId).source === 'builtin' ? html`<p class="note" style="margin:8px 0">This change applies to today. Edit the plan to make it permanent.</p>` : null;
   const persist = patch => { if (rs && ALSO.v) commit(x => { Object.assign(rs, patch); }, 'meta'); };
   const exR = S.meta.exRest[it.ex];
-  return html`<${Sheet} label="Exercise options"><h2>${exName(it.ex)}</h2>
-    <button class="opt" onClick=${() => openSheet({ type: 'pick', title: 'Swap exercise', onPick: ex => { it.ex = ex.id; it.u = slotUnit(ex.id); refill(it); persist({ ex: ex.id }); closeSheet(); touch(); } })}>${I.swap}<div><div>Swap exercise</div><div class="d">Pick a different movement for this slot</div></div></button>
+  return html`<${Sheet} label="Exercise options"><h2>${exName(it.ex)}</h2>${getEx(it.ex).how ? html`<p class="note" id="slot-how" style="margin-bottom:8px">${getEx(it.ex).how}</p>` : null}
+    <button class="opt" id="opt-swap" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { if (it.slot || a.routineId) { const p = it.planned || it.ex; if (ex.id === p) delete it.planned; else it.planned = p; } it.ex = ex.id; it.u = slotUnit(ex.id); refill(it); persist({ ex: ex.id }); closeSheet(); touch(); } })}>${I.swap}<div><div>Swap exercise</div><div class="d">Suggestions that keep the same movement${it.planned ? '. Planned: ' + exName(it.planned) : ''}</div></div></button>
     <button class="opt" onClick=${() => openSheet({ type: 'group', current: it.group, dayName: a.name, extra: alsoBox, onPick: g => { it.group = g; applyRange(it.target, g); refill(it); persist({ group: g, ...(g in RANGE_REPS ? { reps: RANGE_REPS[g] } : {}) }); closeSheet(); touch(); } })}>${I.layers}<div><div>Rep range: ${it.group ? (RANGE_NAME[it.group] || it.group) : 'none'}</div><div class="d">Each range keeps its own history</div></div></button>
     <button class="opt" onClick=${() => openSheet({ type: 'exRest', ex: it.ex })}>${I.timer}<div><div>Rest timer: ${exR != null ? (exR ? clock(exR) : 'off') : 'default'}</div><div class="d">A rest time just for this exercise</div></div></button>
     ${['bodyweight'].includes(exKind(it.ex)) || isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-jump" onClick=${() => openSheet({ type: 'exJump', ex: it.ex, u0: u })}>${I.up}<div><div>Weight jump: +${fmt(jumpFor(it.ex, u))} ${u}${(S.meta.exJump || {})[it.ex] ? '' : ' (default)'}</div><div class="d">How much to add when every set hits the top of the range</div></div></button>`}
@@ -4120,7 +4379,7 @@ function SessionSheet({ id }) {
   const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
     showToast({ kind: 'info', ms: 8000, text: 'Workout deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label="Workout details"><div class="eyebrow">${shortDate(s.startedAt)} · ${mins} min${s.routineName ? ' · ' + s.routineName : ''}</div><h2>${s.name}</h2>
-    ${s.items.map((it, i) => { const kind = exKind(it.ex); const u = it.u || U(); return html`<div key=${i} class="ex-block"><div class="row"><h3 style="flex:1">${exName(it.ex)}</h3>${groupChip(it.group)}</div>
+    ${s.items.map((it, i) => { const kind = exKind(it.ex); const u = it.u || U(); return html`<div key=${i} class="ex-block"><div class="row"><h3 style="flex:1">${exName(it.ex)}</h3>${groupChip(it.group)}</div>${it.planned ? html`<p class="small muted" style="margin-top:2px">Swapped in for ${exName(it.planned)}${it.target && it.target.reps ? ' · planned ' + (it.target.sets || '') + ' × ' + repTxt(it.target.reps) : ''}</p>` : !edit && !isMeasured(kind) && it.target && +it.target.sets > it.sets.length ? html`<p class="small muted" style="margin-top:2px">Planned ${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) : ''} · ${it.sets.length} done</p>` : null}
       ${edit ? html`<input class="ex-note" id=${'een-' + i} value=${it.note || ''} placeholder="Exercise note" aria-label="Exercise note" onInput=${e => { it.note = e.target.value; }}/>` : it.note ? html`<p class="small muted" style="margin-top:4px">${it.note}</p>` : null}
       ${edit && isMeasured(kind) ? it.sets.map((x, j) => html`<${MeasEditSet} key=${j} x=${x} j=${j} i=${i} kind=${kind} onRemove=${() => { it.sets.splice(j, 1); setEdit({ ...edit }); }}/>`) : edit ? it.sets.map((x, j) => html`<div key=${j} class="edit-set"><span class="faint num">${j + 1}</span>
           <input id=${'ew-' + i + '-' + j} inputmode="decimal" aria-label=${'Weight, ' + u} value=${x.w} onInput=${e => { x.w = e.target.value; }}/>
@@ -4185,6 +4444,7 @@ function SheetHost({ sheet }) {
   if (!sheet) return null;
   switch (sheet.type) {
     case 'pick': return html`<${PickSheet} ...${sheet}/>`;
+    case 'swap': return html`<${SwapSheet} ...${sheet}/>`;
     case 'group': return html`<${GroupSheet} ...${sheet}/>`;
     case 'slot': return S.active ? html`<${SlotSheet} it=${sheet.it}/>` : null;
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
@@ -7055,7 +7315,13 @@ function fineFor(u) {
 }
 const isDeadlift = ex => /deadlift/.test(norm(exName(ex))) && !/romanian|stiff|dumbbell|single|kettlebell/.test(norm(exName(ex)));
 /* The jump for one exercise in unit u: its own setting, else the main jump (twice that on barbell deadlifts) */
-function jumpDefault(ex, u) { const b = unitInc(u); return exKind(ex) === 'barbell' && isDeadlift(ex) ? b * 2 : b; }
+/* Nov 17: big lower-body lifts on a barbell or machine (squats, leg press, deadlifts, hip thrusts) jump twice as much */
+const BIG_LOWER = ['squat', 'legpress', 'hinge', 'hipext'];
+function jumpDefault(ex, u) {
+  const b = unitInc(u); const k = exKind(ex); const e = getEx(ex);
+  if (k === 'barbell' && isDeadlift(ex)) return b * 2;
+  return (k === 'barbell' || k === 'machine') && e.pat && BIG_LOWER.includes(e.pat[0]) ? b * 2 : b;
+}
 function jumpFor(ex, u) {
   const j = (S.meta.exJump || {})[ex];
   if (j && +j.v > 0) return Math.min(maxJump(u), j.u === u ? +j.v : roundToInc(conv(+j.v, j.u, u), fineFor(u)) || fineFor(u));
@@ -7078,10 +7344,12 @@ function recentOcc(exId, group, occ, n, u) {
 /* What to suggest next time: { mode: 'bump' | 'step' | 'deload' | 'hold', delta, factor, msg } */
 function progPlan(it, kind, u, occ) {
   const st = S.meta.settings; const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top, n = it.target.sets || 1;
-  if (!top || kind === 'bodyweight') return { mode: 'hold' };
+  if (!top) return { mode: 'hold' };
   const h = recentOcc(it.ex, it.group || '', occ, 3, u); if (!h.length) return { mode: 'hold' };
   const e1 = h[0], e0 = h[1];
   const full = e => e.sets.length >= n && e.sets.every(x => x.r >= top);
+  /* Nov 17: bodyweight moves progress by reps */
+  if (kind === 'bodyweight') return full(e1) ? { mode: 'reps', msg: 'Every set reached ' + top + ' last time. Go for one more rep per set, or add a little weight.' } : { mode: 'hold' };
   const miss = e => e.sets.some(x => x.r < low);
   const mostShort = e => e.sets.filter(x => x.r < low).length * 2 >= e.sets.length;
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
@@ -7122,7 +7390,7 @@ function refillLift(it, occ) {
     if (P.mode === 'step') wv = roundToInc(wv, fine);
     x.gw = wv ? String(r1(wv)) : '';
     const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
@@ -7144,7 +7412,7 @@ function ExJumpSheet({ ex, u0 }) {
     <div class="row" style="margin-top:12px;align-items:flex-end"><div style="flex:1"><label class="lbl" for="jump-own">Your own amount (${u})</label><input class="field" id="jump-own" inputmode="decimal" placeholder=${fmt(now)} value=${v} onInput=${e => setV(e.target.value)}/>${num(v) > maxJump(u) ? html`<span class="small muted" id="jump-cap">Saved as ${maxJump(u)} ${u}, the most per jump. To allow more, turn on Bigger jumps below.</span>` : null}</div>
       <button class="btn primary" id="jump-save" disabled=${!(num(v) > 0)} onClick=${() => set(Math.min(maxJump(u), r1(num(v))))}>Save</button></div>
     <label class="toggle-row" for="jump-big" style="margin-top:10px"><span><span>Bigger jumps</span><span class="d">Allow more than ${u === 'kg' ? '10 kg' : '20 lb'} per jump, for every exercise.</span></span><input type="checkbox" role="switch" id="jump-big" checked=${!!S.meta.settings.bigJumps} onChange=${e => commit(x => { x.meta.settings.bigJumps = e.target.checked; }, 'meta', 600)}/></label>
-    <button class=${'opt' + (!cur ? ' on' : '')} style="margin-top:10px" onClick=${() => set(null)}>Use the default (+${fmt(def)} ${u}${isDeadlift(ex) && exKind(ex) === 'barbell' ? ', twice the main jump for deadlifts' : ''})</button><//>`;
+    <button class=${'opt' + (!cur ? ' on' : '')} style="margin-top:10px" onClick=${() => set(null)}>Use the default (+${fmt(def)} ${u}${def > unitInc(u) ? ', twice the main jump for big lower-body lifts' : ''})</button><//>`;
 }
 const exUnitOf = ex => (S.meta.exUnit && S.meta.exUnit[ex]) || U();
 function ProgressionSettings({ set }) {
@@ -10562,13 +10830,15 @@ const ExStar = ({ ex, big, id }) => html`<${ItemStar} on=${isStarEx(ex)} label=$
    Intensity plans: built-in plans built on drop sets and on taking sets to failure. A plan item can carry dl (drops already
    set up on its last set) so the drops are there when the workout starts. */
 const FOCUS = {
-  strength: ['Strength', 'Main lifts 3–5 reps, others 6–8. Heavier, with 2–3 minutes of rest on the main lifts.', { m: '3-5', a: '6-8' }],
-  size: ['Size', 'Main lifts 6–10 reps, others 10–15. Moderate weight, 60–90 seconds of rest, close to failure.', { m: '6-10', a: '10-15' }] };
+  strength: ['Strength', 'Main lifts 3–5 reps, others 6–8. Heavier, with 2–3 minutes of rest on the main lifts.', { m: '3-5', a: '6-8', rm: 150, ra: 90 }],
+  size: ['Size', 'Main lifts 6–10 reps, others 10–15. Moderate weight, 60–90 seconds of rest, close to failure.', { m: '6-10', a: '10-15', rm: 90, ra: 75 }] };
 const COMPOUND = /squat|deadlift|bench|press|\brow|pull-?up|chin-?up|lunge|hip thrust|\bdips?\b|clean|snatch|pulldown/;
 const ISOLATION = /lateral|raise|fly|curl|extension|pushdown|kickback|shrug|crunch|calf|face pull|pullover|crossover/;
 const planFocus = rid => ((S.meta.settings.focus || {})[rid]) || '';
-const isMainLift = ex => { const n = norm(exName(ex)); return COMPOUND.test(n) && !ISOLATION.test(n); };
-function focusItem(it, f) { if (!f || !FOCUS[f] || isMeasured(exKind(it.ex))) return it; return { ...it, reps: FOCUS[f][2][isMainLift(it.ex) ? 'm' : 'a'] }; }
+/* Main lift: a multi-joint movement in the exercise data (Nov 17), else the old name test */
+const MAIN_PATS = ['hpush', 'incline', 'vpush', 'dip', 'hpull', 'vpull', 'squat', 'legpress', 'lunge', 'hinge', 'hipext'];
+const isMainLift = ex => { const e = getEx(ex); if (e && e.pat) return MAIN_PATS.includes(e.pat[0]); const n = norm(exName(ex)); return COMPOUND.test(n) && !ISOLATION.test(n); };
+function focusItem(it, f) { if (!f || !FOCUS[f] || isMeasured(exKind(it.ex))) return it; const main = isMainLift(it.ex); return { ...it, reps: FOCUS[f][2][main ? 'm' : 'a'], rest: FOCUS[f][2][main ? 'rm' : 'ra'] }; }
 function focusDay(r, d) { const f = r && d ? planFocus(r.id) : ''; return f ? { ...d, items: d.items.map(it => focusItem(it, f)) } : d; }
 function setFocus(rid, f) {
   commit(st => { const m = { ...(st.meta.settings.focus || {}) }; if (f) m[rid] = f; else delete m[rid]; st.meta.settings.focus = m; }, 'meta');
@@ -11686,6 +11956,225 @@ function EatReview() {
         <div><div style="font-weight:600">Rest days (${R.train.nR})</div><b class="num">${fmt(Math.round(R.train.kcalR))} cal · ${Math.round(R.train.pR)} g protein</b></div></div>` : null}
     <p class="small faint" style="margin-top:12px">From what you logged. Ironwood counts calories, protein, carbs, fat, fiber, sugar and sodium; vitamins and minerals are only judged from food groups. ${NOT_ADVICE} If you have a health condition, are pregnant, or have a history of disordered eating, talk with a doctor or dietitian.</p>
   </div>`;
+}
+
+/* ============ Programs: personal vs library, families, program facts, smart swaps (Nov 17, 2026) ============
+   Plans fall into three states: Personal (Newt's programs and anything you build, copy or import), Library (curated
+   general programs in three families: Full Body, Upper / Lower, Push / Pull / Legs, plus the specialty shelves), and
+   Archived (retired library plans, plans you archived or removed). Nothing is deleted: a retired or archived plan still
+   opens, can be followed, and its workouts stay in history.
+   Program facts (sessions a week, minutes, equipment, weekly sets per muscle) are worked out from the exercise data in
+   exlib.js, so they stay right when a plan is edited. */
+const FAMILIES = [
+  ['fb', 'Full Body', 'Every muscle two or three times a week on three days. The simplest place to start.'],
+  ['ul', 'Upper / Lower', 'Two upper and two lower days a week. Shorter workouts, every muscle twice a week.'],
+  ['ppl', 'Push / Pull / Legs', 'Pressing, pulling and leg days in order. Six days for the most volume, or three days rotating.'],
+];
+/* Library programs: family, variant label, goal, experience, a new display name where one was renamed */
+const PROG_INFO = {
+  'bi-fb3': { fam: 'fb', variant: 'Main', goal: 'size', level: 'Beginner' },
+  'bi-db3': { fam: 'fb', variant: 'Dumbbells only', goal: 'size', level: 'Beginner' },
+  'gp-strength3': { fam: 'fb', variant: 'Strength', goal: 'strength', level: 'Beginner to intermediate', name: 'Full Body Strength 3-Day' },
+  'bi-ul4': { fam: 'ul', variant: 'Main', goal: 'both', level: 'Intermediate' },
+  'gp-bulk4': { fam: 'ul', variant: 'Hypertrophy', goal: 'size', level: 'Intermediate', name: 'Upper / Lower Hypertrophy' },
+  'bi-ul4-strength': { fam: 'ul', variant: 'Strength', goal: 'strength', level: 'Intermediate' },
+  'bi-drop4': { fam: 'ul', variant: 'Drop sets (advanced, optional)', goal: 'size', level: 'Advanced' },
+  'bi-ppl6': { fam: 'ppl', variant: 'Main', goal: 'size', level: 'Intermediate' },
+  'bi-ppl3': { fam: 'ppl', variant: '3-day rotating', goal: 'size', level: 'Beginner to intermediate' },
+  'bi-heartwood': { goal: 'size', level: 'Intermediate' }, 'bi-growth-rings': { goal: 'size', level: 'Beginner to intermediate' },
+  'bi-three-ring': { goal: 'size', level: 'Beginner to intermediate' }, 'bi-easy-grain': { goal: 'size', level: 'Beginner' },
+  'bi-newt-4day': { goal: 'both', level: 'Intermediate' },
+};
+/* Retired from the library: near-copies of a family plan. They stay under Archived and keep working if followed. */
+const RETIRED = {
+  'bi-5x5': 'Folded into Full Body Strength 3-Day.', 'bi-tiered': 'Folded into Upper / Lower Strength.',
+  'bi-split5': 'One-muscle-a-day splits now live in Personal (Heartwood Split).', 'bi-failure3': 'Low-volume to-failure training was an extra method, not a separate program.',
+  'gp-recomp3': 'Same shape as Full Body 3-Day; Build my plan still fits it to a recomp.', 'gp-recomp4': 'Same shape as Upper / Lower 4-Day; Build my plan still fits it to a recomp.',
+  'gp-cut3': 'Use Full Body 3-Day; Build my plan trims it for a cut.',
+};
+const GOAL_NAME = { size: 'Build muscle', strength: 'Get stronger', both: 'Muscle and strength' };
+BUILTIN_ROUTINES.forEach(r => { const i = PROG_INFO[r.id]; if (i && i.name) { r.name = i.name; r.meta = i.level + ' · ' + r.days.length + ' days a week'; r.goalPlan = false; } });
+
+const restoredRetired = id => !!((S.meta.settings.restored || {})[id]);
+const isRetired = id => !!RETIRED[id] && !restoredRetired(id);
+/* Which shelf a plan sits on */
+function planGroup(r) {
+  if (!r) return 'arch';
+  if (r.archived) return 'arch';
+  if (r.personal || !libBase(r.id)) return 'mine';
+  if (isRetired(r.id)) return 'arch';
+  const i = PROG_INFO[r.id]; if (i && i.fam) return i.fam;
+  if (r.id === 'gp-hybrid') return 'run';
+  if (r.info && r.info.fight) return 'fight';
+  if (r.info && r.info.care) return 'care';
+  if (r.info) return 'run';
+  if (r.days.length === 1) return 'one';
+  return 'lift';
+}
+const archivedRoutines = () => [...Object.values(S.meta.routines).filter(r => r.archived && !r.base),
+  ...BUILTIN_ROUTINES.filter(r => isHidden(r.id) || isRetired(r.id)).map(r => libOver(r.id) || r)];
+function archivePlan(r) {
+  const lib = !!libBase(r.id);
+  if (programId() === r.id) commit(st => { st.meta.settings.program = null; }, 'meta');
+  if (addonIds().includes(r.id)) setAddon(r.id, false);
+  commit(st => { if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; else if (st.meta.routines[r.id]) st.meta.routines[r.id].archived = true; }, 'meta');
+  showToast({ kind: 'info', ms: 8000, text: r.name + ' archived. Find it under Plans → Archived.', action: 'Undo', fn: () => restorePlan(r) });
+}
+function restorePlan(r) {
+  commit(st => {
+    st.meta.hidden = (st.meta.hidden || []).filter(x => x !== r.id);
+    if (st.meta.routines[r.id] && !libBase(r.id)) delete st.meta.routines[r.id].archived;
+    if (RETIRED[r.id]) st.meta.settings.restored = { ...(st.meta.settings.restored || {}), [r.id]: 1 };
+  }, 'meta');
+  showToast({ kind: 'info', text: r.name + ' is back in Plans' });
+}
+
+/* ---------- Program facts ---------- */
+const exData = id => { const e = getEx(id); return e && e.pat ? e : null; };
+/* Muscles an exercise trains: from the exercise data, else its one category */
+const CAT_MUSCLE = { chest: 'chest', back: 'lats', shoulders: 'sidedelt', biceps: 'biceps', triceps: 'triceps', legs: 'quads', core: 'abs' };
+function exMuscles(id) { const e = exData(id); if (e) return e.m; const c = CAT_MUSCLE[exCat(id)]; return c ? { [c]: 1 } : {}; }
+function sessionsPerWeek(r) { return r.days.length === 1 ? 1 : Math.min(7, progDaysPerWeek(r)); }
+/* Minutes: about 2½ minutes a working set with its rest, plus 5 to warm up (the same budget Build my plan uses) */
+const dayMinutes = d => 5 + d.items.reduce((t, it) => t + (isMeasured(exKind(it.ex)) ? (+((it.tg || {}).dur) || 300) / 60 * (+it.sets || 1) + 1 : 2.5 * (+it.sets || 1)), 0);
+function minutesText(r) {
+  const ms = r.days.filter(d => d.items.length).map(dayMinutes); if (!ms.length) return '';
+  const r5 = m => Math.max(10, Math.round(m / 5) * 5); const lo = r5(Math.min(...ms)), hi = r5(Math.max(...ms));
+  return lo === hi ? 'about ' + lo + ' min' : lo + '–' + hi + ' min';
+}
+/* Weekly sets per muscle: direct sets count 1, helper sets ½ (fractional counting) */
+function weeklySets(r) {
+  const out = {}; const k = sessionsPerWeek(r) / Math.max(1, r.days.length);
+  for (const d of r.days) for (const it of d.items) { if (isMeasured(exKind(it.ex)) && exKind(it.ex) !== 'timed') continue;
+    for (const [m, w] of Object.entries(exMuscles(it.ex))) out[m] = (out[m] || 0) + (+it.sets || 0) * w * k; }
+  return out;
+}
+const EQ_ORDER = ['barbell', 'rack', 'dumbbell', 'bench', 'cable', 'machine', 'bar', 'kettlebell', 'band'];
+function planEquipment(r) {
+  const s = new Set(); for (const d of r.days) for (const it of d.items) { const e = exData(it.ex); if (e) e.eq.forEach(x => { if (x !== 'bodyweight') s.add(x); }); }
+  return EQ_ORDER.filter(x => s.has(x)).map(x => EQUIP[x]);
+}
+const COVER_ROWS = [['chest', 'Chest'], ['lats', 'Lats'], ['upperback', 'Upper back'], ['sidedelt', 'Side delts'], ['reardelt', 'Rear delts'], ['biceps', 'Biceps'], ['triceps', 'Triceps'],
+  ['quads', 'Quads'], ['hamstrings', 'Hamstrings'], ['glutes', 'Glutes'], ['calves', 'Calves'], ['abs', 'Abs and core']];
+const isLiftPlan = r => r && !r.info && r.days.some(d => d.items.some(it => !isMeasured(exKind(it.ex)) && exData(it.ex)));
+/* One line for cards and sheets: "Build muscle · 4 days a week · 35–45 min" */
+function planFactsLine(r) {
+  const i = PROG_INFO[r.id] || {}; const n = sessionsPerWeek(r);
+  return [i.goal ? GOAL_NAME[i.goal] : '', r.days.length > 1 ? n + ' days a week' : '', minutesText(r)].filter(Boolean).join(' · ');
+}
+/* Plain-language guidance shown on every lifting plan */
+function progressionText(r) {
+  const u = U(); const inc = +S.meta.settings.inc || UNIT_DEFAULTS[u].inc;
+  return [
+    'Each exercise has a rep range, like 8–12. Start with a weight you can lift for the bottom of the range with good form.',
+    'When you reach the top of the range on every set, Ironwood adds weight next time: ' + fmt(inc * 2) + ' ' + u + ' on barbell and machine squats, leg presses, deadlifts and hip thrusts, ' + fmt(inc) + ' ' + u + ' on everything else. Until then, aim for one more rep than last time.',
+    'If the heavier weight is too much, it suggests half the jump. After three workouts in a row stuck at one weight, it suggests about 10% lighter so you can build back up.',
+    'Pull-ups, dips and other bodyweight moves add reps instead. Once you pass the top of the range, add a little weight.',
+  ];
+}
+function restText(r) {
+  if (r.id === 'bi-drop4' || r.id === 'bi-pump-finisher') return 'Main lifts: 2 minutes. Drops: no rest between drops, then about 2 minutes before the next set.';
+  const i = PROG_INFO[r.id] || {};
+  if (i.goal === 'strength') return 'Heavy lifts (5 reps or fewer): 2–3 minutes. Everything else: 1–2 minutes. The rest timer starts on its own after each set.';
+  return 'Big lifts: about 2 minutes. Smaller and machine lifts: 1–1½ minutes. The rest timer starts on its own after each set; change it with Keep on the timer.';
+}
+function effortText(r) {
+  if (r.id === 'bi-drop4' || r.id === 'bi-pump-finisher') return 'Straight sets: stop with 1–2 good reps left. Drops: go until the reps slow right down.';
+  const i = PROG_INFO[r.id] || {};
+  if (i.goal === 'strength') return 'Heavy sets: stop with 1–2 good reps left, never grinding. Lighter sets: 1–3 reps left.';
+  return 'Most sets: stop with 1–3 good reps left in the tank. On the last set of smaller lifts (curls, raises, pushdowns) you can go until the reps slow right down.';
+}
+/* Facts card at the top of a plan page */
+function ProgramFacts({ r }) {
+  if (!isLiftPlan(r)) return null;
+  const i = PROG_INFO[r.id] || {}; const eq = planEquipment(r);
+  const rows = [['Goal', i.goal ? GOAL_NAME[i.goal] : ''], ['Experience', i.level || ''], ['How often', r.days.length > 1 ? sessionsPerWeek(r) + ' days a week' : 'One workout'],
+    ['Each workout', minutesText(r)], ['Equipment', eq.length ? eq.join(', ') : 'Bodyweight']].filter(x => x[1]);
+  return html`<div class="card" id="plan-facts" style="margin-top:10px">${rows.map(([k, v]) => html`<div key=${k} class="row small" style="min-height:28px"><span class="muted" style="flex:0 0 96px">${k}</span><span style="flex:1;min-width:0">${v}</span></div>`)}</div>`;
+}
+/* How the plan works: coverage, progression, rest, effort (below the days) */
+function ProgramGuide({ r }) {
+  if (!isLiftPlan(r)) return null;
+  const ws = weeklySets(r); const none = COVER_ROWS.filter(([k]) => !(ws[k] >= 1)).map(x => x[1]);
+  return html`<div id="plan-guide">
+    <div class="section-h"><h2>Muscle coverage</h2><span class="aside">Sets a week</span></div>
+    <div class="card" id="plan-cover">${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num">${ws[k] >= 1 ? fmt(Math.round(ws[k] * 2) / 2) : '–'}</b></div>`)}
+      <p class="small muted" style="margin-top:6px">${none.length ? 'Not trained directly: ' + none.join(', ') + '. ' : ''}Helper work counts as half a set (a bench press is half a triceps set). Around 10 sets a week per muscle is a good target for growth; fewer still works.</p></div>
+    <div class="section-h"><h2>How to progress</h2></div>
+    <div class="card" id="plan-progress"><ul class="run-ul">${progressionText(r).map((t, k) => html`<li key=${k}>${t}</li>`)}</ul></div>
+    <div class="section-h"><h2>Rest and effort</h2></div>
+    <div class="card" id="plan-effort"><p class="small"><b>Rest:</b> ${restText(r)}</p><p class="small" style="margin-top:6px"><b>Effort:</b> ${effortText(r)}</p></div></div>`;
+}
+
+/* ---------- Smart swaps ----------
+   Alternatives keep the purpose of the exercise: the same main movement first (a leg extension → other knee
+   extensions), then close cousins, ranked by how alike the muscles are, then by easier setup and what you already do. */
+function muscleSim(a, b) {
+  let dot = 0, na = 0, nb = 0; for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) { const x = a[k] || 0, y = b[k] || 0; dot += x * y; na += x * x; nb += y * y; }
+  return na && nb ? dot / Math.sqrt(na * nb) : 0;
+}
+const hasHistory = id => sessionList().some(s => (s.items || []).some(it => it.ex === id && it.sets && it.sets.length));
+const topMuscles = e => Object.entries(e.m).filter(([, w]) => w >= 1).map(([k]) => MUSCLES[k] || k);
+function swapCandidates(exId, f = {}) {
+  const o = exData(exId); const out = [];
+  for (const c of Object.values(allEx())) {
+    if (c.id === exId || !c.pat) continue;
+    let score = 0, why = '';
+    if (o) {
+      const same = c.pat[0] === o.pat[0], near = (PATTERN_NEAR[o.pat[0]] || []).includes(c.pat[0]) || c.pat.includes(o.pat[0]);
+      if (same) { score = 100; why = 'Same movement: ' + PATTERNS[o.pat[0]]; }
+      else if (near && f.move !== 'same') { score = 45; why = 'Close movement: ' + PATTERNS[c.pat[0]] + ' instead of ' + PATTERNS[o.pat[0]]; }
+      else if (f.move === 'any' && muscleSim(o.m, c.m) > 0.3) { score = 10; why = 'Works some of the same muscles'; }
+      else continue;
+      const sim = muscleSim(o.m, c.m); score += sim * 40;
+      const tm = topMuscles(c); if (sim > 0.6 && tm.length) why += '; works ' + tm.slice(0, 2).join(' and ').toLowerCase();
+    } else {
+      if (exCat(c.id) !== exCat(exId)) continue; score = 20; why = 'Same body part (' + (CATS[exCat(exId)] || 'Other') + ')';
+    }
+    if (f.eq && !c.eq.includes(f.eq)) continue;
+    if (f.muscle && !(c.m[f.muscle] >= 1)) continue;
+    if (f.setup && c.setup > 1) continue;
+    const star = isStarEx(c.id), done = hasHistory(c.id);
+    if (f.pref && !star && !done) continue;
+    score += (3 - (c.setup || 2)) * 2 + (star ? 8 : 0) + (done ? 6 : 0) + (o && c.kind === o.kind ? 2 : 0);
+    if (star) why += '; one of your starred exercises'; else if (done) why += "; you've done it before";
+    out.push({ ex: c, score, why });
+  }
+  return out.sort((a, b) => b.score - a.score || a.ex.name.localeCompare(b.ex.name));
+}
+const exFacts = e => [e.eq.filter(x => x !== 'bodyweight').map(x => EQUIP[x]).join(' + ') || 'Bodyweight', SETUP[e.setup] || '', topMuscles(e).join(', '), PATTERNS[e.pat[0]] ? PATTERNS[e.pat[0]].replace(/^./, c => c.toUpperCase()) : ''].filter(Boolean).join(' · ');
+function SwapSheet({ ex, title, onPick }) {
+  const o = exData(ex); const [f, setF] = useState({ move: 'near' }); const set = (k, v) => setF({ ...f, [k]: f[k] === v ? '' : v });
+  const list = swapCandidates(ex, f); const top = list.slice(0, 3), more = list.slice(3, 15);
+  const mus = o ? Object.entries(o.m).filter(([, w]) => w >= 0.5).map(([k]) => k) : [];
+  const chipRow = (label, k, opts) => html`<div><div class="lbl" style="margin-top:8px">${label}</div><div class="plan-chips" role="group" aria-label=${label}>${opts.map(([v, l]) => html`<button key=${v || 'any'} class=${'chip' + ((f[k] || '') === v ? ' on' : '')} aria-pressed=${(f[k] || '') === v} id=${'sw-' + k + '-' + (v || 'any')} onClick=${() => setF({ ...f, [k]: v })}>${l}</button>`)}</div></div>`;
+  const row = (c, rec) => html`<button key=${c.ex.id} class="opt" id=${'swap-' + c.ex.id} onClick=${() => onPick(c.ex)}><div style="flex:1;min-width:0"><div>${c.ex.name}</div><div class="d">${c.why}</div><div class="d">${exFacts(c.ex)}</div></div></button>`;
+  return html`<${Sheet} label=${title || 'Swap exercise'}><h2>${title || 'Swap exercise'}</h2>
+    <p class="note" id="swap-for">${o ? exName(ex) + ': ' + exFacts(o) + '. Suggestions keep that movement.' : exName(ex) + ' has no movement data yet, so these are the same body part.'}</p>
+    ${chipRow('Equipment', 'eq', [['', 'Any'], ['machine', 'Machine'], ['cable', 'Cable'], ['dumbbell', 'Dumbbells'], ['barbell', 'Barbell'], ['bodyweight', 'Bodyweight']])}
+    ${o ? chipRow('Movement', 'move', [['same', 'Same movement'], ['near', 'Same or close'], ['any', 'Any that share muscles']]) : null}
+    ${mus.length > 1 ? chipRow('Muscle', 'muscle', [['', 'Any'], ...mus.map(m => [m, MUSCLES[m]])]) : null}
+    ${chipRow('Setup and preference', 'setup', [['', 'Any setup'], ['easy', 'Easy setup']])}
+    <div class="plan-chips" role="group" aria-label="Preference" style="margin-top:6px"><button class=${'chip' + (f.pref ? ' on' : '')} aria-pressed=${!!f.pref} id="sw-pref" onClick=${() => set('pref', 'mine')}>Starred or done before</button></div>
+    <div class="section-h"><h2>${top.length ? 'Recommended' : 'No matches'}</h2></div>
+    <div id="swap-top">${top.map(c => row(c, true))}</div>
+    ${!top.length ? html`<p class="note">Nothing fits these filters. Loosen one, or browse every exercise.</p>` : null}
+    ${more.length ? html`<div class="section-h"><h2>More matches</h2></div><div id="swap-more">${more.map(c => row(c, false))}</div>` : null}
+    <button class="btn wide" id="swap-all" style="margin-top:12px" onClick=${() => openSheet({ type: 'pick', title: title || 'Swap exercise', onPick })}>Browse all exercises</button><//>`;
+}
+
+/* ---------- Library filters (Plans → Library) ---------- */
+const LIB_F = { goal: '', days: '', eq: '' };
+function libPass(r) {
+  const i = PROG_INFO[r.id] || {}; const n = sessionsPerWeek(r);
+  if (LIB_F.goal && !(i.goal === LIB_F.goal || i.goal === 'both')) return false;
+  if (LIB_F.days && n !== +LIB_F.days) return false;
+  if (LIB_F.eq === 'db' && planEquipment(r).some(x => x !== 'Dumbbells' && x !== 'Bench')) return false;
+  return true;
+}
+function LibFilters({ re }) {
+  const row = (k, label, opts) => html`<div class="plan-chips" role="group" aria-label=${label} style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v || 'any'} class=${'chip' + (LIB_F[k] === v ? ' on' : '')} aria-pressed=${LIB_F[k] === v} id=${'lf-' + k + '-' + (v || 'any')} onClick=${() => { LIB_F[k] = v; re(); }}>${l}</button>`)}</div>`;
+  return html`<div id="lib-filters">${row('goal', 'Goal', [['', 'Any goal'], ['size', 'Build muscle'], ['strength', 'Get stronger']])}${row('days', 'Days a week', [['', 'Any days'], ['3', '3 days'], ['4', '4 days'], ['6', '6 days']])}${row('eq', 'Equipment', [['', 'Full gym'], ['db', 'Dumbbells only']])}</div>`;
 }
 
 function HdrClock({ since }) {

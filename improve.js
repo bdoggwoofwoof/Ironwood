@@ -23,7 +23,13 @@ function fineFor(u) {
 }
 const isDeadlift = ex => /deadlift/.test(norm(exName(ex))) && !/romanian|stiff|dumbbell|single|kettlebell/.test(norm(exName(ex)));
 /* The jump for one exercise in unit u: its own setting, else the main jump (twice that on barbell deadlifts) */
-function jumpDefault(ex, u) { const b = unitInc(u); return exKind(ex) === 'barbell' && isDeadlift(ex) ? b * 2 : b; }
+/* Nov 17: big lower-body lifts on a barbell or machine (squats, leg press, deadlifts, hip thrusts) jump twice as much */
+const BIG_LOWER = ['squat', 'legpress', 'hinge', 'hipext'];
+function jumpDefault(ex, u) {
+  const b = unitInc(u); const k = exKind(ex); const e = getEx(ex);
+  if (k === 'barbell' && isDeadlift(ex)) return b * 2;
+  return (k === 'barbell' || k === 'machine') && e.pat && BIG_LOWER.includes(e.pat[0]) ? b * 2 : b;
+}
 function jumpFor(ex, u) {
   const j = (S.meta.exJump || {})[ex];
   if (j && +j.v > 0) return Math.min(maxJump(u), j.u === u ? +j.v : roundToInc(conv(+j.v, j.u, u), fineFor(u)) || fineFor(u));
@@ -46,10 +52,12 @@ function recentOcc(exId, group, occ, n, u) {
 /* What to suggest next time: { mode: 'bump' | 'step' | 'deload' | 'hold', delta, factor, msg } */
 function progPlan(it, kind, u, occ) {
   const st = S.meta.settings; const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top, n = it.target.sets || 1;
-  if (!top || kind === 'bodyweight') return { mode: 'hold' };
+  if (!top) return { mode: 'hold' };
   const h = recentOcc(it.ex, it.group || '', occ, 3, u); if (!h.length) return { mode: 'hold' };
   const e1 = h[0], e0 = h[1];
   const full = e => e.sets.length >= n && e.sets.every(x => x.r >= top);
+  /* Nov 17: bodyweight moves progress by reps */
+  if (kind === 'bodyweight') return full(e1) ? { mode: 'reps', msg: 'Every set reached ' + top + ' last time. Go for one more rep per set, or add a little weight.' } : { mode: 'hold' };
   const miss = e => e.sets.some(x => x.r < low);
   const mostShort = e => e.sets.filter(x => x.r < low).length * 2 >= e.sets.length;
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
@@ -90,7 +98,7 @@ function refillLift(it, occ) {
     if (P.mode === 'step') wv = roundToInc(wv, fine);
     x.gw = wv ? String(r1(wv)) : '';
     const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
@@ -112,7 +120,7 @@ function ExJumpSheet({ ex, u0 }) {
     <div class="row" style="margin-top:12px;align-items:flex-end"><div style="flex:1"><label class="lbl" for="jump-own">Your own amount (${u})</label><input class="field" id="jump-own" inputmode="decimal" placeholder=${fmt(now)} value=${v} onInput=${e => setV(e.target.value)}/>${num(v) > maxJump(u) ? html`<span class="small muted" id="jump-cap">Saved as ${maxJump(u)} ${u}, the most per jump. To allow more, turn on Bigger jumps below.</span>` : null}</div>
       <button class="btn primary" id="jump-save" disabled=${!(num(v) > 0)} onClick=${() => set(Math.min(maxJump(u), r1(num(v))))}>Save</button></div>
     <label class="toggle-row" for="jump-big" style="margin-top:10px"><span><span>Bigger jumps</span><span class="d">Allow more than ${u === 'kg' ? '10 kg' : '20 lb'} per jump, for every exercise.</span></span><input type="checkbox" role="switch" id="jump-big" checked=${!!S.meta.settings.bigJumps} onChange=${e => commit(x => { x.meta.settings.bigJumps = e.target.checked; }, 'meta', 600)}/></label>
-    <button class=${'opt' + (!cur ? ' on' : '')} style="margin-top:10px" onClick=${() => set(null)}>Use the default (+${fmt(def)} ${u}${isDeadlift(ex) && exKind(ex) === 'barbell' ? ', twice the main jump for deadlifts' : ''})</button><//>`;
+    <button class=${'opt' + (!cur ? ' on' : '')} style="margin-top:10px" onClick=${() => set(null)}>Use the default (+${fmt(def)} ${u}${def > unitInc(u) ? ', twice the main jump for big lower-body lifts' : ''})</button><//>`;
 }
 const exUnitOf = ex => (S.meta.exUnit && S.meta.exUnit[ex]) || U();
 function ProgressionSettings({ set }) {

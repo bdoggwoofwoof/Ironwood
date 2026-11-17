@@ -4,13 +4,15 @@
    Intensity plans: built-in plans built on drop sets and on taking sets to failure. A plan item can carry dl (drops already
    set up on its last set) so the drops are there when the workout starts. */
 const FOCUS = {
-  strength: ['Strength', 'Main lifts 3–5 reps, others 6–8. Heavier, with 2–3 minutes of rest on the main lifts.', { m: '3-5', a: '6-8' }],
-  size: ['Size', 'Main lifts 6–10 reps, others 10–15. Moderate weight, 60–90 seconds of rest, close to failure.', { m: '6-10', a: '10-15' }] };
+  strength: ['Strength', 'Main lifts 3–5 reps, others 6–8. Heavier, with 2–3 minutes of rest on the main lifts.', { m: '3-5', a: '6-8', rm: 150, ra: 90 }],
+  size: ['Size', 'Main lifts 6–10 reps, others 10–15. Moderate weight, 60–90 seconds of rest, close to failure.', { m: '6-10', a: '10-15', rm: 90, ra: 75 }] };
 const COMPOUND = /squat|deadlift|bench|press|\brow|pull-?up|chin-?up|lunge|hip thrust|\bdips?\b|clean|snatch|pulldown/;
 const ISOLATION = /lateral|raise|fly|curl|extension|pushdown|kickback|shrug|crunch|calf|face pull|pullover|crossover/;
 const planFocus = rid => ((S.meta.settings.focus || {})[rid]) || '';
-const isMainLift = ex => { const n = norm(exName(ex)); return COMPOUND.test(n) && !ISOLATION.test(n); };
-function focusItem(it, f) { if (!f || !FOCUS[f] || isMeasured(exKind(it.ex))) return it; return { ...it, reps: FOCUS[f][2][isMainLift(it.ex) ? 'm' : 'a'] }; }
+/* Main lift: a multi-joint movement in the exercise data (Nov 17), else the old name test */
+const MAIN_PATS = ['hpush', 'incline', 'vpush', 'dip', 'hpull', 'vpull', 'squat', 'legpress', 'lunge', 'hinge', 'hipext'];
+const isMainLift = ex => { const e = getEx(ex); if (e && e.pat) return MAIN_PATS.includes(e.pat[0]); const n = norm(exName(ex)); return COMPOUND.test(n) && !ISOLATION.test(n); };
+function focusItem(it, f) { if (!f || !FOCUS[f] || isMeasured(exKind(it.ex))) return it; const main = isMainLift(it.ex); return { ...it, reps: FOCUS[f][2][main ? 'm' : 'a'], rest: FOCUS[f][2][main ? 'rm' : 'ra'] }; }
 function focusDay(r, d) { const f = r && d ? planFocus(r.id) : ''; return f ? { ...d, items: d.items.map(it => focusItem(it, f)) } : d; }
 function setFocus(rid, f) {
   commit(st => { const m = { ...(st.meta.settings.focus || {}) }; if (f) m[rid] = f; else delete m[rid]; st.meta.settings.focus = m; }, 'meta');

@@ -1,4 +1,4 @@
-"""Routine library: new programs show, library routines can be edited, reset, copied, removed and brought back."""
+"""Plans: Personal first, library shelves, archived plans; library plans can be edited, reset, copied, archived and restored (Nov 17)."""
 import asyncio, subprocess, sys, time
 from playwright.async_api import async_playwright
 
@@ -20,19 +20,19 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(1500)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         lib = pg.locator('.r-card:not(#lib-run)')
-        await pg.evaluate("lsSet('rtFilter', 'one'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
+        await pg.evaluate("lsSet('rtFilter', 'one'); S.rerender()"); await pg.wait_for_timeout(300)
         names = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
+        await pg.evaluate("lsSet('rtFilter', 'all'); Object.keys(PLAN_MORE).concat(['mine','fb','ul','ppl','lift','one','run','fight','care','arch']).forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         allnames = [await lib.nth(i).locator('h3').inner_text() for i in range(await lib.count())]
-        pnames = [n for n in allnames if n not in names]
-        check('12 one-day plans and 39 longer plans (10 + 2 intensity + 6 conditioning + 7 joint care + Deep Stretch Mobility + 7 fight + 6 goal plans)', len(names) == 13 and len(pnames) == 39, (len(names), len(pnames)))
-        check("4-Day Split first among plans; Efficient PPL is one plan", pnames[0].upper() == "NEWT'S 4-DAY SPLIT" and pnames[1].upper() == 'EFFICIENT PUSH/PULL/LEGS', pnames[:3])
+        check('every plan once: 19 personal, 32 library, 7 archived; One-day holds the finisher', len(allnames) == 58 and len(set(allnames)) == 58 and [n.upper() for n in names] == ['ARM AND SHOULDER DROP SET FINISHER'], (len(allnames), names))
+        mine = [n.upper() for n in await pg.locator('#ps-mine .r-card h3').all_inner_texts()]
+        check("Personal: Heartwood first, the 4-Day Split fifth, Efficient PPL after", mine[:5] == ['HEARTWOOD SPLIT', 'GROWTH RINGS UPPER/LOWER', 'THREE-RING FULL BODY', 'EASY GRAIN 4-DAY', "NEWT'S 4-DAY SPLIT"] and mine[5] == 'EFFICIENT PUSH/PULL/LEGS', mine[:6])
         page = await pg.inner_text('body')
         hits = [w for w in ('From RepCount', 'Ready to run', 'Your plan') if w in page]; check('no source labels', not hits, [page[max(0, page.find(w) - 120):page.find(w) + 40] for w in hits])
         await pg.screenshot(path='shot-routines.png', full_page=True)
 
         # Edit a library routine: rename, drop the first exercise, save
-        await pg.locator('.r-card', has_text='Upper / Lower').click(); await pg.wait_for_timeout(300)
+        await pg.locator('.r-card:has(h3:text-is("Upper / Lower 4-Day"))').click(); await pg.wait_for_timeout(300)
         await pg.screenshot(path='shot-routine-view.png', full_page=True)
         await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
         await pg.fill('#rt-name', 'My Upper Lower')
@@ -43,7 +43,7 @@ async def main():
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         tags = await pg.locator('.r-card .tag').all_inner_texts()
-        check('plans still 52, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 52 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
+        check('plans still 58, one tagged Edited', await pg.locator('.r-card:not(#lib-run)').count() == 58 and sum('EDITED' in t.upper() for t in tags) == 1, tags)
 
         # Reset
         await pg.locator('.r-card', has_text='My Upper Lower').click(); await pg.wait_for_timeout(300)
@@ -55,26 +55,26 @@ async def main():
         await pg.get_by_role('button', name='Copy').click(); await pg.wait_for_timeout(300)
         check('copy becomes your own plan', '(copy)' in (await pg.locator('.wo-title').inner_text()).lower())
 
-        # Remove a library routine, then bring it back
+        # Archive a library plan, then restore it
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        await pg.locator('.r-card', has_text='Full Body 5×5').click(); await pg.wait_for_timeout(300)
-        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-del'); await pg.wait_for_timeout(200)
-        await pg.get_by_role('button', name='Remove plan').click(); await pg.wait_for_timeout(300)
-        check('removed from library', await pg.locator('.r-card', has_text='Full Body 5×5').count() == 0)
-        await pg.get_by_role('button', name='Bring back').click(); await pg.wait_for_timeout(300)
-        check('brought back', await pg.locator('.r-card', has_text='Full Body 5×5').count() == 1)
+        await pg.locator('.r-card', has_text='Dumbbells Only 3-Day').first.click(); await pg.wait_for_timeout(300)
+        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-archive'); await pg.wait_for_timeout(300)
+        await pg.evaluate("Object.keys(PLAN_MORE).concat(['arch','fb']).forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
+        check('archived: off its shelf, on Archived', await pg.locator('#ps-fb .r-card', has_text='Dumbbells Only').count() == 0 and await pg.locator('#ps-arch .r-card', has_text='Dumbbells Only').count() == 1)
+        await pg.click('#restore-bi-db3'); await pg.wait_for_timeout(300)
+        check('restored', await pg.locator('#ps-fb .r-card', has_text='Dumbbells Only').count() == 1)
+        check('retired plans show on Archived', await pg.locator('#ps-arch .r-card', has_text='Full Body 5×5').count() == 1)
 
         # Survives reload
-        await pg.locator('.r-card', has_text="Newt's").click(); await pg.wait_for_timeout(300)
-        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-del'); await pg.wait_for_timeout(200)
-        await pg.get_by_role('button', name='Remove plan').click(); await pg.wait_for_timeout(800)
+        await pg.locator('#ps-mine .r-card', has_text="Newt's").click(); await pg.wait_for_timeout(300)
+        await pg.click('#plan-more'); await pg.wait_for_timeout(200); await pg.click('#plan-archive'); await pg.wait_for_timeout(800)
         await pg.reload(); await pg.wait_for_timeout(1500)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        check('removal kept after reload', await pg.locator('.r-card', has_text="Newt's").count() == 0)
+        check('archive kept after reload', await pg.locator('#ps-mine .r-card', has_text="Newt's").count() == 0)
 
         # Start a new program's day
-        await pg.evaluate("['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
-        await pg.locator('.r-card', has_text='Dumbbells Only').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
+        await pg.evaluate("['mine','fb','ul','ppl','one','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
+        await pg.locator('.r-card', has_text='Dumbbells Only').first.evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
         check('workout starts from new program', await pg.locator('.set-row').count() > 0)
         kinds = await pg.evaluate("Object.values(BUILTIN_EX).filter(e => /dumbbell|goblet/i.test(e.name)).every(e => e.kind === 'dumbbell')")
@@ -87,7 +87,7 @@ async def main():
         await pg.locator('.r-card', has_text='Efficient Push/Pull/Legs').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         check('exercise note shows in routine', await pg.locator('.r-items .cue', has_text='elbows out').count() == 1)
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
-        await pg.evaluate("lsSet('rtFilter', 'one'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(200)
+        await pg.evaluate("lsSet('rtFilter', 'mine'); S.rerender()"); await pg.wait_for_timeout(200)
         await pg.locator('.r-card', has_text='Core 2').evaluate('e => e.click()'); await pg.wait_for_timeout(300)
         await pg.locator('.pill-btn', has_text='Start').first.evaluate('e => e.click()'); await pg.wait_for_timeout(500)
         check('exercise note shows during workout', await pg.locator('.slot', has_text='Plank Twists').locator('p', has_text='Each side').count() == 1)
@@ -102,7 +102,7 @@ async def main():
         await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
         push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()
         check('Push holds push workouts', 'Push' in push and 'Push A' in push and 'Pull A' not in push, push)
-        newt = await pg.evaluate("BUILTIN_ROUTINES[0].days.map(d => dayTags(d, BUILTIN_ROUTINES[0]).join('+'))")
+        newt = await pg.evaluate("(() => { const r = libBase('bi-newt-4day'); return r.days.map(d => dayTags(d, r).join('+')); })()")
         check('4-day split tags', newt == ['Push+Chest', 'Pull+Back', 'Push+Shoulders+Arms', 'Legs'], newt)
         await pg.screenshot(path='shot-bytype.png', full_page=True)
         await pg.get_by_role('button', name='Open all').click(); await pg.wait_for_timeout(200)
@@ -124,7 +124,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.wsec-h', has_text='Full Body').click(); await pg.wait_for_timeout(200)
         check('manual type moves workout', await pg.locator('.wsec', has=pg.locator('h2', has_text='Full Body')).locator('.wk-row', has_text='Burpee Grinder').count() == 1)
-        await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','lift','one','goal','run','fight','care'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
+        await pg.evaluate("lsSet('rtFilter', 'all'); ['mine','fb','ul','ppl','one','run','fight','care','arch'].forEach(k => PLAN_MORE[k] = true); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.screenshot(path='shot-routines.png', full_page=True)
         tags = await pg.evaluate("Object.fromEntries(allRoutines().flatMap(r => r.days.map(d => [r.name + ' / ' + d.name, dayTags(d, r).join(', ')])))")
         for k, v in tags.items(): print('   ', k, '->', v)

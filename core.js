@@ -344,7 +344,7 @@ function startRest(it) {
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
   if (inSS && st.ssMode === 'round' && linkedNext) return;
-  const exR = S.meta.exRest[it.ex];
+  const exR = S.meta.exRest[it.ex] != null ? S.meta.exRest[it.ex] : it.target && it.target.rest ? it.target.rest : null; /* Nov 17: Rep focus sets rest too */
   const kind = exR != null ? 'ex' : inSS ? 'ss' : 'solo';
   const secs = Math.max(0, +(exR != null ? exR : inSS ? st.restSS : st.rest) || 0);
   if (secs > 0) { S.rest = { until: Date.now() + secs * 1000, total: secs, kind, ex: it.ex, beeped: {} }; bgRest(); offerBgAudio(); }
@@ -376,7 +376,7 @@ function finishWorkout(opts = {}) {
     openSheet({ type: 'confirm', title: 'Finished a while ago?', body: 'The last set was logged at ' + when + '. Save the workout as ending then, so its time isn’t counted up to now?', ok: 'End at ' + when, onOk: () => { closeSheet(); finishWorkout({ endedAt: lastSet + 60000 }); }, alt: 'End now', onAlt: () => { closeSheet(); finishWorkout({ endedAt: Date.now() }); } });
     return;
   }
-  const items = a.items.map(it => ({ ex: it.ex, group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
+  const items = a.items.map(it => ({ ex: it.ex, ...(it.planned && it.planned !== it.ex ? { planned: it.planned } : {}), group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
     sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return o; }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
@@ -571,7 +571,7 @@ function RestBar() {
   const left = Math.ceil((r.until - Date.now()) / 1000);
   if (left <= -4) { S.rest = null; return null; }
   const st = S.meta.settings; const key = r.kind === 'ss' ? 'restSS' : 'rest';
-  const def = r.kind === 'ex' ? +S.meta.exRest[r.ex] : +st[key] || 0;
+  const def = r.kind === 'ex' ? +(S.meta.exRest[r.ex] != null ? S.meta.exRest[r.ex] : r.total) : +st[key] || 0;
   const adjust = d => { const t = Math.max(15, r.total + d); r.until += (t - r.total) * 1000; r.total = t; r.beeped = {}; bgRest(); S.rerender(); };
   const label = left > 0 ? (r.kind === 'ss' ? 'Superset rest' : r.kind === 'ex' ? exName(r.ex) + ' rest' : 'Rest') : 'Go';
   const saveTxt = r.kind === 'ss' ? 'supersets' : r.kind === 'ex' ? exName(r.ex) : 'single exercises';
@@ -666,57 +666,70 @@ const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 /* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
    chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
-const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Yours'], ['lift', 'Lifting'], ['one', 'One-day'], ['goal', 'Goal plans'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['type', 'By type']];
+/* Nov 17: Personal / Library (three families) / specialty shelves / Archived. Goal, days and equipment are filters on
+   the library, not separate plans. */
+const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
 const PLAN_MORE = {};
 function setPlanFilter(f) { lsSet('rtFilter', f); }
+/* Personal order: Newt's programs, then plans you made, then Newt's other routines */
+function personalPlans() {
+  const lib = libRoutines().filter(r => r.personal); const top = lib.filter(r => PROG_INFO[r.id]); const rest = lib.filter(r => !PROG_INFO[r.id]);
+  return [...top, ...myRoutines(), ...rest];
+}
 function RoutineList() {
   const fl = PLAN_FILTERS.some(x => x[0] === lsGet('rtFilter')) ? lsGet('rtFilter') : 'all';
   const [q, setQ] = useState(''); const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const pickF = f => { setPlanFilter(f); re(); };
-  const mine = myRoutines(); const lib = libRoutines(); const hidden = (S.meta.hidden || []).filter(libBase);
+  const mine = personalPlans(); const lib = libRoutines().filter(r => !r.personal && !isRetired(r.id)); const arch = archivedRoutines();
   const pid = programId();
-  const card = r => { const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
+  const card = (r, archived) => { const info = PROG_INFO[r.id] || {}; const tag = [r.base ? 'Edited' : '', pid === r.id ? 'Your main plan' : '', addonIds().includes(r.id) ? 'Alongside' : '', info.fam ? info.variant : '', r.meta || (r.days.length === 1 ? 'One day' : '')].filter(Boolean).join(' · ');
+    const mins = isLiftPlan(r) ? ' · ' + minutesText(r) : '';
     return html`<div key=${r.id} class="r-wrap"><button class="r-card" onClick=${() => UI.setView({ type: 'routine', id: r.id })}>
     ${tag ? html`<span class="tag">${tag}</span>` : null}<h3>${r.name}</h3>
-    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}</span>${tagChips(routineTags(r), 3)}</button><${PlanStar} r=${r} id=${'pstar-' + r.id}/></div>`; };
+    <span class="days">${r.days.length === 1 ? r.days[0].items.length + ' exercises' : r.days.length + ' days · ' + r.days.map(dayLabel).join(', ')}${mins}</span>${tagChips(routineTags(r), 3)}</button>${archived ? html`<button class="pill-btn accent" id=${'restore-' + r.id} aria-label=${'Restore ' + r.name} onClick=${() => { restorePlan(r); re(); }}>Restore</button>` : html`<${PlanStar} r=${r} id=${'pstar-' + r.id}/>`}</div>`; };
   const newDraft = () => ({ id: uid('r'), name: '', source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: 'Day 1', items: [] }] });
   const actions = html`<div class="row"><button class="btn primary" style="flex:1" id="plan-new" onClick=${() => UI.setView({ type: 'edit', draft: newDraft(), isNew: true })}>${I.plus} New plan</button>
     <button class="btn" style="flex:1" onClick=${() => openSheet({ type: 'import' })}>Import</button></div>`;
-  const bring = hidden.length ? html`<button class="btn text wide" onClick=${() => commit(st => { st.meta.hidden = []; }, 'meta')}>Bring back ${hidden.length} removed plan${hidden.length === 1 ? '' : 's'}</button>` : null;
-  const multi = r => r.days.length > 1;
+  const inLib = fl === 'lift'; const ord = Object.keys(PROG_INFO); const fam = k => lib.filter(r => planGroup(r) === k && (!inLib || libPass(r))).sort((a, b) => ord.indexOf(a.id) - ord.indexOf(b.id));
   const SECS = [
     ['starred', 'Starred', [...mine, ...lib].filter(r => isStarPlan(r.id))],
-    ['mine', 'Yours', mine],
-    ['lift', 'Lifting', lib.filter(r => multi(r) && !r.info && !r.goalPlan)],
-    ['one', 'One-day', lib.filter(r => !multi(r) && !r.info)],
-    ['goal', 'Goal plans', lib.filter(r => r.goalPlan)],
-    ['run', 'Running and conditioning', lib.filter(r => r.info && !r.info.care && !r.info.fight)],
-    ['fight', 'Fight', lib.filter(r => r.info && r.info.fight)],
-    ['care', 'Joint care', lib.filter(r => r.info && r.info.care)]];
+    ['mine', 'Personal', mine],
+    ...FAMILIES.map(([k, t, d]) => [k, t, fam(k), d]),
+    ['lift', 'More lifting plans', lib.filter(r => planGroup(r) === 'lift' && (!inLib || libPass(r)))],
+    ['one', 'One-day', lib.filter(r => planGroup(r) === 'one')],
+    ['run', 'Running and conditioning', lib.filter(r => planGroup(r) === 'run')],
+    ['fight', 'Fight', lib.filter(r => planGroup(r) === 'fight')],
+    ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
+    ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
   const top = html`<${PlansSwitch}/>
     <${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
     <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
+    ${inLib ? html`<${LibFilters} re=${re}/>` : null}
     <${Tip} id="plans-lib" style="margin-top:10px">Follow a plan from its page and Train lines up the next day for you. A one-day plan is a single workout you can start any time.<//>`;
   const norm = t => String(t).toLowerCase().replace(/×/g, 'x'); const term = norm(q.trim());
   if (term) {
-    const hits = [...mine, ...lib].filter(r => norm(r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).includes(term));
-    return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(card)}</div>
+    const hits = [...mine, ...lib, ...arch].filter(r => norm(r.name + ' ' + (r.meta || '') + ' ' + r.days.map(d => d.name).join(' ')).includes(term));
+    return html`<div>${top}<div class="section-h"><h2>${hits.length ? hits.length + ' found' : 'Nothing found'}</h2></div><div class="stack">${hits.map(r => card(r, arch.includes(r)))}</div>
       ${hits.length ? null : html`<p class="note">Try fewer letters, or clear the search to browse.</p>`}</div>`;
   }
-  if (fl === 'type') return html`<div>${top}<${ByTypeList} rs=${[...mine, ...lib]}/><div class="stack" style="margin-top:18px">${actions}${bring}</div></div>`;
+  if (fl === 'type') return html`<div>${top}<${ByTypeList} rs=${[...mine, ...lib]}/><div class="stack" style="margin-top:18px">${actions}</div></div>`;
   if (fl === 'ch') return html`<div>${top}<div class="section-h"><h2>Challenges</h2></div><${ChallengeFinder} where="routines"/></div>`;
-  const sec = ([k, t, rs]) => {
-    if (fl !== 'all' && fl !== k) return null;
-    const extra = k === 'run' ? 1 : 0; if (k === 'starred' && !rs.length) return fl === 'starred' ? html`<p key="st" class="note" style="margin-top:12px" id="ps-starred-none">Tap the star on any plan to keep it here.</p>` : null; if (!rs.length && !extra && k !== 'mine') return null;
-    const cap = fl === 'all' && !PLAN_MORE[k] ? 3 : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
-    return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > 3 ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
+  const famKeys = FAMILIES.map(x => x[0]);
+  const sec = ([k, t, rs, desc]) => {
+    const show = fl === 'all' || fl === k || (fl === 'lift' && (famKeys.includes(k) || k === 'lift'));
+    if (!show) return null;
+    const extra = k === 'run' ? 1 : 0; if (k === 'starred' && !rs.length) return fl === 'starred' ? html`<p key="st" class="note" style="margin-top:12px" id="ps-starred-none">Tap the star on any plan to keep it here.</p>` : null;
+    if (!rs.length && !extra && k !== 'mine') return k === 'arch' && fl === 'arch' ? html`<p key="arn" class="note" style="margin-top:12px">Nothing archived.</p>` : famKeys.includes(k) && inLib ? html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2></div><p class="note">No ${t} plan matches these filters.</p></div>` : null;
+    const capN = k === 'mine' ? 5 : 3; const cap = fl === 'all' && !PLAN_MORE[k] ? capN : 1e9; const list = rs.slice(0, Math.max(0, cap - extra));
+    return html`<div key=${k} id=${'ps-' + k}><div class="section-h"><h2>${t}</h2>${fl === 'all' && rs.length + extra > capN ? html`<button class="btn text" id=${'more-' + k} onClick=${() => { PLAN_MORE[k] = !PLAN_MORE[k]; re(); }}>${PLAN_MORE[k] ? 'Show fewer' : 'Show all ' + (rs.length + extra)}</button>` : null}</div>
+      ${desc && (fl !== 'all' || famKeys.includes(k)) ? html`<p class="small muted" style="margin:-4px 0 8px">${desc}</p>` : null}
       ${k === 'care' ? html`<${CareFinder}/>` : null}
-      <div class="stack">${k === 'mine' && !rs.length ? html`<p class="note">Plans you build, copy or import show here.</p>` : null}${k === 'run' ? runRow : null}${list.map(card)}${k === 'mine' ? actions : null}</div></div>`; };
+      <div class="stack">${k === 'run' ? runRow : null}${list.map(r => card(r, k === 'arch'))}${k === 'mine' && (fl === 'mine' || PLAN_MORE.mine || rs.length <= capN) ? actions : null}</div>
+      ${k === 'mine' && fl === 'all' && !PLAN_MORE.mine && rs.length > capN ? html`<div style="margin-top:8px">${actions}</div>` : null}</div>`; };
   return html`<div>${top}${SECS.map(sec)}
-    ${fl === 'all' ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${() => pickF('ch')}>Show all</button></div><${ChallengeFinder} where="routines"/>` : null}
-    <div class="stack" style="margin-top:10px">${bring}</div></div>`;
+    ${fl === 'all' ? html`<div class="section-h"><h2>Challenges</h2><button class="btn text" onClick=${() => pickF('ch')}>Show all</button></div><${ChallengeFinder} where="routines"/>` : null}</div>`;
 }
 /* Every workout sorted by its type, in sections you open and close */
 function ByTypeList({ rs }) {
@@ -737,20 +750,23 @@ function ByTypeList({ rs }) {
       ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}</div>`;
 }
 function RoutineView({ id }) {
-  const r = getRoutine(id); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
-  const lib = !!libBase(r.id); const builtin = r.source === 'builtin';
+  const r = getRoutine(id) || (isHidden(id) ? (libOver(id) || libBase(id)) : null); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
+  const lib = !!libBase(r.id); const builtin = r.source === 'builtin'; const archived = planGroup(r) === 'arch' || isHidden(r.id);
   const copy = () => { const c = clone(r); delete c.base; delete c.meta; delete c.shelf; c.id = uid('r'); c.source = 'mine'; c.name = r.name + ' (copy)'; c.createdAt = Date.now(); c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
     commit(st => { st.meta.routines[c.id] = c; }, 'meta'); UI.setView({ type: 'routine', id: c.id }); };
   const edit = () => UI.setView({ type: 'edit', draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
   const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this plan are undone. Logged workouts stay in your history.', ok: 'Reset plan', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
-  const del = () => openSheet({ type: 'confirm', title: (lib ? 'Remove ' : 'Delete ') + r.name + '?', body: lib ? 'It leaves your library. You can bring it back at the bottom of Plans. Logged workouts stay in your history.' : 'Logged workouts stay in your history.', ok: lib ? 'Remove plan' : 'Delete plan', danger: true,
-    onOk: () => { commit(st => { delete st.meta.routines[r.id]; if (lib) st.meta.hidden = [...new Set([...(st.meta.hidden || []), r.id])]; }, 'meta'); closeSheet(); UI.setView(null); } });
+  const del = () => openSheet({ type: 'confirm', title: 'Delete ' + r.name + '?', body: 'The plan is gone for good; Archive keeps it instead. Logged workouts stay in your history.', ok: 'Delete plan', danger: true,
+    onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); UI.setView(null); } });
+  const archive = () => { closeSheet(); archivePlan(r); UI.setView(null); };
   return html`<div>
-    <div class="eyebrow" style="margin-top:6px">${[r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
+    <div class="eyebrow" style="margin-top:6px">${[archived ? 'Archived' : r.personal || !lib ? 'Personal' : '', (PROG_INFO[r.id] || {}).fam ? FAMILIES.find(f => f[0] === PROG_INFO[r.id].fam)[1] + ': ' + PROG_INFO[r.id].variant : '', r.base ? 'Edited' : '', programId() === r.id ? 'Your main plan' : '', r.meta || ''].filter(Boolean).join(' · ') || (r.days.length > 1 ? 'Plan' : 'One-day plan')}</div>
     <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
+    ${archived ? html`<div class="card" id="plan-archived" style="margin-top:10px"><p class="small">${RETIRED[r.id] && isRetired(r.id) ? 'Retired from the library. ' + RETIRED[r.id] : 'Archived.'} It still works if you follow it, and its workouts stay in your history.</p><button class="btn" style="margin-top:8px" id="plan-restore" onClick=${() => restorePlan(r)}>Restore to Plans</button></div>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
+    <${ProgramFacts} r=${r}/>
     <div class="row wrap" style="margin:14px 0 4px">
       ${programId() === r.id ? null : html`<button class=${'btn' + (addonIds().includes(r.id) ? ' primary' : '')} id="alongside" aria-pressed=${addonIds().includes(r.id)} onClick=${() => { const on = !addonIds().includes(r.id); setAddon(r.id, on); if (on) openSheet({ type: 'addonFit', id: r.id }); else showToast({ kind: 'info', text: r.name + ' removed from Train' }); }}>${addonIds().includes(r.id) ? html`${I.check} Alongside` : html`${I.plus} Add alongside`}</button>`}
       ${programId() === r.id ? null : html`<button class="btn primary" id="follow" onClick=${() => { setProgram(r.id); showToast(followToast(r.id)); }}>Follow${r.days.length > 1 ? ' this plan' : ''}</button>`}
@@ -760,13 +776,16 @@ function RoutineView({ id }) {
         programId() === r.id || addonIds().includes(r.id) ? ['plan-restart', 'Restart from day 1', '', () => { closeSheet(); restartProgram(r.id); }] : null,
         programId() === r.id ? ['plan-stop', 'Stop following', 'Train goes back to asking what you follow.', () => { closeSheet(); stopPlan(r.id); }] : null,
         r.base ? ['plan-reset', 'Reset', 'Undo your changes to this plan.', reset] : null,
-        ['plan-del', lib ? 'Remove from Plans' : 'Delete plan', lib ? 'You can bring it back at the bottom of Plans.' : 'Logged workouts stay in your history.', del, true]].filter(Boolean) })}>${I.more}</button>
+        archived ? null : ['plan-archive', 'Archive', 'Moves it to Plans → Archived. Restore it any time; logged workouts stay in your history.', archive],
+        !lib ? ['plan-del', 'Delete plan', 'Gone for good. Logged workouts stay in your history.', del, true] : null].filter(Boolean) })}>${I.more}</button>
     </div>
-    <${PrefillRow} r=${r}/>
-    <${FocusRow} r=${r}/>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
       <ul class="r-items">${focusDay(r, d).items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
+    <${ProgramGuide} r=${r}/>
+    <div class="section-h" id="plan-settings-h"><h2>Plan settings</h2></div>
+    <${PrefillRow} r=${r}/>
+    <${FocusRow} r=${r}/>
   </div>`;
 }
 function RoutineEditor({ view }) {
@@ -783,7 +802,7 @@ function RoutineEditor({ view }) {
       <div><div class="lbl">Workout type</div><div class="ed-tags" role="group" aria-label="Workout type">${WTAGS.map(t => { const on = (day.tags || []).includes(t); return html`<button key=${t} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => { const s = new Set(day.tags || []); if (on) s.delete(t); else s.add(t); day.tags = WTAGS.filter(x => s.has(x)); re(); }}>${t}</button>`; })}</div>
         ${day.tags && day.tags.length ? null : html`<p class="small faint" style="margin-top:6px">Automatic: ${autoTags(day, d).join(', ')}. Tap a type to set your own.</p>`}</div>
       ${day.items.map((it, ii) => html`<div key=${it.id} class=${'ed-item' + (it.ss ? ' ssi' : '')}>
-        <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'pick', title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
+        <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
           <button class="icon-btn" aria-label="Move up" onClick=${() => move(day.items, ii, -1)}>${I.up}</button>
           <button class="icon-btn" aria-label="Move down" onClick=${() => move(day.items, ii, 1)}>${I.down}</button>
           <button class="icon-btn" aria-label="Remove exercise" onClick=${() => { day.items.splice(ii, 1); re(); }}>${I.x}</button></div>
@@ -1880,8 +1899,8 @@ function SlotSheet({ it }) {
     : a.routineId && getRoutine(a.routineId) && getRoutine(a.routineId).source === 'builtin' ? html`<p class="note" style="margin:8px 0">This change applies to today. Edit the plan to make it permanent.</p>` : null;
   const persist = patch => { if (rs && ALSO.v) commit(x => { Object.assign(rs, patch); }, 'meta'); };
   const exR = S.meta.exRest[it.ex];
-  return html`<${Sheet} label="Exercise options"><h2>${exName(it.ex)}</h2>
-    <button class="opt" onClick=${() => openSheet({ type: 'pick', title: 'Swap exercise', onPick: ex => { it.ex = ex.id; it.u = slotUnit(ex.id); refill(it); persist({ ex: ex.id }); closeSheet(); touch(); } })}>${I.swap}<div><div>Swap exercise</div><div class="d">Pick a different movement for this slot</div></div></button>
+  return html`<${Sheet} label="Exercise options"><h2>${exName(it.ex)}</h2>${getEx(it.ex).how ? html`<p class="note" id="slot-how" style="margin-bottom:8px">${getEx(it.ex).how}</p>` : null}
+    <button class="opt" id="opt-swap" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { if (it.slot || a.routineId) { const p = it.planned || it.ex; if (ex.id === p) delete it.planned; else it.planned = p; } it.ex = ex.id; it.u = slotUnit(ex.id); refill(it); persist({ ex: ex.id }); closeSheet(); touch(); } })}>${I.swap}<div><div>Swap exercise</div><div class="d">Suggestions that keep the same movement${it.planned ? '. Planned: ' + exName(it.planned) : ''}</div></div></button>
     <button class="opt" onClick=${() => openSheet({ type: 'group', current: it.group, dayName: a.name, extra: alsoBox, onPick: g => { it.group = g; applyRange(it.target, g); refill(it); persist({ group: g, ...(g in RANGE_REPS ? { reps: RANGE_REPS[g] } : {}) }); closeSheet(); touch(); } })}>${I.layers}<div><div>Rep range: ${it.group ? (RANGE_NAME[it.group] || it.group) : 'none'}</div><div class="d">Each range keeps its own history</div></div></button>
     <button class="opt" onClick=${() => openSheet({ type: 'exRest', ex: it.ex })}>${I.timer}<div><div>Rest timer: ${exR != null ? (exR ? clock(exR) : 'off') : 'default'}</div><div class="d">A rest time just for this exercise</div></div></button>
     ${['bodyweight'].includes(exKind(it.ex)) || isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-jump" onClick=${() => openSheet({ type: 'exJump', ex: it.ex, u0: u })}>${I.up}<div><div>Weight jump: +${fmt(jumpFor(it.ex, u))} ${u}${(S.meta.exJump || {})[it.ex] ? '' : ' (default)'}</div><div class="d">How much to add when every set hits the top of the range</div></div></button>`}
@@ -1973,7 +1992,7 @@ function SessionSheet({ id }) {
   const del = () => { const gone = clone(s0); commit(st => { delete st.sessions[id]; st.meta.deleted = [...(st.meta.deleted || []), id]; }, ['del:s_' + id, 'meta']); closeSheet();
     showToast({ kind: 'info', ms: 8000, text: 'Workout deleted', action: 'Undo', fn: () => commit(st => { st.sessions[id] = gone; st.meta.deleted = (st.meta.deleted || []).filter(x => x !== id); }, ['s_' + id, 'meta']) }); };
   return html`<${Sheet} label="Workout details"><div class="eyebrow">${shortDate(s.startedAt)} · ${mins} min${s.routineName ? ' · ' + s.routineName : ''}</div><h2>${s.name}</h2>
-    ${s.items.map((it, i) => { const kind = exKind(it.ex); const u = it.u || U(); return html`<div key=${i} class="ex-block"><div class="row"><h3 style="flex:1">${exName(it.ex)}</h3>${groupChip(it.group)}</div>
+    ${s.items.map((it, i) => { const kind = exKind(it.ex); const u = it.u || U(); return html`<div key=${i} class="ex-block"><div class="row"><h3 style="flex:1">${exName(it.ex)}</h3>${groupChip(it.group)}</div>${it.planned ? html`<p class="small muted" style="margin-top:2px">Swapped in for ${exName(it.planned)}${it.target && it.target.reps ? ' · planned ' + (it.target.sets || '') + ' × ' + repTxt(it.target.reps) : ''}</p>` : !edit && !isMeasured(kind) && it.target && +it.target.sets > it.sets.length ? html`<p class="small muted" style="margin-top:2px">Planned ${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) : ''} · ${it.sets.length} done</p>` : null}
       ${edit ? html`<input class="ex-note" id=${'een-' + i} value=${it.note || ''} placeholder="Exercise note" aria-label="Exercise note" onInput=${e => { it.note = e.target.value; }}/>` : it.note ? html`<p class="small muted" style="margin-top:4px">${it.note}</p>` : null}
       ${edit && isMeasured(kind) ? it.sets.map((x, j) => html`<${MeasEditSet} key=${j} x=${x} j=${j} i=${i} kind=${kind} onRemove=${() => { it.sets.splice(j, 1); setEdit({ ...edit }); }}/>`) : edit ? it.sets.map((x, j) => html`<div key=${j} class="edit-set"><span class="faint num">${j + 1}</span>
           <input id=${'ew-' + i + '-' + j} inputmode="decimal" aria-label=${'Weight, ' + u} value=${x.w} onInput=${e => { x.w = e.target.value; }}/>
@@ -2038,6 +2057,7 @@ function SheetHost({ sheet }) {
   if (!sheet) return null;
   switch (sheet.type) {
     case 'pick': return html`<${PickSheet} ...${sheet}/>`;
+    case 'swap': return html`<${SwapSheet} ...${sheet}/>`;
     case 'group': return html`<${GroupSheet} ...${sheet}/>`;
     case 'slot': return S.active ? html`<${SlotSheet} it=${sheet.it}/>` : null;
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
@@ -2164,6 +2184,8 @@ function SideTog({ ex }) {
 /*@include goals.js*/
 
 /*@include eatreview.js*/
+
+/*@include programs.js*/
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);

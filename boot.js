@@ -56,6 +56,7 @@ function parseProgram(text) {
 
 /* Built-in content */
 const BUILTIN_EX = {};
+/*@include exlib.js*/
 const NEWT_TEXT = `Day 1 - Chest Focus
 3x5-8 Decline Chest Press
 3x5-8 Incline Reverse-Grip Squeeze Press
@@ -85,7 +86,7 @@ Day 4 - Legs
 3x5-8 x Romanian Deadlift
 3x5-8 Leg Curls
 3x10-12 x Calf Raises`;
-const findIn = (...stores) => name => { const k = nameKey(name); for (const st of stores) { const hit = Object.values(st).find(e => nameKey(e.name) === k); if (hit) return hit; } return null; };
+const findIn = (...stores) => name => { const k = nameKey(resolveExName(name)); for (const st of stores) { const hit = Object.values(st).find(e => nameKey(e.name) === k); if (hit) return hit; } return null; };
 function builtinRoutine(rid, name, note, text) {
   const days = parseProgram(text).map((d, i) => ({
     id: `${rid}-d${i + 1}`, name: d.name,
@@ -157,6 +158,7 @@ Day 2 - Full Body B
 3x10-15 Dumbbell Hip Thrust
 3x10-15 Dumbbell Overhead Tricep Extension
 3x10-15 Dumbbell Curl
+3x12-15 Single-Leg Calf Raise
 Day 3 - Full Body C
 3x8-12 Dumbbell Step-Up
 3x8-12 Incline Dumbbell Press
@@ -177,6 +179,7 @@ Day 2 - Lower Heavy
 3x10-15 Leg Press
 3x6-10 Leg Curls
 4x6-10 Calf Raises
+3x10-15 Cable Crunch
 Day 3 - Upper Volume
 4x8-12 Incline Dumbbell Press
 4x8-12 Cable Fly
@@ -190,7 +193,8 @@ Day 4 - Lower Volume
 3x8-12 Bulgarian Split Squat
 3x10-15 Leg Extension
 3x10-15 Leg Curls
-4x10-15 Calf Raises`],
+4x10-15 Calf Raises
+3x10-15 Cable Crunch`],
   ['bi-ppl6', 'Push / Pull / Legs', 'Intermediate · 6 days a week', 'Pull, push, legs, then the B versions, then a rest day. Make the last set of the 5×5 and the 1×5 as many reps as you can. Main lifts go up 5 lb a session; accessories go up once every set reaches the top of the range.', `Day 1 - Pull A
 1x5 Deadlift
 3x8-12 Lat Pulldown
@@ -211,6 +215,7 @@ Day 3 - Legs A
 3x8-12 Leg Press
 3x8-12 Leg Curls
 5x8-12 Calf Raises
+3x10-15 Hanging Leg Raises
 Day 4 - Pull B
 5x5 Bent-Over Barbell Rows
 3x8-12 Pull-Up
@@ -230,7 +235,8 @@ Day 6 - Legs B
 3x8-12 Romanian Deadlift
 3x8-12 Leg Press
 3x8-12 Leg Curls
-5x8-12 Calf Raises`],
+5x8-12 Calf Raises
+3x10-15 Hanging Leg Raises`],
   ['bi-split5', '5-Day Body-Part Split', 'Intermediate · 5 days a week', 'One muscle group a day with plenty of sets for each. Add weight once every set reaches the top of the range.', `Day 1 - Chest
 4x6-10 Bench Press
 3x8-12 Incline Dumbbell Press
@@ -261,6 +267,49 @@ Day 5 - Arms
 3x10-15 Tricep Pushdowns
 3x12-15 Cable Curl
 3x12-15 Overhead Cable Tricep Extension`],
+  ['bi-ul4-strength', 'Upper / Lower Strength', 'Intermediate · 4 days a week', 'Two strength days with low reps on the big lifts, then two lighter days to build the muscle behind them. Rest 2–3 minutes on the first two lifts of each day, 1–2 minutes on the rest. Add weight once every set reaches the top of the range.', `Day 1 - Upper Strength
+4x3-5 Bench Press
+4x5-8 Barbell Row
+3x6-8 Overhead Barbell Press
+3x6-10 Pull-Up
+2x10-12 Hammer Curls
+Day 2 - Lower Strength
+4x3-5 Back Squat
+3x5-8 Romanian Deadlift
+3x8-12 Leg Curl
+3x8-12 Calf Raises
+2x10-15 Cable Crunch
+Day 3 - Upper Volume
+3x6-8 Incline Barbell Bench Press
+3x8-10 Seated Cable Row
+3x8-10 Seated Dumbbell Overhead Press
+3x8-12 Lat Pulldown
+2x10-12 Tricep Pushdowns
+Day 4 - Lower Volume
+3x3-5 Deadlift
+3x6-8 Front Squat
+3x8-10 Bulgarian Split Squat
+3x10-12 Calf Raises
+2x10-15 Hanging Leg Raises`],
+  ['bi-ppl3', 'Push / Pull / Legs 3-Day', 'Beginner to intermediate · 3 days a week', 'Push, pull and legs in order on any three days. Miss a day and the next workout simply picks up where you left off. Add weight once every set reaches the top of the range.', `Day 1 - Push
+3x6-10 Bench Press
+3x8-12 Incline Dumbbell Press
+3x8-12 Seated Dumbbell Overhead Press
+3x12-15 Lateral Raises
+3x10-15 Overhead Cable Tricep Extension
+Day 2 - Pull
+3x8-12 Lat Pulldown
+3x8-12 Seated Cable Row
+3x12-15 Face Pulls
+3x8-12 Dumbbell Curl
+2x10-12 Hammer Curls
+Day 3 - Legs
+3x6-10 Back Squat
+3x8-10 Romanian Deadlift
+3x10-12 Leg Press
+3x10-12 Leg Curl
+4x10-15 Calf Raises
+2x10-15 Cable Crunch`],
 ];
 /* Newt's own routines from RepCount: one workout each, with the notes he kept on each exercise.
    Item: [exercise, sets, reps, note, superset with the one above] */
@@ -286,6 +335,30 @@ const MY_PLANS = [
     ['Day 2 - Light', ['Full Body'], [['Cable Crossover', 3, '15'], ['Dumbbell Pullover', 3, '15'], ['Leg Extension', 3, '15'], ['Lying Leg Curl', 3, '15'], ['Lateral Raises', 3, '15'], ['Hybrid Curls', 3, '15'], ['Tricep Pushdowns', 3, '15'], ['Calf Raises', 3, '15'], ['Cable Crunch', 3, '15']]],
     ['Day 3 - Medium', ['Full Body'], [['Incline Barbell Bench Press', 3, '10'], ['Bent-Over Barbell Rows', 3, '10'], ['Leg Press', 1, '10'], ['Stiff-Leg Deadlift', 1, '10'], ['Barbell Upright Row', 3, '10'], ['Dumbbell Curl', 3, '12'], ['Dumbbell Overhead Tricep Extension', 3, '12'], ['Calf Raises', 3, '12'], ['Cable Crunch', 3, '12']]]]],
 ];
+/* Newt's personal programs (Nov 17, 2026). Hypertrophy first, commercial-gym equipment, simple familiar lifts, few
+   equipment changes. Heartwood keeps the shape of Newt's 4-Day Split with one complete leg day; Growth Rings splits the
+   legs over two short days. Item: [exercise, sets, reps, note, superset with the one above] */
+const PERSONAL_PLANS = [
+  ['bi-heartwood', 'Heartwood Split', null, "Newt's 4-Day Split rebuilt for size: the same chest, back, shoulders-and-arms and legs days, with every major muscle covered and one complete leg day.", [
+    ['Day 1 - Chest Focus', ['Chest', 'Push'], [['Decline Chest Press', 3, '6-10'], ['Incline Reverse-Grip Squeeze Press', 3, '8-12'], ['Cable Fly', 3, '10-15'], ['Behind-the-Back Cable Lateral Raise', 3, '12-15'], ['Tricep Pushdowns', 3, '10-12'], ['Cable Crunch', 3, '10-15']]],
+    ['Day 2 - Back / Rear Delts', ['Back', 'Pull'], [['Lat Pulldown', 3, '8-12'], ['Barbell Row', 3, '6-10'], ['Seated Cable Row', 2, '10-12'], ['Face Pulls', 3, '12-15'], ['Hybrid Curls', 3, '8-12'], ['Scapular Shrugs', 2, '10-15']]],
+    ['Day 3 - Shoulders / Arms', ['Shoulders', 'Arms'], [['Overhead Barbell Press', 3, '6-10'], ['Behind-the-Back Cable Lateral Raise', 3, '12-15'], ['Cuban Press', 2, '10-12'], ['Overhead Cable Tricep Extension', 3, '10-15'], ['Hybrid Curls', 3, '8-12', '', 1], ['Hanging Leg Raises', 3, '8-12']]],
+    ['Day 4 - Legs', ['Legs'], [['Back Squat', 3, '6-10'], ['Romanian Deadlift', 3, '8-10'], ['Seated Leg Curl', 3, '10-12'], ['Leg Extension', 3, '12-15'], ['Calf Raises', 4, '10-15']]]]],
+  ['bi-growth-rings', 'Growth Rings Upper/Lower', null, 'Two upper days and two short lower days. Lower work is split in half so neither leg day is long or draining; Lower B is the shortest workout of the week.', [
+    ['Upper A', ['Upper'], [['Incline Dumbbell Press', 3, '8-12'], ['Lat Pulldown', 3, '8-12'], ['Machine Chest Press', 2, '10-12'], ['Seated Cable Row', 3, '10-12'], ['Lateral Raises', 3, '12-15'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Dumbbell Curl', 2, '10-12']]],
+    ['Lower A', ['Lower'], [['Leg Press', 3, '8-12'], ['Leg Press Calf Raise', 3, '12-15', 'Stay in the leg press: legs straight, balls of the feet on the bottom edge.'], ['Seated Leg Curl', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Upper B', ['Upper'], [['Seated Dumbbell Overhead Press', 3, '8-10'], ['Assisted Pull-Up', 3, '6-10'], ['Dumbbell Bench Press', 3, '8-12'], ['Machine Row', 2, '10-12'], ['Face Pulls', 2, '12-15'], ['Tricep Pushdowns', 2, '10-12'], ['Hammer Curls', 2, '10-12']]],
+    ['Lower B', ['Lower'], [['Dumbbell Romanian Deadlift', 3, '8-10'], ['Leg Press', 2, '10-15'], ['Leg Press Calf Raise', 3, '12-15'], ['Seated Leg Curl', 2, '10-12'], ['Hanging Knee Raise', 2, '10-15']]]]],
+  ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
+    ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Full Body B', ['Full Body'], [['Romanian Deadlift', 3, '8-10'], ['Seated Dumbbell Overhead Press', 3, '8-10'], ['Seated Cable Row', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Hybrid Curls', 2, '10-12'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
+    ['Full Body C', ['Full Body'], [['Leg Press', 3, '10-12'], ['Incline Dumbbell Press', 3, '8-12'], ['Assisted Pull-Up', 3, '6-10'], ['Calf Raises', 3, '10-15'], ['Face Pulls', 2, '12-15'], ['Tricep Pushdowns', 2, '10-12']]]]],
+  ['bi-easy-grain', 'Easy Grain 4-Day', null, 'The low-effort-to-start version: four or five exercises a day, mostly machines and cables, the same order every time, simple rep targets and no supersets. Still covers every major muscle each week.', [
+    ['Upper A', ['Upper'], [['Machine Chest Press', 3, '8-12'], ['Lat Pulldown', 3, '8-12'], ['Lateral Raises', 3, '12-15'], ['Tricep Pushdowns', 2, '10-12'], ['Cable Curl', 2, '10-12']]],
+    ['Lower A', ['Lower'], [['Leg Press', 3, '10-12'], ['Leg Press Calf Raise', 3, '12-15'], ['Seated Leg Curl', 3, '10-12'], ['Cable Crunch', 2, '10-15']]],
+    ['Upper B', ['Upper'], [['Incline Machine Press', 3, '8-12'], ['Seated Cable Row', 3, '10-12'], ['Face Pulls', 2, '12-15'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Hammer Curls', 2, '10-12']]],
+    ['Lower B', ['Lower'], [['Leg Extension', 3, '12-15'], ['Dumbbell Romanian Deadlift', 3, '10-12'], ['Calf Raises', 3, '12-15']]]]],
+];
 const COND_EX = /\b(run|running|sprints?|swim|swimming|miles?|ruck|burpees?|erg|wall ?ball|kettlebell swing|kettle bell swing|kb swing|jump rope|bike|cycling|treadmill|rower)\b/;
 const BW_EX = /\b(air squat|push ?ups?|sit ?ups?|burpees?|planks?|plank twists|toe touches|ankle taps|scissor kicks|scullers|leg lowers|bicycles|knee roll ?ups|dead hang|hanging leg raises?|dips|bench dips|inverted rows?|reverse crunch(es)?|chin ?ups?|mountain climbers?|bear crawls?)\b/;
 function planDay(rid, i, name, tags, items) {
@@ -302,10 +375,14 @@ function builtinPlan([rid, name, tags, note, items]) {
   return { id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days };
 }
 const BUILTIN_ROUTINES = [
+  ...PERSONAL_PLANS.map(builtinPlan),
   Object.assign(builtinRoutine('bi-newt-4day', "Newt's 4-Day Split", 'Exercises marked with a bar on the left are supersets with the one above.', NEWT_TEXT), { meta: '4 days a week', shelf: 'plans' }),
   ...MY_PLANS.map(builtinPlan),
   ...LIB_PROGRAMS.map(([id, name, meta, note, text]) => Object.assign(builtinRoutine(id, name, note, text), { meta, shelf: 'programs' })),
 ];
+/* Personal: Newt's own programs and routines, kept apart from the general library (Nov 17) */
+const PERSONAL_IDS = new Set([...PERSONAL_PLANS.map(p => p[0]), 'bi-newt-4day', ...MY_PLANS.map(p => p[0])]);
+BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id)) r.personal = true; });
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
@@ -354,15 +431,19 @@ const EX_RENAMED = {
   'b-russian-behind-the-back-cable-flies': 'b-behind-the-back-cable-lateral-raise', 'b-behind-the-back-cable-fly': 'b-behind-the-back-cable-lateral-raise',
   'b-zottman-curl': 'b-hybrid-curls', 'b-cable-lateral-raise-tosses': 'b-cable-lateral-raise-toss', 'b-dumbbell-cable-bends': 'b-dumbbell-side-bend', 'b-ankle-taps': 'b-heel-touches',
   'b-bicycles': 'b-bicycle-crunches', 'b-erg': 'b-rowing-machine-erg', 'b-weighted-lunge-walk': 'b-weighted-walking-lunge', 'b-peterson-step-ups': 'b-petersen-step-up',
-  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers' };
+  'b-plank-single-leg-up': 'b-cross-body-mountain-climbers', ...EX_MERGED };
 const exIdNow = id => EX_RENAMED[id] || id;
 function migrateExIds(st) {
   const keys = Object.keys(EX_RENAMED); if (!keys.length) return;
-  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; };
+  const fix = it => { if (it && EX_RENAMED[it.ex]) it.ex = EX_RENAMED[it.ex]; if (it && EX_RENAMED[it.planned]) it.planned = EX_RENAMED[it.planned]; };
   for (const s of Object.values(st.sessions || {})) (s.items || []).forEach(fix);
   if (st.active) (st.active.items || []).forEach(fix);
   for (const r of Object.values(st.meta.routines || {})) for (const d of r.days || []) (d.items || []).forEach(fix);
-  for (const f of ['exUnit', 'exRest', 'exCat']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o && !(b in o)) { o[b] = o[a]; delete o[a]; } }
+  for (const f of ['exUnit', 'exRest', 'exCat', 'exJump', 'exSide']) { const o = st.meta[f] || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in o) { if (!(b in o)) o[b] = o[a]; delete o[a]; } }
+  /* Nov 17: merged duplicates also carry their machines, stars and goals */
+  const mc = st.meta.machines || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in mc) { mc[b] = [...new Set([...(mc[b] || []), ...(mc[a] || [])])]; delete mc[a]; }
+  const se = (st.meta.settings || {}).starEx || {}; for (const [a, b] of Object.entries(EX_RENAMED)) if (a in se) { se[b] = se[a]; delete se[a]; }
+  for (const g of Object.values(st.meta.liftGoals || {})) if (g && EX_RENAMED[g.ex]) g.ex = EX_RENAMED[g.ex];
 }
 function cleanSessions(obj) {
   const out = {}; let skipped = 0;
@@ -405,7 +486,7 @@ const exKind = id => getEx(id).kind || 'other';
 const findEx = name => findIn(S.meta.exercises, BUILTIN_EX)(name);
 const isHidden = id => (S.meta.hidden || []).includes(id);
 const libBase = id => BUILTIN_ROUTINES.find(r => r.id === id) || null;
-const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+const myRoutines = () => Object.values(S.meta.routines).filter(r => !r.base && !r.archived).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 const routineKey = r => JSON.stringify([r.name, r.days.map(d => [d.id, d.name, d.tags && d.tags.length ? d.tags : null, d.items.map(i => [i.id, i.ex, +i.sets, i.reps || '', !!i.ss, i.group || '', i.note || ''])])]);
 /* An edit of a library routine counts only while it differs from the library version. */
 const libOver = id => { const o = S.meta.routines[id], b = libBase(id); return o && b && routineKey(o) !== routineKey(b) ? o : null; };
@@ -513,7 +594,7 @@ function refill(it, occ) {
 }
 function makeSlot(item, occ) {
   const n = item.sets || 3;
-  const it = { id: uid('i'), slot: item.id || null, ex: item.ex, group: item.group || '', ss: !!item.ss, u: slotUnit(item.ex), note: '', target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),
+  const it = { id: uid('i'), slot: item.id || null, ex: item.ex, group: item.group || '', ss: !!item.ss, u: slotUnit(item.ex), note: '', target: Object.assign({ sets: n, reps: item.reps || '', cue: item.note || '' }, item.rest ? { rest: item.rest } : {}, isMeasured(exKind(item.ex)) ? resolveTg(item) : {}),
     sets: Array.from({ length: n }, () => ({ id: uid('t'), w: '', r: '', n: '' })) };
   refill(it, occ || 0); initMachine(it); return it;
 }

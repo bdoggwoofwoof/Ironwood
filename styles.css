@@ -947,3 +947,11 @@ body:has(#quick-fab) main{padding-bottom:84px}
 .cook-big-btn{min-height:64px;font-size:calc(19 * var(--u))}
 .cook-now{border:2px solid var(--accent)}
 .cook-view{padding-bottom:calc(var(--rest-h, 0px) + 12px)}
+/* 44-point tap areas without changing the look (Nov 17, meal planning audit phase 5, Newt's call E): the touch area grows
+   past the drawn edge with an invisible layer, so segments, stars and list rows look the same but are easier to hit. */
+.seg button,.rec-star,.shop-x,.grab-zone{position:relative}
+.seg button::after{content:'';position:absolute;inset:-6px 0}
+.rec-star::after{content:'';position:absolute;inset:0 -4px}
+.shop-x::after{content:'';position:absolute;inset:-10px 0}
+.grab-zone::after{content:'';position:absolute;inset:-8px 0 0}
+.topsw.four button{min-width:44px;text-align:center}

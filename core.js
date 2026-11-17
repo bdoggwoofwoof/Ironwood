@@ -2079,6 +2079,13 @@ function SheetHost({ sheet }) {
     case 'usePrep': return html`<${UsePrepSheet}/>`;
     case 'recipePick': return html`<${RecipePickSheet} ...${sheet}/>`;
     case 'planAhead': return html`<${PlanAheadSheet}/>`;
+    case 'planMeal': return html`<${PlanMealSheet} d=${sheet.d} k=${sheet.k}/>`;
+    case 'planSpot': return html`<${PlanSpotSheet} d=${sheet.d} k=${sheet.k}/>`;
+    case 'planTarget': return html`<${PlanTargetSheet} d=${sheet.d} id=${sheet.id} k=${sheet.k} mode=${sheet.mode}/>`;
+    case 'cookItem': return html`<${CookItemSheet} r=${sheet.r}/>`;
+    case 'planExtra': return html`<${PlanExtraSheet}/>`;
+    case 'planReroll': return html`<${PlanRerollSheet}/>`;
+    case 'planHousehold': return html`<${PlanHouseholdSheet}/>`;
     case 'challenges': return html`<${ChallengeSheet}/>`;
     case 'calendar': return html`<${CalendarSheet}/>`;
     case 'addons': return html`<${AddonsSheet}/>`;
@@ -2125,6 +2132,7 @@ function SheetHost({ sheet }) {
 
 /*@include mealdates.js*/
 /*@include mealday.js*/
+/*@include mealplanpage.js*/
 
 /*@include cooking.js*/
 /*@include bodygoal.js*/

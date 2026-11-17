@@ -27,19 +27,21 @@ async def main():
         # servings scale to the days
         await ev("mealCommit(m => { m.plan.items = [{ id: 'a', r: 'm-sheet-pan', n: 7 }, { id: 'b', r: 'm-overnight-oats', n: 3 }]; })"); await pg.wait_for_timeout(200)
         check('4 days of a 7-a-week meal is 4 servings, 3-a-week rounds up to 2', await ev("ML().plan.items.map(servingsFor)") == [4, 2])
-        check('short plans count times in these days', 'Times in these 4 days' in await pg.inner_text('main'))
+        await pg.click('#cf-m-overnight-oats'); await pg.wait_for_timeout(200)   # Nov 16 (phase 3): Cook for these dates opens a sheet per recipe
+        check('short plans count times in these days', 'Times in these 4 days' in await pg.inner_text('.sheet'))
         await pg.locator('button[aria-label="More times in these days for ' + await ev("getRecipe('m-overnight-oats').name") + '"]').click(); await pg.wait_for_timeout(150)
+        await ev("closeSheet()"); await pg.wait_for_timeout(150)
         check('stepping the count for these days', await ev("servingsFor(ML().plan.items[1])") == 3)
         check('stored rates survive a reload', await ev("normMeals(JSON.parse(JSON.stringify(ML()))).plan.items.map(i => i.n)") == await ev("ML().plan.items.map(i => i.n)") and await ev("normMeals(JSON.parse(JSON.stringify(ML()))).plan.start") == '2026-11-18')
         check('shopping list header names the dates', 'Wed Nov 18 – Sat Nov 21' in await ev("listText()"))
         # swap a recipe in what you'll cook
-        await pg.click('#mp-swap-m-sheet-pan'); await pg.wait_for_timeout(300)
+        await pg.click('#cf-m-sheet-pan'); await pg.wait_for_timeout(200); await pg.click('#ci-swap'); await pg.wait_for_timeout(300)
         check('swap opens a recipe picker of the same kind', await pg.locator('.rp-list .opt').count() > 5 and await pg.locator('#rp-m-sheet-pan').count() == 0)
         pick = await ev("document.querySelector('.rp-list .opt').id.slice(3)")
         await pg.locator('.rp-list .opt').first.click(); await pg.wait_for_timeout(200)
         check('swap keeps the count and changes the recipe', await ev("ML().plan.items[0].r") == pick and await ev("ML().plan.items[0].n") == 7, pick)
         # swap inside a ready-made prep before using it
-        await ev("PREP_UI.open = 'p-reels-faves'; S.rerender()"); await pg.wait_for_timeout(200)
+        await ev("openMealPreps()"); await pg.wait_for_timeout(250); await pg.click('#lib-prep-p-reels-faves .ready-h'); await pg.wait_for_timeout(200)
         await pg.click('#ready-swap-p-reels-faves'); await pg.wait_for_timeout(300)
         n0 = await pg.locator('#up-items .up-row').count()
         await pg.click('#up-swap-0'); await pg.wait_for_timeout(300)
@@ -52,7 +54,7 @@ async def main():
         check('the prep loads with the swap and without the removed one', 'm-reel-green-curry' in its and 'm-reel-sc-teriyaki' not in its and 'm-reel-mayak-eggs' not in its and len(its) == n0 - 1, its)
         check('the prep itself is unchanged', await ev("MEAL_PREPS.find(p => p.id === 'p-reels-faves').items[0][0]") == 'm-reel-sc-teriyaki')
         # plan ahead
-        await pg.click('#plan-ahead-btn'); await pg.wait_for_timeout(300)
+        await pg.click('#plan-ahead-btn'); await pg.wait_for_timeout(300)   # the Meal preps page has Plan ahead
         await pg.click('#pa-p-reels-freezer'); await pg.wait_for_timeout(300)
         check('plan ahead starts the day after this plan, through Saturday', 'Sun Nov 22 – Sat Nov 28 · 7 days' in await pg.inner_text('#up-sum'), await pg.inner_text('#up-sum'))
         await pg.click('#up-apply'); await pg.wait_for_timeout(300)
@@ -71,7 +73,8 @@ async def main():
         want = await ev("(() => { const P = genPattern(); const w = {}; for (let k = 0; k < 4; k++) { const di = menuDayIdx(addDays(new Date(2026, 10, 11), k)); for (const x of P[di]) w[x.r] = (w[x.r] || 0) + x.sv; } return Object.fromEntries(Object.entries(w).map(([r, n]) => [r, Math.ceil(n - 1e-6)])); })()")
         got = await ev("Object.fromEntries(ML().plan.items.map(i => [i.r, servingsFor(i)]))")
         check('a 4-day meal plan cooks 4 days of food', got == want, (got, want))
-        check('the plan tabs show the dated days', await pg.locator('.menu-days.dated .chip').count() == 4)
+        await ev("UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(250)
+        check('the Plan page shows a card for each of the 4 days', await pg.locator('[id^="day-"]').count() == 4)
         # stars
         await ev("setMealsMode('recipes')"); await pg.wait_for_timeout(250)
         check('no From a post button', await pg.locator('#from-post').count() == 0)

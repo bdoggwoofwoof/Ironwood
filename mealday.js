@@ -69,7 +69,7 @@ function dClear(m, o, keep = () => false) {
    and eaten ones always stay. Returns { filled, kept }. */
 function dFillPattern(m, pattern, o, replace) {
   m.days = m.days || {}; let filled = 0; const keptIds = new Set();
-  for (const d of o.dates) { if (d < o.from) continue;
+  for (const d of o.dates) { if (d < o.from || (o.only && !o.only.has(d))) continue;
     let list = m.days[d] || [];
     if (replace) list = list.filter(x => x.by !== 'plan' || o.eaten.has(x.id));
     for (const { x } of dayRows(list)) keptIds.add(x.id);
@@ -101,10 +101,10 @@ function planT() {
 }
 /* Build the weekly pattern and put it on the dates. replace: the plan's own meals are picked again; from: first date
    (today for Different meals and re-sizing, so past days stay as they were). Returns null when too few recipes fit. */
-function genFill(seed, { replace = true, from, auto, fill = true } = {}) {
+function genFill(seed, { replace = true, from, auto, fill = true, only } = {}) {
   const t = planT(); if (!t) return null; const nm = buildMenu(t, seed); if (!nm) return null; let res;
   mealCommit(mm => { mm.gen = { seed, at: Date.now(), h: nm.h, t: { kcal: t.kcal, p: t.p, c: t.c, f: t.f } }; delete mm.menu;
-    const o = placeOpts(mm); if (from) o.from = from; else o.from = o.dates[0];
+    const o = placeOpts(mm); if (from) o.from = from; else o.from = o.dates[0]; if (only) o.only = new Set(only);
     res = fill ? dFillPattern(mm, nm.days, o, replace) : { filled: 0, kept: 0 }; if (auto && fill) mm.plan.fromMenu = true; });
   return res;
 }
@@ -212,4 +212,43 @@ function mealsCopyAside(v1, x) {
     rq.onsuccess = () => { try { const t = rq.result.transaction('copies', 'readwrite'); const st = t.objectStore('copies');
       const g = st.get('pre-meals-v2'); g.onsuccess = () => { if (!g.result) st.put({ id: 'pre-meals-v2', at: Date.now(), meals: clone(x) }); }; } catch (e) {} };
   } catch (e) {}
+}
+
+/* ---- one meal at a time (Nov 16, audit phase 3: the meal sheet on Plan). Each change touches only that meal. ---- */
+const mealIn = (m, d, id) => ((m.days || {})[d] || []).find(x => x.id === id);
+function editMeal(d, id, fn) { mealCommit(mm => { const x = mealIn(mm, d, id); if (x) { fn(x, mm); x.by = 'you'; delete x.sp; } }); }
+const setMealSv = (d, id, sv) => editMeal(d, id, x => { x.sv = Math.max(0.5, Math.min(6, sv)); });
+const replaceMeal = (d, id, r) => editMeal(d, id, x => { x.r = r; delete x.name; delete x.off; x.id = pmId(); });
+const setMealOff = (d, id, on) => editMeal(d, id, x => { if (on) x.off = 1; else delete x.off; });
+function removeMeal(d, id) { mealCommit(mm => { const l = (mm.days[d] || []).filter(x => x.id !== id); if (l.length) mm.days[d] = l; else delete mm.days[d]; }); }
+/* A new meal in an empty spot: a recipe, a note with no recipe, or "eating elsewhere" */
+function addMealAt(d, key, o) {
+  let id = null; mealCommit(mm => { id = pmId(); (mm.days[d] = mm.days[d] || []).push({ id, slot: keySlot(key), ...(o.r ? { r: o.r } : { name: String(o.name || 'A meal').slice(0, 80) }), sv: o.sv || 1, by: 'you', ...(o.off ? { off: 1 } : {}) }); }); return id;
+}
+/* The meal in a spot (date + meal key), or null */
+const mealAtKey = (m, d, key) => { const row = dayRows((m.days || {})[d] || []).find(x => x.key === key); return row ? row.x : null; };
+/* Put a copy of a meal (fields only) into a spot: replaces what's there unless it was eaten */
+function putInSpot(mm, d, key, src, ea) {
+  const cur = mealAtKey(mm, d, key); if (cur && ea.has(cur.id)) return false;
+  const nx = { id: pmId(), slot: keySlot(key), ...(src.r ? { r: src.r } : { name: src.name }), sv: src.sv, by: 'you', ...(src.off ? { off: 1 } : {}) };
+  const l = mm.days[d] = mm.days[d] || []; if (cur) l.splice(l.indexOf(cur), 1, nx); else l.push(nx); return true;
+}
+/* Move a meal to another spot; whatever was there takes its place */
+function moveMeal(d, id, d2, key2) {
+  mealCommit(mm => { const ea = eatenIds(mm); const x = mealIn(mm, d, id); if (!x || ea.has(id)) return; const k1 = (dayRows(mm.days[d]).find(r => r.x === x) || {}).key;
+    const other = mealAtKey(mm, d2, key2); if (other === x) return; if (other && ea.has(other.id)) return;
+    const a = { ...x }, b = other ? { ...other } : null;
+    mm.days[d] = mm.days[d].filter(y => y !== x); if (!mm.days[d].length) delete mm.days[d];
+    putInSpot(mm, d2, key2, a, ea); if (b) putInSpot(mm, d, k1, b, ea); });
+}
+/* Copy a meal to other spots (e.g. every lunch these days) */
+function copyMeal(d, id, spots) {
+  let n = 0; mealCommit(mm => { const ea = eatenIds(mm); const x = mealIn(mm, d, id); if (!x) return; for (const [d2, k2] of spots) if (putInSpot(mm, d2, k2, x, ea)) n++; }); return n;
+}
+/* Extra food for the freezer: servings of a recipe on the first day, not tied to a meal */
+const extraOf = (r, m = ML()) => { const d0 = rangeYmds(m.plan)[0]; const x = ((m.days || {})[d0] || []).find(y => y.slot === 'x' && y.r === r && !y.sp); return x ? x.sv : 0; };
+function setExtra(r, n) {
+  mealCommit(mm => { const d0 = rangeYmds(mm.plan)[0]; const l = mm.days[d0] = mm.days[d0] || []; const x = l.find(y => y.slot === 'x' && y.r === r && !y.sp);
+    if (n > 0) { if (x) x.sv = n; else l.push({ id: pmId(), slot: 'x', r, sv: n, by: 'you' }); } else if (x) l.splice(l.indexOf(x), 1);
+    if (!l.length) delete mm.days[d0]; });
 }

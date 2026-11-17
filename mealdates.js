@@ -187,17 +187,17 @@ function StarBtn({ id, name, big }) {
 }
 
 /* ---- the Meals tour: what to do, in the order most people do it ---- */
-const MEALS_TOUR = [
-  ['meals', null, null, 'How Meals works', 'Meals has four tabs, used in this order: Week to plan, Shopping to buy, then you cook, and Today to log what you eat. This takes about a minute.', { meals: 'plan' }],
-  ['meals', null, '#plan-dates', '1. Pick your dates', 'Tap Pick dates and choose the days on a calendar: the first day, then the last. Starting midweek? Tap “Until Sunday” (or your prep day) for a short first plan, and the next one starts on your prep day.', { meals: 'plan' }],
-  ['meals', null, '#plan-cta, #menu-card, #plan-cta-small', '2. Choose your meals', 'Plan my week asks about you, your food and how you cook, then picks meals with portions. Or use a ready-made prep, or pick recipes yourself. Any of them fills your cooking and shopping list.', { meals: 'plan' }],
-  ['meals', null, '#ready-preps', 'Ready-made preps', 'A week of cooking in one tap. Open one to see its recipes. Use this prep loads it as is. Swap recipes or plan it lets you change any recipe first, or save it for later dates.', { meals: 'plan' }],
-  ['meals', null, '.mp-who, #plan-cta', '3. What you’ll cook', 'Once you’ve picked meals, each recipe shows how many times you’ll eat it. Set the people and days and everything scales. Tap Swap to trade a recipe for another, or ✕ to drop it.', { meals: 'plan' }],
-  ['meals', null, '#plan-ahead', 'Plan ahead', 'Line up the next plan now, with its dates. It loads on its first day with a fresh shopping list. Or rotate 2 to 4 preps, one each week, just below.', { meals: 'plan' }],
-  ['meals', null, '#meal-search', 'Recipes', 'Search by name or ingredient. The filters narrow it to breakfasts, mains, snacks, reels, your own recipes or Starred. The + adds a recipe to what you’ll cook.', { meals: 'recipes' }],
-  ['meals', null, '#rchip-starred', 'Star your favorites', 'Tap ☆ on any recipe to star it. Starred keeps them in one place, and they come first when you swap a recipe.', { meals: 'recipes' }],
+const MEALS_TOUR = [   /* rewritten for the Plan page (Nov 16, audit phase 3) */
+  ['meals', null, null, 'How Meals works', 'Meals has four tabs: Plan your dates, Shop for them, cook, then Log what you eat. Recipes is where you find and save meals. This takes about a minute.', { meals: 'plan' }],
+  ['meals', null, '#plan-dates', '1. Your dates', 'Plan covers real dates. Tap Change to pick them on a calendar: the first day, then the last, or “Until Sunday” (your prep day) for a short first stretch.', { meals: 'plan' }],
+  ['meals', null, '#plan-cta, #plan-sum', '2. One main button', 'With nothing planned it says Plan my week: a few questions, then meals with portions for your dates. After that it points to the shopping list, and once you’ve bought everything, to Start cooking.', { meals: 'plan' }],
+  ['meals', null, '[id^="day-"], #plan-cta', '3. Each day', 'One card per date. A chip shows what needs attention: Needs a recipe, Eaten, Eating elsewhere. Tap any meal to replace it, move or copy it, change its servings or mark it eaten. Only that meal changes.', { meals: 'plan' }],
+  ['meals', null, '#cook-for, #plan-cta', '4. Cook for these dates', 'Everything to cook, worked out from the meals above, for the people you cook for. Change a meal and this follows. Start cooking puts it in one session.', { meals: 'plan' }],
+  ['meals', null, '#plan-tools', 'More planning tools', 'Different meals for the days you pick, plan settings, food preferences, people, saved and ready-made preps, planning ahead, rotation, and clearing.', { meals: 'plan' }],
+  ['meals', null, '#meal-search', 'Recipes', 'Search by name or ingredient. The filters narrow it to breakfasts, mains, snacks, reels, your own recipes or Starred. The + adds a recipe to your plan.', { meals: 'recipes' }],
+  ['meals', null, '#rchip-starred', 'Star your favorites', 'Tap ☆ on any recipe to star it. Starred keeps them in one place, and they come first when you pick a recipe for a meal.', { meals: 'recipes' }],
   ['meals', null, '#rchip-mix', 'Mix & match', 'Cook one plain base, like chicken or rice, and turn it into different meals with a sauce or spice mix, so the week doesn’t taste the same every day.', { meals: 'recipes' }],
   ['meals', null, '#new-recipe', 'Your own recipes', 'New recipe saves your own. It can fill itself in from a post: paste the caption and link, then check what it found. Nutrition is worked out from the ingredients.', { meals: 'recipes' }],
-  ['meals', null, '#share-list, #list-plan, #list-from-plan', '4. Shopping', 'Everything for your dates, added up and sorted by aisle. Tick things off as they go in the cart, add extras like coffee, or share the list.', { meals: 'list' }],
-  ['meals', null, '#log-scan, #log-add', '5. Today', 'Log what you eat against your daily goals. Meals from your plan show up here with an Ate it button.', { meals: 'log' }],
-  ['meals', null, null, 'A simple routine', 'On your prep day: check Week, open Shopping, buy, cook. Each day: tap Ate it in Today. Help at the bottom of any page brings this tour back.', { meals: 'plan' }]];
+  ['meals', null, '#share-list, #list-plan, #list-from-plan', '5. Shop', 'Everything for your dates, added up and sorted by aisle. Tick things off as they go in the cart, add extras like coffee, or share the list.', { meals: 'list' }],
+  ['meals', null, '#log-scan, #log-add', '6. Log', 'Log what you eat against your daily goals. Today’s planned meals show up here with an Ate it button.', { meals: 'log' }],
+  ['meals', null, null, 'A simple routine', 'On your prep day: check Plan, open Shop, buy, cook. Each day: tap Ate it in Log. Help at the bottom of any page brings this tour back.', { meals: 'plan' }]];

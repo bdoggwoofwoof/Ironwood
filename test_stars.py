@@ -34,7 +34,7 @@ async def main():
         starred = ['m-overnight-oats', 'm-sc-tikka', 'm-sc-shawarma', 'm-sc-honey-garlic', 'm-hb-eggs']
         check('the week is built from the starred recipes', ids and all(i in starred for i in ids), ids)
         check('...and fills what you cook', await ev("ML().plan.fromMenu && ML().plan.items.length > 0"))
-        check('the plan card says it is from your stars', 'starred' in (await pg.inner_text('#menu-card')).lower())
+        check('the summary says it is from your stars', 'starred' in (await pg.inner_text('#plan-sum')).lower())
         # Auto-update
         await ev("toggleStar('m-sc-honey-garlic')"); await pg.wait_for_timeout(300)
         ids2 = await ev(MENU_IDS)
@@ -50,7 +50,9 @@ async def main():
         check('How you eat has the starred switch, on', await ev("document.querySelector('#hb-starred').checked"))
         await ev("closeSheet()")
         await ev("mealCommit(m => { m.habits = { ...m.habits, starred: false }; }); S.rerender()"); await pg.wait_for_timeout(200)
+        await ev("openPlanTools()"); await pg.wait_for_timeout(200)
         check('a planned week offers Plan from my starred recipes when it is off', await pg.locator('#plan-use-stars').count() == 1)
+        await ev("closeSheet()")
         check('stars survive a reload', await ev("(S.meta.meals = normMeals(JSON.parse(JSON.stringify(S.meta.meals))), isStarred('m-sc-shawarma'))"))
         check('no page errors', not errs, errs[:2])
         await b.close()

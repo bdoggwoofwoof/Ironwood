@@ -161,20 +161,22 @@ function IssueLine({ r }) {
   return html`<div class=${'issue-line' + (x.block.length ? ' bad' : '')} role="note">${x.block.length ? 'Contains ' + x.block.join(', ') : ''}${x.block.length && x.dislike.length ? ' · ' : ''}${x.dislike.length ? 'Has ' + x.dislike.join(', ') + ' (you’d rather not)' : ''}</div>`;
 }
 /* The questionnaire: used on its own and inside the meal plan setup */
-function PrefsFields({ v, set }) {
+/* part: 'basic' = allergies and diet (the short first setup, Nov 16 audit P6), 'more' = dislikes and swaps, unset = all */
+function PrefsFields({ v, set, part }) {
   const tog = k => set({ ...v, allergies: v.allergies.includes(k) ? v.allergies.filter(x => x !== k) : v.allergies.concat(k) });
-  return html`<div class="stack" style="gap:12px" id="prefs-fields">
-    <div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
+  const basic = part !== 'more', more = part !== 'basic';
+  return html`<div class="stack" style="gap:12px" id=${part === 'more' ? 'prefs-more' : 'prefs-fields'}>
+    ${basic ? html`<div><span class="lbl">Allergies or foods you can’t eat</span><div class="cat-pick">${ALLERGENS.map(([k, l]) => html`<button key=${k} id=${'al-' + k} class=${'chip' + (v.allergies.includes(k) ? ' on' : '')} aria-pressed=${v.allergies.includes(k)} onClick=${() => tog(k)}>${l}</button>`)}</div>
       <p class="small muted">Recipes with these never show up in plans or suggestions, and they’re marked everywhere. Always check labels yourself.</p></div>
     <div><span class="lbl">Diet (pick any)</span><div class="cat-pick">${DIETS.map(([k, l]) => { const on = k === 'none' ? !v.diets.length : v.diets.includes(k);
         return html`<button key=${k} id=${'diet-' + k} class=${'chip' + (on ? ' on' : '')} aria-pressed=${on} onClick=${() => set({ ...v, diets: k === 'none' ? [] : on ? v.diets.filter(x => x !== k) : v.diets.concat(k) })}>${l}</button>`; })}</div>
       ${v.diets.includes('lactose') ? html`<div class="card stack" id="lactose-menu" style="gap:4px;margin-top:10px"><div style="font-weight:700">Leave out</div>
         ${LACTOSE_FOODS.map(([k, l]) => html`<label key=${k} class="toggle-row" for=${'lac-' + k}><span>${l}</span><input type="checkbox" role="switch" id=${'lac-' + k} checked=${v.lactose.includes(k)} onChange=${e => set({ ...v, lactose: e.target.checked ? v.lactose.concat(k) : v.lactose.filter(x => x !== k) })}/></label>`)}
-        <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>
-    <div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
+        <p class="small muted">Hard cheese, Greek yogurt and butter are lower in lactose, so many people can have them; switch on anything that bothers you. Turned-on foods stay out of plans and suggestions and are marked on recipes.</p></div>` : null}</div>` : null}
+    ${more ? html`<div><label class="lbl" for="pf-dislikes">Foods you don’t like</label><input class="field" id="pf-dislikes" placeholder="e.g. mushrooms, olives, cilantro" value=${v.dislikes} onInput=${e => set({ ...v, dislikes: e.target.value })}/>
       ${parseDislikes(v.dislikes).length ? html`<p class="small" id="pf-dislikes-read" style="margin-top:6px">Leaving out: ${parseDislikes(v.dislikes).join(' · ')}</p>` : null}
       <p class="small muted">Separate foods with commas or spaces. Left out of plans and suggestions; you can still search for them.</p></div>
-    <${SwapFields} v=${v} set=${set}/></div>`;
+    <${SwapFields} v=${v} set=${set}/>` : null}</div>`;
 }
 /* Trade out proteins (Nov 11): beef and pork can always be traded; when your answers rule one out, Keep isn't offered */
 function SwapFields({ v, set }) {

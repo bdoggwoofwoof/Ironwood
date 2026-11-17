@@ -21,9 +21,9 @@ async def main():
         check('with nothing chosen, nothing is skipped', await ev("allRecipes().every(r => !recipeGear(r).missing.length)"))
         # Setup: How you eat has the gear chips
         await ev("mealCommit(m => { m.me = { h: 178, w: 82, age: 30, sex: 'm', act: 1.55, us: true }; }); UI.setTab('meals'); setMealsMode('plan'); S.rerender(); openSheet({ type: 'mealTargets' })"); await pg.wait_for_timeout(400)
-        check('step buttons: all three tappable once the numbers are in', await pg.locator('#tg-steps button:not([disabled])').count() == 3)
-        await pg.click('#tg-go-2'); await pg.wait_for_timeout(200)
-        check('How you eat has Kitchen gear', await pg.locator('#gear-fields .chip').count() == 8)
+        check('step buttons: both tappable once the numbers are in', await pg.locator('#tg-steps button:not([disabled])').count() == 2)
+        await pg.click('#tg-go-1'); await pg.wait_for_timeout(200); await pg.click('#tg-more summary'); await pg.wait_for_timeout(150)
+        check('More choices has Kitchen gear', await pg.locator('#gear-fields .chip').count() == 8)
         await pg.click('#gear-pint'); await pg.click('#gear-oven'); await pg.wait_for_timeout(100)
         await pg.click('#tg-save'); await pg.wait_for_timeout(600)
         g = await ev("ML().habits.gear")

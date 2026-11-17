@@ -83,7 +83,7 @@ async def main():
           window.Date = Fake; try { lsSet('monthSeen', ''); const lm = ymAdd(ymOf(new Date()), -1); return [!!MonthCard(), lm]; } finally { window.Date = RealDate; } })()""")
         check('on the 3rd, the card offers last month', shown[0] is True, shown)
         # ---- Prep rotation
-        await ev("UI.setTab('meals'); setMealsMode('plan'); PREP_UI.ready = true; S.rerender()"); await pg.wait_for_timeout(250)
+        await ev("openMealPreps()"); await pg.wait_for_timeout(250)   # Nov 16 (phase 3): preps and the rotation live off Plan
         check('rotation card offers setup', await pg.locator('#rot-setup').count() == 1)
         ids = await ev("MEAL_PREPS.slice(0, 3).map(p => p.id)")
         await pg.click('#rot-setup'); await pg.wait_for_timeout(200)
@@ -104,7 +104,9 @@ async def main():
         check('a new week loads the next prep and clears the list ticks', sorted(got2) == sorted(want2) and await ev("Object.keys(ML().checks).length") == 0, (got2, want2))
         check('it loads once per week', await ev("rotCheck()") is False)
         # Save your own prep and rotate it
+        await ev("UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); S.rerender(); openPlanTools()"); await pg.wait_for_timeout(250)
         await pg.click('#prep-save'); await pg.wait_for_timeout(150); await pg.fill('#ps-name', 'Sunday Mix'); await pg.click('#ps-save'); await pg.wait_for_timeout(200)
+        await ev("openMealPreps()"); await pg.wait_for_timeout(250)
         check('save this prep', await pg.locator('.prep-card', has_text='Sunday Mix').count() == 1)
         check('saved preps survive reload', await ev("normMeals(JSON.parse(JSON.stringify(ML()))).preps && Object.values(normMeals(JSON.parse(JSON.stringify(ML()))).preps).some(p => p.name === 'Sunday Mix') && !!normMeals(JSON.parse(JSON.stringify(ML()))).rot"))
         await pg.click('#rot-stop'); await pg.wait_for_timeout(150)

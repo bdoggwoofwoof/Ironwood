@@ -134,7 +134,7 @@ async def main():
         check('shorter dates: the plan covers 4 days and drops later ones', await ev("planYmds().length") == 4 and await ev("Object.keys(ML().days).filter(d => d >= ymd(new Date())).every(d => planYmds().includes(d))"))
         await ev("setPlanDates(new Date(), 10)"); await pg.wait_for_timeout(200)
         check('longer dates: the plan fills the new days', await ev("planYmds().every(d => dayRows(dayMeals(d)).length >= 3)") and n7 == 7)
-        check('...and the tabs show the dates of this week', await pg.locator('.menu-days.dated .chip').count() == 7)
+        check('...and the Plan page has a card for each date', await pg.locator('[id^="day-"]').count() == 10)
         # a picked recipe re-spreads with the dates ("times a week")
         await ev("mealCommit(m => { m.days = {}; delete m.plan.fromMenu; delete m.gen; }); setPlanDates(new Date(), 7); addToPlan('m-sheet-pan', 7)")
         check('a picked recipe: 7 times a week is 7 servings', await ev("recipeCount('m-sheet-pan')") == 7)

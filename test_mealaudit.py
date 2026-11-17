@@ -18,7 +18,7 @@ async def main():
         await ev("UI.setTab('meals'); setMealsMode('list'); S.rerender()"); await pg.wait_for_timeout(300)
         check('M11: no shared subtitle', 'logged, planned and shopped for' not in await pg.inner_text('body'))
         check('M10: empty List offers Plan my week', await pg.locator('#list-plan').count() == 1)
-        check('G: switch reads Log, Plan, Recipes, Shop', await ev("[...document.querySelectorAll('.topsw button')].map(b => b.textContent)") == ['Log', 'Plan', 'Recipes', 'Shop'])
+        check('G: switch reads Log, Plan, Recipes, Shop', await ev("[...document.querySelectorAll('.topsw button')].map(b => b.textContent)") == ['Log', 'Plan', 'Recipes', 'Preps', 'Shop'])
         await ev("setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         check('M5: an empty week has one main way in and two others', await pg.locator('#plan-start').count() == 1 and await pg.locator('#week-ready').count() == 1 and await pg.locator('#week-pick').count() == 1)
         check('M3: no people or weeks before there is anything to cook', await pg.locator('.mp-who').count() == 0)

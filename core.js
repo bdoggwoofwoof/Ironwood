@@ -656,12 +656,9 @@ const tagChips = (tags, max) => { const n = max || tags.length; const shown = ta
 function RoutinesScreen({ view }) {
   if (view && view.type === 'routine') return html`<${RoutineView} id=${view.id}/>`;
   if (view && view.type === 'edit') return html`<${RoutineEditor} view=${view}/>`;
-  if (plansMode() === 'meals' && typeof MealPrepLibrary === 'function') return html`<div><${PlansSwitch}/><${Intro} id="intro-plans-meals">Weeks of cooking to use, swap or rotate.<//><${MealPrepLibrary}/></div>`;
   return html`<${RoutineList}/>`;
 }
-/* Plans splits into Training and Meal preps (Nov 16, Newt), like Train / Run / Fight */
-const plansMode = () => lsGet('plansMode') === 'meals' ? 'meals' : 'train';
-function PlansSwitch() { return html`<${TopSwitch} value=${plansMode()} options=${[['train', 'Training'], ['meals', 'Meal preps']]} onChange=${k => { lsSet('plansMode', k); S.rerender(); scrollTo(0, 0); }}/>`; }
+/* Nov 17 (Newt): Meal preps moved from Plans to Meals → Preps; Plans is training only again */
 const RT_OPEN = { v: null };
 const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('rtOpen') || '{}') || {}; } catch (e) { RT_OPEN.v = {}; } } return RT_OPEN.v; };
 /* The Plans library (Nov 10, audit P1-3): one list. A routine is just a one-day plan. A search box, one row of filter
@@ -702,8 +699,7 @@ function RoutineList() {
     ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
     ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
-  const top = html`<${PlansSwitch}/>
-    <${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
+  const top = html`<${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
     <input class="field" type="search" id="plan-q" placeholder="Search plans" aria-label="Search plans" value=${q} onInput=${e => setQ(e.target.value)}/>
     <div class="plan-chips" role="group" aria-label="Show" id="plan-filters">${PLAN_FILTERS.map(([k, l]) => html`<button key=${k} class=${'chip' + (fl === k ? ' on' : '')} aria-pressed=${fl === k} id=${'pf-' + k} onClick=${() => pickF(k)}>${l}</button>`)}</div>
     ${inLib ? html`<${LibFilters} re=${re}/>` : null}
@@ -2296,7 +2292,7 @@ function App() {
     ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}
     ${showMini ? html`<${IntervalMini}/>` : null}
     ${showFight ? html`<${FightMini}/>` : null}
-    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : null}${body}<${HelpFoot}/></main>
+    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : !view && tab === 'routines' ? html`<div class="topsw"><h1 class="page-title">Plans</h1></div>` : null}${body}<${HelpFoot}/></main>
     <${QuickFab} tab=${tab} view=${view}/>
     <${Toast}/>
     <${Announcer}/>

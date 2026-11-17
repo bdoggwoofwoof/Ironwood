@@ -890,7 +890,7 @@ async function shareList() {
 }
 
 /* ---- screens ---- */
-const MEALS = { mode: ['log', 'plan', 'recipes', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null, f: {} };
+const MEALS = { mode: ['log', 'plan', 'recipes', 'preps', 'list'].includes(lsGet('mealsMode')) ? lsGet('mealsMode') : 'plan', q: '', cat: 'all', day: null, f: {} };
 /* Recipe filters (Nov 17, audit phase 4): quick, high protein, freezes well. Recently viewed recipes, newest first. */
 const REC_FILTERS = [['quick', '30 min or less', r => +r.mins > 0 && +r.mins <= 30], ['protein', 'High protein', r => { const m = macros(r); return !!m && m.p >= 25 && m.p * 4 >= m.kcal * 0.25; }], ['freezes', 'Freezes well', r => !!r.freezes]];
 const recFilter = r => REC_FILTERS.every(([k, , f]) => !MEALS.f[k] || f(r));
@@ -912,8 +912,8 @@ function MealsScreen({ view }) {
   if (vt === 'eatReview') return html`<${EatReview}/>`;
   if (vt === 'base') return html`<${BaseView} key=${view.id} id=${view.id}/>`;
   if (vt === 'cook') return html`<${CookView}/>`;
-  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Plan'], ['recipes', 'Recipes'], ['list', 'Shop']]} onChange=${setMealsMode}/>
-    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : html`<${PlanPage}/>`}
+  return html`<div><${TopSwitch} value=${MEALS.mode} options=${[['log', 'Log'], ['plan', 'Plan'], ['recipes', 'Recipes'], ['preps', 'Preps'], ['list', 'Shop']]} onChange=${setMealsMode}/>
+    ${MEALS.mode === 'log' ? html`<${LogPane}/>` : MEALS.mode === 'recipes' ? html`<${RecipesPane}/>` : MEALS.mode === 'list' ? html`<${ShopPane}/>` : MEALS.mode === 'preps' ? html`<div><${Intro} id="intro-meal-preps">Weeks of cooking to use now, plan for later dates, or rotate.<//><${MealPrepLibrary}/></div>` : html`<${PlanPage}/>`}
 </div>`;
 }
 function keepNote(r, it) {
@@ -943,7 +943,7 @@ function usePrepFor(pr, ok) {
     if (!P.items.length) apply(true);
     else openSheet({ type: 'confirm', title: 'Use ' + pr.name + '?', body: 'Replace this week’s cooking, or add these recipes to it.', ok: 'Replace my prep', onOk: () => apply(true), alt: 'Add to my prep', onAlt: () => apply(false) });
   }
-/* Plans → Meal preps (Nov 16, Newt: Plans splits into Training and Meal preps, like Train / Run / Fight) */
+/* Meals → Preps (Nov 17, Newt: moved here from Plans → Meal preps) */
 function MealPrepLibrary() {
   const [open, setOpen] = useState(null); const mine = Object.values(ML().preps); const list = readyPreps();
   const go = pr => { usePrepFor(pr); setTimeout(() => { if (ML().plan.items.length) { UI.setTab('meals'); setMealsMode('plan'); } }, 80); };
@@ -959,7 +959,7 @@ function MealPrepLibrary() {
     <div class="ready-list">${list.map(pr => row(pr, true))}</div>
     <${ComingUp}/>
     <${RotationCard}/>
-    <button class="btn wide" style="margin-top:12px" id="lib-to-week" onClick=${() => { UI.setTab('meals'); setMealsMode('plan'); }}>Go to this week’s meals</button></div>`;
+    <button class="btn wide" style="margin-top:12px" id="lib-to-week" onClick=${() => { UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); }}>Go to Plan</button></div>`;
 }
 /* ---- Saved preps and the weekly rotation (Oct 29) ----
    meals.preps: { id: { id, name, items: [[recipe id, times a week]] } } (preps you save). meals.rot: { ids: [prep ids, 2–4],

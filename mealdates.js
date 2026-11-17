@@ -188,11 +188,12 @@ function StarBtn({ id, name, big }) {
 
 /* ---- the Meals tour: what to do, in the order most people do it ---- */
 const MEALS_TOUR = [   /* rewritten for the Plan page (Nov 16, audit phase 3) */
-  ['meals', null, null, 'How Meals works', 'Meals has four tabs: Plan your dates, Shop for them, cook, then Log what you eat. Recipes is where you find and save meals. This takes about a minute.', { meals: 'plan' }],
+  ['meals', null, null, 'How Meals works', 'Meals has five tabs: Plan your dates, Shop for them, cook, then Log what you eat. Recipes and Preps are where you find meals and whole weeks of cooking. This takes about a minute.', { meals: 'plan' }],
   ['meals', null, '#plan-dates', '1. Your dates', 'Plan covers real dates. Tap Change to pick them on a calendar: the first day, then the last, or “Until Sunday” (your prep day) for a short first stretch.', { meals: 'plan' }],
   ['meals', null, '#plan-cta, #plan-sum', '2. One main button', 'With nothing planned it says Plan my week: a few questions, then meals with portions for your dates. After that it points to the shopping list, and once you’ve bought everything, to Start cooking.', { meals: 'plan' }],
   ['meals', null, '[id^="day-"], #plan-cta', '3. Each day', 'One card per date. A chip shows what needs attention: Needs a recipe, Eaten, Eating elsewhere. Tap any meal to replace it, move or copy it, change its servings or mark it eaten. Only that meal changes.', { meals: 'plan' }],
   ['meals', null, '#cook-for, #plan-cta', '4. Cook for these dates', 'Everything to cook, worked out from the meals above, for the people you cook for. Change a meal and this follows. Start cooking puts it in one session.', { meals: 'plan' }],
+  ['meals', null, '#meal-prep-lib', 'Preps', 'Whole weeks of cooking: your saved preps and ready-made ones. Use one now, plan it for later dates, or rotate 2 to 4 of them week by week.', { meals: 'preps' }],
   ['meals', null, '#plan-tools', 'More planning tools', 'Different meals for the days you pick, plan settings, food preferences, people, saved and ready-made preps, planning ahead, rotation, and clearing.', { meals: 'plan' }],
   ['meals', null, '#meal-search', 'Recipes', 'Search by name or ingredient. The filters narrow it to breakfasts, mains, snacks, reels, your own recipes or Starred. The + adds a recipe to your plan.', { meals: 'recipes' }],
   ['meals', null, '#rchip-starred', 'Star your favorites', 'Tap ☆ on any recipe to star it. Starred keeps them in one place, and they come first when you pick a recipe for a meal.', { meals: 'recipes' }],

@@ -20,7 +20,7 @@ async def main():
         await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1200)
         ev = pg.evaluate
         await ev("UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
-        check('G: Meals switches read Log, Plan, Recipes, Shop', await ev("[...document.querySelectorAll('.topsw button')].map(b => b.textContent)") == ['Log', 'Plan', 'Recipes', 'Shop'])
+        check('G: Meals switches read Log, Plan, Recipes, Shop', await ev("[...document.querySelectorAll('.topsw button')].map(b => b.textContent)") == ['Log', 'Plan', 'Recipes', 'Preps', 'Shop'])
         check('empty: one main button, Plan my week, and "or use a saved plan"', await pg.locator('#plan-start.primary').count() == 1 and await pg.locator('#week-ready').count() == 1 and await pg.locator('[id^="day-"]').count() == 0)
         await ev(SEED); await pg.wait_for_timeout(500)
         today = await ev("ymd(new Date())"); d1 = await ev("ymd(addDays(new Date(), 1))"); d2 = await ev("ymd(addDays(new Date(), 2))")

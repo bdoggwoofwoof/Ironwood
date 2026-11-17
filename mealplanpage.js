@@ -23,7 +23,7 @@ function planCounts(m = ML()) {
     if (!x) { if (row.key[0] !== 's') c.need++; continue; } if (x.off) c.away++; else { c.planned++; if (ea.has(x.id)) c.eaten++; } }
   return c;
 }
-const openMealPreps = () => { lsSet('plansMode', 'meals'); UI.setView(null); UI.setTab('routines'); scrollTo(0, 0); };
+const openMealPreps = () => { UI.setTab('meals'); UI.setView(null); setMealsMode('preps'); };   /* Meals → Preps (Nov 17) */
 const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 
 function PlanSummary() {

@@ -136,8 +136,8 @@ async def main():
           return { low: COVER_ROWS.filter(([k]) => ['chest', 'back', 'sdelt', 'quads', 'hams', 'triceps', 'biceps'].includes(k) && !(w[k] >= 8)).map(([k]) => k + ':' + w[k]),
             keys: COVER_ROWS.map(x => x[0]), unknown: r.days.flatMap(d => d.items.filter(i => !(getEx(i.ex).pat || []).length).map(i => exName(i.ex))),
             norest: r.days.flatMap(d => d.items.filter(i => !i.rest).map(i => exName(i.ex))), tips: (r.tips || []).length, dayTips: r.days.filter(d => d.tip).length,
-            mins: r.days.map(d => Math.round(dayMinutes(d))), legs2: r.days.filter(d => d.items.some(i => (getEx(i.ex).pat || []).includes('kneeflex'))).length }; })()""")
-        check('Sapwood: 8+ weekly sets for chest, back, side delts, quads, hamstrings, triceps and biceps', not sw['low'], sw)
+            mins: r.days.map(d => Math.round(dayMinutes(d))), prio: ['chest', 'lats', 'sidedelt', 'quads'].map(k => w[k]), legs2: r.days.filter(d => d.items.some(i => (getEx(i.ex).pat || []).includes('kneeflex'))).length }; })()""")
+        check('Sapwood: 8+ weekly sets for chest, back, side delts, quads, hamstrings, triceps and biceps; 11+ for chest, lats, side delts and quads', not sw['low'] and min(sw['prio']) >= 11, sw)
         check('Sapwood: every exercise has muscle data and a rest time; hamstrings twice a week', not sw['unknown'] and not sw['norest'] and sw['legs2'] == 2, sw)
         check('Sapwood: 8 tips, no day over an hour', sw['tips'] == 8 and sw['dayTips'] == 0 and max(sw['mins']) <= 60, sw)
         await ev("UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-sapwood' })"); await pg.wait_for_timeout(400)
@@ -149,12 +149,12 @@ async def main():
         rest0 = await ev("S.active.items[0].target.rest")
         check('Sapwood workout uses the plan rest time and shows no tip card', rest0 == 150 and await pg.locator('.tip-card').count() == 0, rest0)
         drops = await ev("[getRoutine('bi-sapwood').days.flatMap(d => d.items.filter(i => i.dl).map(i => exName(i.ex) + ':' + i.dl)), S.active.items.map(it => it.sets.map(x => (x.drops || []).length).join(''))]")
-        check('Sapwood: six isolation lifts end with one drop on the last set, set up when the workout starts; main lifts stay straight', len(drops[0]) == 6 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
+        check('Sapwood: nine machine, cable and dumbbell lifts end with one drop on the last set, set up when the workout starts; main lifts stay straight', len(drops[0]) == 9 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
         await ev("S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0])"); await pg.wait_for_timeout(300)
         await ev("""(() => { const a = S.active; delete a.dlSync; a.items.forEach(it => it.sets.forEach(x => { delete x.drops; }));
           a.items[2].sets[2].w = '30'; a.items[2].sets[2].r = '12'; UI.setTab('train'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
         after = await ev("S.active.items.map(it => exName(it.ex) + ':' + it.sets.map(x => (x.drops || []).length).join(''))")
-        check('a workout started before the drop sets gets them on unfinished last sets only', after[0].endswith(':000') and after[2] == 'Cable Fly:000' and after[4].endswith(':001'), after)
+        check('a workout started before the drop sets gets them on unfinished last sets only', set(after[0].split(':')[1]) == {'0'} and after[2] == 'Cable Fly:000' and after[4].endswith(':001'), after)
         await ev("S.active.items[4].sets[2].drops = []; S.rerender()"); await pg.wait_for_timeout(200)
         check('a drop removed afterwards stays removed', await ev("(S.active.items[4].sets[2].drops || []).length") == 0)
         await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)

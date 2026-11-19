@@ -34,7 +34,7 @@ async def main():
         await bw.locator('button', has_text='Use this prep').click(); await pg.wait_for_timeout(300)
         await pg.evaluate("UI.setTab('meals'); UI.setView(null); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         check('ready-made prep fills the prep', await pg.locator('.mp-item').count() == 4)
-        check('each day shows its calories and protein', await pg.locator('[id^="daytot-"]').count() >= 5)
+        check('each day with meals shows its calories and protein', await pg.locator('[id^="daytot-"]').count() == await pg.evaluate("planYmds().filter(d => dayMeals(d).some(x => x.r && !x.off && x.slot !== 'x')).length") >= 1)   # Nov 19: was ≥ 5, which failed late in the week (a prep used on Thursday fills Thu–Sat)
         # scale: 2 people doubles the shopping list
         await pg.locator('#plan-list').click(); await pg.wait_for_timeout(300)
         one = await pg.evaluate("shoppingList().find(x => x.key === 'boneless skinless chicken breast').qty")

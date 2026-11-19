@@ -2300,7 +2300,7 @@ function startWorkout(routine, day0) {
   if (S.active) { openSheet({ type: 'confirm', title: 'Workout in progress', body: 'Finish or discard the current workout before starting another.', ok: 'Go to workout', onOk: () => { closeSheet(); UI.setTab('train'); } }); return; }
   if (S.toast && S.toast.kind === 'info') S.toast = null;
   PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };
-  S.active = { id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
+  S.active = { dlSync: 1, id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
   if (day) day.items.forEach((x, i) => { if (x.dl && S.active.items[i] && typeof presetDrops === 'function') presetDrops(S.active.items[i], x.dl, S.active.items[i].u || U()); });
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
@@ -2851,8 +2851,17 @@ function ColorSheet() {
     <p class="small faint" style="margin-top:6px">Light mode uses deeper versions of the same three colors.</p>
     <div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onClick=${closeSheet}>Cancel</button><button class="btn primary" style="flex:2" id="cw-save" onClick=${save}>Use these colors</button></div><//>`;
 }
+/* A workout started before its plan gained drop sets gets them on its unfinished last sets, once (Nov 19, Newt: mid-workout
+   when Sapwood's drops shipped). A drop removed afterwards stays removed. */
+function syncPlanDrops(a) {
+  if (a.dlSync || !a.routineId) return; a.dlSync = 1;
+  const r = getRoutine(a.routineId); const d = r && r.days.find(x => x.id === a.dayId); if (!d) return;
+  a.items.forEach(it => { const p = it.slot && d.items.find(x => x.id === it.slot); const last = it.sets[it.sets.length - 1];
+    if (p && p.dl && last && !isDone(last) && !(last.drops || []).length && p.ex === it.ex) presetDrops(it, p.dl, it.u || U()); });
+}
 function ActiveWorkout() {
   const a = S.active;
+  syncPlanDrops(a);
   useWake();
   const total = a.items.reduce((n, it) => n + it.sets.length, 0), done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   return html`<div>
@@ -3662,7 +3671,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version a420943</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version cc536c8</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }

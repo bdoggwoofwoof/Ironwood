@@ -760,7 +760,7 @@ function RoutineView({ id }) {
     <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
-    ${r.tips ? html`<${Tip} id=${'pt-' + r.id} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}</div><//>` : null}
+    ${r.tips ? html`<${Tip} id=${'pt-' + r.id + (r.tipsV > 1 ? '-v' + r.tipsV : '')} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}</div><//>` : null}
     ${archived ? html`<div class="card" id="plan-archived" style="margin-top:10px"><p class="small">${RETIRED[r.id] && isRetired(r.id) ? 'Retired from the library. ' + RETIRED[r.id] : 'Archived.'} It still works if you follow it, and its workouts stay in your history.</p><button class="btn" style="margin-top:8px" id="plan-restore" onClick=${() => restorePlan(r)}>Restore to Plans</button></div>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
     <${ProgramFacts} r=${r}/>

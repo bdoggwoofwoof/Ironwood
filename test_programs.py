@@ -150,6 +150,13 @@ async def main():
         check('Sapwood workout uses the plan rest time and shows no tip card', rest0 == 150 and await pg.locator('.tip-card').count() == 0, rest0)
         drops = await ev("[getRoutine('bi-sapwood').days.flatMap(d => d.items.filter(i => i.dl).map(i => exName(i.ex) + ':' + i.dl)), S.active.items.map(it => it.sets.map(x => (x.drops || []).length).join(''))]")
         check('Sapwood: six isolation lifts end with one drop on the last set, set up when the workout starts; main lifts stay straight', len(drops[0]) == 6 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
+        await ev("S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0])"); await pg.wait_for_timeout(300)
+        await ev("""(() => { const a = S.active; delete a.dlSync; a.items.forEach(it => it.sets.forEach(x => { delete x.drops; }));
+          a.items[2].sets[2].w = '30'; a.items[2].sets[2].r = '12'; UI.setTab('train'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
+        after = await ev("S.active.items.map(it => exName(it.ex) + ':' + it.sets.map(x => (x.drops || []).length).join(''))")
+        check('a workout started before the drop sets gets them on unfinished last sets only', after[0].endswith(':000') and after[2] == 'Cable Fly:000' and after[4].endswith(':001'), after)
+        await ev("S.active.items[4].sets[2].drops = []; S.rerender()"); await pg.wait_for_timeout(200)
+        check('a drop removed afterwards stays removed', await ev("(S.active.items[4].sets[2].drops || []).length") == 0)
         await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)
         # ---- Accessibility: automated check on the new screens ----
         axe = os.path.join('node_modules', 'axe-core', 'axe.min.js')

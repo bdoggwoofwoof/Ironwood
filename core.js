@@ -298,7 +298,7 @@ function startWorkout(routine, day0) {
   if (S.active) { openSheet({ type: 'confirm', title: 'Workout in progress', body: 'Finish or discard the current workout before starting another.', ok: 'Go to workout', onOk: () => { closeSheet(); UI.setTab('train'); } }); return; }
   if (S.toast && S.toast.kind === 'info') S.toast = null;
   PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };
-  S.active = { id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
+  S.active = { dlSync: 1, id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
   if (day) day.items.forEach((x, i) => { if (x.dl && S.active.items[i] && typeof presetDrops === 'function') presetDrops(S.active.items[i], x.dl, S.active.items[i].u || U()); });
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
@@ -437,8 +437,17 @@ function WeekStrip() {
 }
 /* ---------- TRAIN ---------- */
 /*@include train.js*/
+/* A workout started before its plan gained drop sets gets them on its unfinished last sets, once (Nov 19, Newt: mid-workout
+   when Sapwood's drops shipped). A drop removed afterwards stays removed. */
+function syncPlanDrops(a) {
+  if (a.dlSync || !a.routineId) return; a.dlSync = 1;
+  const r = getRoutine(a.routineId); const d = r && r.days.find(x => x.id === a.dayId); if (!d) return;
+  a.items.forEach(it => { const p = it.slot && d.items.find(x => x.id === it.slot); const last = it.sets[it.sets.length - 1];
+    if (p && p.dl && last && !isDone(last) && !(last.drops || []).length && p.ex === it.ex) presetDrops(it, p.dl, it.u || U()); });
+}
 function ActiveWorkout() {
   const a = S.active;
+  syncPlanDrops(a);
   useWake();
   const total = a.items.reduce((n, it) => n + it.sets.length, 0), done = a.items.reduce((n, it) => n + it.sets.filter(isDone).length, 0);
   return html`<div>

@@ -14,6 +14,7 @@ const ICONS = {
   up: ic(() => html`<path d="M12 19V5M6 11l6-6 6 6"/>`),
   down: ic(() => html`<path d="M12 5v14M6 13l6 6 6-6"/>`),
   x: ic(() => html`<path d="M6 6l12 12M18 6L6 18"/>`),
+  grip: ic(() => html`<path d="M5 8h14M5 12h14M5 16h14"/>`),
   link: ic(() => html`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>`),
   swap: ic(() => html`<path d="M7 7h12l-3-3M17 17H5l3 3"/>`),
   layers: ic(() => html`<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>`),
@@ -479,6 +480,7 @@ function ActiveWorkout() {
     <div class="stack" style="margin-top:16px">
       <${WorkoutAddons} a=${a}/>
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add exercise', onPick: ex => { a.items.push(makeSlot({ ex: ex.id, sets: 3 })); closeSheet(); touch(); } })}>${I.plus} Add exercise</button>
+      ${a.items.length > 1 ? html`<button class="btn wide" id="wo-reorder" onClick=${() => openSheet({ type: 'reorder', list: a.items, workout: true, onChange: touch })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn wide" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
       <button class="btn primary wide" onClick=${() => openSheet({ type: 'finish' })}>Finish workout</button>
       <button class="btn text danger wide" onClick=${() => openSheet({ type: 'confirm', title: 'Discard this workout?', body: 'Nothing from this session will be saved.', ok: 'Discard', danger: true, onOk: () => { commit(st => { st.active = null; st.rest = null; }, 'active', 300); closeSheet(); } })}>Discard workout</button>
@@ -838,8 +840,6 @@ function RoutineEditor({ view }) {
         ${day.tags && day.tags.length ? null : html`<p class="small faint" style="margin-top:6px">Automatic: ${autoTags(day, d).join(', ')}. Tap a type to set your own.</p>`}</div>
       ${day.items.map((it, ii) => html`<div key=${it.id} class=${'ed-item' + (it.ss ? ' ssi' : '')}>
         <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
-          <button class="icon-btn" aria-label="Move up" onClick=${() => move(day.items, ii, -1)}>${I.up}</button>
-          <button class="icon-btn" aria-label="Move down" onClick=${() => move(day.items, ii, 1)}>${I.down}</button>
           <button class="icon-btn" aria-label="Remove exercise" onClick=${() => { day.items.splice(ii, 1); re(); }}>${I.x}</button></div>
         <div class="row wrap">
           <span class="stepper"><button aria-label="Fewer sets" onClick=${() => { it.sets = Math.max(1, it.sets - 1); re(); }}>−</button><b>${it.sets}</b><button aria-label="More sets" onClick=${() => { it.sets = Math.min(20, it.sets + 1); re(); }}>+</button></span>
@@ -849,6 +849,7 @@ function RoutineEditor({ view }) {
           ${ii > 0 ? html`<label class="toggle"><input type="checkbox" id=${'ss-' + it.id} checked=${it.ss} onChange=${e => { it.ss = e.target.checked; re(); }}/>Superset</label>` : null}
         </div>
         <input class="field ed-cue" id=${'cue-' + it.id} aria-label=${exName(it.ex) + ' note'} placeholder="Note, e.g. 15 each side" value=${it.note || ''} onInput=${e => { it.note = e.target.value; }}/></div>`)}
+      ${day.items.length > 1 ? html`<button class="btn wide" id=${'ed-reorder-' + day.id} onClick=${() => openSheet({ type: 'reorder', list: day.items, title: 'Reorder ' + (day.name || 'day'), onChange: re })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}
     ${view.dayId ? null : html`<button class="btn wide" onClick=${() => { d.days.push({ id: uid('d'), name: 'Day ' + (d.days.length + 1), items: [] }); re(); }}>${I.plus} Add day</button>`}
@@ -1942,8 +1943,7 @@ function SlotSheet({ it }) {
     ${isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-machines" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class="d">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}
     <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>${I.swap}<div><div>Weigh in ${u === 'kg' ? 'lb' : 'kg'}</div><div class="d">Now ${u}. Remembered for this exercise.</div></div></button>
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
-    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
-    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
+    ${a.items.length > 1 ? html`<button class="opt" id="opt-reorder" onClick=${() => openSheet({ type: 'reorder', list: a.items, workout: true, onChange: touch })}>${I.grip}<div><div>Reorder or remove exercises</div><div class="d">Drag into any order; take out any you won’t do</div></div></button>` : null}
     ${it.sets.length ? html`<button class="opt" onClick=${() => { copySet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.copy}<div>Copy last set</div></button>
     <button class="opt" onClick=${() => { deleteSet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.trash}<div>Delete last set</div></button>` : null}
     <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; const ss0 = a.items[idx + 1] && a.items[idx + 1].ss; a.items.splice(idx, 1); ssTop(a.items); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
@@ -2093,6 +2093,8 @@ function SheetHost({ sheet }) {
   switch (sheet.type) {
     case 'pick': return html`<${PickSheet} ...${sheet}/>`;
     case 'swap': return html`<${SwapSheet} ...${sheet}/>`;
+    case 'reorder': return html`<${ReorderSheet} ...${sheet}/>`;
+    case 'addPick': return html`<${AddPickSheet} ...${sheet}/>`;
     case 'group': return html`<${GroupSheet} ...${sheet}/>`;
     case 'slot': return S.active ? html`<${SlotSheet} it=${sheet.it}/>` : null;
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
@@ -2227,6 +2229,7 @@ function SideTog({ ex }) {
 /*@include eatreview.js*/
 
 /*@include programs.js*/
+/*@include reorder.js*/
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);

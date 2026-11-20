@@ -16,8 +16,8 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(1500); ev = pg.evaluate
         # superset moved to the top
         await ev("(() => { const r = getRoutine('bi-5x5'); startWorkout(r, r.days[0]); S.active.items[1].ss = true; S.rerender(); })()"); await pg.wait_for_timeout(200)
-        await ev("openSheet({ type: 'slot', it: S.active.items[1] })"); await pg.wait_for_timeout(150)
-        await pg.locator('.sheet button', has_text='Move up').click(); await pg.wait_for_timeout(150)
+        await ev("openSheet({ type: 'reorder', list: S.active.items, workout: true, onChange: touch })"); await pg.wait_for_timeout(150)
+        await pg.locator('#reorder .ro-handle').nth(1).focus(); await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(150); await ev("closeSheet()")
         check('a superset moved to the top is no longer "with above"', await ev("S.active.items[0].ss") is False)
         # no tour mid-workout
         await ev("startTour()"); await pg.wait_for_timeout(150)

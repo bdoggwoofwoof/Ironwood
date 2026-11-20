@@ -29,7 +29,7 @@ async def main():
         a = await ev("({ n: S.active.items.length, names: S.active.items.map(i => exName(i.ex)), addons: S.active.addons, rid: S.active.routineId })")
         check('Add to Workout A: main day plus joint care day', a['n'] == 7 and a['names'][:3] == ['Back Squat', 'Bench Press', 'Barbell Row'] and a['names'][3] == 'Modified Curl-Up' and a['rid'] == 'bi-5x5', a)
         check('workout offers the other add-on', await pg.locator('#wo-add-bi-cond-aerobic').count() == 1 and await pg.locator('#wo-add-bi-care-back').count() == 0)
-        await pg.click('#wo-add-bi-cond-aerobic'); await pg.wait_for_timeout(300)
+        await pg.click('#wo-add-bi-cond-aerobic'); await pg.wait_for_timeout(300); await pg.click('#ap-add'); await pg.wait_for_timeout(300)
         check('conditioning day added mid-workout', await ev("S.active.addons.length") == 2 and await ev("S.active.items.length") == 8)
         await ev("S.active.items.forEach(it => it.sets.forEach(s => { if (isMeasured(exKind(it.ex))) { s.t = 30; s.c = Date.now(); } else { s.w = '100'; s.r = '5'; s.c = Date.now(); } })); finishWorkout(); closeSheet();"); await pg.wait_for_timeout(500)
         s = await ev("sessionList().slice(-1)[0]")

@@ -21,10 +21,10 @@ function nextFor(r) {
 }
 const doneToday = id => sessionList().some(s => ymd(s.startedAt) === ymd(new Date()) && (s.routineId === id || (s.addons || []).some(a => a.id === id)));
 /* Add an add-on day to the workout in progress (or start the main day with it) */
-function addDayToWorkout(r, day) {
+function addDayToWorkout(r, day, only) {
   const a = S.active; if (!a) return;
   const base = a.items.length;
-  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (i === 0) it.ss = false; a.items.push(it); });
+  let first = true; day.items.forEach((x, j) => { if (only && !only.has(x.id)) return; const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (first || (only && !only.has(day.items[j - 1].id))) it.ss = false; first = false; a.items.push(it); });
   a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
   if (day.timer && !a.timer) a.timer = clone(day.timer);
   if (day.fight && !a.fight) a.fight = clone(day.fight);
@@ -65,7 +65,7 @@ function AlsoToday({ nx, quiet }) {
 function WorkoutAddons({ a }) {
   const ids = addonIds().filter(id => id !== a.routineId && !(a.addons || []).some(x => x.id === id)); if (!ids.length) return null;
   return html`<div class="wo-addons" id="wo-addons"><span class="lbl">Add from your other programs</span><div class="row wrap" style="gap:8px;margin-top:6px">${ids.map(id => { const r = getRoutine(id); const n = nextFor(r);
-    return html`<button key=${id} class="btn" id=${'wo-add-' + id} onClick=${() => addDayToWorkout(r, n.day)}>${I.plus} ${shortName(r)}${r.days.length > 1 ? ' · ' + n.day.name.split(':')[0] : ''}</button>`; })}</div></div>`;
+    return html`<button key=${id} class="btn" id=${'wo-add-' + id} onClick=${() => openSheet({ type: 'addPick', rid: r.id, dayId: n.day.id })}>${I.plus} ${shortName(r)}${r.days.length > 1 ? ' · ' + n.day.name.split(':')[0] : ''}</button>`; })}</div></div>`;
 }
 /* Pick the programs that sit alongside the main one */
 function AddonsSheet() {

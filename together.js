@@ -42,7 +42,7 @@ function AlsoToday({ nx, quiet }) {
       const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
       if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
     return runWeekOf(R, today) > n ? { finished: true } : null; })() : null;
-  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning, running or another plan alongside</button>`;
+  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add mobility, conditioning, running or another plan alongside</button>`;
   const openRun = () => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); };
   const when = i => html`<span class=${'chip' + (i === 0 ? ' on' : '')}>${whenText(i)}</span>`;
   return html`<div id="also-today"><div class="section-h"><h2>Also on your plan</h2><button class="btn text" id="edit-addons" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
@@ -52,7 +52,7 @@ function AlsoToday({ nx, quiet }) {
       <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
       <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
         <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
-    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Mobility' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
       return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : when(nxt)}</div>
         <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
         <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
@@ -71,7 +71,7 @@ function WorkoutAddons({ a }) {
 function AddonsSheet() {
   const pid = programId(); const on = new Set(addonIds()); const R = typeof runSt === 'function' ? runSt() : null; const [just, setJust] = useState(null);
   const all = [...myRoutines(), ...libRoutines()].filter(r => r.id !== pid && r.days.length);
-  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);
+  const groups = [['Mobility', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);
   const row = r => html`<div key=${r.id}><button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => { const v = !on.has(r.id); setAddon(r.id, v); setJust(v ? r.id : null); }}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>${just === r.id && on.has(r.id) ? html`<${AddonFit} id=${r.id} onDone=${() => setJust(null)}/>` : null}</div>`;
   const chs = Object.values(S.meta.challenges || {});
   return html`<${Sheet} label="Your plan"><h2>Your plan</h2>

@@ -155,15 +155,15 @@ function careEx(name, kind) {
   ex = { id: 'b-' + slug(name), name, kind: kind || guessKind(name), cat: /calf|tibialis|heel|ankle|foot|pogo|balance|knee|wall sit|step|split squat|hamstring|abduction|bridge|clamshell|cossack|copenhagen|hip/.test(n) ? 'legs' : /curl-up|plank|bird dog|dead bug|carry|suitcase/.test(n) ? 'core' : /wrist|finger|hammer rotation/.test(n) ? 'biceps' : /external rotation|y-t-w|scapular|wall slide|pull-apart|face pull|chin tuck|cross-body|kettlebell carry/.test(n) ? 'shoulders' : 'other' };
   BUILTIN_EX[ex.id] = ex; return ex;
 }
-if (!WTAGS.includes('Joint care')) WTAGS.splice(WTAGS.indexOf('Other'), 0, 'Joint care');
+/* Nov 20 (Newt): the Joint care tag is now Mobility (WTAGS already has Mobility) */
 for (const P of CARE) {
   const days = P.days.map(([dn, items], i) => {
     items.forEach(([n, , , , , kind]) => careEx(n, kind));
-    const d = planDay(P.id, i + 1, dn, [P.tag || 'Joint care'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
+    const d = planDay(P.id, i + 1, dn, [P.tag || 'Mobility'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
     d.items.forEach((it, j) => { const tg = items[j][4]; if (tg) it.tg = { ...tg }; });
     return d;
   });
-  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: (P.tag || 'Joint care') + ' · 3 times a week', days, info: { ...P, care: true } });
+  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: 'Mobility · 3 times a week', days, info: { ...P, care: true } });
 }
 /* Routine page for a joint care program */
 function CareInfo({ r }) {
@@ -179,7 +179,7 @@ function CareInfo({ r }) {
 }
 /* Routines → a quick way in: pick the area that bothers you */
 function CareFinder() {
-  return html`<div class="card care-finder" id="care-finder" style="margin-top:12px"><div class="row"><span style="font-weight:700;flex:1">Joint care</span><span class="small muted">15–20 min, 3× a week</span></div>
+  return html`<div class="card care-finder" id="care-finder" style="margin-top:12px"><div class="row"><span style="font-weight:700;flex:1">Mobility</span><span class="small muted">15–20 min, 3× a week</span></div>
     <p class="small muted" style="margin-top:2px">Strength and mobility for common aches. What’s bothering you?</p>
     <div class="range-grid" style="margin-top:8px">${CARE.map(P => html`<button key=${P.id} class="chip" id=${'care-' + P.id.slice(8)} onClick=${() => UI.setView({ type: 'routine', id: P.id })}>${P.area}</button>`)}</div></div>`;
 }

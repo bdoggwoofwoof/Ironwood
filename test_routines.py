@@ -98,7 +98,7 @@ async def main():
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.evaluate("lsSet('rtFilter', 'type'); S.rerender()"); await pg.wait_for_timeout(300)
         secs = await pg.locator('.wsec-h h2').all_inner_texts()
-        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Mobility', 'Conditioning', 'Joint Care', 'Fight Training'], secs)
+        check('type sections', [s.title() for s in secs] == ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Mobility', 'Conditioning', 'Fight Training'], secs)
         check('sections start closed', await pg.locator('.wk-row').count() == 0)
         await pg.locator('.wsec-h', has_text='Push').first.click(); await pg.wait_for_timeout(200)
         push = await pg.locator('.wsec', has=pg.locator('h2', has_text='Push')).first.locator('.wk-row .t').all_inner_texts()

@@ -668,7 +668,7 @@ function autoTags(day, r) {
   if (f('legs') >= .2 && f('push') + f('pull') >= .3) return ['Full Body']; if (f('push') + f('pull') >= .6) return ['Upper'];
   if (f('legs') + f('core') >= .6) return ['Lower']; return ['Other'];
 }
-const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
+const dayTags = (day, r) => day.tags && day.tags.length ? [...new Set(day.tags.map(t => t === 'Joint care' ? 'Mobility' : t))] : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
 const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + repTxt(it.reps) + ' reps' : '') + (it.dl ? ', last set + ' + it.dl + (it.dl === 1 ? ' drop' : ' drops') : '');
 /* The weight used last time (heaviest set, or least assistance), with its unit. */
@@ -692,7 +692,7 @@ const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('r
    chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
 /* Nov 17: Personal / Library (three families) / specialty shelves / Archived. Goal, days and equipment are filters on
    the library, not separate plans. */
-const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
+const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Mobility'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
 const PLAN_MORE = {};
 function setPlanFilter(f) { lsSet('rtFilter', f); }
 /* Personal order: Newt's programs, then plans you made, then Newt's other routines */
@@ -723,7 +723,7 @@ function RoutineList() {
     ['one', 'One-day', lib.filter(r => planGroup(r) === 'one')],
     ['run', 'Running and conditioning', lib.filter(r => planGroup(r) === 'run')],
     ['fight', 'Fight', lib.filter(r => planGroup(r) === 'fight')],
-    ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
+    ['care', 'Mobility', lib.filter(r => planGroup(r) === 'care')],
     ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
   const top = html`<${Intro} id="intro-plans">Workouts and plans to start or follow.<//>

@@ -2576,7 +2576,7 @@ function ProgramSheet() {
     <button class="opt" onClick=${create}><div style="flex:1"><div>${I.plus} Create a new plan</div><div class="d">Build your own days and exercises.</div></div></button>
     <div class="eyebrow" style="margin:16px 0 2px">Personal</div>${personal.map(row)}
     <div class="eyebrow" style="margin:16px 0 2px">Library</div>${famPlans.map(row)}
-    ${other.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Running, fight and joint care</div>${other.map(row)}` : null}
+    ${other.length ? html`<div class="eyebrow" style="margin:16px 0 2px">Running, fight and mobility</div>${other.map(row)}` : null}
     ${singles.length ? html`<div class="eyebrow" style="margin:16px 0 2px">One-day plans</div>${singles.map(row)}` : null}<//>`;
 }
 /* ---------- Help, tour, feedback ---------- */
@@ -2599,7 +2599,7 @@ function HelpSheet() {
 const TOUR = [
   ['train', 'train', null, 'Welcome to Ironwood', 'Six quick stops, one for each tab. Skip any time; Help at the bottom of every page brings it back.'],
   ['train', 'train', '#get-started, .next-card', 'Train', 'Your next workout and its Start button sit at the top. During a workout, swipe a set right to log it, or tap its number. Hit the top of the rep range on every set and the next workout adds weight. Run and Fight live in the switch above.'],
-  ['routines', null, '#plan-filters', 'Plans', 'Your personal programs first, then the library: full body, upper / lower and push / pull / legs, plus running, fight and joint care. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#plan-filters', 'Plans', 'Your personal programs first, then the library: full body, upper / lower and push / pull / legs, plus running, fight and mobility. Search or tap a filter, then follow a plan or add it alongside your main one.', { ls: { rtFilter: 'all' } }],
   ['stats', null, '.lift-row', 'Progress', 'Your history, numbers, each lift’s chart and records, and progress photos. These are sample numbers for the tour; they go away when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['meals', null, '#log-scan, #log-add', 'Meals', 'Log what you eat against daily goals, plan a week of meals, and prep with one shopping list. Barcode and online lookups are off until you allow them.', { meals: 'log' }],
   ['profile', null, '#backup-file', 'Settings', 'Everything stays on this phone, with no account. Save a backup file now and then. Colors, text size and training settings are here too.'],
@@ -2609,15 +2609,15 @@ const TOUR_FULL = [
   ['train', 'train', null, 'Welcome to Ironwood', 'A quick look at what it can do. It takes about three minutes, and you can skip it any time.'],
   ['train', 'train', '.week', 'Your week', 'Each square is a day. Hit your weekly goal to keep your streak going. Tap a day to mark a rest day or log something on it.'],
   ['train', 'train', '#get-started, .next-card', 'Pick how you train', 'Tap Build my plan and answer a few questions (your goal, like size, strength, fat loss, speed or a sport, plus your days, minutes, gear and any joints to go easy on). Ironwood fits one of six plans to you, or keeps your program and adds what fits around it, and can plan a winter bulk and spring cut, asking before each switch. Or follow any program, or Self-log.'],
-  ['train', 'train', '#plan-sched, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add joint care, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
+  ['train', 'train', '#plan-sched, #also-today, #add-alongside, #get-started, .next-card', 'Programs together', 'Add mobility, conditioning, running or another plan alongside your main program. Your week shows each one’s days, with two dots on doubled-up days, and can save them to your calendar app. Add a program’s exercises to today’s workout or do it on its own. Turn any plan off or restart it, and if a week slips, Train checks in.'],
   ['train', 'train', '#get-started, .next-card', 'Weights that adjust', 'Hit the top of the rep range on every set and the next workout adds weight. If a jump is too much, it suggests a smaller one next time, and three misses in a row suggests about 10% less. Set an exercise’s jump from its ⋯ menu.'],
   ['train', 'train', '#get-started, .next-card', 'During a workout', 'Swipe a set right to log it as shown. The Last column shows each set’s numbers from last time, from any workout or only this one (your choice in Profile). The dot by the weight heading marks a weight as the total (one dot) or each side (two dots), and the ⋯ menu lets you name machines so each keeps its own weights; switch machines mid-lift. Rest timers start on their own, PRs light up as you go, and an interval timer runs circuits.'],
   ['train', 'train', '#ch-finder-train, #plan-sched, .week', 'Challenges', 'Take on a daily challenge like Iron 75 or Iron 75 Lite (a few questions about your priorities build the checklist), a 30-day streak or six weeks of protein and sleep, or build your own. Workouts tick themselves off, protein and calories tick from your food log, and a sick day can be a light day.'],
   ['train', 'train', '.week', 'Not just lifting', 'Tap a day in the week strip (or Progress → History → Log an activity) to log runs, swims, yoga, BJJ and more. They count toward your streak, and a run logged here can count toward your running plan.'],
   ['train', 'run', '.run-seg, #run-begin', 'Running', 'A running plan that fits around your lifting: on your days off, on lifting days, or mixed. Enter your 100 m, mile and 3 mile times, or just pick how running feels now and start from estimates. 8 weeks, or 4 to 12, with 1 to 21 runs a week. Add a goal race, swap a run for the bike or pool, and move the plan back if you miss a week. Conditioning programs live here too.'],
   ['train', 'fight', '.fight-seg', 'Fight training', 'Shadowbox or hit the bag while a coach calls combos out loud, for boxing, kickboxing, Muay Thai and MMA, or solo BJJ movement rounds. Browse combos and drills, and follow a fight program alongside your lifting.'],
-  ['routines', null, '#plan-filters', 'Plans', 'Personal programs, the library (full body, upper / lower, push / pull / legs), one-day plans, running, fight, joint care, challenges and an Archived shelf. A plan’s page shows its goal, time, equipment, muscle coverage and how to progress, then lets you follow it or add it alongside.', { ls: { rtFilter: 'all' } }],
-  ['routines', null, '#ps-care', 'Joint care', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#plan-filters', 'Plans', 'Personal programs, the library (full body, upper / lower, push / pull / legs), one-day plans, running, fight, mobility, challenges and an Archived shelf. A plan’s page shows its goal, time, equipment, muscle coverage and how to progress, then lets you follow it or add it alongside.', { ls: { rtFilter: 'all' } }],
+  ['routines', null, '#ps-care', 'Mobility', 'Strength and mobility for common aches: shoulders, ankles and shins, lower back, knees, hips, elbows, neck. Pick an area to open its program, with a pain rule and signs to see a professional. General exercise, not medical advice.', { ls: { rtFilter: 'all' } }],
   ['stats', null, '.log-item', 'History', 'Progress starts with every workout you’ve logged, newest first. Tap one to see the sets, fix a typo, do it again, save it as a plan or share a picture of it.', { max: 3, ls: { statsTab: 'history' } }],
   ['stats', null, '.lift-row', 'Stats', 'In Exercises, each lift gets a chart, an 8-week projection, records and its best reps at each weight, with lb and kg counted together. Numbers tracks running, bodyweight and measurements, and Photos keeps progress pictures. These numbers are samples for the tour. They disappear when it ends.', { max: 4, ls: { statsTab: 'ex' } }],
   ['stats', null, '#stats-extras', 'Goals and your month', 'Set a goal for any lift, like a squat number by a date. Train shows how close you are and the weekly gain it takes. Month in review sums up each month with your PRs, best session and most improved lift, and you can share it.'],
@@ -3082,7 +3082,7 @@ function autoTags(day, r) {
   if (f('legs') >= .2 && f('push') + f('pull') >= .3) return ['Full Body']; if (f('push') + f('pull') >= .6) return ['Upper'];
   if (f('legs') + f('core') >= .6) return ['Lower']; return ['Other'];
 }
-const dayTags = (day, r) => day.tags && day.tags.length ? day.tags : autoTags(day, r);
+const dayTags = (day, r) => day.tags && day.tags.length ? [...new Set(day.tags.map(t => t === 'Joint care' ? 'Mobility' : t))] : autoTags(day, r);
 const routineTags = r => { const s = new Set(); r.days.forEach(d => dayTags(d, r).forEach(t => s.add(t))); return WTAGS.filter(t => s.has(t)); };
 const setsLabel = it => isMeasured(exKind(it.ex)) ? tgLabel(it) : it.sets + ' set' + (+it.sets === 1 ? '' : 's') + (it.reps ? ' × ' + repTxt(it.reps) + ' reps' : '') + (it.dl ? ', last set + ' + it.dl + (it.dl === 1 ? ' drop' : ' drops') : '');
 /* The weight used last time (heaviest set, or least assistance), with its unit. */
@@ -3106,7 +3106,7 @@ const openSecs = () => { if (!RT_OPEN.v) { try { RT_OPEN.v = JSON.parse(lsGet('r
    chips, and sections that show their first 3 with Show all. "By type" keeps the old view by workout type. */
 /* Nov 17: Personal / Library (three families) / specialty shelves / Archived. Goal, days and equipment are filters on
    the library, not separate plans. */
-const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Joint care'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
+const PLAN_FILTERS = [['all', 'All'], ['starred', 'Starred'], ['mine', 'Personal'], ['lift', 'Library'], ['one', 'One-day'], ['run', 'Running and conditioning'], ['fight', 'Fight'], ['care', 'Mobility'], ['ch', 'Challenges'], ['arch', 'Archived'], ['type', 'By type']];
 const PLAN_MORE = {};
 function setPlanFilter(f) { lsSet('rtFilter', f); }
 /* Personal order: Newt's programs, then plans you made, then Newt's other routines */
@@ -3137,7 +3137,7 @@ function RoutineList() {
     ['one', 'One-day', lib.filter(r => planGroup(r) === 'one')],
     ['run', 'Running and conditioning', lib.filter(r => planGroup(r) === 'run')],
     ['fight', 'Fight', lib.filter(r => planGroup(r) === 'fight')],
-    ['care', 'Joint care', lib.filter(r => planGroup(r) === 'care')],
+    ['care', 'Mobility', lib.filter(r => planGroup(r) === 'care')],
     ['arch', 'Archived', arch, 'Retired library plans and plans you archived. They still open and can be followed; Restore puts one back.']];
   const runRow = html`<button class="r-card" id="lib-run" onClick=${() => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); UI.setTab('train'); }}><span class="tag">${runActive && runActive() ? 'On' : 'Set up in Train → Run'}</span><h3>Running plan</h3><span class="days">Paces from your times or a quick estimate, around your lifting</span></button>`;
   const top = html`<${Intro} id="intro-plans">Workouts and plans to start or follow.<//>
@@ -3700,7 +3700,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 9371301</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version fad5f29</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -7053,7 +7053,7 @@ function RunPrograms() {
     <div class="stack" style="margin-top:10px">${COND.map(P => html`<button key=${P.id} class="r-card cond-card" id=${'cond-' + P.id} onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: P.id }); }}>
       <span class="tag">${P.cost} recovery cost · ${P.week} a week</span><h3>${P.name}</h3><span class="days">Builds: ${P.builds} · ${P.equip}</span></button>`)}</div>
     <button class="btn text" id="run-in-plans" onClick=${() => { setPlanFilter('run'); UI.setView(null); UI.setTab('routines'); }}>See conditioning plans in Plans</button>
-    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-ankle' }); }}>Ankle & Foot Care</button> builds them up. <button class="btn text" id="run-care-plans" style="padding:0;min-height:0" onClick=${() => { setPlanFilter('care'); UI.setView(null); UI.setTab('routines'); }}>Other joint care plans</button> are in Plans.</p>
+    <p class="note" style="margin-top:12px">Ankles, shins or calves sore after runs? <button class="btn text" id="run-care-link" style="padding:0;min-height:0" onClick=${() => { UI.setTab('routines'); UI.setView({ type: 'routine', id: 'bi-care-ankle' }); }}>Ankle & Foot Care</button> builds them up. <button class="btn text" id="run-care-plans" style="padding:0;min-height:0" onClick=${() => { setPlanFilter('care'); UI.setView(null); UI.setTab('routines'); }}>Other mobility plans</button> are in Plans.</p>
     <div class="section-h"><h2>Fitting them in</h2></div>
     <div class="card"><ul class="run-ul">${COND_FIT.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>
     <div class="section-h"><h2>Cross-training swaps</h2></div>
@@ -7968,15 +7968,15 @@ function careEx(name, kind) {
   ex = { id: 'b-' + slug(name), name, kind: kind || guessKind(name), cat: /calf|tibialis|heel|ankle|foot|pogo|balance|knee|wall sit|step|split squat|hamstring|abduction|bridge|clamshell|cossack|copenhagen|hip/.test(n) ? 'legs' : /curl-up|plank|bird dog|dead bug|carry|suitcase/.test(n) ? 'core' : /wrist|finger|hammer rotation/.test(n) ? 'biceps' : /external rotation|y-t-w|scapular|wall slide|pull-apart|face pull|chin tuck|cross-body|kettlebell carry/.test(n) ? 'shoulders' : 'other' };
   BUILTIN_EX[ex.id] = ex; return ex;
 }
-if (!WTAGS.includes('Joint care')) WTAGS.splice(WTAGS.indexOf('Other'), 0, 'Joint care');
+/* Nov 20 (Newt): the Joint care tag is now Mobility (WTAGS already has Mobility) */
 for (const P of CARE) {
   const days = P.days.map(([dn, items], i) => {
     items.forEach(([n, , , , , kind]) => careEx(n, kind));
-    const d = planDay(P.id, i + 1, dn, [P.tag || 'Joint care'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
+    const d = planDay(P.id, i + 1, dn, [P.tag || 'Mobility'], items.map(([n, sets, reps, note]) => [n, sets, reps, note]));
     d.items.forEach((it, j) => { const tg = items[j][4]; if (tg) it.tg = { ...tg }; });
     return d;
   });
-  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: (P.tag || 'Joint care') + ' · 3 times a week', days, info: { ...P, care: true } });
+  BUILTIN_ROUTINES.push({ id: P.id, name: P.name, note: P.fit, source: 'builtin', shelf: 'programs', meta: 'Mobility · 3 times a week', days, info: { ...P, care: true } });
 }
 /* Routine page for a joint care program */
 function CareInfo({ r }) {
@@ -7992,7 +7992,7 @@ function CareInfo({ r }) {
 }
 /* Routines → a quick way in: pick the area that bothers you */
 function CareFinder() {
-  return html`<div class="card care-finder" id="care-finder" style="margin-top:12px"><div class="row"><span style="font-weight:700;flex:1">Joint care</span><span class="small muted">15–20 min, 3× a week</span></div>
+  return html`<div class="card care-finder" id="care-finder" style="margin-top:12px"><div class="row"><span style="font-weight:700;flex:1">Mobility</span><span class="small muted">15–20 min, 3× a week</span></div>
     <p class="small muted" style="margin-top:2px">Strength and mobility for common aches. What’s bothering you?</p>
     <div class="range-grid" style="margin-top:8px">${CARE.map(P => html`<button key=${P.id} class="chip" id=${'care-' + P.id.slice(8)} onClick=${() => UI.setView({ type: 'routine', id: P.id })}>${P.area}</button>`)}</div></div>`;
 }
@@ -8041,7 +8041,7 @@ function AlsoToday({ nx, quiet }) {
       const due = planWeek(R, w).filter(x => ymd(sessDate(R, w, x.dow)) === ymd(day)); const x = due.find(y => !runLogged(R, w, y.key).length) || (i === 0 ? due[0] : null);
       if (x) return { w, x, i, day, done: !!runLogged(R, w, x.key).length }; }
     return runWeekOf(R, today) > n ? { finished: true } : null; })() : null;
-  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add joint care, conditioning, running or another plan alongside</button>`;
+  if (!ids.length && !run) return quiet ? null : html`<button class="btn ghost wide" id="add-alongside" style="margin-top:12px" onClick=${() => openSheet({ type: 'addons' })}>${I.plus} Add mobility, conditioning, running or another plan alongside</button>`;
   const openRun = () => { TRAIN.mode = 'run'; lsSet('trainMode', 'run'); S.rerender(); scrollTo(0, 0); };
   const when = i => html`<span class=${'chip' + (i === 0 ? ' on' : '')}>${whenText(i)}</span>`;
   return html`<div id="also-today"><div class="section-h"><h2>Also on your plan</h2><button class="btn text" id="edit-addons" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
@@ -8051,7 +8051,7 @@ function AlsoToday({ nx, quiet }) {
       <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
       <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
         <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
-    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
+    ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Mobility' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
       return html`<div key=${id} class="also-card" id=${'also-' + id}><div class="also-h"><span class="eyebrow">${tag}</span>${done ? html`<span class="chip on">Done today</span>` : when(nxt)}</div>
         <div class="also-t">${r.name}${r.days.length > 1 ? ' · ' + n.day.name : ''}</div>
         <div class="also-s">${n.day.items.slice(0, 4).map(it => exName(it.ex)).join(' · ')}${n.day.items.length > 4 ? ' +' + (n.day.items.length - 4) : ''}</div>
@@ -8070,7 +8070,7 @@ function WorkoutAddons({ a }) {
 function AddonsSheet() {
   const pid = programId(); const on = new Set(addonIds()); const R = typeof runSt === 'function' ? runSt() : null; const [just, setJust] = useState(null);
   const all = [...myRoutines(), ...libRoutines()].filter(r => r.id !== pid && r.days.length);
-  const groups = [['Joint care', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);
+  const groups = [['Mobility', all.filter(r => r.info && r.info.care)], ['Fight training', all.filter(r => r.info && r.info.fight)], ['Conditioning', all.filter(r => r.info && !r.info.care && !r.info.fight)], ['Made by you', all.filter(r => !r.info && r.source !== 'builtin')], ['Other plans', all.filter(r => !r.info && r.source === 'builtin' && r.days.length > 1)]].map(([t, rs]) => [t.toLowerCase(), rs]);
   const row = r => html`<div key=${r.id}><button key=${r.id} class=${'opt' + (on.has(r.id) ? ' on' : '')} id=${'addon-' + r.id} aria-pressed=${on.has(r.id)} onClick=${() => { const v = !on.has(r.id); setAddon(r.id, v); setJust(v ? r.id : null); }}><div style="flex:1;min-width:0"><div>${r.name}</div><div class="d">${r.days.length > 1 ? r.days.length + ' days · ' : ''}${r.meta || r.days[0].items.length + ' exercises'}</div></div>${on.has(r.id) ? I.check : html`<span class="small muted">Add</span>`}</button>${just === r.id && on.has(r.id) ? html`<${AddonFit} id=${r.id} onDone=${() => setJust(null)}/>` : null}</div>`;
   const chs = Object.values(S.meta.challenges || {});
   return html`<${Sheet} label="Your plan"><h2>Your plan</h2>

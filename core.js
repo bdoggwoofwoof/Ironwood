@@ -339,14 +339,31 @@ function deleteSet(it, s) {
   it.sets.splice(j, 1); SW.open = null; touch();
   showToast({ kind: 'info', ms: 8000, text: 'Set ' + (j + 1) + ' deleted', action: 'Undo', fn: () => { if (!it.sets.includes(s)) { it.sets.splice(Math.min(j, it.sets.length), 0, s); touch(); } } });
 }
+/* Superset rest (Nov 20, Newt): you go back and forth, so time spent on one exercise counts toward the other's rest.
+   After a set, the timer is for the next exercise in the superset that still has sets left, and it counts from the end of
+   that exercise's last set: its own rest (per-exercise, the plan's, or the single-exercise default) minus the time since.
+   First time through a round there is nothing to wait for. When the superset is finished, the last exercise's own rest runs. */
+const restFor = it => { return S.meta.exRest[it.ex] != null ? +S.meta.exRest[it.ex] : it.target && it.target.rest ? +it.target.rest : null; };
+function ssGroup(items, i) { let s0 = i, e = i; while (s0 > 0 && items[s0].ss) s0--; while (items[e + 1] && items[e + 1].ss) e++; return items.slice(s0, e + 1); }
 function startRest(it) {
   const st = S.meta.settings; if (!st.autoRest || !S.active) return;
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
-  if (inSS && st.ssMode === 'round' && linkedNext) return;
-  const exR = S.meta.exRest[it.ex] != null ? S.meta.exRest[it.ex] : it.target && it.target.rest ? it.target.rest : null; /* Nov 17: Rep focus sets rest too */
-  const kind = exR != null ? 'ex' : inSS ? 'ss' : 'solo';
-  const secs = Math.max(0, +(exR != null ? exR : inSS ? st.restSS : st.rest) || 0);
+  if (inSS && st.ssMode === 'round' && linkedNext) { S.rest = null; return; }
+  if (inSS) {
+    const g = ssGroup(a.items, i); const k = g.indexOf(it);
+    const next = [...g.slice(k + 1), ...g.slice(0, k + 1)].find(x => x.sets.some(t => !isDone(t)));
+    if (next) {
+      const full = restFor(next) ?? (+st.rest || 0); const last = Math.max(0, ...next.sets.filter(isDone).map(t => +t.c || 0));
+      const until = last ? last + full * 1000 : 0;
+      if (full > 0 && until - Date.now() > 5000) { S.rest = { until, total: full, kind: 'ex', ex: next.ex, beeped: {} }; bgRest(); offerBgAudio(); }
+      else { if (S.rest) bgStop(); S.rest = null; }
+      return;
+    }
+  }
+  const exR = restFor(it); /* Nov 17: Rep focus sets rest too */
+  const kind = exR != null ? 'ex' : 'solo';
+  const secs = Math.max(0, +(exR != null ? exR : st.rest) || 0);
   if (secs > 0) { S.rest = { until: Date.now() + secs * 1000, total: secs, kind, ex: it.ex, beeped: {} }; bgRest(); offerBgAudio(); }
 }
 /* The first time a rest timer runs in the home-screen app, offer the beep that works with the phone locked (off by default) */
@@ -1260,9 +1277,9 @@ function ProfileScreen({ view }) {
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
-      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}${restField('restSS', 'Superset rest (seconds)')}</div>
+      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
-      <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
+      <p class="note">Now ${clock(+st.rest || 0)} unless a plan or exercise sets its own. 0 turns it off. In a superset, the time you spend on the other exercise counts toward each exercise's rest, so the timer only runs for what's left.</p>
     </div>
     <${AboutYouCard}/>
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
@@ -1893,10 +1910,10 @@ function RestPickSheet() {
 function ExRestSheet({ ex }) {
   const cur = S.meta.exRest[ex]; const st = S.meta.settings;
   const set = v => { commit(m => { if (v === null) delete m.meta.exRest[ex]; else m.meta.exRest[ex] = v; }, 'meta', 600); closeSheet(); };
-  return html`<${Sheet} label="Rest timer"><h2>Rest for ${exName(ex)}</h2><p class="note" style="margin-bottom:12px">Overrides your single and superset rest for this exercise only.</p>
+  return html`<${Sheet} label="Rest timer"><h2>Rest for ${exName(ex)}</h2><p class="note" style="margin-bottom:12px">Overrides your default rest for this exercise only. In a superset, time on the other exercise counts toward it.</p>
     <div class="preset-grid">${REST_PRESETS.map(v => html`<button key=${v} class=${'chip' + (cur === v ? ' on' : '')} onClick=${() => set(v)}>${clock(v)}</button>`)}</div>
     <div style="margin-top:10px"><button class=${'opt' + (cur === 0 ? ' on' : '')} onClick=${() => set(0)}>No timer for this exercise</button>
-      <button class=${'opt' + (cur == null ? ' on' : '')} onClick=${() => set(null)}>Use my defaults (${clock(+st.rest)} single, ${clock(+st.restSS)} superset)</button></div><//>`;
+      <button class=${'opt' + (cur == null ? ' on' : '')} onClick=${() => set(null)}>Use my default (${clock(+st.rest)})</button></div><//>`;
 }
 function BWSheet() {
   const [w, setW] = useState(''); const [d, setD] = useState(ymd(new Date()));

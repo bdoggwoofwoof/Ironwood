@@ -105,7 +105,7 @@ async def main():
         arch = await ev("archivedRoutines().map(r => r.id).sort()")
         check('retired near-copies are archived, not deleted', arch == sorted(['bi-5x5', 'bi-tiered', 'bi-split5', 'bi-failure3', 'gp-recomp3', 'gp-recomp4', 'gp-cut3']), arch)
         check('a retired plan still opens and can be followed', await ev("(() => { setProgram('bi-5x5'); return !!getRoutine('bi-5x5') && nextUp().routine.id === 'bi-5x5'; })()"))
-        await ev("UI.setView(null); UI.setTab('routines'); lsSet('rtFilter', 'lift'); S.rerender()"); await pg.wait_for_timeout(300)
+        await ev("UI.setView(null); UI.setTab('routines'); lsSet('plansView', 'all'); lsSet('rtFilter', 'lift'); S.rerender()"); await pg.wait_for_timeout(300)
         await pg.click('#lf-goal-strength'); await pg.wait_for_timeout(200)
         shown = await pg.locator('.r-card h3').all_inner_texts()
         check('library goal filter: strength', all(('STRENGTH' in t.upper() or t.upper() == 'UPPER / LOWER 4-DAY') for t in shown) and len(shown) >= 2, shown)
@@ -158,6 +158,21 @@ async def main():
         await ev("S.active.items[4].sets[2].drops = []; S.rerender()"); await pg.wait_for_timeout(200)
         check('a drop removed afterwards stays removed', await ev("(S.active.items[4].sets[2].drops || []).length") == 0)
         await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)
+        # ---- Superset rest counts the other exercise's time (Nov 20) ----
+        ss = await ev("""(() => { S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]);
+          const a = S.active, fly = a.items[2], pd = a.items[3], out = []; const now = Date.now();
+          const done = (it, j, ago) => { it.sets[j].r = '12'; it.sets[j].w = '30'; completeSet(it, it.sets[j]); it.sets[j].c = now - ago * 1000; };
+          const snap = () => S.rest ? [exName(S.rest.ex), Math.round((S.rest.until - Date.now()) / 1000)] : null;
+          done(fly, 0, 50); out.push(snap());               /* round 1: straight to pushdowns */
+          done(pd, 0, 20); S.rest = null; startRest(pd); out.push(snap());   /* fly ended 50 s ago: 75 - 50 = 25 s left */
+          done(fly, 1, 0); out.push(snap());                /* pushdowns ended 20 s ago: 55 s left */
+          done(pd, 1, 0); done(fly, 2, 0); done(pd, 2, 0); out.push(snap());   /* superset finished: pushdowns' own 75 s */
+          const prev = S.meta.settings.ssMode; S.meta.settings.ssMode = 'round'; a.items[4].sets[0].r = '12'; completeSet(a.items[4], a.items[4].sets[0]); out.push(snap()); S.meta.settings.ssMode = prev;
+          S.active = null; S.rest = null; return out; })()""")
+        check('superset: no wait the first time through', ss[0] is None, ss)
+        check('superset: the timer is for the other exercise and counts the time already spent', ss[1][0] == 'Cable Fly' and 22 <= ss[1][1] <= 26 and ss[2][0] == 'Tricep Pushdowns' and 52 <= ss[2][1] <= 56, ss)
+        check('superset finished: the last exercise gets its own full rest', ss[3][0] == 'Tricep Pushdowns' and 73 <= ss[3][1] <= 75, ss)
+        check('"full round" mode: no timer between the two exercises', ss[4] is None, ss)
         # ---- Accessibility: automated check on the new screens ----
         axe = os.path.join('node_modules', 'axe-core', 'axe.min.js')
         if os.path.exists(axe):

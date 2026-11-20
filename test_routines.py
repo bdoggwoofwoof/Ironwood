@@ -34,10 +34,10 @@ async def main():
         # Edit a library routine: rename, drop the first exercise, save
         await pg.locator('.r-card:has(h3:text-is("Upper / Lower 4-Day"))').click(); await pg.wait_for_timeout(300)
         await pg.screenshot(path='shot-routine-view.png', full_page=True)
-        await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Edit', exact=True).click(); await pg.wait_for_timeout(300)
         await pg.fill('#rt-name', 'My Upper Lower')
         await pg.get_by_role('button', name='Remove exercise').first.click()
-        await pg.get_by_role('button', name='Save plan').click(); await pg.wait_for_timeout(300)
+        await pg.click('#ed-save'); await pg.click('#ps-here'); await pg.wait_for_timeout(300)  # Nov 20: save asks this plan or a new plan
         first = await pg.locator('.r-items li').first.inner_text()
         check('edit saved', 'Bench Press' not in first and await pg.locator('.wo-title').inner_text() in ('My Upper Lower', 'MY UPPER LOWER'), first)
         check('edited routine marked', 'edited' in (await pg.locator('.eyebrow').first.inner_text()).lower())
@@ -53,7 +53,8 @@ async def main():
 
         # Copy
         await pg.get_by_role('button', name='Copy').click(); await pg.wait_for_timeout(300)
-        check('copy becomes your own plan', '(copy)' in (await pg.locator('.wo-title').inner_text()).lower())
+        await pg.click('#pn-save'); await pg.wait_for_timeout(300)  # Nov 20: Copy asks for a name, "[name] 2"
+        check('copy becomes your own plan', (await pg.locator('.wo-title').inner_text()).lower().endswith(' 2'))
 
         # Archive a library plan, then restore it
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
@@ -118,9 +119,9 @@ async def main():
 
         # Set a type by hand in the editor
         await pg.locator('.wk-row', has_text='Burpee Grinder').locator('.wk-main').click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role('button', name='Edit').click(); await pg.wait_for_timeout(300)
+        await pg.get_by_role('button', name='Edit', exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator('.ed-tags button', has_text='Full Body').click()
-        await pg.get_by_role('button', name='Save plan').click(); await pg.wait_for_timeout(300)
+        await pg.click('#ed-save'); await pg.click('#ps-here'); await pg.wait_for_timeout(300)  # Nov 20: save asks this plan or a new plan
         await pg.locator('.tabs button', has_text='Plans').click(); await pg.wait_for_timeout(300)
         await pg.locator('.wsec-h', has_text='Full Body').click(); await pg.wait_for_timeout(200)
         check('manual type moves workout', await pg.locator('.wsec', has=pg.locator('h2', has_text='Full Body')).locator('.wk-row', has_text='Burpee Grinder').count() == 1)

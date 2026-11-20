@@ -40,7 +40,7 @@ async def main():
         check('stars survive a reload', await ev("JSON.parse(JSON.stringify(S.meta.settings)).starEx['" + exid + "'] === 1"))
         # Nov 17 (Newt): Meal preps moved from Plans to Meals → Preps
         await ev("UI.setView(null); UI.setTab('routines')"); await pg.wait_for_timeout(300)
-        check('Plans has no Meal preps switch any more', await pg.locator('main .topsw button').count() == 0 and await pg.locator('#plan-filters').count() == 1)
+        check('Plans switch is My plan | All plans, no Meal preps', await pg.locator('main .topsw button').count() == 2 and await pg.locator('#plan-filters').count() == 1)
         await ev("UI.setTab('meals'); setMealsMode('plan'); S.rerender()"); await pg.wait_for_timeout(300)
         sw = await ev("[...document.querySelectorAll('main .topsw button')].map(b => b.textContent)")
         check('Meals has Log, Plan, Recipes, Preps, Shop', sw == ['Log', 'Plan', 'Recipes', 'Preps', 'Shop'], sw)

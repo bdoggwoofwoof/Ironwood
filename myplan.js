@@ -42,7 +42,7 @@ function askCopy(r) {
     onSave: name => { const c = copyPlanAs(r, name); closeSheet(); UI.setTab('routines'); UI.setView({ type: 'routine', id: c.id }); showToast({ kind: 'info', text: name + ' made. Edit it any way you like.' }); } });
 }
 /* Plans: My plan | All plans */
-const plansView = () => { const v = lsGet('plansView'); if (v === 'mine' || v === 'all') return v; const pid = programId(); return pid && pid !== 'self' && getRoutine(pid) ? 'mine' : 'all'; };
+const plansView = () => lsGet('plansView') === 'mine' ? 'mine' : 'all';   /* remembered; All plans until you pick My plan */
 function PlansTop() {
   return html`<${TopSwitch} value=${plansView()} options=${[['mine', 'My plan'], ['all', 'All plans']]} onChange=${k => { lsSet('plansView', k); S.rerender(); scrollTo(0, 0); }}/>`;
 }

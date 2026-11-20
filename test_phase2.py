@@ -20,7 +20,7 @@ async def main():
         await ev("UI.setTab('routines'); lsSet('rtFilter', 'all'); S.rerender()"); await pg.wait_for_timeout(300)
         txt = await pg.inner_text('main') if await pg.locator('main').count() else await pg.inner_text('body')
         check('Plans has a search box and filter chips', await pg.locator('#plan-q').count() == 1 and await pg.locator('#plan-filters button').count() >= 8)
-        check('Plans is training only again; Meal preps moved to Meals (Nov 17)', await pg.locator('main .topsw button').count() == 0)
+        check('Plans switch is My plan | All plans (Nov 20)', await ev("[...document.querySelectorAll('main .topsw button')].map(b => b.textContent).join()") == 'My plan,All plans')
         check('no "routine" wording on Plans', 'routine' not in txt.lower(), [l for l in txt.split('\n') if 'routine' in l.lower()][:3])
         check('All shows at most 3 per section', await pg.locator('#ps-ul .r-card').count() == 3)
         await pg.click('#more-ul'); await pg.wait_for_timeout(200)

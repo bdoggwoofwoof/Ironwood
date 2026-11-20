@@ -1524,7 +1524,7 @@ const PERSONAL_PLANS = [
       'Drop sets: the last set of nine machine, cable and dumbbell lifts has one (it says “last set + 1 drop”). Do that set until you have about one good rep left, set the weight about 20–25% lighter right away, and do as many good reps as you can with no rest. The drop row is already set up under the last set. One drop, last set only, and never on squats, rows or barbell presses: more drops add fatigue faster than growth.',
       'How it progresses: each lift has a rep range, like 8–12. Keep the weight until every set reaches the top of the range, then add weight and start again near the bottom. Ironwood suggests the next weight for you.',
       'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
-      'Supersets: a bar on the left means do one set of each, back to back, then rest. They pair muscles that don’t compete, so you lose no reps and save time.',
+      'Supersets: a bar on the left means you go back and forth between the two. The time you spend on one counts as rest for the other, so after each set the timer shows only what’s left before the next exercise. They pair muscles that don’t compete, so you lose no reps and save time.',
       'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns pair with the incline press on Day 3, and lateral raises end Day 4.',
       'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2 }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
@@ -2341,14 +2341,31 @@ function deleteSet(it, s) {
   it.sets.splice(j, 1); SW.open = null; touch();
   showToast({ kind: 'info', ms: 8000, text: 'Set ' + (j + 1) + ' deleted', action: 'Undo', fn: () => { if (!it.sets.includes(s)) { it.sets.splice(Math.min(j, it.sets.length), 0, s); touch(); } } });
 }
+/* Superset rest (Nov 20, Newt): you go back and forth, so time spent on one exercise counts toward the other's rest.
+   After a set, the timer is for the next exercise in the superset that still has sets left, and it counts from the end of
+   that exercise's last set: its own rest (per-exercise, the plan's, or the single-exercise default) minus the time since.
+   First time through a round there is nothing to wait for. When the superset is finished, the last exercise's own rest runs. */
+const restFor = it => { return S.meta.exRest[it.ex] != null ? +S.meta.exRest[it.ex] : it.target && it.target.rest ? +it.target.rest : null; };
+function ssGroup(items, i) { let s0 = i, e = i; while (s0 > 0 && items[s0].ss) s0--; while (items[e + 1] && items[e + 1].ss) e++; return items.slice(s0, e + 1); }
 function startRest(it) {
   const st = S.meta.settings; if (!st.autoRest || !S.active) return;
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
-  if (inSS && st.ssMode === 'round' && linkedNext) return;
-  const exR = S.meta.exRest[it.ex] != null ? S.meta.exRest[it.ex] : it.target && it.target.rest ? it.target.rest : null; /* Nov 17: Rep focus sets rest too */
-  const kind = exR != null ? 'ex' : inSS ? 'ss' : 'solo';
-  const secs = Math.max(0, +(exR != null ? exR : inSS ? st.restSS : st.rest) || 0);
+  if (inSS && st.ssMode === 'round' && linkedNext) { S.rest = null; return; }
+  if (inSS) {
+    const g = ssGroup(a.items, i); const k = g.indexOf(it);
+    const next = [...g.slice(k + 1), ...g.slice(0, k + 1)].find(x => x.sets.some(t => !isDone(t)));
+    if (next) {
+      const full = restFor(next) ?? (+st.rest || 0); const last = Math.max(0, ...next.sets.filter(isDone).map(t => +t.c || 0));
+      const until = last ? last + full * 1000 : 0;
+      if (full > 0 && until - Date.now() > 5000) { S.rest = { until, total: full, kind: 'ex', ex: next.ex, beeped: {} }; bgRest(); offerBgAudio(); }
+      else { if (S.rest) bgStop(); S.rest = null; }
+      return;
+    }
+  }
+  const exR = restFor(it); /* Nov 17: Rep focus sets rest too */
+  const kind = exR != null ? 'ex' : 'solo';
+  const secs = Math.max(0, +(exR != null ? exR : st.rest) || 0);
   if (secs > 0) { S.rest = { until: Date.now() + secs * 1000, total: secs, kind, ex: it.ex, beeped: {} }; bgRest(); offerBgAudio(); }
 }
 /* The first time a rest timer runs in the home-screen app, offer the beep that works with the phone locked (off by default) */
@@ -3079,7 +3096,8 @@ const tagChips = (tags, max) => { const n = max || tags.length; const shown = ta
 function RoutinesScreen({ view }) {
   if (view && view.type === 'routine') return html`<${RoutineView} id=${view.id}/>`;
   if (view && view.type === 'edit') return html`<${RoutineEditor} view=${view}/>`;
-  return html`<${RoutineList}/>`;
+  if (plansView() === 'mine') return html`<div><${PlansTop}/><${MyPlanPane}/></div>`;
+  return html`<div><${PlansTop}/><${RoutineList}/></div>`;
 }
 /* Nov 17 (Newt): Meal preps moved from Plans to Meals → Preps; Plans is training only again */
 const RT_OPEN = { v: null };
@@ -3168,12 +3186,11 @@ function ByTypeList({ rs }) {
       <button class="wsec-h" aria-expanded=${on} onClick=${() => { open[g.t] = !on; lsSet('rtOpen', JSON.stringify(open)); re(); }}><h2>${g.t}</h2><span class="aside num">${g.rows.length}</span>${on ? I.up : I.down}</button>
       ${on ? html`<div class="stack" style="gap:6px;margin-top:8px">${g.rows.map(row)}</div>` : null}</section>`; })}</div>`;
 }
-function RoutineView({ id }) {
+function RoutineView({ id, mine }) {
   const r = getRoutine(id) || (isHidden(id) ? (libOver(id) || libBase(id)) : null); if (!r) return html`<div class="empty"><h3>Plan not found</h3></div>`;
   const lib = !!libBase(r.id); const builtin = r.source === 'builtin'; const archived = planGroup(r) === 'arch' || isHidden(r.id);
-  const copy = () => { const c = clone(r); delete c.base; delete c.meta; delete c.shelf; c.id = uid('r'); c.source = 'mine'; c.name = r.name + ' (copy)'; c.createdAt = Date.now(); c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
-    commit(st => { st.meta.routines[c.id] = c; }, 'meta'); UI.setView({ type: 'routine', id: c.id }); };
-  const edit = () => UI.setView({ type: 'edit', draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
+  const copy = () => askCopy(r);
+  const edit = () => editPlanDraft(r);
   const reset = () => openSheet({ type: 'confirm', title: 'Reset ' + r.name + '?', body: 'Your changes to this plan are undone. Logged workouts stay in your history.', ok: 'Reset plan', danger: true, onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); } });
   const del = () => openSheet({ type: 'confirm', title: 'Delete ' + r.name + '?', body: 'The plan is gone for good; Archive keeps it instead. Logged workouts stay in your history.', ok: 'Delete plan', danger: true,
     onOk: () => { commit(st => { delete st.meta.routines[r.id]; }, 'meta'); closeSheet(); UI.setView(null); } });
@@ -3200,7 +3217,7 @@ function RoutineView({ id }) {
         !lib ? ['plan-del', 'Delete plan', 'Gone for good. Logged workouts stay in your history.', del, true] : null].filter(Boolean) })}>${I.more}</button>
     </div>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
-      <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="btn text day-edit" id=${'dedit-' + d.id} aria-label=${'Edit ' + d.name} onClick=${() => openSheet({ type: 'dayEdit', rid: r.id, did: d.id })}>${I.edit} Edit</button><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
       <ul class="r-items">${focusDay(r, d).items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
     <${ProgramGuide} r=${r}/>
     <div class="section-h" id="plan-settings-h"><h2>Plan settings</h2></div>
@@ -3211,11 +3228,23 @@ function RoutineView({ id }) {
 function RoutineEditor({ view }) {
   const d = view.draft; const [, setT] = useState(0); const re = () => setT(x => x + 1);
   const move = (arr, i, dir) => { const j = i + dir; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; ssTop(arr); re(); };
-  const save = () => { if (!d.name.trim()) d.name = 'My plan'; d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; });
-    commit(st => { st.meta.routines[d.id] = clone(d); if (view.follow) st.meta.settings.program = d.id; }, 'meta'); UI.setView({ type: 'routine', id: d.id }); };
+  const tidy = () => { d.days = d.days.filter(x => x.items.length || x.name.trim()); d.days.forEach(x => { if (x.items[0]) x.items[0].ss = false; }); };
+  const back = id => { if (view.from === 'mine' || (programId() === id && plansView() === 'mine')) UI.setView(null); else UI.setView({ type: 'routine', id }); };
+  const writeTo = (r, follow) => { commit(st => { st.meta.routines[r.id] = r; if (follow) st.meta.settings.program = r.id; }, 'meta'); };
+  /* Nov 20 (Newt): a new plan just saves (with a name that isn't taken); changes to a plan you have ask: this plan, or a new plan */
+  const saveHere = () => { tidy(); const clash = planNameTaken(d.name, d.base || d.id); if (!d.name.trim()) d.name = view.isNew ? nextPlanName('My plan') : (getRoutine(d.base || d.id) || {}).name || 'My plan';
+    if (clash) { openSheet({ type: 'planName', title: 'Name this plan', value: nextPlanName(d.name), exceptId: d.base || d.id, ok: 'Save plan', sub: takenMsg(d.name), onSave: n => { d.name = n; closeSheet(); writeTo(clone(d), view.follow); back(d.id); } }); return; }
+    writeTo(clone(d), view.follow); closeSheet(); back(d.id); showToast({ kind: 'info', text: 'Saved ' + d.name }); };
+  const saveNew = () => { tidy(); openSheet({ type: 'planName', title: 'Save as a new plan', sub: 'Your changes go into a new plan. ' + ((getRoutine(d.base || d.id) || {}).name || 'The original') + ' stays as it was.', value: nextPlanName(d.name || 'My plan'), ok: 'Save new plan',
+    onSave: n => { const src = getRoutine(d.base || d.id); const isMain = src && programId() === src.id; const c = copyPlanAs({ ...clone(d), id: 'x' }, n, false); closeSheet();
+      if (isMain) openSheet({ type: 'confirm', title: 'Follow ' + n + '?', body: 'You’re following ' + src.name + ' now. Switch to the new plan, or keep following ' + src.name + '.', ok: 'Follow ' + n, onOk: () => { setProgram(c.id); closeSheet(); UI.setView(null); }, alt: 'Keep ' + src.name, onAlt: () => { closeSheet(); UI.setView({ type: 'routine', id: c.id }); } });
+      else UI.setView({ type: 'routine', id: c.id }); showToast({ kind: 'info', text: n + ' saved' }); } }); };
+  const save = () => { if (view.isNew) return saveHere();
+    openSheet({ type: 'planMore', title: 'Save your changes', acts: [['ps-here', 'Save to ' + ((getRoutine(d.base || d.id) || d).name), view.dayId ? 'Changes this plan from now on.' : 'Changes this plan from now on. Logged workouts stay as they were.', saveHere], ['ps-new', 'Save as a new plan', 'Keeps this plan as it is and makes a new one with your changes.', saveNew]] }); };
   return html`<div class="stack" style="gap:14px;margin-top:6px">
     <div><label class="lbl" for="rt-name">Plan name</label><input class="field" id="rt-name" value=${d.name} placeholder="e.g. Upper / Lower" onInput=${e => { d.name = e.target.value; }}/></div>
-    ${d.days.map((day, di) => html`<div key=${day.id} class="r-day">
+    ${view.dayId ? html`<p class="note" id="ed-one-day">Editing one day. <button class="btn text" style="padding:0;min-height:0" id="ed-all-days" onClick=${() => { view.dayId = null; re(); }}>Show all days</button></p>` : null}
+    ${d.days.map((day, di) => view.dayId && day.id !== view.dayId ? null : html`<div key=${day.id} class="r-day">
       <div class="row"><input class="field" id=${'day-' + day.id} aria-label="Day name" value=${day.name} onInput=${e => { day.name = e.target.value; }}/>
         <button class="icon-btn" aria-label="Move day up" onClick=${() => move(d.days, di, -1)}>${I.up}</button>
         <button class="icon-btn" aria-label="Delete day" onClick=${() => { d.days.splice(di, 1); re(); }}>${I.trash}</button></div>
@@ -3236,8 +3265,8 @@ function RoutineEditor({ view }) {
         <input class="field ed-cue" id=${'cue-' + it.id} aria-label=${exName(it.ex) + ' note'} placeholder="Note, e.g. 15 each side" value=${it.note || ''} onInput=${e => { it.note = e.target.value; }}/></div>`)}
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}
-    <button class="btn wide" onClick=${() => { d.days.push({ id: uid('d'), name: 'Day ' + (d.days.length + 1), items: [] }); re(); }}>${I.plus} Add day</button>
-    <div class="row"><button class="btn" style="flex:1" onClick=${() => UI.setView(view.isNew ? null : { type: 'routine', id: d.id })}>Cancel</button><button class="btn primary" style="flex:2" onClick=${save}>Save plan</button></div>
+    ${view.dayId ? null : html`<button class="btn wide" onClick=${() => { d.days.push({ id: uid('d'), name: 'Day ' + (d.days.length + 1), items: [] }); re(); }}>${I.plus} Add day</button>`}
+    <div class="row"><button class="btn" style="flex:1" id="ed-cancel" onClick=${() => view.isNew ? UI.setView(null) : back(d.base || d.id)}>Cancel</button><button class="btn primary" style="flex:2" id="ed-save" onClick=${save}>Save</button></div>
   </div>`;
 }
 
@@ -3662,16 +3691,16 @@ function ProfileScreen({ view }) {
       <div class="row" style="align-items:flex-start">${field('goal', 'Workouts per week')}</div>
       <div class="row" style="align-items:flex-start">${field('inc', 'Weight jump (' + st.unit + ')')}${field('bar', 'Barbell (' + st.unit + ')')}</div>
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
-      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}${restField('restSS', 'Superset rest (seconds)')}</div>
+      <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
-      <p class="note">Now ${clock(+st.rest || 0)} after a single exercise and ${clock(+st.restSS || 0)} after a superset. 0 turns one off.</p>
+      <p class="note">Now ${clock(+st.rest || 0)} unless a plan or exercise sets its own. 0 turns it off. In a superset, the time you spend on the other exercise counts toward each exercise's rest, so the timer only runs for what's left.</p>
     </div>
     <${AboutYouCard}/>
     <button class="opt" id="profile-more" onClick=${() => UI.setView({ type: 'advanced' })}><div style="flex:1"><div>More training settings</div><div class="d">Weight jump rules, timer sounds, personal records, streaks and rep ranges</div></div></button>
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 2fa1146</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 9371301</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4295,10 +4324,10 @@ function RestPickSheet() {
 function ExRestSheet({ ex }) {
   const cur = S.meta.exRest[ex]; const st = S.meta.settings;
   const set = v => { commit(m => { if (v === null) delete m.meta.exRest[ex]; else m.meta.exRest[ex] = v; }, 'meta', 600); closeSheet(); };
-  return html`<${Sheet} label="Rest timer"><h2>Rest for ${exName(ex)}</h2><p class="note" style="margin-bottom:12px">Overrides your single and superset rest for this exercise only.</p>
+  return html`<${Sheet} label="Rest timer"><h2>Rest for ${exName(ex)}</h2><p class="note" style="margin-bottom:12px">Overrides your default rest for this exercise only. In a superset, time on the other exercise counts toward it.</p>
     <div class="preset-grid">${REST_PRESETS.map(v => html`<button key=${v} class=${'chip' + (cur === v ? ' on' : '')} onClick=${() => set(v)}>${clock(v)}</button>`)}</div>
     <div style="margin-top:10px"><button class=${'opt' + (cur === 0 ? ' on' : '')} onClick=${() => set(0)}>No timer for this exercise</button>
-      <button class=${'opt' + (cur == null ? ' on' : '')} onClick=${() => set(null)}>Use my defaults (${clock(+st.rest)} single, ${clock(+st.restSS)} superset)</button></div><//>`;
+      <button class=${'opt' + (cur == null ? ' on' : '')} onClick=${() => set(null)}>Use my default (${clock(+st.rest)})</button></div><//>`;
 }
 function BWSheet() {
   const [w, setW] = useState(''); const [d, setD] = useState(ymd(new Date()));
@@ -4432,7 +4461,7 @@ function ImportSheet() {
   const [text, setText] = useState(''); const [name, setName] = useState('');
   const days = useMemo(() => parseProgram(text), [text]);
   const onFile = e => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { setText(String(rd.result || '')); if (!name) setName(f.name.replace(/\.[^.]+$/, '')); }; rd.readAsText(f); };
-  const save = () => { const r = { id: uid('r'), name: name.trim() || 'Imported plan', source: 'imported', createdAt: Date.now(), days: [] };
+  const save = () => { const r = { id: uid('r'), name: uniquePlanName(name.trim() || 'Imported plan'), source: 'imported', createdAt: Date.now(), days: [] };
     commit(st => { r.days = materialize(days); st.meta.routines[r.id] = r; }, 'meta'); closeSheet(); UI.setView({ type: 'routine', id: r.id }); };
   return html`<${Sheet} label="Import plan"><h2>Import a plan</h2>
     <p class="note" style="margin-bottom:10px">Paste a program from RepCount, a website, or a note. Day names go on their own line. Exercises look like <b>3x Squat</b>, <b>4x8-10 Lat Pulldown</b>, or <b>Squat 3x5</b>. Start a line with <b>x</b> to superset it with the line above.</p>
@@ -4539,6 +4568,8 @@ function SheetHost({ sheet }) {
     case 'bodyScan': return html`<${BodyScanSheet}/>`;
     case 'bodyGoal': return html`<${BodyGoalSheet}/>`;
     case 'quickLog': return html`<${QuickLogSheet}/>`;
+    case 'planName': return html`<${PlanNameSheet} ...${sheet}/>`;
+    case 'dayEdit': return html`<${DayEditSheet} rid=${sheet.rid} did=${sheet.did}/>`;
     case 'pickNext': return html`<${PickNextSheet} rid=${sheet.rid}/>`;
     case 'runGoal': return html`<${RunGoalSheet}/>`;
     case 'splits': return html`<${SplitsSheet} ...${sheet}/>`;
@@ -7510,7 +7541,7 @@ function repeatSession(id) {
 }
 function saveSessionAsRoutine(id) {
   const s = S.sessions[id]; if (!s) return;
-  const r = { id: uid('r'), name: s.name && s.name !== 'Workout' ? s.name : 'Workout from ' + shortDate(s.startedAt), source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: s.name || 'Day 1', items: itemsFromSession(s) }] };
+  const r = { id: uid('r'), name: uniquePlanName(s.name && s.name !== 'Workout' ? s.name : 'Workout from ' + shortDate(s.startedAt)), source: 'mine', createdAt: Date.now(), days: [{ id: uid('d'), name: s.name || 'Day 1', items: itemsFromSession(s) }] };
   commit(st => { st.meta.routines[r.id] = r; }, 'meta'); closeSheet(); UI.setTab('routines'); UI.setView({ type: 'routine', id: r.id });
   showToast({ kind: 'info', text: 'Saved as a plan. Edit it to change sets or reps.' });
 }
@@ -10908,6 +10939,77 @@ for (const [id, name, note, days, meta] of INTENSITY_PLANS) {
   const ds = (multi ? days : [[name, ['Arms'], days]]).map(([dn, tags, items], i) => { const d = planDay(id, i + 1, dn, tags, items.map(x => x.slice(0, 4))); items.forEach((x, j) => { if (x[4]) d.items[j].dl = x[4]; }); return d; });
   BUILTIN_ROUTINES.push({ id, name, note, source: 'builtin', meta, days: ds, intensity: true });
 }
+/* ============ My plan, saving edits and plan names (Nov 20, Newt) ============
+   Plans opens on My plan: the plan you follow, ready to view and edit (one day or the whole plan), with what runs
+   alongside it. All plans is the library. Editing a plan you already have asks: save to this plan, or save as a new plan
+   (with a name). Copy asks for a name too. No two plans share a name: "Sapwood already exists. Choose a new name."
+   Suggested names for copies are the name plus the next free number: "Sapwood 2", then "Sapwood 3". */
+const planNameKey = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+function planNameTaken(name, exceptId) {
+  const k = planNameKey(name); if (!k) return null;
+  const all = [...allRoutines(), ...(typeof archivedRoutines === 'function' ? archivedRoutines() : [])];
+  return all.find(r => r.id !== exceptId && (!exceptId || r.base !== exceptId) && planNameKey(r.name) === k) || null;
+}
+/* "Sapwood Hypertrophy" → "Sapwood Hypertrophy 2"; "Sapwood Hypertrophy 2" → "… 3" (the next free number) */
+function nextPlanName(name) {
+  const base = String(name || 'My plan').trim().replace(/\s+\(copy\)$/i, '').replace(/\s+\d+$/, '') || 'My plan';
+  for (let n = 2; n < 1000; n++) { const c = base + ' ' + n; if (!planNameTaken(c)) return c; }
+  return base + ' ' + Date.now();
+}
+const uniquePlanName = (name, exceptId) => planNameTaken(name, exceptId) ? nextPlanName(name) : String(name).trim();
+const takenMsg = name => '“' + String(name).trim() + '” already exists. Choose a new name.';
+/* Ask for a plan name: { title, sub, value, ok, exceptId, onSave(name) } */
+function PlanNameSheet({ title, sub, value, ok, exceptId, onSave }) {
+  const [v, setV] = useState(value || ''); const [tried, setTried] = useState(false);
+  const clash = planNameTaken(v, exceptId); const empty = !v.trim();
+  const go = () => { setTried(true); if (empty || clash) return; onSave(v.trim()); };
+  return html`<${Sheet} label=${title}><h2>${title}</h2>${sub ? html`<p class="note">${sub}</p>` : null}
+    <label class="lbl" for="pn-name" style="margin-top:10px">Plan name</label>
+    <input class="field" id="pn-name" value=${v} autocomplete="off" onInput=${e => setV(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') go(); }}/>
+    ${clash && (tried || v !== value) ? html`<p class="small" id="pn-taken" role="alert" style="margin-top:6px;color:var(--red-text)">${takenMsg(v)}</p>` : null}
+    ${tried && empty ? html`<p class="small" role="alert" style="margin-top:6px;color:var(--red-text)">Give the plan a name.</p>` : null}
+    <button class="btn primary wide" id="pn-save" style="margin-top:12px" onClick=${go}>${ok || 'Save'}</button>
+    <button class="btn wide" style="margin-top:8px" onClick=${closeSheet}>Cancel</button><//>`;
+}
+/* Copy a plan under a new name */
+function copyPlanAs(r, name, follow) {
+  const c = clone(r); delete c.base; delete c.meta; delete c.shelf; delete c.personal; c.id = uid('r'); c.source = 'mine'; c.name = name; c.createdAt = Date.now(); c.copyOf = r.id;
+  c.days.forEach(d => { d.id = uid('d'); d.items.forEach(i => { i.id = uid('i'); }); });
+  commit(st => { st.meta.routines[c.id] = c; if (follow) st.meta.settings.program = c.id; }, 'meta');
+  return c;
+}
+function askCopy(r) {
+  openSheet({ type: 'planName', title: 'Copy ' + r.name, sub: 'Make your own version to change. The original stays as it is.', value: nextPlanName(r.name), ok: 'Make the copy',
+    onSave: name => { const c = copyPlanAs(r, name); closeSheet(); UI.setTab('routines'); UI.setView({ type: 'routine', id: c.id }); showToast({ kind: 'info', text: name + ' made. Edit it any way you like.' }); } });
+}
+/* Plans: My plan | All plans */
+const plansView = () => lsGet('plansView') === 'mine' ? 'mine' : 'all';   /* remembered; All plans until you pick My plan */
+function PlansTop() {
+  return html`<${TopSwitch} value=${plansView()} options=${[['mine', 'My plan'], ['all', 'All plans']]} onChange=${k => { lsSet('plansView', k); S.rerender(); scrollTo(0, 0); }}/>`;
+}
+function MyPlanPane() {
+  const pid = programId(); const r = pid && pid !== 'self' ? getRoutine(pid) : null;
+  const others = typeof addonIds === 'function' ? addonIds().map(getRoutine).filter(Boolean) : [];
+  if (!r) return html`<div id="my-plan"><div class="card" id="my-plan-none"><b>You’re not following a plan</b><p class="small muted" style="margin-top:4px">Pick one in All plans and Train lines up each day for you, or build your own.</p>
+      <button class="btn primary wide" style="margin-top:10px" id="mp-browse" onClick=${() => { lsSet('plansView', 'all'); S.rerender(); }}>Browse all plans</button></div></div>`;
+  return html`<div id="my-plan"><${RoutineView} id=${r.id} mine=${true}/>
+    ${others.length ? html`<div class="section-h"><h2>Alongside</h2><button class="btn text" onClick=${() => openSheet({ type: 'addons' })}>Edit</button></div>
+      <div class="stack">${others.map(o => html`<button key=${o.id} class="opt" id=${'mp-also-' + o.id} onClick=${() => UI.setView({ type: 'routine', id: o.id })}><div style="flex:1;min-width:0"><div>${o.name}</div><div class="d">${o.meta || o.days.length + ' days'}</div></div></button>`)}</div>` : null}
+    <button class="btn wide" style="margin-top:14px" id="mp-change" onClick=${() => openSheet({ type: 'program' })}>Change plan</button></div>`;
+}
+/* A day's Edit: just for today, or this day in the plan */
+function DayEditSheet({ rid, did }) {
+  const r = getRoutine(rid); const d = r && r.days.find(x => x.id === did); if (!d) return null;
+  return html`<${Sheet} label=${'Edit ' + d.name}><h2>Edit ${d.name}</h2>
+    <button class="opt" id="de-today" onClick=${() => { closeSheet(); startWorkout(r, d); showToast({ kind: 'info', ms: 6000, text: 'Started ' + d.name + '. Add, swap or remove anything; your plan stays the same.' }); }}><div style="flex:1"><div>Just for today</div><div class="d">Start it now and change anything in the workout. The plan stays as it is.</div></div></button>
+    <button class="opt" id="de-plan" onClick=${() => { closeSheet(); editPlanDraft(r, did); }}><div style="flex:1"><div>Change this day in the plan</div><div class="d">Every time you do ${d.name} from now on.</div></div></button>
+    <button class="opt" id="de-all" onClick=${() => { closeSheet(); editPlanDraft(r); }}><div style="flex:1"><div>Edit the whole plan</div><div class="d">All days, names, sets and order.</div></div></button><//>`;
+}
+function editPlanDraft(r, dayId) {
+  const builtin = r.source === 'builtin';
+  UI.setTab('routines');
+  UI.setView({ type: 'edit', dayId: dayId || null, draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
+}
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {
@@ -12591,7 +12693,7 @@ function App() {
     ${title || left || right ? html`<header class="hdr"><div class="hdr-in"><div class="l">${left}</div><h1>${title}</h1><div class="r">${right}</div></div></header>` : html`<div class="hdr-space"></div>`}
     ${showMini ? html`<${IntervalMini}/>` : null}
     ${showFight ? html`<${FightMini}/>` : null}
-    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : !view && tab === 'routines' ? html`<div class="topsw"><h1 class="page-title">Plans</h1></div>` : null}${body}<${HelpFoot}/></main>
+    <main class=${showMini || showFight ? 'with-mini' : ''} style=${S.rest ? { paddingBottom: 'calc(var(--tabs-h,calc(66px + env(safe-area-inset-bottom,0px))) + var(--rest-h,70px) + 84px)' } : null}>${!view && (tab === 'stats' || tab === 'profile') ? html`<div class="topsw"><h1 class="page-title">${tab === 'stats' ? 'Progress' : 'Settings'}</h1></div><${Intro} id=${'intro-' + tab}>${tab === 'stats' ? 'Your history, numbers and photos.' : 'Backups, settings and help.'}<//>` : null}${body}<${HelpFoot}/></main>
     <${QuickFab} tab=${tab} view=${view}/>
     <${Toast}/>
     <${Announcer}/>

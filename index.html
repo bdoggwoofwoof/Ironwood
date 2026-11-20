@@ -2016,6 +2016,7 @@ const ICONS = {
   up: ic(() => html`<path d="M12 19V5M6 11l6-6 6 6"/>`),
   down: ic(() => html`<path d="M12 5v14M6 13l6 6 6-6"/>`),
   x: ic(() => html`<path d="M6 6l12 12M18 6L6 18"/>`),
+  grip: ic(() => html`<path d="M5 8h14M5 12h14M5 16h14"/>`),
   link: ic(() => html`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>`),
   swap: ic(() => html`<path d="M7 7h12l-3-3M17 17H5l3 3"/>`),
   layers: ic(() => html`<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>`),
@@ -2893,6 +2894,7 @@ function ActiveWorkout() {
     <div class="stack" style="margin-top:16px">
       <${WorkoutAddons} a=${a}/>
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add exercise', onPick: ex => { a.items.push(makeSlot({ ex: ex.id, sets: 3 })); closeSheet(); touch(); } })}>${I.plus} Add exercise</button>
+      ${a.items.length > 1 ? html`<button class="btn wide" id="wo-reorder" onClick=${() => openSheet({ type: 'reorder', list: a.items, workout: true, onChange: touch })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn wide" onClick=${() => UI.setView({ type: 'timer' })}>${I.timer} Interval timer</button>
       <button class="btn primary wide" onClick=${() => openSheet({ type: 'finish' })}>Finish workout</button>
       <button class="btn text danger wide" onClick=${() => openSheet({ type: 'confirm', title: 'Discard this workout?', body: 'Nothing from this session will be saved.', ok: 'Discard', danger: true, onOk: () => { commit(st => { st.active = null; st.rest = null; }, 'active', 300); closeSheet(); } })}>Discard workout</button>
@@ -3240,8 +3242,6 @@ function RoutineEditor({ view }) {
         ${day.tags && day.tags.length ? null : html`<p class="small faint" style="margin-top:6px">Automatic: ${autoTags(day, d).join(', ')}. Tap a type to set your own.</p>`}</div>
       ${day.items.map((it, ii) => html`<div key=${it.id} class=${'ed-item' + (it.ss ? ' ssi' : '')}>
         <div class="row"><button class="ed-name" onClick=${() => openSheet({ type: 'swap', ex: it.ex, title: 'Swap exercise', onPick: ex => { it.ex = ex.id; closeSheet(); re(); } })}><span>${exName(it.ex)}</span>${I.swap}</button>
-          <button class="icon-btn" aria-label="Move up" onClick=${() => move(day.items, ii, -1)}>${I.up}</button>
-          <button class="icon-btn" aria-label="Move down" onClick=${() => move(day.items, ii, 1)}>${I.down}</button>
           <button class="icon-btn" aria-label="Remove exercise" onClick=${() => { day.items.splice(ii, 1); re(); }}>${I.x}</button></div>
         <div class="row wrap">
           <span class="stepper"><button aria-label="Fewer sets" onClick=${() => { it.sets = Math.max(1, it.sets - 1); re(); }}>−</button><b>${it.sets}</b><button aria-label="More sets" onClick=${() => { it.sets = Math.min(20, it.sets + 1); re(); }}>+</button></span>
@@ -3251,6 +3251,7 @@ function RoutineEditor({ view }) {
           ${ii > 0 ? html`<label class="toggle"><input type="checkbox" id=${'ss-' + it.id} checked=${it.ss} onChange=${e => { it.ss = e.target.checked; re(); }}/>Superset</label>` : null}
         </div>
         <input class="field ed-cue" id=${'cue-' + it.id} aria-label=${exName(it.ex) + ' note'} placeholder="Note, e.g. 15 each side" value=${it.note || ''} onInput=${e => { it.note = e.target.value; }}/></div>`)}
+      ${day.items.length > 1 ? html`<button class="btn wide" id=${'ed-reorder-' + day.id} onClick=${() => openSheet({ type: 'reorder', list: day.items, title: 'Reorder ' + (day.name || 'day'), onChange: re })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}
     <button class="btn wide" onClick=${() => { d.days.push({ id: uid('d'), name: 'Day ' + (d.days.length + 1), items: [] }); re(); }}>${I.plus} Add day</button>
@@ -3688,7 +3689,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 4a414c0</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 676a2a2</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -4344,8 +4345,7 @@ function SlotSheet({ it }) {
     ${isMeasured(exKind(it.ex)) ? null : html`<button class="opt" id="opt-machines" onClick=${() => openSheet({ type: 'machines', ex: it.ex, itId: it.id })}>${I.edit}<div><div>Machines${machinesOf(it.ex).length ? ': ' + machinesOf(it.ex).join(', ') : ''}</div><div class="d">Different weights on different machines? Name them and switch mid-lift.</div></div></button>`}
     <button class="opt" onClick=${() => { toggleUnit(it); closeSheet(); }}>${I.swap}<div><div>Weigh in ${u === 'kg' ? 'lb' : 'kg'}</div><div class="d">Now ${u}. Remembered for this exercise.</div></div></button>
     ${idx > 0 ? html`<button class="opt" onClick=${() => { it.ss = !it.ss; closeSheet(); touch(); }}>${I.link}<div>${it.ss ? 'Remove superset' : 'Superset with exercise above'}</div></button>` : null}
-    ${idx > 0 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx - 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.up}<div>Move up</div></button>` : null}
-    ${idx < a.items.length - 1 ? html`<button class="opt" onClick=${() => { a.items.splice(idx, 1); a.items.splice(idx + 1, 0, it); ssTop(a.items); closeSheet(); touch(); }}>${I.down}<div>Move down</div></button>` : null}
+    ${a.items.length > 1 ? html`<button class="opt" id="opt-reorder" onClick=${() => openSheet({ type: 'reorder', list: a.items, workout: true, onChange: touch })}>${I.grip}<div><div>Reorder or remove exercises</div><div class="d">Drag into any order; take out any you won’t do</div></div></button>` : null}
     ${it.sets.length ? html`<button class="opt" onClick=${() => { copySet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.copy}<div>Copy last set</div></button>
     <button class="opt" onClick=${() => { deleteSet(it, it.sets[it.sets.length - 1]); closeSheet(); }}>${I.trash}<div>Delete last set</div></button>` : null}
     <button class="opt" style="color:var(--stop)" onClick=${() => { const gone = a.items[idx]; const ss0 = a.items[idx + 1] && a.items[idx + 1].ss; a.items.splice(idx, 1); ssTop(a.items); closeSheet(); touch(); const n = gone.sets.filter(isDone).length;
@@ -4495,6 +4495,8 @@ function SheetHost({ sheet }) {
   switch (sheet.type) {
     case 'pick': return html`<${PickSheet} ...${sheet}/>`;
     case 'swap': return html`<${SwapSheet} ...${sheet}/>`;
+    case 'reorder': return html`<${ReorderSheet} ...${sheet}/>`;
+    case 'addPick': return html`<${AddPickSheet} ...${sheet}/>`;
     case 'group': return html`<${GroupSheet} ...${sheet}/>`;
     case 'slot': return S.active ? html`<${SlotSheet} it=${sheet.it}/>` : null;
     case 'finish': return S.active ? html`<${FinishSheet}/>` : null;
@@ -8006,10 +8008,10 @@ function nextFor(r) {
 }
 const doneToday = id => sessionList().some(s => ymd(s.startedAt) === ymd(new Date()) && (s.routineId === id || (s.addons || []).some(a => a.id === id)));
 /* Add an add-on day to the workout in progress (or start the main day with it) */
-function addDayToWorkout(r, day) {
+function addDayToWorkout(r, day, only) {
   const a = S.active; if (!a) return;
   const base = a.items.length;
-  day.items.forEach((x, i) => { const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (i === 0) it.ss = false; a.items.push(it); });
+  let first = true; day.items.forEach((x, j) => { if (only && !only.has(x.id)) return; const occ = a.items.filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length; const it = makeSlot(x, occ); it.from = r.id; if (first || (only && !only.has(day.items[j - 1].id))) it.ss = false; first = false; a.items.push(it); });
   a.addons = (a.addons || []).concat([{ id: r.id, dayId: day.id }]);
   if (day.timer && !a.timer) a.timer = clone(day.timer);
   if (day.fight && !a.fight) a.fight = clone(day.fight);
@@ -8050,7 +8052,7 @@ function AlsoToday({ nx, quiet }) {
 function WorkoutAddons({ a }) {
   const ids = addonIds().filter(id => id !== a.routineId && !(a.addons || []).some(x => x.id === id)); if (!ids.length) return null;
   return html`<div class="wo-addons" id="wo-addons"><span class="lbl">Add from your other programs</span><div class="row wrap" style="gap:8px;margin-top:6px">${ids.map(id => { const r = getRoutine(id); const n = nextFor(r);
-    return html`<button key=${id} class="btn" id=${'wo-add-' + id} onClick=${() => addDayToWorkout(r, n.day)}>${I.plus} ${shortName(r)}${r.days.length > 1 ? ' · ' + n.day.name.split(':')[0] : ''}</button>`; })}</div></div>`;
+    return html`<button key=${id} class="btn" id=${'wo-add-' + id} onClick=${() => openSheet({ type: 'addPick', rid: r.id, dayId: n.day.id })}>${I.plus} ${shortName(r)}${r.days.length > 1 ? ' · ' + n.day.name.split(':')[0] : ''}</button>`; })}</div></div>`;
 }
 /* Pick the programs that sit alongside the main one */
 function AddonsSheet() {
@@ -12227,6 +12229,50 @@ function libPass(r) {
 function LibFilters({ re }) {
   const row = (k, label, opts) => html`<div class="plan-chips" role="group" aria-label=${label} style="margin-top:6px">${opts.map(([v, l]) => html`<button key=${v || 'any'} class=${'chip' + (LIB_F[k] === v ? ' on' : '')} aria-pressed=${LIB_F[k] === v} id=${'lf-' + k + '-' + (v || 'any')} onClick=${() => { LIB_F[k] = v; re(); }}>${l}</button>`)}</div>`;
   return html`<div id="lib-filters">${row('goal', 'Goal', [['', 'Any goal'], ['size', 'Build muscle'], ['strength', 'Get stronger']])}${row('days', 'Days a week', [['', 'Any days'], ['3', '3 days'], ['4', '4 days'], ['6', '6 days']])}${row('eq', 'Equipment', [['', 'Full gym'], ['db', 'Dumbbells only']])}</div>`;
+}
+/* Reorder or remove (Nov 20, Newt): one page to drag exercises into order and take some out, instead of Move up / Move down
+   one step at a time. Used in a workout and in the plan editor. A superset moves as one block; dragging is by the handle,
+   and the handle also takes the arrow keys. Removing the first exercise of a superset keeps the rest linked. */
+const groupsOf = list => { const u = []; list.forEach((it, i) => { if (i > 0 && it.ss && u.length) u[u.length - 1].push(it); else u.push([it]); }); return u; };
+function ReorderSheet({ list, title, onChange, workout }) {
+  const [, setT] = useState(0); const re = () => { setT(x => x + 1); if (onChange) onChange(); };
+  const drag = useRef(null); const units = groupsOf(list);
+  const setUnits = us => { list.splice(0, list.length, ...us.flat()); if (list[0]) list[0].ss = false; };
+  const moveUnit = (from, to) => { const us = groupsOf(list); if (to < 0 || to >= us.length || from === to) return; const [m] = us.splice(from, 1); us.splice(to, 0, m); setUnits(us); re(); };
+  const remove = it => { const before = list.slice(); const ss = list.map(x => x.ss); const i = list.indexOf(it);
+    if (!it.ss && list[i + 1] && list[i + 1].ss) list[i + 1].ss = false; list.splice(i, 1); if (list[0]) list[0].ss = false; re();
+    const n = workout ? it.sets.filter(isDone).length : 0;
+    showToast({ kind: 'info', ms: 8000, text: exName(it.ex) + ' removed' + (n ? ' with ' + n + ' logged set' + (n === 1 ? '' : 's') : ''), action: 'Undo', fn: () => { list.splice(0, list.length, ...before); before.forEach((x, k) => { x.ss = ss[k]; }); re(); } }); };
+  const down = (e, ui) => { e.preventDefault(); const h = e.currentTarget; try { h.setPointerCapture(e.pointerId); } catch (x) {} drag.current = { ui, id: e.pointerId }; re(); };
+  const moveP = e => { const d = drag.current; if (!d || d.id !== e.pointerId) return;
+    const rows = [...document.querySelectorAll('#reorder .ro-unit')]; let to = d.ui;
+    rows.forEach((el, k) => { const r = el.getBoundingClientRect(); if (k < d.ui && e.clientY < r.top + r.height / 2) to = Math.min(to, k); if (k > d.ui && e.clientY > r.top + r.height / 2) to = Math.max(to, k); });
+    if (to !== d.ui) { moveUnit(d.ui, to); d.ui = to; } };
+  const up = e => { if (drag.current && drag.current.id === e.pointerId) { drag.current = null; re(); } };
+  const key = (e, ui) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const to = ui + (e.key === 'ArrowUp' ? -1 : 1); moveUnit(ui, to); setTimeout(() => { const b = document.querySelectorAll('#reorder .ro-handle')[Math.max(0, Math.min(to, groupsOf(list).length - 1))]; if (b) b.focus(); }, 30); } };
+  return html`<${Sheet} label=${title || 'Reorder or remove'}><h2>${title || 'Reorder or remove'}</h2>
+    <p class="note" style="margin-bottom:6px">Drag the handle on the left to move an exercise; a superset moves together. Tap the X to take one out.</p>
+    <div id="reorder" role="list">${units.map((u, ui) => html`<div key=${u[0].id} role="listitem" class="opt ro-unit" style=${{ alignItems: 'flex-start', opacity: drag.current && drag.current.ui === ui ? 0.6 : 1 }}>
+      <button class="icon-btn ro-handle" style="touch-action:none;cursor:grab" aria-label=${'Move ' + u.map(x => exName(x.ex)).join(' and ') + '. Drag, or use the arrow keys.'}
+        onPointerDown=${e => down(e, ui)} onPointerMove=${moveP} onPointerUp=${up} onPointerCancel=${up} onKeyDown=${e => key(e, ui)}>${I.grip}</button>
+      <div style="flex:1;min-width:0">${u.length > 1 ? html`<div class="d">Superset</div>` : null}${u.map(it => html`<div key=${it.id} class="row" style="min-height:44px">
+        <div style="flex:1;min-width:0"><div>${exName(it.ex)}</div><div class="d">${workout ? it.sets.filter(isDone).length + ' of ' + it.sets.length + ' sets done' : setsLabel(it)}</div></div>
+        <button class="icon-btn" id=${'ro-x-' + it.id} aria-label=${'Remove ' + exName(it.ex)} onClick=${() => remove(it)}>${I.x}</button></div>`)}</div></div>`)}</div>
+    ${!list.length ? html`<p class="note" style="margin-top:10px">No exercises left.</p>` : null}
+    <button class="btn primary wide" id="ro-done" style="margin-top:14px" onClick=${closeSheet}>Done</button><//>`;
+}
+/* Add from your other programs: pick which exercises to bring in, all or just a few (Nov 20, Newt) */
+function AddPickSheet({ rid, dayId }) {
+  const r = getRoutine(rid); const day = r && (r.days.find(d => d.id === dayId) || r.days[0]); const [on, setOn] = useState(() => new Set(day ? day.items.map(x => x.id) : []));
+  if (!day) return null;
+  const tog = id => { const s = new Set(on); if (s.has(id)) s.delete(id); else s.add(id); setOn(s); };
+  const n = on.size; const all = n === day.items.length;
+  return html`<${Sheet} label=${'Add from ' + r.name}><h2>Add from ${shortName(r)}</h2><p class="note">${day.name}. Pick the exercises to add to this workout.</p>
+    <button class="btn text" id="ap-all" style="padding-left:0" onClick=${() => setOn(new Set(all ? [] : day.items.map(x => x.id)))}>${all ? 'Select none' : 'Select all'}</button>
+    <div id="ap-list">${day.items.map(x => html`<label key=${x.id} class="opt" style="cursor:pointer"><input type="checkbox" id=${'ap-' + x.id} checked=${on.has(x.id)} onChange=${() => tog(x.id)}/>
+      <div style="flex:1;min-width:0"><div>${exName(x.ex)}</div><div class="d">${setsLabel(x)}</div></div></label>`)}</div>
+    <button class="btn primary wide" id="ap-add" style="margin-top:14px" disabled=${!n} onClick=${() => { closeSheet(); addDayToWorkout(r, day, on); }}>${n ? 'Add ' + (all ? 'all ' : '') + n + ' exercise' + (n === 1 ? '' : 's') : 'Pick at least one'}</button>
+    <p class="note" style="margin-top:8px">Added too many? The exercise menu’s Reorder or remove takes any of them out.</p><//>`;
 }
 
 function HdrClock({ since }) {

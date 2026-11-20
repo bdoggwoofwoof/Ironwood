@@ -1,0 +1,75 @@
+"""My plan, saving edits and plan names (Nov 20, Newt): Plans opens on My plan to view and edit the plan you follow
+(one day just for today, one day in the plan, or the whole plan); saving changes asks this plan or a new plan; copies and
+new plans need a name no other plan has, with "[name] 2", "[name] 3" suggested."""
+import asyncio, subprocess, sys, time
+from playwright.async_api import async_playwright
+PORT = 8851
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', 'dist'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
+results = []
+def check(name, ok, detail=''):
+    results.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + name + (' - ' + str(detail) if detail else ''))
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await b.new_page(viewport={'width': 390, 'height': 844})
+        errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.add_init_script("try{localStorage.setItem('liftbook.tourDone','1');localStorage.setItem('liftbook.setupOffered','1');localStorage.setItem('liftbook.bgOffered','1')}catch(e){}")
+        await pg.goto(f'http://localhost:{PORT}/'); await pg.wait_for_timeout(1000)
+        ev = pg.evaluate
+        await ev("UI.setTab('routines')"); await pg.wait_for_timeout(300)
+        sw = await ev("[...document.querySelectorAll('main .topsw button')].map(b => b.textContent)")
+        check('Plans has My plan and All plans', sw == ['My plan', 'All plans'], sw)
+        check('with no plan it opens on All plans', await pg.locator('#plan-filters').count() == 1)
+        await pg.locator('main .topsw button', has_text='My plan').click(); await pg.wait_for_timeout(200)
+        check('My plan with none offers to browse', await pg.locator('#my-plan-none').count() == 1)
+        await ev("lsSet('plansView', ''); setProgram('bi-sapwood'); setAddon('bi-care-stretch', true); UI.setTab('train'); UI.setTab('routines')"); await pg.wait_for_timeout(300)
+        t = (await pg.inner_text('#my-plan')).lower()
+        check('following a plan, Plans opens on My plan with that plan', 'sapwood' in t and await pg.locator('#my-plan .r-day').count() == 4)
+        check('...what runs alongside it, and Change plan', await pg.locator('#mp-also-bi-care-stretch').count() == 1 and await pg.locator('#mp-change').count() == 1)
+        d1 = await ev("getRoutine('bi-sapwood').days[0].id")
+        await pg.click('#dedit-' + d1); await pg.wait_for_timeout(200)
+        check('each day has Edit: just for today, this day in the plan, the whole plan', all([await pg.locator('#de-' + x).count() == 1 for x in ['today', 'plan', 'all']]))
+        await pg.click('#de-today'); await pg.wait_for_timeout(400)
+        check('Just for today starts that day; the plan is untouched', await ev("S.active && S.active.dayId") == d1 and await ev("lsGet('tab')") == 'train')
+        await ev("commit(st => { st.active = null; }, 'active'); UI.setTab('routines')"); await pg.wait_for_timeout(300)
+        await pg.click('#dedit-' + d1); await pg.click('#de-plan'); await pg.wait_for_timeout(300)
+        check('Change this day shows just that day', await pg.locator('#ed-one-day').count() == 1 and await pg.locator('.r-day').count() == 1)
+        n0 = await ev("getRoutine('bi-sapwood').days[0].items.length")
+        await pg.locator('.r-day .ed-item').first.locator('button[aria-label="Remove exercise"]').click(); await pg.wait_for_timeout(100)
+        await pg.click('#ed-save'); await pg.wait_for_timeout(200)
+        check('Save asks: save to this plan or as a new plan', await pg.locator('#ps-here').count() == 1 and await pg.locator('#ps-new').count() == 1)
+        await pg.click('#ps-here'); await pg.wait_for_timeout(300)
+        check('save to this plan changes it, back on My plan', await ev("getRoutine('bi-sapwood').days[0].items.length") == n0 - 1 and await pg.locator('#my-plan').count() == 1)
+        check('...other days kept', await ev("getRoutine('bi-sapwood').days.length") == 4)
+        # Save as a new plan
+        await pg.click('#dedit-' + d1); await pg.click('#de-all'); await pg.wait_for_timeout(300)
+        check('Edit the whole plan shows every day', await pg.locator('.r-day').count() == 4)
+        await pg.click('#ed-save'); await pg.click('#ps-new'); await pg.wait_for_timeout(200)
+        nm = await ev("document.querySelector('#pn-name').value")
+        check('a new plan is suggested as "[name] 2"', nm == 'Sapwood Hypertrophy 2', nm)
+        await pg.fill('#pn-name', 'Heartwood Split'); await pg.wait_for_timeout(100)
+        check('a taken name says so', 'already exists. Choose a new name.' in await pg.inner_text('#pn-taken'))
+        await pg.click('#pn-save'); await pg.wait_for_timeout(200)
+        check('...and is not saved', await pg.locator('#pn-name').count() == 1)
+        await pg.fill('#pn-name', 'Sapwood Hypertrophy 2'); await pg.click('#pn-save'); await pg.wait_for_timeout(300)
+        check('following the old plan, it asks whether to follow the new one', await pg.locator('.sheet').count() == 1 and 'Follow Sapwood Hypertrophy 2' in await pg.inner_text('.sheet'))
+        await pg.locator('.sheet button', has_text='Keep').click(); await pg.wait_for_timeout(300)
+        new = await ev("allRoutines().find(r => r.name === 'Sapwood Hypertrophy 2')")
+        check('the new plan is saved and you keep following the old one', new and await ev("programId()") == 'bi-sapwood')
+        # Copy suggests the next number
+        await ev("UI.setView({ type: 'routine', id: 'bi-sapwood' })"); await pg.wait_for_timeout(300)
+        await pg.locator('button', has_text='Copy').first.click(); await pg.wait_for_timeout(200)
+        check('Copy asks for a name and suggests "[name] 3" when 2 exists', await ev("document.querySelector('#pn-name').value") == 'Sapwood Hypertrophy 3')
+        await pg.click('#pn-save'); await pg.wait_for_timeout(300)
+        check('the copy is made', await ev("allRoutines().some(r => r.name === 'Sapwood Hypertrophy 3')"))
+        check('copying a copy counts from the base name', await ev("nextPlanName('Sapwood Hypertrophy 3')") == 'Sapwood Hypertrophy 4')
+        # Renaming in the editor to a taken name
+        nid = await ev("allRoutines().find(r => r.name === 'Sapwood Hypertrophy 3').id")
+        await ev(f"editPlanDraft(getRoutine('{nid}'))"); await pg.wait_for_timeout(300)
+        await pg.fill('#rt-name', 'heartwood split'); await pg.click('#ed-save'); await pg.click('#ps-here'); await pg.wait_for_timeout(300)
+        check('renaming to a taken name (any case) asks for another', 'already exists' in await pg.inner_text('.sheet'))
+        await ev("closeSheet()")
+        check('imports get a free name', await ev("uniquePlanName('Heartwood Split')") == 'Heartwood Split 2')
+        check('no page errors', not errs, errs[:2])
+        await b.close()
+asyncio.run(main()); srv.kill()
+print(f'{sum(results)}/{len(results)} passed')

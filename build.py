@@ -139,6 +139,10 @@ json.dump(manifest, open(os.path.join(OUT, 'manifest.webmanifest'), 'w'), indent
 
 # 4c. Version shown in Profile → About: a short fingerprint of the app page, so a phone can tell which build it has
 html = html.replace('__APPVER__', hashlib.sha256(html.encode()).hexdigest()[:7])
+# Two modules defining the same top-level name silently replace one another (MeasRow, StarBtn, Nov 16): stop the build
+import collections
+_dups = [k for k, v in collections.Counter(re.findall(r'\n(?:function|const|let|class) ([A-Za-z_$][\w$]*)\s*[(=]', html)).items() if v > 1]
+if _dups: raise SystemExit('Duplicate top-level names: ' + ', '.join(_dups))
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf8').write(html)
 
 # 5. Service worker: every file the app needs, versioned by content so a new build replaces the old cache

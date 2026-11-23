@@ -305,6 +305,7 @@ function startWorkout(routine, day0) {
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
   touch(500); UI.setView(null); UI.setTab('train'); scrollTo(0, 0);
+  setTimeout(() => prMaybe('before'), 500);
 }
 /* A set counts as done once it has reps. Swiping right logs the faded numbers as they are. */
 function prPool(it, s, group) {
@@ -1704,6 +1705,7 @@ function PhotosScreen() {
       <p class="note" style="margin-top:10px">Take the same poses every few weeks. Your last photo shows in red over the camera so you can match it, and a level helps you hold the same angle. No tripod? Pick “Holding the phone” for mirror and selfie poses.</p></div>` : null}
     <div class="row" style="margin-top:14px"><button class="btn primary" style="flex:2" onClick=${() => openSheet({ type: 'checkin' })}>${I.camera} New check-in</button>
       ${dates.length > 1 ? html`<button class="btn" style="flex:1" onClick=${() => UI.setView({ type: 'photoCmp' })}>Compare</button>` : null}</div>
+    <${PhotoRemRow}/>
     ${PH.err ? html`<p class="small down-c" role="alert" style="margin-top:8px">${PH.err}</p>` : null}
     ${dates.map(d => html`<div key=${d}><div class="section-h"><h2 style="font-size:calc(17 * var(--u))">${shortDate(+parseYmd(d))}</h2><span class="aside">${by[d].length} photo${by[d].length === 1 ? '' : 's'}</span></div>
       <div class="ph-grid">${by[d].slice().sort((a, b) => order(a.pose) - order(b.pose)).map(p => html`<button key=${p.id} class="ph-thumb" onClick=${() => openSheet({ type: 'photo', id: p.id })}><img src=${phUrl(p)} alt=${(POSE_NAME[p.pose] || 'Photo') + ', ' + shortDate(p.t)}/><span>${POSE_NAME[p.pose] || 'Photo'}</span></button>`)}</div></div>`)}
@@ -1978,6 +1980,7 @@ function SummarySheet({ id }) {
     <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div>${vol > 0 ? html`<div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div>` : null}</div>
     <${RunSummary} s=${s}/>
     ${s.kind !== 'activity' ? html`<${WorkoutProtein}/>` : null}
+    ${s.kind !== 'activity' ? html`<${PhotoRemCard}/>` : null}
     ${noE1(s.prs).length ? html`<div class="section-h"><h2>New PRs</h2></div><div class="prl">${noE1(s.prs).map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>`
       : html`<p class="note" style="margin-top:14px">No new records this time. Logged weights become next workout's starting point.</p>`}
     <${SessionActions} id=${id}/>
@@ -2105,6 +2108,8 @@ function SheetHost({ sheet }) {
     case 'pick': return html`<${PickSheet} ...${sheet}/>`;
     case 'swap': return html`<${SwapSheet} ...${sheet}/>`;
     case 'reorder': return html`<${ReorderSheet} ...${sheet}/>`;
+    case 'photoRem': return html`<${PhotoRemSheet} ...${sheet}/>`;
+    case 'photoRemSet': return html`<${PhotoRemSetSheet}/>`;
     case 'addPick': return html`<${AddPickSheet} ...${sheet}/>`;
     case 'group': return html`<${GroupSheet} ...${sheet}/>`;
     case 'slot': return S.active ? html`<${SlotSheet} it=${sheet.it}/>` : null;
@@ -2243,6 +2248,7 @@ function SideTog({ ex }) {
 /*@include reorder.js*/
 /*@include research.js*/
 /*@include science.js*/
+/*@include photorem.js*/
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);
@@ -2317,6 +2323,7 @@ function App() {
   S.rerender = () => setTick(x => x + 1);
   useEffect(() => { wakeSync(); });
   useEffect(() => { measureBars(); });
+  useEffect(() => { const f = () => { if (!S.active) prMaybe('weekly'); }; const t = setTimeout(f, 2500); const iv = setInterval(f, 60000); return () => { clearTimeout(t); clearInterval(iv); }; }, []);
   UI.setSheet = setSheet; UI.setView = v => { setView(v); scrollTo(0, 0); };
   UI.setTab = k => { if (k === 'profile' && tab !== 'profile') lsSet('prevTab', tab); setTab(k); setView(null); lsSet('tab', k); scrollTo(0, 0); };
   useEffect(() => { const k = e => { if (e.key === 'Escape') setSheet(null); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);

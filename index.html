@@ -973,7 +973,9 @@ body:has(#quick-fab) main{padding-bottom:84px}
 .rec-star::after{content:'';position:absolute;inset:0 -4px}
 .shop-x::after{content:'';position:absolute;inset:-10px 0}
 .grab-zone::after{content:'';position:absolute;inset:-8px 0 0}
-.topsw.four button{min-width:44px;text-align:center}</style>
+.topsw.four button{min-width:44px;text-align:center}
+/* Sources line (Nov 23): small links keep a 44-point tap area without changing the look */
+.cite-why,.cite-a{position:relative}.cite-why::after,.cite-a::after{content:'';position:absolute;inset:-12px -10px}</style>
 
 <div id="app"></div>
 
@@ -1526,7 +1528,7 @@ const PERSONAL_PLANS = [
       'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
       'Supersets: a bar on the left means you go back and forth between the two. The time you spend on one counts as rest for the other, so after each set the timer shows only what’s left before the next exercise. They pair muscles that don’t compete, so you lose no reps and save time.',
       'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns pair with the incline press on Day 3, calf raises pair with the leg press and lateral raises end Day 4.',
-      'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2 }],
+      'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2, tipsSrc: ['loading', 'robinson', 'sodal', 'singer', 'pelland'] }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
     ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
     ['Full Body B', ['Full Body'], [['Romanian Deadlift', 3, '8-10'], ['Seated Dumbbell Overhead Press', 3, '8-10'], ['Seated Cable Row', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Hybrid Curls', 2, '10-12'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
@@ -1550,7 +1552,7 @@ function planDay(rid, i, name, tags, items) {
 /* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
 function builtinPlan([rid, name, tags, note, items, extra]) {
   const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
-  return Object.assign({ id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days }, extra && extra.tips ? { tips: extra.tips, tipsV: extra.tipsV || 1 } : {});
+  return Object.assign({ id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days }, extra && extra.tips ? { tips: extra.tips, tipsV: extra.tipsV || 1, tipsSrc: extra.tipsSrc || null } : {});
 }
 const BUILTIN_ROUTINES = [
   ...PERSONAL_PLANS.map(builtinPlan),
@@ -2592,6 +2594,7 @@ function HelpSheet() {
   return html`<${Sheet} label="Help"><h2>Help</h2>
     <button class="opt" id="help-page-tour" onClick=${() => startTour('page')}><div style="flex:1"><div>Tour this page</div><div class="d">What you can do on ${PAGE_NAMES[(lsGet('tab') || 'train') === 'train' ? TRAIN.mode : lsGet('tab')] || 'this page'}${lsGet('tab') === 'meals' ? ', step by step' : ', a few stops'}.</div></div></button>
     <button class="opt" id="help-tour" onClick=${() => startTour('full')}><div style="flex:1"><div>Full tour</div><div class="d">Every page and feature, about ${TOUR_FULL.length} stops.</div></div></button>
+    <button class="opt" id="help-science" onClick=${() => openScience()}><div style="flex:1"><div>How Ironwood works</div><div class="d">Why each feature works the way it does, its limits, and the studies behind it.</div></div></button>
     <button class="opt" id="help-feedback" onClick=${() => openSheet({ type: 'feedback' })}><div style="flex:1"><div>Send feedback</div><div class="d">Something went wrong, or you have an idea.</div></div></button>
     ${hidden ? html`<button class="opt" onClick=${() => { commit(st => { st.meta.settings.tipsOff = {}; }, 'meta'); closeSheet(); showToast({ kind: 'info', text: 'Tips are back' }); }}><div style="flex:1"><div>Show tips again</div><div class="d">${hidden} tip${hidden === 1 ? '' : 's'} hidden.</div></div></button>` : null}<//>`;
 }
@@ -2996,7 +2999,7 @@ function LiftSlot({ it, nextSS }) {
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
       <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
-    ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
+    ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} <div style="flex:1;min-width:0">${it.prog.msg}${it.prog.src ? html`<${Cite} k=${it.prog.src} sec="progress" rule=${it.prog.rule}/>` : null}</div></div>` : null}
     <${WarmupHint} it=${it}/>
     <${MachineRow} it=${it}/>
     <${ExNote} it=${it}/>
@@ -3205,7 +3208,7 @@ function RoutineView({ id }) {
     <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
-    ${r.tips ? html`<${Tip} id=${'pt-' + r.id + (r.tipsV > 1 ? '-v' + r.tipsV : '')} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}</div><//>` : null}
+    ${r.tips ? html`<${Tip} id=${'pt-' + r.id + (r.tipsV > 1 ? '-v' + r.tipsV : '')} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}${r.tipsSrc ? html`<${Cite} k=${r.tipsSrc} sec="effort"/>` : null}</div><//>` : null}
     ${archived ? html`<div class="card" id="plan-archived" style="margin-top:10px"><p class="small">${RETIRED[r.id] && isRetired(r.id) ? 'Retired from the library. ' + RETIRED[r.id] : 'Archived.'} It still works if you follow it, and its workouts stay in your history.</p><button class="btn" style="margin-top:8px" id="plan-restore" onClick=${() => restorePlan(r)}>Restore to Plans</button></div>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
     <${ProgramFacts} r=${r}/>
@@ -3223,6 +3226,7 @@ function RoutineView({ id }) {
     </div>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <${DayLoadWarn} d=${d}/>
       <ul class="r-items">${focusDay(r, d).items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
     <${ProgramGuide} r=${r}/>
     <div class="section-h" id="plan-settings-h"><h2>Plan settings</h2></div>
@@ -3254,6 +3258,7 @@ function RoutineEditor({ view }) {
           ${ii > 0 ? html`<label class="toggle"><input type="checkbox" id=${'ss-' + it.id} checked=${it.ss} onChange=${e => { it.ss = e.target.checked; re(); }}/>Superset</label>` : null}
         </div>
         <input class="field ed-cue" id=${'cue-' + it.id} aria-label=${exName(it.ex) + ' note'} placeholder="Note, e.g. 15 each side" value=${it.note || ''} onInput=${e => { it.note = e.target.value; }}/></div>`)}
+      <${DayLoadWarn} d=${day}/>
       ${day.items.length > 1 ? html`<button class="btn wide" id=${'ed-reorder-' + day.id} onClick=${() => openSheet({ type: 'reorder', list: day.items, title: 'Reorder ' + (day.name || 'day'), onChange: re })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}
@@ -3639,6 +3644,7 @@ function ProfileScreen({ view }) {
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span>${sub ? html`<span class="d">${sub}</span>` : null}</span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${!!st[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   const exR = Object.entries(S.meta.exRest || {});
   /* Four groups and an Advanced page (Nov 10, audit P1-5): the everyday settings stay here; the rest is one tap away. */
+  if (view && view.type === 'science') return html`<${ScienceView} sec=${view.sec}/>`;
   if (view && view.type === 'advanced') return html`<div class="stack" style="gap:12px" id="profile-advanced">
     <div class="section-h" style="margin-top:6px"><h2>Weight jumps</h2></div>
     <div class="card stack" style="gap:14px"><${ProgressionSettings} set=${set}/></div>
@@ -3694,7 +3700,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version ed10bf6</p></div>
+    <div class="card stack"><button class="btn" id="about-science" onClick=${() => UI.setView({ type: 'science' })}>How Ironwood works: features, limits and sources</button><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 35f23d8</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -7142,7 +7148,7 @@ function WorkoutExtras({ a }) {
   return html`<div class="wo-extra">
     ${r ? html`<div class="run-banner"><span class="lbl">Running plan · week ${r.w}</span>
       <p class="small">${r.swap ? 'Cross-training swap. Keep the effort the plan asks for.' : 'Warm up with 10 min easy and 5 min of drills first. Targets are next to each exercise; within 2 s per 200 m is on target.'}</p>
-      ${r.hard && !r.swap && legsYesterday() ? html`<p class="small down-c" role="alert">You did Legs yesterday. Sprints and hard intervals the day after Legs raise the risk of a strain.</p>` : null}
+      ${r.hard && !r.swap && legsYesterday() ? html`<p class="small down-c" role="alert">You did Legs yesterday. Sprints and hard intervals the day after Legs raise the risk of a strain.<${Cite} k=${[]} sec="running" rule=${true}/></p>` : null}
       <p class="small faint">Targets are estimates, not coaching advice.</p></div>` : null}
     ${tm ? html`<button class="btn wide" id="wo-timer" onClick=${() => { if (!S.itimer) startInterval(tm); UI.setView({ type: 'timer' }); }}>${I.timer} ${S.itimer ? 'Open timer' : 'Start timer: ' + (tm.name || timerSummary(tm))}</button>` : null}</div>`;
 }
@@ -7419,9 +7425,9 @@ function progPlan(it, kind, u, occ) {
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
   /* Nov 22: reps left on the last set (adjusted by your calibration) */
   const spare = e => { const l = e.sets[e.sets.length - 1]; return l && l.ri != null && typeof adjRir === 'function' ? adjRir(l.ri) : null; };
-  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
+  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, src: ['robinson', 'halperin'], rule: true, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
   if (full(e1)) return { mode: 'bump', delta: jump, msg: '+' + w(jump) + ' today. You hit every rep last time.' };
-  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
+  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', src: ['robinson'], rule: true, msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
   if (st.stepDown !== false && e0 && e1.top > e0.top + 1e-9 && miss(e1)) {
     const step = Math.floor(((e1.top - e0.top) / 2) / fine + 1e-9) * fine;
     if (step >= fine - 1e-9 && e0.top + step < e1.top - 1e-9)
@@ -7429,7 +7435,7 @@ function progPlan(it, kind, u, occ) {
   }
   if (st.deload !== false && h.length >= 3 && h.every(e => Math.abs(e.top - e1.top) < 1e-9 && mostShort(e)) && e1.top > 0) {
     const to = Math.floor(e1.top * 0.9 / fine + 1e-9) * fine;
-    if (to < e1.top && to >= e1.top * 0.85 - 1e-9) return { mode: 'deload', factor: to / e1.top, to, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
+    if (to < e1.top && to >= e1.top * 0.85 - 1e-9) return { mode: 'deload', factor: to / e1.top, to, src: [], rule: true, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
   }
   return { mode: 'hold' };
 }
@@ -7443,7 +7449,7 @@ function refillLift(it, occ) {
   it.prevNote = prev ? prev.note : ''; it.prevT = prev ? prev.t : 0;
   it.prevWhere = prev && prev.scoped ? 'in this workout' : prev && typeof prefillCtx === 'function' && prefillCtx() ? 'in any workout' : '';
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
-  it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg } : null;
+  it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg, src: P.src || null, rule: !!P.rule } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
   it.sets.forEach((x, j) => {
     if (!x.id) x.id = uid('t');
@@ -8035,6 +8041,7 @@ function addDayToWorkout(r, day, only) {
 function startTogether(main, mainDay, r, day) { startWorkout(main, mainDay); if (S.active && S.active.dayId === mainDay.id) addDayToWorkout(r, day); }
 const shortName = r => r.name.replace(/ Care$/, '');
 /* Train: what else is on your plate */
+const liftedToday = () => sessionList().some(s => ymd(s.startedAt) === ymd(new Date()) && !s.run && s.kind !== 'activity');
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
   /* The running plan always shows once it's set up: today's run, or the next one */
@@ -8051,6 +8058,7 @@ function AlsoToday({ nx, quiet }) {
     ${run && run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan</span></div><div class="also-t">All weeks done</div><div class="also-s">Start the next block from Train → Run.</div><div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onClick=${openRun}>Open the running plan</button></div></div>` : null}
     ${run && !run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : when(run.i)}</div>
       <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
+      ${run.i === 0 && !run.done && nx && !liftedToday() ? html`<p class="small" id="lift-first" style="margin-top:6px">Lifting today too? Lift first, then run: leg strength improved more that way, with the same muscle growth.<${Cite} k=${['concorder']} sec="running"/></p>` : null}
       <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
         <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
     ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Joint care' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));
@@ -10654,6 +10662,12 @@ const BG_GOALS = [['bulk', 'Lean bulk', 'Gain muscle with a small surplus'], ['c
 const BG_PACE = { bulk: { gentle: ['Gentle', '¼ lb a week, the least fat'], steady: ['Steady', '½ lb a week, faster, a bit more fat'] },
   cut: { gentle: ['Gentle', '½% of your weight a week, easiest to keep muscle'], steady: ['Steady', '¾% of your weight a week, faster and harder'] } };
 const LB = 2.20462;
+/* Sources under each warning (Nov 23, Newt): which study it rests on, or Ironwood's rule of thumb */
+function bgCite(w, g) {
+  const goal = g && g.goal; const src = { fast: goal === 'cut' ? ['helms'] : ['iraki'], flat: goal === 'cut' ? ['helms'] : ['iraki'], protein: ['morton', 'helms'] }[w.id];
+  if (w.id === 'held') return null;
+  return html`<${Cite} k=${src || []} sec=${w.id === 'protein' ? 'protein' : w.id === 'miss' ? 'volume' : 'weight'} rule=${!src}/>`;
+}
 const bgSet = () => S.meta.settings.body || null;
 const bgLatest = k => { const es = (S.meta.meas || []).filter(e => e.k === k).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); return es[es.length - 1] || null; };
 /* What we know about you now. Weights in lb for the math. */
@@ -10777,7 +10791,7 @@ function BodyGoalCard() {
       ${R.why ? html`<p class="small" style="margin-top:8px;color:var(--red-text)">${R.why}</p>` : null}
       ${R.note ? html`<p class="small muted" style="margin-top:8px">${R.note}</p>` : null}
       <p class="small muted" style="margin-top:8px">Burn is ${N.bmr} at rest (from ${N.bmrSrc}) plus ${R.days} workouts a week. Lifting: ${R.lift[0]}–${R.lift[1]} days a week${g.goal === 'cut' ? ', plus a daily walk' : ''}.</p>
-      ${warns.length ? html`<div class="stack" id="bg-warns" style="margin-top:12px;gap:8px">${warns.map(w => html`<div key=${w.id} class=${'bg-warn ' + w.lvl} id=${'bgw-' + w.id}><b>${w.h}</b><div class="small">${w.t}</div>
+      ${warns.length ? html`<div class="stack" id="bg-warns" style="margin-top:12px;gap:8px">${warns.map(w => html`<div key=${w.id} class=${'bg-warn ' + w.lvl} id=${'bgw-' + w.id}><b>${w.h}</b><div class="small">${w.t}</div>${bgCite(w, g)}
         ${w.act === 'hold' ? html`<button class="btn" id="bg-hold" style="margin-top:6px" onClick=${() => bgHold(true)}>Eat at maintenance for a week</button>` : null}
         ${w.act === 'resume' ? html`<button class="btn" id="bg-resume" style="margin-top:6px" onClick=${() => bgHold(false)}>Resume the surplus</button>` : null}</div>`)}</div>` : null}
       <details class="meas-det" id="bg-tips"><summary><b>Tips for your ${bgName(g.goal).toLowerCase()}</b></summary><ul class="bg-tips">${BG_TIPS[g.goal].map(t => html`<li key=${t}>${t}</li>`)}</ul></details>
@@ -10835,7 +10849,7 @@ function BodyGoalNudge() {
   const seen = lsGet('bgWarnSeen'); if (seen && seen > ymd(addDays(new Date(), -7))) return null;
   const N = bodyNow(); const R = bgCalc(g, N); if (R.problem) return null;
   const w = bgWarnings(g, R, N).find(x => x.id === 'miss'); if (!w) return null;
-  return html`<div class="card check-card" id="bg-nudge"><div class="eyebrow">${bgName(g.goal)}</div><div style="font-weight:700">${w.h}</div><div class="small muted">${w.t}</div>
+  return html`<div class="card check-card" id="bg-nudge"><div class="eyebrow">${bgName(g.goal)}</div><div style="font-weight:700">${w.h}</div><div class="small muted">${w.t}</div>${bgCite(w, g)}
     <div class="check-acts">${w.act === 'hold' ? html`<button class="btn primary" id="bgn-hold" onClick=${() => bgHold(true)}>Maintenance for a week</button>` : null}
       <button class="btn" id="bgn-ok" onClick=${() => { lsSet('bgWarnSeen', ymd(new Date())); S.rerender(); }}>Got it</button></div></div>`;
 }
@@ -12167,11 +12181,11 @@ function ProgramGuide({ r }) {
   return html`<div id="plan-guide">
     <div class="section-h"><h2>Muscle coverage</h2><span class="aside">Sets a week</span></div>
     <div class="card" id="plan-cover">${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num">${ws[k] >= 1 ? fmt(Math.round(ws[k] * 2) / 2) : '–'}</b></div>`)}
-      <p class="small muted" style="margin-top:6px">${none.length ? 'Not trained directly: ' + none.join(', ') + '. ' : ''}Helper work counts as half a set (a bench press is half a triceps set). Around 10 sets a week per muscle is a good target for growth; fewer still works.</p></div>
+      <p class="small muted" style="margin-top:6px">${none.length ? 'Not trained directly: ' + none.join(', ') + '. ' : ''}Helper work counts as half a set (a bench press is half a triceps set). Around 10 sets a week per muscle is a good target for growth; fewer still works.<${Cite} k=${['pelland', 'persession']} sec="volume"/></p></div>
     <div class="section-h"><h2>How to progress</h2></div>
     <div class="card" id="plan-progress"><ul class="run-ul">${progressionText(r).map((t, k) => html`<li key=${k}>${t}</li>`)}</ul></div>
     <div class="section-h"><h2>Rest and effort</h2></div>
-    <div class="card" id="plan-effort"><p class="small"><b>Rest:</b> ${restText(r)}</p><p class="small" style="margin-top:6px"><b>Effort:</b> ${effortText(r)}</p></div></div>`;
+    <div class="card" id="plan-effort"><p class="small"><b>Rest:</b> ${restText(r)}</p><p class="small" style="margin-top:6px"><b>Effort:</b> ${effortText(r)}</p><${Cite} k=${['singer', 'rest3', 'robinson']} sec="rest"/></div></div>`;
 }
 
 /* ---------- Smart swaps ----------
@@ -12266,7 +12280,7 @@ function ReorderSheet({ list, title, onChange, workout }) {
   const up = e => { if (drag.current && drag.current.id === e.pointerId) { drag.current = null; re(); } };
   const key = (e, ui) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const to = ui + (e.key === 'ArrowUp' ? -1 : 1); moveUnit(ui, to); setTimeout(() => { const b = document.querySelectorAll('#reorder .ro-handle')[Math.max(0, Math.min(to, groupsOf(list).length - 1))]; if (b) b.focus(); }, 30); } };
   return html`<${Sheet} label=${title || 'Reorder or remove'}><h2>${title || 'Reorder or remove'}</h2>
-    <p class="note" style="margin-bottom:6px">Drag the handle on the left to move an exercise; a superset moves together. Tap the X to take one out.</p>
+    <p class="note" style="margin-bottom:6px">Drag the handle on the left to move an exercise; a superset moves together. Tap the X to take one out. Order doesn’t change muscle growth, so if a machine is taken, do something else first; only strength on the first lifts benefits from going first.<${Cite} k=${['order']} sec="exercises"/></p>
     <div id="reorder" role="list">${units.map((u, ui) => html`<div key=${u[0].id} role="listitem" class="opt ro-unit" style=${{ alignItems: 'flex-start', opacity: drag.current && drag.current.ui === ui ? 0.6 : 1 }}>
       <button class="icon-btn ro-handle" style="touch-action:none;cursor:grab" aria-label=${'Move ' + u.map(x => exName(x.ex)).join(' and ') + '. Drag, or use the arrow keys.'}
         onPointerDown=${e => down(e, ui)} onPointerMove=${moveP} onPointerUp=${up} onPointerCancel=${up} onKeyDown=${e => key(e, ui)}>${I.grip}</button>
@@ -12329,7 +12343,7 @@ function RirRow({ it, s, j }) {
     if (!done) return html`<div class="rir-row" id=${'rir-cal-' + it.id} style="margin:4px 0 8px"><p class="small"><b>Calibration set.</b> When you reach ${top} reps, how many more do you think you could do? Pick a guess, then keep going until you can’t do another rep, and log them all.</p>
       <div class="plan-chips" role="group" aria-label="Your guess: reps left at the top of the range" style="margin-top:6px">${RIR_OPTS.map(([v, l]) => html`<button key=${v} class=${'chip' + (s.g === v ? ' on' : '')} aria-pressed=${s.g === v} onClick=${() => pick('g', v)}>${l}</button>`)}</div></div>`;
     const actual = Math.max(0, Math.round(num(s.r)) - top); const diff = actual - s.g;
-    return html`<p class="small muted" id=${'rir-cal-res-' + it.id} style="margin:4px 0 8px">You guessed ${s.g} left at ${top} reps and had ${actual}. ${diff >= 2 ? 'Most lifters guess low like this, so your sets can go a little closer to failure.' : diff <= -2 ? 'You guessed high, so you’re already pushing hard; keep your estimates honest.' : 'Spot on.'} Ironwood uses this to read your reps-left answers.</p>`;
+    return html`<p class="small muted" id=${'rir-cal-res-' + it.id} style="margin:4px 0 8px">You guessed ${s.g} left at ${top} reps and had ${actual}. ${diff >= 2 ? 'Most lifters guess low like this, so your sets can go a little closer to failure.' : diff <= -2 ? 'You guessed high, so you’re already pushing hard; keep your estimates honest.' : 'Spot on.'} Ironwood uses this to read your reps-left answers.<${Cite} k=${['halperin']} sec="effort"/></p>`;
   }
   if (!done) return null;
   return html`<div class="rir-row" id=${'rir-' + it.id} style="margin:2px 0 8px"><span class="small muted">Reps left on this set?</span>
@@ -12355,8 +12369,8 @@ function MuscleWeek() {
   return html`<div class="card" id="muscle-week" style="margin-bottom:12px">
     <div class="row small" style="min-height:26px"><span style="flex:1" class="muted">Muscle</span><span class="muted" style="width:62px;text-align:right">This week</span><span class="muted" style="width:62px;text-align:right">Last week</span>${plan ? html`<span class="muted" style="width:52px;text-align:right">Plan</span>` : null}</div>
     ${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num" style="width:62px;text-align:right">${h(now[k] || 0)}</b><span class="num" style="width:62px;text-align:right">${h(last[k] || 0)}</span>${plan ? html`<span class="num muted" style="width:52px;text-align:right">${h(plan[k] || 0)}</span>` : null}</div>`)}
-    ${short.length && anyLast ? html`<p class="small" id="muscle-short" style="margin-top:8px"><b>Last week fell short:</b> ${short.map(([k, l]) => l + ' ' + h(last[k] || 0) + ' of ' + h(plan[k])).join(', ')}. Missed days add up; a busy-week plan or an extra set or two this week closes the gap.</p>` : null}
-    <p class="small muted" style="margin-top:6px">Logged hard sets, with helper work counted as half a set (a bench press is half a triceps set).${plan ? ' Plan is what ' + r.name + ' calls for in a full week.' : ''} Around 10 or more a week per muscle suits growth.</p></div>`;
+    ${short.length && anyLast ? html`<p class="small" id="muscle-short" style="margin-top:8px"><b>Last week fell short:</b> ${short.map(([k, l]) => l + ' ' + h(last[k] || 0) + ' of ' + h(plan[k])).join(', ')}. Missed days add up; a busy-week plan or an extra set or two this week closes the gap.<${Cite} k=${['pelland']} sec="volume"/></p>` : null}
+    <p class="small muted" style="margin-top:6px">Logged hard sets, with helper work counted as half a set (a bench press is half a triceps set).${plan ? ' Plan is what ' + r.name + ' calls for in a full week.' : ''} Around 10 or more a week per muscle suits growth.<${Cite} k=${['pelland']} sec="volume"/></p></div>`;
 }
 
 /* ---- 3. Busy week ---- */
@@ -12369,7 +12383,7 @@ function applyBusy(a) {
   a.busy = true;
 }
 function BusyWeek() {
-  if (isBusy()) return html`<div class="hint" id="busy-on" style="margin-top:10px">Busy week: each exercise uses about a third of its sets (at least one), at your usual weights. That keeps your size and strength. It ends on its own on Monday. <button class="btn text" id="busy-off" style="padding:0;min-height:0" onClick=${() => setBusy(false)}>Turn off</button></div>`;
+  if (isBusy()) return html`<div class="hint" id="busy-on" style="margin-top:10px"><div style="flex:1;min-width:0">Busy week: each exercise uses about a third of its sets (at least one), at your usual weights. That keeps your size and strength. It ends on its own on Monday. <button class="btn text" id="busy-off" style="padding:0;min-height:0" onClick=${() => setBusy(false)}>Turn off</button><${Cite} k=${['spiering', 'bickel']} sec="busy"/></div></div>`;
   return html`<button class="btn text wide" id="busy-start" style="margin-top:6px" onClick=${() => openSheet({ type: 'confirm', title: 'Busy week?', body: 'For the rest of this week, each exercise uses about a third of its sets (at least one) at your usual weights. Research finds that keeps size and strength for weeks. It turns off on its own on Monday.', ok: 'Start busy week', onOk: () => { setBusy(true); closeSheet(); showToast({ kind: 'info', text: 'Busy week on until Monday' }); } })}>Busy week? Keep your gains on fewer sets</button>`;
 }
 
@@ -12385,7 +12399,7 @@ function warmupLine(it) {
   const ws = [[0.4, 10], [0.6, 5], [0.8, 3]].map(([p, r]) => [rnd(w * p), r]).filter(([v], k, a) => v < w && (k === 0 || v > a[k - 1][0]));
   return ws.length ? 'Warm up first: ' + ws.map(([v, r]) => fmt(v) + ' × ' + r).join(', ') + ' ' + u + ', then your working sets.' : '';
 }
-function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div class="hint" id=${'warm-' + it.id}>${t}</div>` : null; }
+function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div class="hint" id=${'warm-' + it.id}><div style="flex:1;min-width:0">${t}<${Cite} k=${[]} sec="warmup" rule=${true}/></div></div>` : null; }
 
 /* ---- 5. Long-muscle-length exercises (nudged up in swaps) ---- */
 const LONG_EX = new Set(['Behind-the-Back Cable Lateral Raise', 'Cable Lateral Raise', 'Overhead Cable Tricep Extension', 'Dumbbell Overhead Tricep Extension', 'Incline Dumbbell Curl', 'Cable Fly',
@@ -12410,8 +12424,8 @@ function strengthChange(muscle, from) {
   for (const s of sessionList()) { if (s.startedAt < from) continue; for (const it of s.items || []) { if (isMeasured(exKind(it.ex)) || !(exMuscles(it.ex)[muscle] >= 1)) continue;
     const e1 = Math.max(0, ...(it.sets || []).filter(x => +x.r > 0 && +x.r <= 15 && +x.w > 0).map(x => epley(conv(+x.w, it.u || U(), U()), +x.r))); if (!(e1 > 0)) continue;
     (byEx[it.ex] = byEx[it.ex] || []).push({ t: s.startedAt, e1 }); } }
-  for (const l of Object.values(byEx)) if (l.length >= 2 && l[l.length - 1].t - l[0].t >= 14 * DAY) ch.push((l[l.length - 1].e1 - l[0].e1) / l[0].e1);
-  if (!ch.length) return null; ch.sort((a, b) => a - b); return { pct: ch[Math.floor(ch.length / 2)] * 100, n: ch.length };
+  let span = 0; for (const l of Object.values(byEx)) if (l.length >= 2 && l[l.length - 1].t - l[0].t >= 14 * DAY) { ch.push((l[l.length - 1].e1 - l[0].e1) / l[0].e1); span = Math.max(span, l[l.length - 1].t - l[0].t); }
+  if (!ch.length) return null; ch.sort((a, b) => a - b); return { pct: ch[Math.floor(ch.length / 2)] * 100, n: ch.length, span };
 }
 function PlanWorking() {
   const pid = programId(); const r = pid && pid !== 'self' ? getRoutine(pid) : null; if (!r || !isLiftPlan(r)) return null;
@@ -12421,13 +12435,13 @@ function PlanWorking() {
   const pc = v => (v >= 0 ? '+' : '') + Math.round(v) + '%';
   const line = ([k, l]) => { const avg = (done[k] || 0) / 4; const st = strengthChange(k, from8); const sz = SIZE_MEAS[k] ? measChange(SIZE_MEAS[k], from8) : null;
     const enough = avg >= plan[k] * 0.8; const up = st && st.pct > 1;
-    const verdict = !enough ? 'Fewer sets than planned; that comes first.' : st && !up ? 'Sets are there but lifts aren’t climbing: push closer to failure or add a set.' : up ? 'On track.' : 'Keep logging; it needs two weeks of the same lifts to judge.';
+    const verdict = !enough ? 'Fewer sets than planned; that comes first.' : st && !up ? (st.span >= 28 * DAY ? 'Sets are there but lifts have been flat for 4+ weeks: push closer to failure, or add 2 sets a week.' : 'Sets are there but lifts aren’t climbing yet: push closer to failure.') : up ? 'On track.' : 'Keep logging; it needs two weeks of the same lifts to judge.';
     return html`<div key=${k} class="opt" style="cursor:default;align-items:flex-start"><div style="flex:1;min-width:0"><div>${l}</div>
       <div class="d num">${fmt(Math.round(avg * 2) / 2)} of ${fmt(Math.round(plan[k] * 2) / 2)} sets a week${st ? ' · lifts ' + pc(st.pct) : ''}${sz ? ' · ' + sz.label.toLowerCase() + ' ' + (sz.d >= 0 ? '+' : '') + fmt(Math.round(sz.d * 10) / 10) + ' ' + sz.u : ''}</div>
-      <div class="d">${verdict}</div></div></div>`; };
+      <div class="d">${verdict}</div>${enough && st && !up && st.span >= 28 * DAY ? html`<button class="btn text" id=${'pw-add-' + k} style="padding-left:0" onClick=${() => addSetsFor(r, k)}>Add 2 sets a week for ${l.toLowerCase()}</button><${Cite} k=${['pelland']} sec="volume"/>` : null}</div></div>`; };
   return html`<div id="plan-working"><div class="section-h"><h2>Is the plan working?</h2><span class="aside">Last 4–8 weeks</span></div>
     <div class="card">${rows.map(line)}
-      <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.</p></div></div>`;
+      <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.<${Cite} k=${['pelland', 'robinson']} sec="volume"/></p></div></div>`;
 }
 
 /* ---- 7. Protein spread over the day, and after a workout ----
@@ -12440,14 +12454,121 @@ function logMeals(list) { /* entries grouped by plan slot, or by time when there
   return out;
 }
 function ProteinSpread({ list }) {
-  const kg = bodyKg(); if (!(kg > 0)) return null; const per = Math.round(kg * 0.4 / 5) * 5; const ms = logMeals(list || []); if (!ms.length) return html`<p class="small muted" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals.</p>`;
+  const kg = bodyKg(); if (!(kg > 0)) return null; const per = Math.round(kg * 0.4 / 5) * 5; const ms = logMeals(list || []); if (!ms.length) return html`<p class="small muted" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals.<${Cite} k=${['permeal']} sec="protein"/></p>`;
   const hit = ms.filter(m => m.p >= per * 0.8).length;
-  return html`<p class="small muted num" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals. Today: ${ms.map(m => Math.round(m.p) + ' g').join(', ')} (${hit} of ${ms.length} meal${ms.length === 1 ? '' : 's'} there).</p>`;
+  return html`<p class="small muted num" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals. Today: ${ms.map(m => Math.round(m.p) + ' g').join(', ')} (${hit} of ${ms.length} meal${ms.length === 1 ? '' : 's'} there).<${Cite} k=${['permeal']} sec="protein"/></p>`;
 }
 function WorkoutProtein() {
   if (typeof ML !== 'function') return null; const G = ML().goals || {}; if (!G.p) return null;
   const list = (ML().log || {})[ymd(new Date())] || []; const p = Math.round(sumNut(list).p || 0); const left = G.p - p;
-  return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}</p>`;
+  return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}<${Cite} k=${['morton', 'permeal']} sec="protein"/></p>`;
+}
+
+/* ---- 8. One muscle piled onto one day (Nov 23) ----
+   Within a workout, extra sets for the same muscle stop showing a clear benefit at about 11 fractional sets
+   (Remmert/Pelland per-session meta-regression). Plan pages and the editor say which muscle and how many. */
+const SESSION_CAP = 11;
+function dayMuscleSets(d) { const out = {}; for (const it of d.items || []) { if (isMeasured(exKind(it.ex)) && exKind(it.ex) !== 'timed') continue; for (const [m, w] of Object.entries(exMuscles(it.ex))) out[m] = (out[m] || 0) + (+it.sets || 0) * w; } return out; }
+function DayLoadWarn({ d }) {
+  const ms = dayMuscleSets(d); const over = COVER_ROWS.filter(([k]) => (ms[k] || 0) > SESSION_CAP); if (!over.length) return null;
+  return html`<p class="small" id=${'dayload-' + d.id} style="margin-top:6px"><b>${over.map(([k, l]) => l + ' ' + fmt(Math.round(ms[k] * 2) / 2)).join(', ')} sets in this workout.</b> Past about ${SESSION_CAP} sets for one muscle in one workout, extra sets add little; moving a few to another day puts them to better use.<${Cite} k=${['persession']} sec="volume"/></p>`;
+}
+
+/* ---- 9. A muscle that gets its sets but has stalled: offer 2 more sets a week (never automatic) ---- */
+function addSetsFor(r, k) {
+  const prev = getRoutine(r.id); const d = prev.base || prev.source !== 'builtin' ? clone(prev) : { ...clone(prev), source: 'mine', base: prev.id };
+  const cands = []; d.days.forEach(day => day.items.forEach(it => { if (!isMeasured(exKind(it.ex)) && exMuscles(it.ex)[k] >= 1) cands.push({ day, it }); }));
+  if (!cands.length) return false;
+  const byDay = [...new Set(cands.map(c => c.day))].sort((a, b) => dayMinutes(a) - dayMinutes(b));
+  const pick = day => { const cs = cands.filter(c => c.day === day); return (cs.find(c => !isMainLift(c.it.ex)) || cs[cs.length - 1]).it; };
+  const changed = byDay.length >= 2 ? [pick(byDay[0]), pick(byDay[1])] : [pick(byDay[0]), pick(byDay[0])];
+  changed.forEach(it => { it.sets = (+it.sets || 0) + 1; });
+  const had = !!(S.meta.routines || {})[r.id]; const before = had ? clone(S.meta.routines[r.id]) : null;
+  commit(st => { st.meta.routines[d.id] = d; }, 'meta');
+  showToast({ kind: 'info', ms: 8000, text: '+1 set: ' + [...new Set(changed.map(it => exName(it.ex)))].join(' and ') + (changed[0] === changed[1] ? ' (2 sets)' : ''), action: 'Undo',
+    fn: () => commit(st => { if (before) st.meta.routines[d.id] = before; else delete st.meta.routines[d.id]; }, 'meta') });
+  return true;
+}
+/* How Ironwood works (Nov 23, Newt: "When you include warnings, can you cite your sources? … an about section that tells
+   about the choices for different features, settings, and limits and reasonings with citations"). One page in Settings →
+   About, and a Sources line under each warning that links to the studies and to the matching section here.
+   SRC holds every study the app leans on; a choice with no study behind it says so ("Ironwood's rule of thumb"). */
+const SRC = {
+  pelland: ['Pelland 2024', 'The resistance training dose-response: weekly volume and frequency (meta-regression)', 'https://sportrxiv.org/index.php/server/preprint/view/460/version/587'],
+  persession: ['Remmert 2025', 'Per-session set volume and hypertrophy (meta-regression)', 'https://sportrxiv.org/index.php/server/preprint/download/537/1148/1071'],
+  robinson: ['Robinson 2024', 'Proximity to failure (reps in reserve) and muscle growth (meta-regression)', 'https://rke.abertay.ac.uk/en/publications/exploring-the-dose-response-relationship-between-estimated-resist/'],
+  halperin: ['Halperin 2022', 'How accurately lifters predict reps to failure (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/34542869/'],
+  loading: ['Schoenfeld 2021', 'Loading recommendations: the repetition continuum re-examined', 'https://doaj.org/article/6d51b905504d46f0873bb43d5d84bf21'],
+  singer: ['Singer 2024', 'Rest between sets and muscle growth (Bayesian meta-analysis)', 'https://doi.org/10.3389/fspor.2024.1429789'],
+  rest3: ['Schoenfeld 2016', 'Longer rest periods and muscle growth in trained men', 'https://pubmed.ncbi.nlm.nih.gov/26605807/'],
+  sodal: ['Sødal 2023', 'Drop sets and muscle growth (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/37523092/'],
+  wolf: ['Wolf 2023', 'Partial vs full range of motion (meta-analysis)', 'https://doaj.org/article/99e86b317bec40f5abc2f0008358737e'],
+  quads: ['Zabaleta-Korta 2021', 'Squats vs leg extensions: regional quadriceps growth', 'https://searchworks.jioinstitute.edu.in/articles/asx__153456335'],
+  order: ['Nunes 2021', 'Exercise order, strength and muscle growth (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/32077380/'],
+  tempo: ['Schoenfeld 2015', 'Repetition duration and muscle growth (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/25601394/'],
+  spiering: ['Spiering 2021', 'The minimal dose of exercise to keep strength and endurance', 'https://pubmed.ncbi.nlm.nih.gov/33629972'],
+  bickel: ['Bickel 2011', 'Exercise dosing to keep training gains', 'https://pubmed.ncbi.nlm.nih.gov/21131862/'],
+  schumann: ['Schumann 2022', 'Concurrent aerobic and strength training (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/34757594/'],
+  concorder: ['Eddens 2018', 'Exercise order within a concurrent training session (meta-analysis)', 'https://link.springer.com/article/10.1007/s40279-017-0784-1'],
+  lundberg: ['Lundberg 2022', 'Concurrent training and muscle fiber growth (meta-analysis)', 'https://pmc.ncbi.nlm.nih.gov/articles/PMC9474354'],
+  morton: ['Morton 2018', 'Protein supplementation and gains from training (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/28698222/'],
+  permeal: ['Schoenfeld & Aragon 2018', 'How much protein the body can use in one meal', 'https://pubmed.ncbi.nlm.nih.gov/29497353/'],
+  helms: ['Helms 2014', 'Evidence-based recommendations for natural bodybuilders: nutrition', 'https://pubmed.ncbi.nlm.nih.gov/24864135'],
+  iraki: ['Iraki 2019', 'Nutrition for bodybuilders in the off-season (review)', 'https://pubmed.ncbi.nlm.nih.gov/31247944/'],
+};
+/* "Sources: A, B · Why" under a warning. Links open the study; Why opens this section of How Ironwood works. */
+function Cite({ k, sec, rule }) {
+  const ks = (Array.isArray(k) ? k : [k]).filter(x => SRC[x]);
+  return html`<span class="small faint cite" style="display:block;margin-top:4px">${rule ? 'Ironwood’s rule of thumb' : ks.length ? 'Sources: ' : ''}${ks.map((x, i) => html`<span key=${x}>${i || rule ? ', ' : ''}<a class="cite-a" href=${SRC[x][2]} target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${SRC[x][0]}</a></span>`)}${sec ? html` · <button class="btn text cite-why" style="padding:0;min-height:0;font-size:inherit;vertical-align:baseline" onClick=${e => { e.stopPropagation(); openScience(sec); }}>Why</button>` : null}</span>`;
+}
+function openScience(sec) { if (S.sheet) closeSheet(); UI.setTab('profile'); UI.setView({ type: 'science', sec }); setTimeout(() => { const el = sec && document.getElementById('sci-' + sec); if (el) el.scrollIntoView({ block: 'start' }); }, 120); }
+/* [id, title, what Ironwood does, settings, limits, why, sources, rule of thumb?] */
+const SCIENCE = [
+  ['volume', 'Sets per muscle', 'Plan pages count weekly sets per muscle and flag a workout that gives one muscle more than about 11 sets. Progress → Numbers counts what you logged, this week and last, beside your plan, flags muscles that fell below 70% of it, and, when a muscle gets its sets but its lifts have been flat for 4+ weeks, offers 2 more sets a week (only if you tap it). Helper work counts as half a set (a bench press is half a triceps set).',
+    'None; it follows your plan and your log.', 'Exercise muscle data is Ironwood’s own estimate for each lift. The 70% flag, the 4-week stall and the 2-set step are rules of thumb.',
+    'More hard sets a week mean more growth, with smaller gains from each extra set, and counting helper sets as half fits the research best. Around 10 or more hard sets a week per muscle suits growth. Within one workout, extra sets for the same muscle stop showing a clear benefit at about 11, so Ironwood spreads a muscle over two or three days.', ['pelland', 'persession']],
+  ['effort', 'Reps, effort and reps left', 'Rep ranges are about 6–10 on each day’s first big lifts and 10–15 on the rest. After an exercise’s last set, one tap records reps left (0 to 4+). Every 4 weeks one machine or cable lift becomes a calibration set: guess your reps left at the top of the range, then go to failure. The average gap corrects your later answers.',
+    'Settings → More training settings: Ask reps left on each exercise’s last set (on by default).', 'Only the last set is asked, to keep logging quick. The calibration uses your last five checks; until then answers are taken as given.',
+    'Muscle grows across a wide range of reps when sets end near failure, and growth increases the closer sets get to failure, while strength depends less on it. Lifters guess their reps left about one rep low on average, and guesses get worse farther from failure, which is why Ironwood checks them.', ['loading', 'robinson', 'halperin']],
+  ['progress', 'Next weight', 'Double progression: keep the weight until every set reaches the top of the range, then add the weight jump (twice it for big lower-body lifts). Top of the range with 3 or more reps left on the last set: a double jump. In range with 3 or more to spare: same weight, aim for the top. Short of the bottom on most sets three sessions running: down about 10%.',
+    'Settings → More training settings: weight jumps, smaller jumps after a miss, the 10% step down; per exercise from its ⋯ menu.', 'The 3-to-spare and 10% rules and the jump sizes are Ironwood’s rules of thumb, not tested directly; they follow from the effort research above.',
+    'Adding load when you outgrow a rep range keeps sets hard, which the effort research says drives growth. There are no scheduled deloads; the step down happens only when you stall.', ['robinson', 'halperin'], true],
+  ['rest', 'Rest timer and supersets', 'Main lifts rest 2–3 minutes, smaller lifts 60–90 seconds, as each plan sets. In a superset the time spent on the other exercise counts toward each exercise’s rest, so after a set the timer shows only what’s left for the next one.',
+    'Settings → More training settings: default rest, start the timer when a set is logged, superset rest after each exercise or the full round; per exercise from its ⋯ menu.', 'The exact seconds are not pinned down by research; past about 90 seconds the benefit is unclear.',
+    'Rest longer than 60 seconds gives a small growth benefit, unclear past 90 seconds. Three minutes beat one minute in trained men. Rest matters mostly because too little costs reps on the next set; counting superset time keeps the rest without the wait.', ['singer', 'rest3']],
+  ['drops', 'Drop sets', 'Sapwood and the drop-set plans put one drop on the last set of machine, cable and dumbbell lifts, about 20% lighter, set up when the workout starts. Never on squats, rows or barbell presses.',
+    'Add or remove a drop from a set’s number; plans decide where they start.', 'One drop, last set only: more drops add fatigue faster than growth (Ironwood’s reading of the research below).',
+    'Drop sets grow muscle about as well as normal sets and take less time, so they are a time saver, not a growth booster.', ['sodal']],
+  ['exercises', 'Exercise choice, order and speed', 'Swaps keep the same movement and muscles and nudge up exercises that train the muscle stretched. Sapwood pairs leg extensions with squats and leg press. Order is yours to change; there are no tempo targets.',
+    'Swap from any exercise’s ⋯ menu; Reorder or remove from the workout.', 'The stretched-position evidence is early, so it only nudges the ranking.',
+    'Training at long muscle lengths may grow muscle more. Leg extensions grow the middle quad (rectus femoris) more than squats, which grow the outer quad more. Exercise order changes strength on the first lifts but not growth. Reps lasting 0.5 to 8 seconds grow muscle about the same.', ['wolf', 'quads', 'order', 'tempo']],
+  ['busy', 'Busy week', 'One tap under Up next: until Monday, each exercise uses about a third of its sets (at least one) at your usual weights, with no drop sets.',
+    'Turn it on or off from Train.', 'It keeps what you have; it doesn’t build. Use it for a week or a few, not as a plan.',
+    'Size and strength held for up to 32 weeks on as little as one session a week and one set per exercise when the weight stayed heavy; a third of the usual volume kept gains in younger adults.', ['spiering', 'bickel']],
+  ['running', 'Running with lifting', 'The running plan warns about hard runs right after or on leg day, offers cycling and other swaps, and on days with both suggests lifting first.',
+    'Train → Run: your run days and lift days.', 'The interference effect is small; the warning is about how your legs feel as much as growth.',
+    'Combining aerobic and strength training doesn’t compromise muscle growth or maximal strength overall; explosive strength may suffer, and running may slightly blunt fiber growth more than cycling. In one session, lifting before endurance gave better lower-body strength with no difference in growth. The day-after-Legs strain warning is Ironwood’s rule of thumb.', ['schumann', 'lundberg', 'concorder'], true],
+  ['warmup', 'Warm-up sets', 'Before the first big lift: about 40%, 60% and 80% of your working weight for 10, 5 and 3 reps, shown as a line and not logged.',
+    'Settings → More training settings: Show warm-up sets.', 'Not used for anything else in the app.', 'A common coaching practice to rehearse the lift and get ready for heavy sets; Ironwood has no study for the exact percentages.', [], true],
+  ['protein', 'Protein', 'Meal targets worked out from your height and weight aim for about 1.6 g of protein per kg (1.8 when losing or gaining); Body goal aims a little higher, about 1.8–2.2 g/kg, most on a cut. The Log shows about 0.4 g per kg at each of 3–4 meals and what today’s meals had; the workout summary shows protein so far.',
+    'Meals → Log → Change goals, or work them out from your height, weight and goal.', 'Estimates for planning, not medical advice. With a high BMI the target uses a leaner weight.',
+    'Extra protein stopped adding gains from training beyond about 1.6 g/kg a day; Ironwood rounds up for a margin. About 0.4 g/kg per meal over at least four meals reaches that. On a cut, needs are higher (2.3–3.1 g per kg of lean mass).', ['morton', 'permeal', 'helms']],
+  ['weight', 'Weight change and calories', 'Body goal paces: a lean bulk of ¼–½ lb a week, a cut of ½–¾% of your weight a week, and warnings when your weight moves faster or not at all. Calories start from the Mifflin-St Jeor estimate and your activity, with a floor; no calorie targets under 18.',
+    'Progress → Body goal: goal, pace, target.', 'Formulas are estimates; your weight trend over 2–3 weeks is the real check. Not medical advice.',
+    'For lean gains, about 0.25–0.5% of body weight a week (a 10–20% surplus) is recommended; on a cut, about 0.5–1% a week keeps the most muscle. Ironwood’s bulk pace is a little more conservative.', ['iraki', 'helms']],
+];
+function ScienceView({ sec }) {
+  useEffect(() => { if (sec) setTimeout(() => { const el = document.getElementById('sci-' + sec); if (el) el.scrollIntoView({ block: 'start' }); }, 60); }, [sec]);
+  return html`<div id="science">
+    <h2 class="wo-title" style="margin:6px 0 4px">How Ironwood works</h2>
+    <p class="note">What each feature does, the settings and limits, why, and the studies behind it. Where a choice is Ironwood’s own rule of thumb, it says so. Ironwood is for planning and is not medical advice.</p>
+    <div class="plan-chips" role="navigation" aria-label="Sections" style="margin:10px 0">${SCIENCE.map(([id, t]) => html`<button key=${id} class="chip" onClick=${() => { const el = document.getElementById('sci-' + id); if (el) el.scrollIntoView({ block: 'start' }); }}>${t}</button>`)}</div>
+    ${SCIENCE.map(([id, t, does, set, lim, why, src, rule]) => html`<section key=${id} id=${'sci-' + id} style="scroll-margin-top:70px">
+      <div class="section-h"><h2>${t}</h2></div>
+      <div class="card"><p class="small"><b>What it does.</b> ${does}</p><p class="small" style="margin-top:6px"><b>Settings.</b> ${set}</p><p class="small" style="margin-top:6px"><b>Limits.</b> ${lim}</p>
+        <p class="small" style="margin-top:6px"><b>Why.</b> ${why}</p>
+        ${src.length || rule ? html`<ul class="run-ul" style="margin-top:6px">${rule ? html`<li class="small">Ironwood’s rule of thumb where noted above.</li>` : null}${src.map(k => html`<li key=${k} class="small"><a href=${SRC[k][2]} target="_blank" rel="noopener">${SRC[k][0]}</a>: ${SRC[k][1]}</li>`)}</ul>` : null}</div></section>`)}
+  </div>`;
 }
 
 function HdrClock({ since }) {

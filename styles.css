@@ -955,3 +955,5 @@ body:has(#quick-fab) main{padding-bottom:84px}
 .shop-x::after{content:'';position:absolute;inset:-10px 0}
 .grab-zone::after{content:'';position:absolute;inset:-8px 0 0}
 .topsw.four button{min-width:44px;text-align:center}
+/* Sources line (Nov 23): small links keep a 44-point tap area without changing the look */
+.cite-why,.cite-a{position:relative}.cite-why::after,.cite-a::after{content:'';position:absolute;inset:-12px -10px}

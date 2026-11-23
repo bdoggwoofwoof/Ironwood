@@ -53,7 +53,8 @@ async def main():
         push = await ev("(() => { const it = makeSlot({ ex: 'b-leg-extension', sets: 3, reps: '12-15' }); refill(it); return [it.prog && it.prog.mode, it.sets[0].gw, it.sets[0].gr]; })()")
         check('in range but 3+ to spare: same weight, aim for the top', push[0] == 'push' and float(push[1]) == 100 and push[2] == '15', push)
         # ---- sets by muscle ----
-        await ev(SEED + "([[0, 'b-bench-press', 100, [8, 8, 8]], [8, 'b-leg-extension', 100, [12, 12]]])")
+        lw = await ev("Math.round((Date.now() - (+startOfWeek(new Date()) - 3 * 864e5)) / 864e5 * 100) / 100")
+        await ev(SEED + f"([[0, 'b-bench-press', 100, [8, 8, 8]], [{lw}, 'b-leg-extension', 100, [12, 12]]])")
         await ev("UI.setTab('stats'); lsSet('statsTab', 'numbers'); S.rerender()"); await pg.wait_for_timeout(400)
         mw = await ev("(() => { const w0 = +startOfWeek(new Date()); return [loggedMuscleSets(w0, w0 + 7 * 864e5), loggedMuscleSets(w0 - 7 * 864e5, w0)]; })()")
         check('logged sets per muscle: bench is 3 chest and 1.5 triceps', mw[0].get('chest') == 3 and mw[0].get('triceps') == 1.5, mw[0])

@@ -581,7 +581,7 @@ function LiftSlot({ it, nextSS }) {
     <div class="slot-head"><div class="slot-name"><h3>${exName(it.ex)}${allDone ? html` <span class="faint" style="font-weight:600">✓</span>` : null}</h3>
       <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
-    ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
+    ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} <div style="flex:1;min-width:0">${it.prog.msg}${it.prog.src ? html`<${Cite} k=${it.prog.src} sec="progress" rule=${it.prog.rule}/>` : null}</div></div>` : null}
     <${WarmupHint} it=${it}/>
     <${MachineRow} it=${it}/>
     <${ExNote} it=${it}/>
@@ -790,7 +790,7 @@ function RoutineView({ id, mine }) {
     <div class="row" style="align-items:flex-start;gap:8px"><h2 class="wo-title" style="margin:2px 0 6px;flex:1">${r.name}</h2><${PlanStar} r=${r} big=${true} id="rv-star"/></div>
     <div style="margin-bottom:8px">${tagChips(routineTags(r))}</div>
     ${r.note ? html`<p class="note">${r.note}</p>` : null}
-    ${r.tips ? html`<${Tip} id=${'pt-' + r.id + (r.tipsV > 1 ? '-v' + r.tipsV : '')} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}</div><//>` : null}
+    ${r.tips ? html`<${Tip} id=${'pt-' + r.id + (r.tipsV > 1 ? '-v' + r.tipsV : '')} slot="plan-tips" style="margin-top:10px"><div id="plan-tips"><b>How to use this plan</b>${r.tips.map((t, i) => html`<p key=${i} style="margin-top:6px">${t}</p>`)}${r.tipsSrc ? html`<${Cite} k=${r.tipsSrc} sec="effort"/>` : null}</div><//>` : null}
     ${archived ? html`<div class="card" id="plan-archived" style="margin-top:10px"><p class="small">${RETIRED[r.id] && isRetired(r.id) ? 'Retired from the library. ' + RETIRED[r.id] : 'Archived.'} It still works if you follow it, and its workouts stay in your history.</p><button class="btn" style="margin-top:8px" id="plan-restore" onClick=${() => restorePlan(r)}>Restore to Plans</button></div>` : null}
     ${r.info ? (r.info.fight ? html`<${FightInfo} r=${r}/>` : r.info.care ? html`<${CareInfo} r=${r}/>` : html`<${CondInfo} r=${r}/>`) : null}
     <${ProgramFacts} r=${r}/>
@@ -1236,6 +1236,7 @@ function ProfileScreen({ view }) {
   const tog = (k, label, sub) => html`<label class="toggle-row" for=${'tg-' + k}><span><span>${label}</span>${sub ? html`<span class="d">${sub}</span>` : null}</span><input type="checkbox" role="switch" id=${'tg-' + k} checked=${!!st[k]} onChange=${e => set(k, e.target.checked)}/></label>`;
   const exR = Object.entries(S.meta.exRest || {});
   /* Four groups and an Advanced page (Nov 10, audit P1-5): the everyday settings stay here; the rest is one tap away. */
+  if (view && view.type === 'science') return html`<${ScienceView} sec=${view.sec}/>`;
   if (view && view.type === 'advanced') return html`<div class="stack" style="gap:12px" id="profile-advanced">
     <div class="section-h" style="margin-top:6px"><h2>Weight jumps</h2></div>
     <div class="card stack" style="gap:14px"><${ProgressionSettings} set=${set}/></div>
@@ -1291,7 +1292,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>
+    <div class="card stack"><button class="btn" id="about-science" onClick=${() => UI.setView({ type: 'science' })}>How Ironwood works: features, limits and sources</button><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version __APPVER__</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -2239,6 +2240,7 @@ function SideTog({ ex }) {
 /*@include programs.js*/
 /*@include reorder.js*/
 /*@include research.js*/
+/*@include science.js*/
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);

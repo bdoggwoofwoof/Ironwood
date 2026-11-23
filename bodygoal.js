@@ -9,6 +9,12 @@ const BG_GOALS = [['bulk', 'Lean bulk', 'Gain muscle with a small surplus'], ['c
 const BG_PACE = { bulk: { gentle: ['Gentle', '¼ lb a week, the least fat'], steady: ['Steady', '½ lb a week, faster, a bit more fat'] },
   cut: { gentle: ['Gentle', '½% of your weight a week, easiest to keep muscle'], steady: ['Steady', '¾% of your weight a week, faster and harder'] } };
 const LB = 2.20462;
+/* Sources under each warning (Nov 23, Newt): which study it rests on, or Ironwood's rule of thumb */
+function bgCite(w, g) {
+  const goal = g && g.goal; const src = { fast: goal === 'cut' ? ['helms'] : ['iraki'], flat: goal === 'cut' ? ['helms'] : ['iraki'], protein: ['morton', 'helms'] }[w.id];
+  if (w.id === 'held') return null;
+  return html`<${Cite} k=${src || []} sec=${w.id === 'protein' ? 'protein' : w.id === 'miss' ? 'volume' : 'weight'} rule=${!src}/>`;
+}
 const bgSet = () => S.meta.settings.body || null;
 const bgLatest = k => { const es = (S.meta.meas || []).filter(e => e.k === k).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); return es[es.length - 1] || null; };
 /* What we know about you now. Weights in lb for the math. */
@@ -132,7 +138,7 @@ function BodyGoalCard() {
       ${R.why ? html`<p class="small" style="margin-top:8px;color:var(--red-text)">${R.why}</p>` : null}
       ${R.note ? html`<p class="small muted" style="margin-top:8px">${R.note}</p>` : null}
       <p class="small muted" style="margin-top:8px">Burn is ${N.bmr} at rest (from ${N.bmrSrc}) plus ${R.days} workouts a week. Lifting: ${R.lift[0]}–${R.lift[1]} days a week${g.goal === 'cut' ? ', plus a daily walk' : ''}.</p>
-      ${warns.length ? html`<div class="stack" id="bg-warns" style="margin-top:12px;gap:8px">${warns.map(w => html`<div key=${w.id} class=${'bg-warn ' + w.lvl} id=${'bgw-' + w.id}><b>${w.h}</b><div class="small">${w.t}</div>
+      ${warns.length ? html`<div class="stack" id="bg-warns" style="margin-top:12px;gap:8px">${warns.map(w => html`<div key=${w.id} class=${'bg-warn ' + w.lvl} id=${'bgw-' + w.id}><b>${w.h}</b><div class="small">${w.t}</div>${bgCite(w, g)}
         ${w.act === 'hold' ? html`<button class="btn" id="bg-hold" style="margin-top:6px" onClick=${() => bgHold(true)}>Eat at maintenance for a week</button>` : null}
         ${w.act === 'resume' ? html`<button class="btn" id="bg-resume" style="margin-top:6px" onClick=${() => bgHold(false)}>Resume the surplus</button>` : null}</div>`)}</div>` : null}
       <details class="meas-det" id="bg-tips"><summary><b>Tips for your ${bgName(g.goal).toLowerCase()}</b></summary><ul class="bg-tips">${BG_TIPS[g.goal].map(t => html`<li key=${t}>${t}</li>`)}</ul></details>
@@ -190,7 +196,7 @@ function BodyGoalNudge() {
   const seen = lsGet('bgWarnSeen'); if (seen && seen > ymd(addDays(new Date(), -7))) return null;
   const N = bodyNow(); const R = bgCalc(g, N); if (R.problem) return null;
   const w = bgWarnings(g, R, N).find(x => x.id === 'miss'); if (!w) return null;
-  return html`<div class="card check-card" id="bg-nudge"><div class="eyebrow">${bgName(g.goal)}</div><div style="font-weight:700">${w.h}</div><div class="small muted">${w.t}</div>
+  return html`<div class="card check-card" id="bg-nudge"><div class="eyebrow">${bgName(g.goal)}</div><div style="font-weight:700">${w.h}</div><div class="small muted">${w.t}</div>${bgCite(w, g)}
     <div class="check-acts">${w.act === 'hold' ? html`<button class="btn primary" id="bgn-hold" onClick=${() => bgHold(true)}>Maintenance for a week</button>` : null}
       <button class="btn" id="bgn-ok" onClick=${() => { lsSet('bgWarnSeen', ymd(new Date())); S.rerender(); }}>Got it</button></div></div>`;
 }

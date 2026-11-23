@@ -38,7 +38,7 @@ function RirRow({ it, s, j }) {
     if (!done) return html`<div class="rir-row" id=${'rir-cal-' + it.id} style="margin:4px 0 8px"><p class="small"><b>Calibration set.</b> When you reach ${top} reps, how many more do you think you could do? Pick a guess, then keep going until you can’t do another rep, and log them all.</p>
       <div class="plan-chips" role="group" aria-label="Your guess: reps left at the top of the range" style="margin-top:6px">${RIR_OPTS.map(([v, l]) => html`<button key=${v} class=${'chip' + (s.g === v ? ' on' : '')} aria-pressed=${s.g === v} onClick=${() => pick('g', v)}>${l}</button>`)}</div></div>`;
     const actual = Math.max(0, Math.round(num(s.r)) - top); const diff = actual - s.g;
-    return html`<p class="small muted" id=${'rir-cal-res-' + it.id} style="margin:4px 0 8px">You guessed ${s.g} left at ${top} reps and had ${actual}. ${diff >= 2 ? 'Most lifters guess low like this, so your sets can go a little closer to failure.' : diff <= -2 ? 'You guessed high, so you’re already pushing hard; keep your estimates honest.' : 'Spot on.'} Ironwood uses this to read your reps-left answers.</p>`;
+    return html`<p class="small muted" id=${'rir-cal-res-' + it.id} style="margin:4px 0 8px">You guessed ${s.g} left at ${top} reps and had ${actual}. ${diff >= 2 ? 'Most lifters guess low like this, so your sets can go a little closer to failure.' : diff <= -2 ? 'You guessed high, so you’re already pushing hard; keep your estimates honest.' : 'Spot on.'} Ironwood uses this to read your reps-left answers.<${Cite} k=${['halperin']} sec="effort"/></p>`;
   }
   if (!done) return null;
   return html`<div class="rir-row" id=${'rir-' + it.id} style="margin:2px 0 8px"><span class="small muted">Reps left on this set?</span>
@@ -64,8 +64,8 @@ function MuscleWeek() {
   return html`<div class="card" id="muscle-week" style="margin-bottom:12px">
     <div class="row small" style="min-height:26px"><span style="flex:1" class="muted">Muscle</span><span class="muted" style="width:62px;text-align:right">This week</span><span class="muted" style="width:62px;text-align:right">Last week</span>${plan ? html`<span class="muted" style="width:52px;text-align:right">Plan</span>` : null}</div>
     ${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num" style="width:62px;text-align:right">${h(now[k] || 0)}</b><span class="num" style="width:62px;text-align:right">${h(last[k] || 0)}</span>${plan ? html`<span class="num muted" style="width:52px;text-align:right">${h(plan[k] || 0)}</span>` : null}</div>`)}
-    ${short.length && anyLast ? html`<p class="small" id="muscle-short" style="margin-top:8px"><b>Last week fell short:</b> ${short.map(([k, l]) => l + ' ' + h(last[k] || 0) + ' of ' + h(plan[k])).join(', ')}. Missed days add up; a busy-week plan or an extra set or two this week closes the gap.</p>` : null}
-    <p class="small muted" style="margin-top:6px">Logged hard sets, with helper work counted as half a set (a bench press is half a triceps set).${plan ? ' Plan is what ' + r.name + ' calls for in a full week.' : ''} Around 10 or more a week per muscle suits growth.</p></div>`;
+    ${short.length && anyLast ? html`<p class="small" id="muscle-short" style="margin-top:8px"><b>Last week fell short:</b> ${short.map(([k, l]) => l + ' ' + h(last[k] || 0) + ' of ' + h(plan[k])).join(', ')}. Missed days add up; a busy-week plan or an extra set or two this week closes the gap.<${Cite} k=${['pelland']} sec="volume"/></p>` : null}
+    <p class="small muted" style="margin-top:6px">Logged hard sets, with helper work counted as half a set (a bench press is half a triceps set).${plan ? ' Plan is what ' + r.name + ' calls for in a full week.' : ''} Around 10 or more a week per muscle suits growth.<${Cite} k=${['pelland']} sec="volume"/></p></div>`;
 }
 
 /* ---- 3. Busy week ---- */
@@ -78,7 +78,7 @@ function applyBusy(a) {
   a.busy = true;
 }
 function BusyWeek() {
-  if (isBusy()) return html`<div class="hint" id="busy-on" style="margin-top:10px">Busy week: each exercise uses about a third of its sets (at least one), at your usual weights. That keeps your size and strength. It ends on its own on Monday. <button class="btn text" id="busy-off" style="padding:0;min-height:0" onClick=${() => setBusy(false)}>Turn off</button></div>`;
+  if (isBusy()) return html`<div class="hint" id="busy-on" style="margin-top:10px"><div style="flex:1;min-width:0">Busy week: each exercise uses about a third of its sets (at least one), at your usual weights. That keeps your size and strength. It ends on its own on Monday. <button class="btn text" id="busy-off" style="padding:0;min-height:0" onClick=${() => setBusy(false)}>Turn off</button><${Cite} k=${['spiering', 'bickel']} sec="busy"/></div></div>`;
   return html`<button class="btn text wide" id="busy-start" style="margin-top:6px" onClick=${() => openSheet({ type: 'confirm', title: 'Busy week?', body: 'For the rest of this week, each exercise uses about a third of its sets (at least one) at your usual weights. Research finds that keeps size and strength for weeks. It turns off on its own on Monday.', ok: 'Start busy week', onOk: () => { setBusy(true); closeSheet(); showToast({ kind: 'info', text: 'Busy week on until Monday' }); } })}>Busy week? Keep your gains on fewer sets</button>`;
 }
 
@@ -94,7 +94,7 @@ function warmupLine(it) {
   const ws = [[0.4, 10], [0.6, 5], [0.8, 3]].map(([p, r]) => [rnd(w * p), r]).filter(([v], k, a) => v < w && (k === 0 || v > a[k - 1][0]));
   return ws.length ? 'Warm up first: ' + ws.map(([v, r]) => fmt(v) + ' × ' + r).join(', ') + ' ' + u + ', then your working sets.' : '';
 }
-function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div class="hint" id=${'warm-' + it.id}>${t}</div>` : null; }
+function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div class="hint" id=${'warm-' + it.id}><div style="flex:1;min-width:0">${t}<${Cite} k=${[]} sec="warmup" rule=${true}/></div></div>` : null; }
 
 /* ---- 5. Long-muscle-length exercises (nudged up in swaps) ---- */
 const LONG_EX = new Set(['Behind-the-Back Cable Lateral Raise', 'Cable Lateral Raise', 'Overhead Cable Tricep Extension', 'Dumbbell Overhead Tricep Extension', 'Incline Dumbbell Curl', 'Cable Fly',
@@ -136,7 +136,7 @@ function PlanWorking() {
       <div class="d">${verdict}</div></div></div>`; };
   return html`<div id="plan-working"><div class="section-h"><h2>Is the plan working?</h2><span class="aside">Last 4–8 weeks</span></div>
     <div class="card">${rows.map(line)}
-      <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.</p></div></div>`;
+      <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.<${Cite} k=${['pelland', 'robinson']} sec="volume"/></p></div></div>`;
 }
 
 /* ---- 7. Protein spread over the day, and after a workout ----
@@ -149,12 +149,12 @@ function logMeals(list) { /* entries grouped by plan slot, or by time when there
   return out;
 }
 function ProteinSpread({ list }) {
-  const kg = bodyKg(); if (!(kg > 0)) return null; const per = Math.round(kg * 0.4 / 5) * 5; const ms = logMeals(list || []); if (!ms.length) return html`<p class="small muted" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals.</p>`;
+  const kg = bodyKg(); if (!(kg > 0)) return null; const per = Math.round(kg * 0.4 / 5) * 5; const ms = logMeals(list || []); if (!ms.length) return html`<p class="small muted" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals.<${Cite} k=${['permeal']} sec="protein"/></p>`;
   const hit = ms.filter(m => m.p >= per * 0.8).length;
-  return html`<p class="small muted num" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals. Today: ${ms.map(m => Math.round(m.p) + ' g').join(', ')} (${hit} of ${ms.length} meal${ms.length === 1 ? '' : 's'} there).</p>`;
+  return html`<p class="small muted num" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals. Today: ${ms.map(m => Math.round(m.p) + ' g').join(', ')} (${hit} of ${ms.length} meal${ms.length === 1 ? '' : 's'} there).<${Cite} k=${['permeal']} sec="protein"/></p>`;
 }
 function WorkoutProtein() {
   if (typeof ML !== 'function') return null; const G = ML().goals || {}; if (!G.p) return null;
   const list = (ML().log || {})[ymd(new Date())] || []; const p = Math.round(sumNut(list).p || 0); const left = G.p - p;
-  return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}</p>`;
+  return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}<${Cite} k=${['morton', 'permeal']} sec="protein"/></p>`;
 }

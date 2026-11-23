@@ -367,7 +367,7 @@ const PERSONAL_PLANS = [
       'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
       'Supersets: a bar on the left means you go back and forth between the two. The time you spend on one counts as rest for the other, so after each set the timer shows only what’s left before the next exercise. They pair muscles that don’t compete, so you lose no reps and save time.',
       'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns pair with the incline press on Day 3, calf raises pair with the leg press and lateral raises end Day 4.',
-      'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2 }],
+      'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2, tipsSrc: ['loading', 'robinson', 'sodal', 'singer', 'pelland'] }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
     ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
     ['Full Body B', ['Full Body'], [['Romanian Deadlift', 3, '8-10'], ['Seated Dumbbell Overhead Press', 3, '8-10'], ['Seated Cable Row', 3, '10-12'], ['Leg Extension', 2, '12-15'], ['Hybrid Curls', 2, '10-12'], ['Overhead Cable Tricep Extension', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
@@ -391,7 +391,7 @@ function planDay(rid, i, name, tags, items) {
 /* One-day plans: [id, name, tags, note, items]. Multi-day: [id, name, null, note, [[day name, tags, items], …]]. */
 function builtinPlan([rid, name, tags, note, items, extra]) {
   const days = tags ? [planDay(rid, 1, name, tags, items)] : items.map(([dn, t, its], i) => planDay(rid, i + 1, dn, t, its));
-  return Object.assign({ id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days }, extra && extra.tips ? { tips: extra.tips, tipsV: extra.tipsV || 1 } : {});
+  return Object.assign({ id: rid, name, note, source: 'builtin', shelf: 'plans', meta: days.length > 1 ? days.length + ' days a week' : '', days }, extra && extra.tips ? { tips: extra.tips, tipsV: extra.tipsV || 1, tipsSrc: extra.tipsSrc || null } : {});
 }
 const BUILTIN_ROUTINES = [
   ...PERSONAL_PLANS.map(builtinPlan),

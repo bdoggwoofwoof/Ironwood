@@ -140,11 +140,11 @@ function ProgramGuide({ r }) {
   return html`<div id="plan-guide">
     <div class="section-h"><h2>Muscle coverage</h2><span class="aside">Sets a week</span></div>
     <div class="card" id="plan-cover">${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num">${ws[k] >= 1 ? fmt(Math.round(ws[k] * 2) / 2) : '–'}</b></div>`)}
-      <p class="small muted" style="margin-top:6px">${none.length ? 'Not trained directly: ' + none.join(', ') + '. ' : ''}Helper work counts as half a set (a bench press is half a triceps set). Around 10 sets a week per muscle is a good target for growth; fewer still works.</p></div>
+      <p class="small muted" style="margin-top:6px">${none.length ? 'Not trained directly: ' + none.join(', ') + '. ' : ''}Helper work counts as half a set (a bench press is half a triceps set). Around 10 sets a week per muscle is a good target for growth; fewer still works.<${Cite} k=${['pelland', 'persession']} sec="volume"/></p></div>
     <div class="section-h"><h2>How to progress</h2></div>
     <div class="card" id="plan-progress"><ul class="run-ul">${progressionText(r).map((t, k) => html`<li key=${k}>${t}</li>`)}</ul></div>
     <div class="section-h"><h2>Rest and effort</h2></div>
-    <div class="card" id="plan-effort"><p class="small"><b>Rest:</b> ${restText(r)}</p><p class="small" style="margin-top:6px"><b>Effort:</b> ${effortText(r)}</p></div></div>`;
+    <div class="card" id="plan-effort"><p class="small"><b>Rest:</b> ${restText(r)}</p><p class="small" style="margin-top:6px"><b>Effort:</b> ${effortText(r)}</p><${Cite} k=${['singer', 'rest3', 'robinson']} sec="rest"/></div></div>`;
 }
 
 /* ---------- Smart swaps ----------

@@ -65,9 +65,9 @@ function progPlan(it, kind, u, occ) {
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
   /* Nov 22: reps left on the last set (adjusted by your calibration) */
   const spare = e => { const l = e.sets[e.sets.length - 1]; return l && l.ri != null && typeof adjRir === 'function' ? adjRir(l.ri) : null; };
-  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
+  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, src: ['robinson', 'halperin'], rule: true, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
   if (full(e1)) return { mode: 'bump', delta: jump, msg: '+' + w(jump) + ' today. You hit every rep last time.' };
-  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
+  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', src: ['robinson'], rule: true, msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
   if (st.stepDown !== false && e0 && e1.top > e0.top + 1e-9 && miss(e1)) {
     const step = Math.floor(((e1.top - e0.top) / 2) / fine + 1e-9) * fine;
     if (step >= fine - 1e-9 && e0.top + step < e1.top - 1e-9)
@@ -75,7 +75,7 @@ function progPlan(it, kind, u, occ) {
   }
   if (st.deload !== false && h.length >= 3 && h.every(e => Math.abs(e.top - e1.top) < 1e-9 && mostShort(e)) && e1.top > 0) {
     const to = Math.floor(e1.top * 0.9 / fine + 1e-9) * fine;
-    if (to < e1.top && to >= e1.top * 0.85 - 1e-9) return { mode: 'deload', factor: to / e1.top, to, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
+    if (to < e1.top && to >= e1.top * 0.85 - 1e-9) return { mode: 'deload', factor: to / e1.top, to, src: [], rule: true, msg: 'Down about 10% to ' + w(to) + ': three sessions short at ' + w(e1.top) + '. Build back up from here.' };
   }
   return { mode: 'hold' };
 }
@@ -89,7 +89,7 @@ function refillLift(it, occ) {
   it.prevNote = prev ? prev.note : ''; it.prevT = prev ? prev.t : 0;
   it.prevWhere = prev && prev.scoped ? 'in this workout' : prev && typeof prefillCtx === 'function' && prefillCtx() ? 'in any workout' : '';
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
-  it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg } : null;
+  it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg, src: P.src || null, rule: !!P.rule } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
   it.sets.forEach((x, j) => {
     if (!x.id) x.id = uid('t');

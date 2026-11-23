@@ -1580,7 +1580,7 @@ const EX_CUES = {
 BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 
 /* ============ Store ============ */
-const DEFAULT_SETTINGS = { unit: 'lb', bar: 45, inc: 5, goal: 4, rest: 120, restSS: 45, ssMode: 'each', autoRest: true, beep: true, countdown: true, excuse: true, bgAudio: false };
+const DEFAULT_SETTINGS = { unit: 'lb', bar: 45, inc: 5, goal: 4, rest: 120, restSS: 45, ssMode: 'each', autoRest: true, askRir: true, warmups: true, beep: true, countdown: true, excuse: true, bgAudio: false };
 const emptyMeta = () => ({ settings: { ...DEFAULT_SETTINGS }, exercises: {}, routines: {}, exUnit: {}, exRest: {}, exCat: {}, bw: [], dayMarks: {}, challenges: {}, timers: [], deleted: [], hidden: [], updatedAt: 0 });
 function normalizeMeta(m) {
   const e = emptyMeta(); m = m ? clone(m) : {};
@@ -2303,6 +2303,7 @@ function startWorkout(routine, day0) {
   PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };
   S.active = { dlSync: 1, id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
   if (day) day.items.forEach((x, i) => { if (x.dl && S.active.items[i] && typeof presetDrops === 'function') presetDrops(S.active.items[i], x.dl, S.active.items[i].u || U()); });
+  applyBusy(S.active); pickCalib(S.active);
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
   touch(500); UI.setView(null); UI.setTab('train'); scrollTo(0, 0);
@@ -2397,7 +2398,7 @@ function finishWorkout(opts = {}) {
     return;
   }
   const items = a.items.map(it => ({ ex: it.ex, ...(it.planned && it.planned !== it.ex ? { planned: it.planned } : {}), group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
-    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return o; }) })).filter(it => it.sets.length);
+    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return rirSaveFields(it, x, o); }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
@@ -2524,6 +2525,7 @@ function TrainHome() {
         <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-day" onClick=${() => openSheet({ type: 'pickNext', rid: routine.id })}>Change</button></div><h2>${nx.day.name}</h2><div class="small muted" id="next-mins">About ${Math.round(dayMinutes(focusDay(routine, nx.day)) / 5) * 5} min · ${nx.day.items.length} exercise${nx.day.items.length === 1 ? '' : 's'}</div></div>
         <div class="next-list">${focusDay(routine, nx.day).items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${repTxt(it.reps)}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
+        <${BusyWeek}/>
       </div>
       <${AlsoToday} nx=${nx}/>
       ${weekBlock}
@@ -2969,7 +2971,7 @@ function SetRow({ it, s, j, kind }) {
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <div class="last-note">${!ne && prevSetText(it, j, kind) ? html`<span class="prev num" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>
-    </div></div><${DropRows} it=${it} s=${s} j=${j} kind=${kind}/>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div><${DropRows} it=${it} s=${s} j=${j} kind=${kind}/><${RirRow} it=${it} s=${s} j=${j}/>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -2995,6 +2997,7 @@ function LiftSlot({ it, nextSS }) {
       <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
+    <${WarmupHint} it=${it}/>
     <${MachineRow} it=${it}/>
     <${ExNote} it=${it}/>
     <div class="sets">
@@ -3414,7 +3417,7 @@ function StatsScreen({ view }) {
     <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['numbers', 'Numbers'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'numbers' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
-    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${StatsCategories}/></div>`}
+    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${MuscleWeek}/><${StatsCategories}/></div>`}
   </div>`;
 }
 function StatsOverall() {
@@ -3682,6 +3685,8 @@ function ProfileScreen({ view }) {
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
       <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
+      ${tog('askRir', 'Ask reps left on each exercise’s last set', 'One tap after the last set. Next-weight suggestions use it, and a calibration set every 4 weeks checks your guesses.')}
+      ${tog('warmups', 'Show warm-up sets before the first big lift')}
       <p class="note">Now ${clock(+st.rest || 0)} unless a plan or exercise sets its own. 0 turns it off. In a superset, the time you spend on the other exercise counts toward each exercise's rest, so the timer only runs for what's left.</p>
     </div>
     <${AboutYouCard}/>
@@ -3689,7 +3694,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 676a2a2</p></div>
+    <div class="card stack"><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version e5dcf5e</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -7388,7 +7393,7 @@ function recentOcc(exId, group, occ, n, u) {
   for (let i = list.length - 1; i >= 0 && out.length < n; i--) {
     const its = list[i].items.filter(it => it.ex === exId && (it.group || '') === (group || ''));
     if (!its.length) continue; const it = its[Math.min(occ || 0, its.length - 1)];
-    const sets = it.sets.filter(x => +x.r > 0).map(x => ({ w: r1(conv(+x.w || 0, it.u || U(), u)), r: +x.r }));
+    const sets = it.sets.filter(x => +x.r > 0).map(x => Object.assign({ w: r1(conv(+x.w || 0, it.u || U(), u)), r: +x.r }, x.ri != null ? { ri: +x.ri } : {}));
     if (sets.length) out.push({ t: list[i].startedAt, sets, top: Math.max(...sets.map(x => x.w)) });
   }
   return out;
@@ -7407,7 +7412,11 @@ function progPlan(it, kind, u, occ) {
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
   const w = v => fmt(v) + ' ' + u;
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
+  /* Nov 22: reps left on the last set (adjusted by your calibration) */
+  const spare = e => { const l = e.sets[e.sets.length - 1]; return l && l.ri != null && typeof adjRir === 'function' ? adjRir(l.ri) : null; };
+  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
   if (full(e1)) return { mode: 'bump', delta: jump, msg: '+' + w(jump) + ' today. You hit every rep last time.' };
+  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
   if (st.stepDown !== false && e0 && e1.top > e0.top + 1e-9 && miss(e1)) {
     const step = Math.floor(((e1.top - e0.top) / 2) / fine + 1e-9) * fine;
     if (step >= fine - 1e-9 && e0.top + step < e1.top - 1e-9)
@@ -7442,7 +7451,7 @@ function refillLift(it, occ) {
     if (P.mode === 'step') wv = roundToInc(wv, fine);
     x.gw = wv ? String(r1(wv)) : '';
     const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
@@ -12191,6 +12200,7 @@ function swapCandidates(exId, f = {}) {
     const star = isStarEx(c.id), done = hasHistory(c.id);
     if (f.pref && !star && !done) continue;
     score += (3 - (c.setup || 2)) * 2 + (star ? 8 : 0) + (done ? 6 : 0) + (o && c.kind === o.kind ? 2 : 0);
+    if (typeof isLongEx === 'function' && isLongEx(c) && o && muscleSim(o.m, c.m) > 0.5) { score += 5; why += '; trains the muscle in a stretched position'; }
     if (star) why += '; one of your starred exercises'; else if (done) why += "; you've done it before";
     out.push({ ex: c, score, why });
   }
@@ -12274,6 +12284,108 @@ function AddPickSheet({ rid, dayId }) {
     <button class="btn primary wide" id="ap-add" style="margin-top:14px" disabled=${!n} onClick=${() => { closeSheet(); addDayToWorkout(r, day, on); }}>${n ? 'Add ' + (all ? 'all ' : '') + n + ' exercise' + (n === 1 ? '' : 's') : 'Pick at least one'}</button>
     <p class="note" style="margin-top:8px">Added too many? The exercise menu’s Reorder or remove takes any of them out.</p><//>`;
 }
+/* Research-backed training aids (Nov 22, Newt: "make plans and start implementation").
+   1. Reps left: one tap on the last set of an exercise records how many more reps you could have done. Lifters tend to
+      guess about one rep low (Halperin 2022), so a calibration set every 4 weeks on a safe machine or cable lift
+      compares the guess with a set taken to failure, and the average gap adjusts later readings.
+      Next-weight suggestions use it: top of the range with 3+ to spare gets a double jump; short of the range with
+      3+ to spare says push closer.
+   2. Sets by muscle in Progress: what you actually logged per muscle this week and last, with helper work counted as
+      half a set (Pelland 2024), beside what your plan calls for, flagging muscles that fell short.
+   3. Busy week: one tap for a week of about a third of the sets at the same weights, enough to keep size and strength
+      for weeks (Spiering 2021; Bickel 2011). Ends by itself on Monday.
+   4. Warm-up: lighter ramp-up sets before the first big lift, shown as a line, not logged as work sets.
+   5. Swaps: exercises that load the muscle at a long length get a small nudge in the ranking (Wolf 2023; early evidence). */
+
+/* ---- 1. Reps left ---- */
+const askRir = () => S.meta.settings.askRir !== false;
+const RIR_OPTS = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4+']];
+const CALIB_DAYS = 28;
+/* Calibrations from history: guess (g) at the top of the range (gt) against what the set to failure showed (r - gt) */
+function rirCalibrations() {
+  const out = []; for (const s of sessionList()) for (const it of s.items || []) for (const x of it.sets || []) if (x.g != null && x.gt) out.push({ t: s.startedAt, ex: it.ex, guess: +x.g, actual: Math.max(0, +x.r - +x.gt) });
+  return out;
+}
+/* Average reps you had left beyond your guess (positive = you guess low); uses the last five calibrations */
+function rirBias() { const c = rirCalibrations().slice(-5); if (!c.length) return 0; return c.reduce((a, x) => a + (x.actual - x.guess), 0) / c.length; }
+const adjRir = v => v == null ? null : Math.max(0, v + Math.max(0, Math.round(rirBias())));
+const calibOk = ex => { const e = exData(ex); return !!(e && (e.eq.includes('machine') || e.eq.includes('cable')) && !e.eq.includes('barbell') && !isMainLift(ex)); };
+function pickCalib(a) {
+  if (!a || !askRir() || S.meta.settings.calib === false) return;
+  const last = rirCalibrations().slice(-1)[0]; if (last && Date.now() - last.t < CALIB_DAYS * DAY) return;
+  const cand = a.items.filter(it => !isMeasured(exKind(it.ex)) && repTop(it.target.reps) && calibOk(it.ex)); if (!cand.length) return;
+  cand[cand.length - 1].target.calib = true;
+}
+function RirRow({ it, s, j }) {
+  if (!askRir() || isMeasured(exKind(it.ex)) || j !== it.sets.length - 1) return null;
+  const done = isDone(s); const top = repTop(it.target.reps); const calib = it.target.calib && top;
+  const pick = (k, v) => { s[k] = s[k] === v ? null : v; touch(); };
+  if (calib && (!done || s.g != null)) {
+    if (!done) return html`<div class="rir-row" id=${'rir-cal-' + it.id} style="margin:4px 0 8px"><p class="small"><b>Calibration set.</b> When you reach ${top} reps, how many more do you think you could do? Pick a guess, then keep going until you can’t do another rep, and log them all.</p>
+      <div class="plan-chips" role="group" aria-label="Your guess: reps left at the top of the range" style="margin-top:6px">${RIR_OPTS.map(([v, l]) => html`<button key=${v} class=${'chip' + (s.g === v ? ' on' : '')} aria-pressed=${s.g === v} onClick=${() => pick('g', v)}>${l}</button>`)}</div></div>`;
+    const actual = Math.max(0, Math.round(num(s.r)) - top); const diff = actual - s.g;
+    return html`<p class="small muted" id=${'rir-cal-res-' + it.id} style="margin:4px 0 8px">You guessed ${s.g} left at ${top} reps and had ${actual}. ${diff >= 2 ? 'Most lifters guess low like this, so your sets can go a little closer to failure.' : diff <= -2 ? 'You guessed high, so you’re already pushing hard; keep your estimates honest.' : 'Spot on.'} Ironwood uses this to read your reps-left answers.</p>`;
+  }
+  if (!done) return null;
+  return html`<div class="rir-row" id=${'rir-' + it.id} style="margin:2px 0 8px"><span class="small muted">Reps left on this set?</span>
+    <div class="plan-chips" role="group" aria-label=${'Reps left on the last set of ' + exName(it.ex)} style="margin-top:4px">${RIR_OPTS.map(([v, l]) => html`<button key=${v} class=${'chip' + (s.rir === v ? ' on' : '')} aria-pressed=${s.rir === v} onClick=${() => pick('rir', v)}>${l}</button>`)}</div></div>`;
+}
+/* Saved with the set: ri = reps left, g = calibration guess, gt = the rep count it was made at */
+function rirSaveFields(it, x, o) { if (x.rir != null) o.ri = x.rir; if (x.g != null && it.target && it.target.calib && repTop(it.target.reps)) { o.g = x.g; o.gt = repTop(it.target.reps); } return o; }
+
+/* ---- 2. Sets by muscle, from what you logged ---- */
+function loggedMuscleSets(from, to) {
+  const out = {}; for (const s of sessionList()) { if (s.startedAt < from || s.startedAt >= to || s.kind === 'activity') continue;
+    for (const it of s.items || []) { if (isMeasured(exKind(it.ex)) && exKind(it.ex) !== 'timed') continue; const n = (it.sets || []).length; if (!n) continue;
+      for (const [m, w] of Object.entries(exMuscles(it.ex))) out[m] = (out[m] || 0) + n * w; } }
+  return out;
+}
+function MuscleWeek() {
+  const w0 = +startOfWeek(new Date()); const wk = 7 * DAY;
+  const now = loggedMuscleSets(w0, w0 + wk), last = loggedMuscleSets(w0 - wk, w0);
+  const pid = programId(); const r = pid && pid !== 'self' ? getRoutine(pid) : null; const plan = r && isLiftPlan(r) ? weeklySets(r) : null;
+  const h = v => v >= 0.5 ? fmt(Math.round(v * 2) / 2) : '–';
+  const short = plan ? COVER_ROWS.filter(([k]) => (plan[k] || 0) >= 6 && (last[k] || 0) < plan[k] * 0.7) : [];
+  const anyLast = Object.keys(last).length;
+  return html`<div class="card" id="muscle-week" style="margin-bottom:12px">
+    <div class="row small" style="min-height:26px"><span style="flex:1" class="muted">Muscle</span><span class="muted" style="width:62px;text-align:right">This week</span><span class="muted" style="width:62px;text-align:right">Last week</span>${plan ? html`<span class="muted" style="width:52px;text-align:right">Plan</span>` : null}</div>
+    ${COVER_ROWS.map(([k, l]) => html`<div key=${k} class="row small" style="min-height:26px"><span style="flex:1">${l}</span><b class="num" style="width:62px;text-align:right">${h(now[k] || 0)}</b><span class="num" style="width:62px;text-align:right">${h(last[k] || 0)}</span>${plan ? html`<span class="num muted" style="width:52px;text-align:right">${h(plan[k] || 0)}</span>` : null}</div>`)}
+    ${short.length && anyLast ? html`<p class="small" id="muscle-short" style="margin-top:8px"><b>Last week fell short:</b> ${short.map(([k, l]) => l + ' ' + h(last[k] || 0) + ' of ' + h(plan[k])).join(', ')}. Missed days add up; a busy-week plan or an extra set or two this week closes the gap.</p>` : null}
+    <p class="small muted" style="margin-top:6px">Logged hard sets, with helper work counted as half a set (a bench press is half a triceps set).${plan ? ' Plan is what ' + r.name + ' calls for in a full week.' : ''} Around 10 or more a week per muscle suits growth.</p></div>`;
+}
+
+/* ---- 3. Busy week ---- */
+const thisWeekKey = () => ymd(startOfWeek(new Date()));
+const isBusy = () => S.meta.settings.busyWk === thisWeekKey();
+const setBusy = on => commit(st => { st.meta.settings.busyWk = on ? thisWeekKey() : null; }, 'meta');
+function applyBusy(a) {
+  if (!a || !isBusy()) return;
+  a.items.forEach(it => { if (isMeasured(exKind(it.ex))) return; const n = Math.max(1, Math.ceil(it.sets.length / 3)); it.sets = it.sets.slice(0, n); it.sets.forEach(x => { delete x.drops; }); it.target.sets = n; });
+  a.busy = true;
+}
+function BusyWeek() {
+  if (isBusy()) return html`<div class="hint" id="busy-on" style="margin-top:10px">Busy week: each exercise uses about a third of its sets (at least one), at your usual weights. That keeps your size and strength. It ends on its own on Monday. <button class="btn text" id="busy-off" style="padding:0;min-height:0" onClick=${() => setBusy(false)}>Turn off</button></div>`;
+  return html`<button class="btn text wide" id="busy-start" style="margin-top:6px" onClick=${() => openSheet({ type: 'confirm', title: 'Busy week?', body: 'For the rest of this week, each exercise uses about a third of its sets (at least one) at your usual weights. Research finds that keeps size and strength for weeks. It turns off on its own on Monday.', ok: 'Start busy week', onOk: () => { setBusy(true); closeSheet(); showToast({ kind: 'info', text: 'Busy week on until Monday' }); } })}>Busy week? Keep your gains on fewer sets</button>`;
+}
+
+/* ---- 4. Warm-up before the first big lift ---- */
+const warmOn = () => S.meta.settings.warmups !== false;
+function warmupLine(it) {
+  if (!warmOn() || !S.active || isMeasured(exKind(it.ex)) || exKind(it.ex) === 'bodyweight' || exKind(it.ex) === 'assisted') return '';
+  const first = S.active.items.find(x => !isMeasured(exKind(x.ex)) && isMainLift(x.ex)); if (first !== it || it.sets.some(isDone)) return '';
+  const u = it.u || U(); const w = num(it.sets[0].gw || it.sets[0].w); const step = exKind(it.ex) === 'barbell' ? (u === 'kg' ? 2.5 : 5) * 2 : (u === 'kg' ? 2.5 : 5);
+  const bar = exKind(it.ex) === 'barbell' ? +S.meta.settings.bar || (u === 'kg' ? 20 : 45) : 0;
+  const rnd = v => Math.max(bar, Math.round(v / step) * step);
+  if (!(w > 0)) return 'Warm up first: 2–3 lighter sets that build toward your first working weight (about 10, 5 and 3 reps).';
+  const ws = [[0.4, 10], [0.6, 5], [0.8, 3]].map(([p, r]) => [rnd(w * p), r]).filter(([v], k, a) => v < w && (k === 0 || v > a[k - 1][0]));
+  return ws.length ? 'Warm up first: ' + ws.map(([v, r]) => fmt(v) + ' × ' + r).join(', ') + ' ' + u + ', then your working sets.' : '';
+}
+function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div class="hint" id=${'warm-' + it.id}>${t}</div>` : null; }
+
+/* ---- 5. Long-muscle-length exercises (nudged up in swaps) ---- */
+const LONG_EX = new Set(['Behind-the-Back Cable Lateral Raise', 'Cable Lateral Raise', 'Overhead Cable Tricep Extension', 'Dumbbell Overhead Tricep Extension', 'Incline Dumbbell Curl', 'Cable Fly',
+  'Dumbbell Fly', 'Seated Leg Curl', 'Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Lat Pulldown', 'Dumbbell Pullover', 'Sissy Squat', 'Bulgarian Split Squat', 'Leg Press Calf Raise', 'Deficit Push-Up'].map(nameKey));
+const isLongEx = c => LONG_EX.has(nameKey(c.name || exName(c.id)));
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);

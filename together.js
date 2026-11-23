@@ -34,6 +34,7 @@ function addDayToWorkout(r, day, only) {
 function startTogether(main, mainDay, r, day) { startWorkout(main, mainDay); if (S.active && S.active.dayId === mainDay.id) addDayToWorkout(r, day); }
 const shortName = r => r.name.replace(/ Care$/, '');
 /* Train: what else is on your plate */
+const liftedToday = () => sessionList().some(s => ymd(s.startedAt) === ymd(new Date()) && !s.run && s.kind !== 'activity');
 function AlsoToday({ nx, quiet }) {
   const ids = addonIds(); const R = typeof runSt === 'function' ? runSt() : null;
   /* The running plan always shows once it's set up: today's run, or the next one */
@@ -50,6 +51,7 @@ function AlsoToday({ nx, quiet }) {
     ${run && run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan</span></div><div class="also-t">All weeks done</div><div class="also-s">Start the next block from Train → Run.</div><div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onClick=${openRun}>Open the running plan</button></div></div>` : null}
     ${run && !run.finished ? html`<div class="also-card" id="also-run"><div class="also-h"><span class="eyebrow">Running plan · week ${run.w}</span>${run.done ? html`<span class="chip on">Done today</span>` : when(run.i)}</div>
       <div class="also-t">${run.x.name} · ${run.x.s.t}</div><div class="also-s">${run.i > 0 ? shortDate(run.day) + ' · ' : ''}${run.x.s.items.filter(i => i.log).map(i => i.k).join(' · ')}</div>
+      ${run.i === 0 && !run.done && nx && !liftedToday() ? html`<p class="small" id="lift-first" style="margin-top:6px">Lifting today too? Lift first, then run: leg strength improved more that way, with the same muscle growth.<${Cite} k=${['concorder']} sec="running"/></p>` : null}
       <div class="row" style="margin-top:8px"><button class=${'btn' + (run.i === 0 && !run.done ? ' primary' : '')} style="flex:1" id="also-run-start" onClick=${() => startRunSession(run.w, run.x.key)}>${run.done ? 'Run again' : run.i === 0 ? 'Start run' : 'Start it early'}</button>
         <button class="btn text" onClick=${openRun}>Plan</button></div></div>` : null}
     ${ids.map(id => { const r = getRoutine(id); const n = nextFor(r); const done = doneToday(id); const tag = r.info && r.info.care ? 'Mobility' : r.info && r.info.fight ? 'Fight training' : r.info ? 'Conditioning' : (r.meta || 'Plan'); const nxt = nextPlanned(schedFor(id, r));

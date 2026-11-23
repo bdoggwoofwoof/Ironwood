@@ -808,6 +808,7 @@ function RoutineView({ id, mine }) {
     </div>
     <div class="stack" style="margin-top:10px">${r.days.map(d => html`<div key=${d.id} class="r-day">
       <div class="row"><div style="flex:1;min-width:0"><h3>${d.name}</h3>${r.days.length > 1 ? html`<div style="margin-top:4px">${tagChips(dayTags(d, r))}</div>` : null}</div><button class="btn text day-edit" id=${'dedit-' + d.id} aria-label=${'Edit ' + d.name} onClick=${() => openSheet({ type: 'dayEdit', rid: r.id, did: d.id })}>${I.edit} Edit</button><button class="pill-btn accent" onClick=${() => startWorkout(r, d)}>Start</button></div>
+      <${DayLoadWarn} d=${d}/>
       <ul class="r-items">${focusDay(r, d).items.map(it => html`<li key=${it.id} class=${it.ss ? 'ssi' : ''}><span class="nm">${exName(it.ex)}</span>${groupChip(it.group)}<span class="sub num">${setsLabel(it)}${lastTop(it)}</span>${it.note ? html`<span class="cue">${it.note}</span>` : null}</li>`)}</ul></div>`)}</div>
     <${ProgramGuide} r=${r}/>
     <div class="section-h" id="plan-settings-h"><h2>Plan settings</h2></div>
@@ -851,6 +852,7 @@ function RoutineEditor({ view }) {
           ${ii > 0 ? html`<label class="toggle"><input type="checkbox" id=${'ss-' + it.id} checked=${it.ss} onChange=${e => { it.ss = e.target.checked; re(); }}/>Superset</label>` : null}
         </div>
         <input class="field ed-cue" id=${'cue-' + it.id} aria-label=${exName(it.ex) + ' note'} placeholder="Note, e.g. 15 each side" value=${it.note || ''} onInput=${e => { it.note = e.target.value; }}/></div>`)}
+      <${DayLoadWarn} d=${day}/>
       ${day.items.length > 1 ? html`<button class="btn wide" id=${'ed-reorder-' + day.id} onClick=${() => openSheet({ type: 'reorder', list: day.items, title: 'Reorder ' + (day.name || 'day'), onChange: re })}>${I.grip} Reorder or remove</button>` : null}
       <button class="btn ghost wide" onClick=${() => openSheet({ type: 'pick', title: 'Add to ' + (day.name || 'day'), onPick: ex => { day.items.push({ id: uid('i'), ex: ex.id, sets: 3, reps: '', group: '', ss: false }); closeSheet(); re(); } })}>${I.plus} Add exercise</button>
     </div>`)}

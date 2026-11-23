@@ -41,6 +41,28 @@ async def main():
         await ev("""mealCommit(m => { m.me = { h: 180, w: 80, age: 30, sex: 'm', act: 2, goal: 'gain' }; m.goals = { kcal: 2800, p: 140 }; m.log[ymd(new Date())] = [{ id: 'a', at: Date.now(), k: 'food', name: 'Eggs', m: { kcal: 300, p: 20 } }]; });
           UI.setView(null); UI.setTab('meals'); lsSet('mealsMode', 'log'); MEALS.mode = 'log'; S.rerender()"""); await pg.wait_for_timeout(400)
         check('protein per meal cites Schoenfeld & Aragon', 'Schoenfeld & Aragon 2018' in await pg.inner_text('#prot-spread'))
+        # ---- per-session cap, stalled muscle, lift first, reorder note ----
+        await ev("""commit(st => { st.meta.routines['x1'] = { id: 'x1', name: 'Big chest', source: 'mine', days: [{ id: 'x1d', name: 'Chest', items: [{ id: 'a', ex: 'b-bench-press', sets: 6, reps: '8' }, { id: 'b', ex: 'b-cable-fly', sets: 6, reps: '12' }] }] }; }, 'meta'); UI.setView(null); UI.setTab('routines'); UI.setView({ type: 'routine', id: 'x1' })"""); await pg.wait_for_timeout(400)
+        dl = await pg.inner_text('#dayload-x1d') if await pg.locator('#dayload-x1d').count() else ''
+        check('a day with 12 chest sets is flagged, with its source', 'Chest 12 sets' in dl and 'Remmert 2025' in dl, dl)
+        check('Sapwood days are under the cap', await ev("getRoutine('bi-sapwood').days.every(d => COVER_ROWS.every(([k]) => !(dayMuscleSets(d)[k] > SESSION_CAP)))"))
+        await ev("""(() => { const d = 864e5, w0 = +startOfWeek(new Date()); S.sessions = {}; let i = 0;
+          for (let wk = 1; wk <= 6; wk++) for (const day of [0, 2]) { const t = w0 - wk * 7 * d + day * d + 36e5;
+            S.sessions['q' + i] = { id: 'q' + i, name: 'W', startedAt: t, endedAt: t + 3e6, prs: [], items: [{ ex: 'b-cable-fly', u: 'lb', sets: [1,2,3,4,5,6,7].map(() => ({ w: 50, r: 12 })) }] }; i++; }
+          setProgram('bi-sapwood'); S.ver++; UI.setView(null); UI.setTab('stats'); lsSet('statsTab', 'numbers'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
+        pw = await pg.inner_text('#plan-working')
+        check('chest gets its sets but lifts are flat for 4+ weeks: offers 2 more sets', 'flat for 4+ weeks' in pw and await pg.locator('#pw-add-chest').count() == 1, pw[:300])
+        before = await ev("getRoutine('bi-sapwood').days.flatMap(d => d.items).filter(it => exMuscles(it.ex).chest >= 1).reduce((a, it) => a + it.sets, 0)")
+        await ev("document.getElementById('pw-add-chest').click()"); await pg.wait_for_timeout(300)
+        after = await ev("getRoutine('bi-sapwood').days.flatMap(d => d.items).filter(it => exMuscles(it.ex).chest >= 1).reduce((a, it) => a + it.sets, 0)")
+        check('tapping it adds 2 chest sets to the plan (as an edit)', after == before + 2 and await ev("!!getRoutine('bi-sapwood').base"), (before, after))
+        await ev("[...document.querySelectorAll('.toast button')].find(b => b.textContent.includes('Undo')).click()"); await pg.wait_for_timeout(300)
+        check('Undo puts the plan back', await ev("getRoutine('bi-sapwood').days.flatMap(d => d.items).filter(it => exMuscles(it.ex).chest >= 1).reduce((a, it) => a + it.sets, 0)") == before and await ev("!S.meta.routines['bi-sapwood']"))
+        await ev("startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]); openSheet({ type: 'reorder', list: S.active.items, workout: true })"); await pg.wait_for_timeout(300)
+        rt = await pg.inner_text('.sheet')
+        check('reorder says order doesn’t change growth, with its source', 'doesn’t change muscle growth' in rt and 'Nunes 2021' in rt)
+        await ev("closeSheet(); S.active = null")
+        check('lift-first tip function exists and the source is listed', await ev("typeof liftedToday === 'function' && !!SRC.concorder"))
         check('no page errors', not errs, errs)
         await b.close()
 try: asyncio.run(main())

@@ -119,8 +119,8 @@ function strengthChange(muscle, from) {
   for (const s of sessionList()) { if (s.startedAt < from) continue; for (const it of s.items || []) { if (isMeasured(exKind(it.ex)) || !(exMuscles(it.ex)[muscle] >= 1)) continue;
     const e1 = Math.max(0, ...(it.sets || []).filter(x => +x.r > 0 && +x.r <= 15 && +x.w > 0).map(x => epley(conv(+x.w, it.u || U(), U()), +x.r))); if (!(e1 > 0)) continue;
     (byEx[it.ex] = byEx[it.ex] || []).push({ t: s.startedAt, e1 }); } }
-  for (const l of Object.values(byEx)) if (l.length >= 2 && l[l.length - 1].t - l[0].t >= 14 * DAY) ch.push((l[l.length - 1].e1 - l[0].e1) / l[0].e1);
-  if (!ch.length) return null; ch.sort((a, b) => a - b); return { pct: ch[Math.floor(ch.length / 2)] * 100, n: ch.length };
+  let span = 0; for (const l of Object.values(byEx)) if (l.length >= 2 && l[l.length - 1].t - l[0].t >= 14 * DAY) { ch.push((l[l.length - 1].e1 - l[0].e1) / l[0].e1); span = Math.max(span, l[l.length - 1].t - l[0].t); }
+  if (!ch.length) return null; ch.sort((a, b) => a - b); return { pct: ch[Math.floor(ch.length / 2)] * 100, n: ch.length, span };
 }
 function PlanWorking() {
   const pid = programId(); const r = pid && pid !== 'self' ? getRoutine(pid) : null; if (!r || !isLiftPlan(r)) return null;
@@ -130,10 +130,10 @@ function PlanWorking() {
   const pc = v => (v >= 0 ? '+' : '') + Math.round(v) + '%';
   const line = ([k, l]) => { const avg = (done[k] || 0) / 4; const st = strengthChange(k, from8); const sz = SIZE_MEAS[k] ? measChange(SIZE_MEAS[k], from8) : null;
     const enough = avg >= plan[k] * 0.8; const up = st && st.pct > 1;
-    const verdict = !enough ? 'Fewer sets than planned; that comes first.' : st && !up ? 'Sets are there but lifts aren’t climbing: push closer to failure or add a set.' : up ? 'On track.' : 'Keep logging; it needs two weeks of the same lifts to judge.';
+    const verdict = !enough ? 'Fewer sets than planned; that comes first.' : st && !up ? (st.span >= 28 * DAY ? 'Sets are there but lifts have been flat for 4+ weeks: push closer to failure, or add 2 sets a week.' : 'Sets are there but lifts aren’t climbing yet: push closer to failure.') : up ? 'On track.' : 'Keep logging; it needs two weeks of the same lifts to judge.';
     return html`<div key=${k} class="opt" style="cursor:default;align-items:flex-start"><div style="flex:1;min-width:0"><div>${l}</div>
       <div class="d num">${fmt(Math.round(avg * 2) / 2)} of ${fmt(Math.round(plan[k] * 2) / 2)} sets a week${st ? ' · lifts ' + pc(st.pct) : ''}${sz ? ' · ' + sz.label.toLowerCase() + ' ' + (sz.d >= 0 ? '+' : '') + fmt(Math.round(sz.d * 10) / 10) + ' ' + sz.u : ''}</div>
-      <div class="d">${verdict}</div></div></div>`; };
+      <div class="d">${verdict}</div>${enough && st && !up && st.span >= 28 * DAY ? html`<button class="btn text" id=${'pw-add-' + k} style="padding-left:0" onClick=${() => addSetsFor(r, k)}>Add 2 sets a week for ${l.toLowerCase()}</button><${Cite} k=${['pelland']} sec="volume"/>` : null}</div></div>`; };
   return html`<div id="plan-working"><div class="section-h"><h2>Is the plan working?</h2><span class="aside">Last 4–8 weeks</span></div>
     <div class="card">${rows.map(line)}
       <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.<${Cite} k=${['pelland', 'robinson']} sec="volume"/></p></div></div>`;
@@ -157,4 +157,30 @@ function WorkoutProtein() {
   if (typeof ML !== 'function') return null; const G = ML().goals || {}; if (!G.p) return null;
   const list = (ML().log || {})[ymd(new Date())] || []; const p = Math.round(sumNut(list).p || 0); const left = G.p - p;
   return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}<${Cite} k=${['morton', 'permeal']} sec="protein"/></p>`;
+}
+
+/* ---- 8. One muscle piled onto one day (Nov 23) ----
+   Within a workout, extra sets for the same muscle stop showing a clear benefit at about 11 fractional sets
+   (Remmert/Pelland per-session meta-regression). Plan pages and the editor say which muscle and how many. */
+const SESSION_CAP = 11;
+function dayMuscleSets(d) { const out = {}; for (const it of d.items || []) { if (isMeasured(exKind(it.ex)) && exKind(it.ex) !== 'timed') continue; for (const [m, w] of Object.entries(exMuscles(it.ex))) out[m] = (out[m] || 0) + (+it.sets || 0) * w; } return out; }
+function DayLoadWarn({ d }) {
+  const ms = dayMuscleSets(d); const over = COVER_ROWS.filter(([k]) => (ms[k] || 0) > SESSION_CAP); if (!over.length) return null;
+  return html`<p class="small" id=${'dayload-' + d.id} style="margin-top:6px"><b>${over.map(([k, l]) => l + ' ' + fmt(Math.round(ms[k] * 2) / 2)).join(', ')} sets in this workout.</b> Past about ${SESSION_CAP} sets for one muscle in one workout, extra sets add little; moving a few to another day puts them to better use.<${Cite} k=${['persession']} sec="volume"/></p>`;
+}
+
+/* ---- 9. A muscle that gets its sets but has stalled: offer 2 more sets a week (never automatic) ---- */
+function addSetsFor(r, k) {
+  const prev = getRoutine(r.id); const d = prev.base || prev.source !== 'builtin' ? clone(prev) : { ...clone(prev), source: 'mine', base: prev.id };
+  const cands = []; d.days.forEach(day => day.items.forEach(it => { if (!isMeasured(exKind(it.ex)) && exMuscles(it.ex)[k] >= 1) cands.push({ day, it }); }));
+  if (!cands.length) return false;
+  const byDay = [...new Set(cands.map(c => c.day))].sort((a, b) => dayMinutes(a) - dayMinutes(b));
+  const pick = day => { const cs = cands.filter(c => c.day === day); return (cs.find(c => !isMainLift(c.it.ex)) || cs[cs.length - 1]).it; };
+  const changed = byDay.length >= 2 ? [pick(byDay[0]), pick(byDay[1])] : [pick(byDay[0]), pick(byDay[0])];
+  changed.forEach(it => { it.sets = (+it.sets || 0) + 1; });
+  const had = !!(S.meta.routines || {})[r.id]; const before = had ? clone(S.meta.routines[r.id]) : null;
+  commit(st => { st.meta.routines[d.id] = d; }, 'meta');
+  showToast({ kind: 'info', ms: 8000, text: '+1 set: ' + [...new Set(changed.map(it => exName(it.ex)))].join(' and ') + (changed[0] === changed[1] ? ' (2 sets)' : ''), action: 'Undo',
+    fn: () => commit(st => { if (before) st.meta.routines[d.id] = before; else delete st.meta.routines[d.id]; }, 'meta') });
+  return true;
 }

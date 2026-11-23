@@ -19,7 +19,7 @@ function ReorderSheet({ list, title, onChange, workout }) {
   const up = e => { if (drag.current && drag.current.id === e.pointerId) { drag.current = null; re(); } };
   const key = (e, ui) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const to = ui + (e.key === 'ArrowUp' ? -1 : 1); moveUnit(ui, to); setTimeout(() => { const b = document.querySelectorAll('#reorder .ro-handle')[Math.max(0, Math.min(to, groupsOf(list).length - 1))]; if (b) b.focus(); }, 30); } };
   return html`<${Sheet} label=${title || 'Reorder or remove'}><h2>${title || 'Reorder or remove'}</h2>
-    <p class="note" style="margin-bottom:6px">Drag the handle on the left to move an exercise; a superset moves together. Tap the X to take one out.</p>
+    <p class="note" style="margin-bottom:6px">Drag the handle on the left to move an exercise; a superset moves together. Tap the X to take one out. Order doesn’t change muscle growth, so if a machine is taken, do something else first; only strength on the first lifts benefits from going first.<${Cite} k=${['order']} sec="exercises"/></p>
     <div id="reorder" role="list">${units.map((u, ui) => html`<div key=${u[0].id} role="listitem" class="opt ro-unit" style=${{ alignItems: 'flex-start', opacity: drag.current && drag.current.ui === ui ? 0.6 : 1 }}>
       <button class="icon-btn ro-handle" style="touch-action:none;cursor:grab" aria-label=${'Move ' + u.map(x => exName(x.ex)).join(' and ') + '. Drag, or use the arrow keys.'}
         onPointerDown=${e => down(e, ui)} onPointerMove=${moveP} onPointerUp=${up} onPointerCancel=${up} onKeyDown=${e => key(e, ui)}>${I.grip}</button>

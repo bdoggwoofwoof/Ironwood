@@ -18,6 +18,7 @@ const SRC = {
   spiering: ['Spiering 2021', 'The minimal dose of exercise to keep strength and endurance', 'https://pubmed.ncbi.nlm.nih.gov/33629972'],
   bickel: ['Bickel 2011', 'Exercise dosing to keep training gains', 'https://pubmed.ncbi.nlm.nih.gov/21131862/'],
   schumann: ['Schumann 2022', 'Concurrent aerobic and strength training (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/34757594/'],
+  concorder: ['Eddens 2018', 'Exercise order within a concurrent training session (meta-analysis)', 'https://link.springer.com/article/10.1007/s40279-017-0784-1'],
   lundberg: ['Lundberg 2022', 'Concurrent training and muscle fiber growth (meta-analysis)', 'https://pmc.ncbi.nlm.nih.gov/articles/PMC9474354'],
   morton: ['Morton 2018', 'Protein supplementation and gains from training (meta-analysis)', 'https://pubmed.ncbi.nlm.nih.gov/28698222/'],
   permeal: ['Schoenfeld & Aragon 2018', 'How much protein the body can use in one meal', 'https://pubmed.ncbi.nlm.nih.gov/29497353/'],
@@ -32,8 +33,8 @@ function Cite({ k, sec, rule }) {
 function openScience(sec) { if (S.sheet) closeSheet(); UI.setTab('profile'); UI.setView({ type: 'science', sec }); setTimeout(() => { const el = sec && document.getElementById('sci-' + sec); if (el) el.scrollIntoView({ block: 'start' }); }, 120); }
 /* [id, title, what Ironwood does, settings, limits, why, sources, rule of thumb?] */
 const SCIENCE = [
-  ['volume', 'Sets per muscle', 'Plan pages count weekly sets per muscle; Progress → Numbers counts what you logged, this week and last, beside your plan, and flags muscles that fell below 70% of it. Helper work counts as half a set (a bench press is half a triceps set).',
-    'None; it follows your plan and your log.', 'Exercise muscle data is Ironwood’s own estimate for each lift. The 70% flag is a rule of thumb.',
+  ['volume', 'Sets per muscle', 'Plan pages count weekly sets per muscle and flag a workout that gives one muscle more than about 11 sets. Progress → Numbers counts what you logged, this week and last, beside your plan, flags muscles that fell below 70% of it, and, when a muscle gets its sets but its lifts have been flat for 4+ weeks, offers 2 more sets a week (only if you tap it). Helper work counts as half a set (a bench press is half a triceps set).',
+    'None; it follows your plan and your log.', 'Exercise muscle data is Ironwood’s own estimate for each lift. The 70% flag, the 4-week stall and the 2-set step are rules of thumb.',
     'More hard sets a week mean more growth, with smaller gains from each extra set, and counting helper sets as half fits the research best. Around 10 or more hard sets a week per muscle suits growth. Within one workout, extra sets for the same muscle stop showing a clear benefit at about 11, so Ironwood spreads a muscle over two or three days.', ['pelland', 'persession']],
   ['effort', 'Reps, effort and reps left', 'Rep ranges are about 6–10 on each day’s first big lifts and 10–15 on the rest. After an exercise’s last set, one tap records reps left (0 to 4+). Every 4 weeks one machine or cable lift becomes a calibration set: guess your reps left at the top of the range, then go to failure. The average gap corrects your later answers.',
     'Settings → More training settings: Ask reps left on each exercise’s last set (on by default).', 'Only the last set is asked, to keep logging quick. The calibration uses your last five checks; until then answers are taken as given.',
@@ -53,9 +54,9 @@ const SCIENCE = [
   ['busy', 'Busy week', 'One tap under Up next: until Monday, each exercise uses about a third of its sets (at least one) at your usual weights, with no drop sets.',
     'Turn it on or off from Train.', 'It keeps what you have; it doesn’t build. Use it for a week or a few, not as a plan.',
     'Size and strength held for up to 32 weeks on as little as one session a week and one set per exercise when the weight stayed heavy; a third of the usual volume kept gains in younger adults.', ['spiering', 'bickel']],
-  ['running', 'Running with lifting', 'The running plan warns about hard runs right after or on leg day, and offers cycling and other swaps.',
+  ['running', 'Running with lifting', 'The running plan warns about hard runs right after or on leg day, offers cycling and other swaps, and on days with both suggests lifting first.',
     'Train → Run: your run days and lift days.', 'The interference effect is small; the warning is about how your legs feel as much as growth.',
-    'Combining aerobic and strength training doesn’t compromise muscle growth or maximal strength overall; explosive strength may suffer, and running may slightly blunt fiber growth more than cycling.', ['schumann', 'lundberg']],
+    'Combining aerobic and strength training doesn’t compromise muscle growth or maximal strength overall; explosive strength may suffer, and running may slightly blunt fiber growth more than cycling. In one session, lifting before endurance gave better lower-body strength with no difference in growth. The day-after-Legs strain warning is Ironwood’s rule of thumb.', ['schumann', 'lundberg', 'concorder'], true],
   ['warmup', 'Warm-up sets', 'Before the first big lift: about 40%, 60% and 80% of your working weight for 10, 5 and 3 reps, shown as a line and not logged.',
     'Settings → More training settings: Show warm-up sets.', 'Not used for anything else in the app.', 'A common coaching practice to rehearse the lift and get ready for heavy sets; Ironwood has no study for the exact percentages.', [], true],
   ['protein', 'Protein', 'Meal targets worked out from your height and weight aim for about 1.6 g of protein per kg (1.8 when losing or gaining); Body goal aims a little higher, about 1.8–2.2 g/kg, most on a cut. The Log shows about 0.4 g per kg at each of 3–4 meals and what today’s meals had; the workout summary shows protein so far.',

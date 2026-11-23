@@ -921,7 +921,7 @@ function WorkoutExtras({ a }) {
   return html`<div class="wo-extra">
     ${r ? html`<div class="run-banner"><span class="lbl">Running plan · week ${r.w}</span>
       <p class="small">${r.swap ? 'Cross-training swap. Keep the effort the plan asks for.' : 'Warm up with 10 min easy and 5 min of drills first. Targets are next to each exercise; within 2 s per 200 m is on target.'}</p>
-      ${r.hard && !r.swap && legsYesterday() ? html`<p class="small down-c" role="alert">You did Legs yesterday. Sprints and hard intervals the day after Legs raise the risk of a strain.</p>` : null}
+      ${r.hard && !r.swap && legsYesterday() ? html`<p class="small down-c" role="alert">You did Legs yesterday. Sprints and hard intervals the day after Legs raise the risk of a strain.<${Cite} k=${[]} sec="running" rule=${true}/></p>` : null}
       <p class="small faint">Targets are estimates, not coaching advice.</p></div>` : null}
     ${tm ? html`<button class="btn wide" id="wo-timer" onClick=${() => { if (!S.itimer) startInterval(tm); UI.setView({ type: 'timer' }); }}>${I.timer} ${S.itimer ? 'Open timer' : 'Start timer: ' + (tm.name || timerSummary(tm))}</button>` : null}</div>`;
 }

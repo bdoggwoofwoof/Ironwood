@@ -100,3 +100,61 @@ function WarmupHint({ it }) { const t = warmupLine(it); return t ? html`<div cla
 const LONG_EX = new Set(['Behind-the-Back Cable Lateral Raise', 'Cable Lateral Raise', 'Overhead Cable Tricep Extension', 'Dumbbell Overhead Tricep Extension', 'Incline Dumbbell Curl', 'Cable Fly',
   'Dumbbell Fly', 'Seated Leg Curl', 'Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Lat Pulldown', 'Dumbbell Pullover', 'Sissy Squat', 'Bulgarian Split Squat', 'Leg Press Calf Raise', 'Deficit Push-Up'].map(nameKey));
 const isLongEx = c => LONG_EX.has(nameKey(c.name || exName(c.id)));
+
+/* ---- 6. Is the plan working? (Progress → Numbers) ----
+   For each muscle your plan works hard (8+ sets a week): sets you actually did a week over the last 4 weeks, how much
+   stronger you got on lifts that train it directly (best estimated 1-rep max, first vs latest in 8 weeks), and the
+   matching tape or scan measurement when you have two. Growth needs enough hard sets and progress on them over time. */
+const SIZE_MEAS = { chest: ['chest'], lats: ['chest'], upperback: ['chest'], quads: ['thigh', 'thigh_mr', 'thigh_ml', 'thigh_ur', 'thigh_ul', 'lean_lr', 'lean_ll'], hamstrings: ['thigh', 'thigh_mr', 'thigh_ml'],
+  glutes: ['hips'], biceps: ['arm', 'bicep_r', 'bicep_l', 'lean_ar', 'lean_al'], triceps: ['arm', 'bicep_r', 'bicep_l', 'lean_ar', 'lean_al'], calves: ['calf', 'calf_r', 'calf_l'] };
+function measChange(keys, from) {
+  for (const k of keys) { const es = (S.meta.meas || []).filter(e => e.k === k && +e.v > 0 && +parseYmd(e.d) >= from).sort((a, b) => a.d < b.d ? -1 : 1); if (es.length < 2) continue;
+    const a = es[0], b = es[es.length - 1]; const kind = measKind(k); const u = measUnit(k);
+    const cv = e => kind === 'len' ? (e.u && e.u !== u ? (u === 'cm' ? +e.v * 2.54 : +e.v / 2.54) : +e.v) : kind === 'mass' ? conv(+e.v, e.u || U(), U()) : +e.v;
+    const d = cv(b) - cv(a); return { k, d, u, label: (MEAS_DEF.find(x => x[0] === k) || [, k])[1] }; }
+  return null;
+}
+function strengthChange(muscle, from) {
+  const ch = []; const byEx = {};
+  for (const s of sessionList()) { if (s.startedAt < from) continue; for (const it of s.items || []) { if (isMeasured(exKind(it.ex)) || !(exMuscles(it.ex)[muscle] >= 1)) continue;
+    const e1 = Math.max(0, ...(it.sets || []).filter(x => +x.r > 0 && +x.r <= 15 && +x.w > 0).map(x => epley(conv(+x.w, it.u || U(), U()), +x.r))); if (!(e1 > 0)) continue;
+    (byEx[it.ex] = byEx[it.ex] || []).push({ t: s.startedAt, e1 }); } }
+  for (const l of Object.values(byEx)) if (l.length >= 2 && l[l.length - 1].t - l[0].t >= 14 * DAY) ch.push((l[l.length - 1].e1 - l[0].e1) / l[0].e1);
+  if (!ch.length) return null; ch.sort((a, b) => a - b); return { pct: ch[Math.floor(ch.length / 2)] * 100, n: ch.length };
+}
+function PlanWorking() {
+  const pid = programId(); const r = pid && pid !== 'self' ? getRoutine(pid) : null; if (!r || !isLiftPlan(r)) return null;
+  const plan = weeklySets(r); const rows = COVER_ROWS.filter(([k]) => (plan[k] || 0) >= 8); if (!rows.length) return null;
+  const w0 = +startOfWeek(new Date()); const from4 = w0 - 28 * DAY, from8 = Date.now() - 56 * DAY;
+  const done = loggedMuscleSets(from4, w0); const any = sessionList().some(s => s.startedAt >= from4 && s.startedAt < w0); if (!any) return null;
+  const pc = v => (v >= 0 ? '+' : '') + Math.round(v) + '%';
+  const line = ([k, l]) => { const avg = (done[k] || 0) / 4; const st = strengthChange(k, from8); const sz = SIZE_MEAS[k] ? measChange(SIZE_MEAS[k], from8) : null;
+    const enough = avg >= plan[k] * 0.8; const up = st && st.pct > 1;
+    const verdict = !enough ? 'Fewer sets than planned; that comes first.' : st && !up ? 'Sets are there but lifts aren’t climbing: push closer to failure or add a set.' : up ? 'On track.' : 'Keep logging; it needs two weeks of the same lifts to judge.';
+    return html`<div key=${k} class="opt" style="cursor:default;align-items:flex-start"><div style="flex:1;min-width:0"><div>${l}</div>
+      <div class="d num">${fmt(Math.round(avg * 2) / 2)} of ${fmt(Math.round(plan[k] * 2) / 2)} sets a week${st ? ' · lifts ' + pc(st.pct) : ''}${sz ? ' · ' + sz.label.toLowerCase() + ' ' + (sz.d >= 0 ? '+' : '') + fmt(Math.round(sz.d * 10) / 10) + ' ' + sz.u : ''}</div>
+      <div class="d">${verdict}</div></div></div>`; };
+  return html`<div id="plan-working"><div class="section-h"><h2>Is the plan working?</h2><span class="aside">Last 4–8 weeks</span></div>
+    <div class="card">${rows.map(line)}
+      <p class="small muted" style="margin-top:8px">For each muscle ${r.name} works hardest: sets you did a week over the last 4 full weeks against the plan, how much your lifts for it went up (estimated 1-rep max, middle of your lifts, last 8 weeks), and the matching measurement if you logged two.</p></div></div>`;
+}
+
+/* ---- 7. Protein spread over the day, and after a workout ----
+   About 0.4 g per kg at each of 3–4 meals reaches the daily target with every meal doing some of the work
+   (Schoenfeld & Aragon 2018). Daily target itself: about 1.6 g/kg (Morton 2018), set in Meals → goals. */
+function bodyKg() { const me = (typeof ML === 'function' && ML().me) || {}; const bw = (S.meta.bw || []).slice().sort((a, b) => a.d < b.d ? -1 : 1).pop(); return bw ? conv(+bw.w, bw.u || U(), 'kg') : me.w > 0 ? +me.w : 0; }
+function logMeals(list) { /* entries grouped by plan slot, or by time when there is none (within 90 minutes is one meal) */
+  const out = []; for (const e of list.slice().sort((a, b) => a.at - b.at)) { const g = out.find(m => (e.slot && m.slot === e.slot) || (!e.slot && !m.slot && Math.abs(e.at - m.at) < 90 * 60000));
+    if (g) g.p += +(e.m && e.m.p) || 0; else out.push({ slot: e.slot || null, at: e.at, p: +(e.m && e.m.p) || 0 }); }
+  return out;
+}
+function ProteinSpread({ list }) {
+  const kg = bodyKg(); if (!(kg > 0)) return null; const per = Math.round(kg * 0.4 / 5) * 5; const ms = logMeals(list || []); if (!ms.length) return html`<p class="small muted" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals.</p>`;
+  const hit = ms.filter(m => m.p >= per * 0.8).length;
+  return html`<p class="small muted num" id="prot-spread" style="margin-top:6px">Protein per meal: about ${per} g at each of 3–4 meals. Today: ${ms.map(m => Math.round(m.p) + ' g').join(', ')} (${hit} of ${ms.length} meal${ms.length === 1 ? '' : 's'} there).</p>`;
+}
+function WorkoutProtein() {
+  if (typeof ML !== 'function') return null; const G = ML().goals || {}; if (!G.p) return null;
+  const list = (ML().log || {})[ymd(new Date())] || []; const p = Math.round(sumNut(list).p || 0); const left = G.p - p;
+  return html`<p class="small" id="wo-protein" style="margin-top:12px">Protein today: <b class="num">${p} of ${G.p} g</b>.${left > 10 ? ' A meal with about ' + Math.min(left, Math.max(20, Math.round(bodyKg() * 0.4 / 5) * 5 || 30)) + ' g in the next few hours helps the work you just did pay off.' : ' You’re there.'}</p>`;
+}

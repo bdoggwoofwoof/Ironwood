@@ -1279,6 +1279,7 @@ function LogPane() {
         const rows = dayRows(dayMeals(day)).filter(({ x }) => x.r && !x.off && getRecipe(x.r)); if (!rows.length) return null;
         const pt = dayTotals(rows.map(({ x }) => x)); const ea = eatenIds(m); const n = rows.filter(({ x }) => ea.has(x.id)).length;
         return html`<p class="small muted num" id="log-planned" style="margin-top:8px">Planned for ${day === today ? 'today' : 'this day'}: ${fmt(pt.kcal)} cal · ${pt.p} g protein · ${n} of ${rows.length} planned meal${rows.length === 1 ? '' : 's'} eaten</p>`; })()}
+      <${ProteinSpread} list=${list}/>
       <button class="btn text" id="log-goals" style="padding-left:0" onClick=${() => openSheet({ type: 'mealGoals' })}>${gk.length ? 'Change goals' : 'Set daily goals'}</button><button class="btn text" id="log-review" onClick=${() => UI.setView({ type: 'eatReview' })}>Review my eating</button></div>
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn primary" style="flex:2" id="log-add" onClick=${() => openSheet({ type: 'mealLog', day })}>${I.plus} Log food</button><button class="btn" style="flex:1" id="log-scan" onClick=${() => openSheet({ type: 'mealLog', day, tab: 'scan' })}>${I.camera} Scan</button></div>
     <${TodayMenu} day=${day}/>

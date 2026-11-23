@@ -1014,7 +1014,7 @@ function StatsScreen({ view }) {
     <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['numbers', 'Numbers'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'numbers' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
-    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${MuscleWeek}/><${StatsCategories}/></div>`}
+    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><${PlanWorking}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${MuscleWeek}/><${StatsCategories}/></div>`}
   </div>`;
 }
 function StatsOverall() {
@@ -1961,8 +1961,11 @@ function FinishSheet() {
   return html`<${Sheet} label="Finish workout"><h2>${done ? 'Finish workout?' : 'No sets logged yet'}</h2>
     <p class="note" style="margin-bottom:14px">${done ? done + ' set' + (done === 1 ? '' : 's') + ' will be saved.' + (open ? ' ' + open + ' set' + (open === 1 ? '' : 's') + ' you didn’t log will be left out.' : '') : a.run ? 'Nothing logged yet. Tap ✓ on the parts of the run you did.' : 'Type reps for the sets you did, or swipe them right to log them as shown.'}</p>
     <div class="stack">${done ? html`<button class="btn primary wide" onClick=${() => { closeSheet(); finishWorkout(); }}>Save workout</button>` : null}
-      <button class="btn wide" onClick=${closeSheet}>Keep going</button></div><//>`;
+      <button class="btn wide" onClick=${closeSheet}>Keep going</button>
+      <button class="btn text danger wide" id="finish-discard" onClick=${() => done ? openSheet({ type: 'confirm', title: 'Discard this workout?', body: done + ' logged set' + (done === 1 ? '' : 's') + ' will be lost. Nothing from this session will be saved.', ok: 'Discard', danger: true, onOk: discardWorkout }) : discardWorkout()}>Discard workout</button></div><//>`;
 }
+/* Nov 22 (Newt): Finish offers Discard too, so an empty or unwanted workout can be thrown away from there */
+function discardWorkout() { closeSheet(); if (typeof bgStop === 'function' && S.rest) bgStop(); commit(st => { st.active = null; st.rest = null; }, 'active', 300); showToast({ kind: 'info', text: 'Workout discarded' }); }
 function SummarySheet({ id }) {
   const s = S.sessions[id]; if (!s) return null;
   const mins = Math.max(1, Math.round((s.endedAt - s.startedAt) / 60000));
@@ -1971,6 +1974,7 @@ function SummarySheet({ id }) {
   return html`<${Sheet} label="Workout saved"><div class="eyebrow">Workout saved</div><h2>${s.name}</h2>
     <div class="trio"><div><b>${mins}</b><span>minutes</span></div><div><b>${sets}</b><span>sets</span></div>${vol > 0 ? html`<div><b>${vol >= 10000 ? fmt(vol / 1000) + 'k' : fmt(vol)}</b><span>${U()} moved</span></div>` : null}</div>
     <${RunSummary} s=${s}/>
+    ${s.kind !== 'activity' ? html`<${WorkoutProtein}/>` : null}
     ${noE1(s.prs).length ? html`<div class="section-h"><h2>New PRs</h2></div><div class="prl">${noE1(s.prs).map((p, i) => html`<div key=${i}><div style="min-width:0"><div style="font-weight:600">${exName(p.ex)}${p.group ? ' · ' + p.group : ''}</div><div class="small muted">${p.value}${p.prev ? ' · was ' + p.prev : ''}</div></div><span class="pr-badge">${I.plate} ${p.label}</span></div>`)}</div>`
       : html`<p class="note" style="margin-top:14px">No new records this time. Logged weights become next workout's starting point.</p>`}
     <${SessionActions} id=${id}/>

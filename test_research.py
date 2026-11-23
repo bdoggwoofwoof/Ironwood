@@ -79,6 +79,39 @@ async def main():
         # ---- swaps ----
         sw = await ev("swapCandidates('b-tricep-pushdowns').slice(0, 6).map(c => c.ex.name + '|' + c.why)")
         check('swaps: an overhead (stretched) triceps exercise is offered with that reason', any('stretched' in x for x in sw), sw)
+        # ---- Finish offers Discard (Nov 22) ----
+        await ev("S.active = null; startWorkout(null, null)"); await pg.wait_for_timeout(300)
+        await ev("openSheet({ type: 'finish' })"); await pg.wait_for_timeout(200)
+        check('Finish on an empty workout offers Discard', await pg.locator('#finish-discard').count() == 1)
+        await pg.click('#finish-discard'); await pg.wait_for_timeout(400)
+        check('Discard ends it without saving', await ev("S.active") is None)
+        await ev("startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]); const it = S.active.items[0]; it.sets[0].w = '100'; it.sets[0].r = '8'; completeSet(it, it.sets[0]); S.rest = null; openSheet({ type: 'finish' })"); await pg.wait_for_timeout(300)
+        n0 = await ev("Object.keys(S.sessions).length")
+        await pg.click('#finish-discard'); await pg.wait_for_timeout(300)
+        sh = await pg.inner_text('.sheet') if await pg.locator('.sheet').count() else ''
+        check('with logged sets, Discard asks first', await ev("!!S.active") and 'DISCARD THIS WORKOUT' in sh.upper(), (await ev("!!S.active"), sh[:200]))
+        await pg.locator('.sheet button', has_text='Discard').last.click(); await pg.wait_for_timeout(400)
+        check('confirmed: discarded, nothing saved', await ev("S.active") is None and await ev("Object.keys(S.sessions).length") == n0)
+        # ---- protein ----
+        await ev("""mealCommit(m => { m.me = { h: 180, w: 80, age: 30, sex: 'm', act: 2, goal: 'gain' }; m.goals = { kcal: 2800, p: 140 };
+          const now = Date.now(); m.log[ymd(new Date())] = [{ id: 'a', at: now - 6 * 36e5, k: 'food', name: 'Eggs', m: { kcal: 300, p: 20 } }, { id: 'b', at: now - 6 * 36e5 + 6e5, k: 'food', name: 'Yogurt', m: { kcal: 150, p: 15 } }, { id: 'c', at: now - 2 * 36e5, k: 'food', name: 'Chicken', m: { kcal: 400, p: 40 } }]; })""")
+        await ev("UI.setTab('meals'); lsSet('mealsMode', 'log'); MEALS.mode = 'log'; S.rerender()"); await pg.wait_for_timeout(400)
+        ps = await ev("(() => { const e = document.getElementById('prot-spread'); return e ? e.textContent : ''; })()")
+        check('Log: protein per meal (0.4 g/kg = 30 g) with meals grouped by time', 'about 30 g' in ps and '35 g, 40 g' in ps and '2 of 2' in ps, ps)
+        await ev(SEED + "([[0, 'b-bench-press', 100, [8, 8, 8]]])")
+        await ev("openSheet({ type: 'summary', id: 'h0' })"); await pg.wait_for_timeout(300)
+        wp = await pg.inner_text('#wo-protein')
+        check('workout summary: protein today and a nudge', '75 of 140 g' in wp and 'next few hours' in wp, wp)
+        await ev("closeSheet()")
+        # ---- is the plan working ----
+        await ev("""(() => { const now = Date.now(), d = 864e5, w0 = +startOfWeek(new Date()); S.sessions = {}; let i = 0;
+          for (let wk = 1; wk <= 6; wk++) for (const day of [0, 2]) { const t = w0 - wk * 7 * d + day * d + 36e5; const w = 100 + (6 - wk) * 5;
+            S.sessions['p' + i] = { id: 'p' + i, name: 'W', startedAt: t, endedAt: t + 3e6, prs: [], items: [{ ex: 'b-bench-press', u: 'lb', sets: [{ w, r: 8 }, { w, r: 8 }, { w, r: 8 }, { w, r: 8 }, { w, r: 8 }, { w, r: 8 }] }, { ex: 'b-leg-extension', u: 'lb', sets: [{ w: 80, r: 12 }] }] }; i++; }
+          S.meta.meas = [{ id: 'm1', d: ymd(new Date(w0 - 40 * d)), k: 'chest', v: 40, u: 'in' }, { id: 'm2', d: ymd(new Date(w0 - 3 * d)), k: 'chest', v: 41, u: 'in' }];
+          setProgram('bi-sapwood'); S.ver++; UI.setTab('stats'); lsSet('statsTab', 'numbers'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
+        pw = await pg.inner_text('#plan-working')
+        check('Is the plan working: chest has sets, lifts up and chest tape up, and says on track', 'Chest' in pw and '12 of 13 sets a week' in pw and 'lifts +' in pw and 'chest +1 in' in pw and 'On track' in pw, pw[:400])
+        check('a priority muscle with too few sets says so first', 'Fewer sets than planned' in pw)
         check('no page errors', not errs, errs)
         await b.close()
 try: asyncio.run(main())

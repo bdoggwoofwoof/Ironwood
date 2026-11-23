@@ -44,7 +44,7 @@ function recentOcc(exId, group, occ, n, u) {
   for (let i = list.length - 1; i >= 0 && out.length < n; i--) {
     const its = list[i].items.filter(it => it.ex === exId && (it.group || '') === (group || ''));
     if (!its.length) continue; const it = its[Math.min(occ || 0, its.length - 1)];
-    const sets = it.sets.filter(x => +x.r > 0).map(x => ({ w: r1(conv(+x.w || 0, it.u || U(), u)), r: +x.r }));
+    const sets = it.sets.filter(x => +x.r > 0).map(x => Object.assign({ w: r1(conv(+x.w || 0, it.u || U(), u)), r: +x.r }, x.ri != null ? { ri: +x.ri } : {}));
     if (sets.length) out.push({ t: list[i].startedAt, sets, top: Math.max(...sets.map(x => x.w)) });
   }
   return out;
@@ -63,7 +63,11 @@ function progPlan(it, kind, u, occ) {
   const fine = fineFor(u), jump = jumpFor(it.ex, u);
   const w = v => fmt(v) + ' ' + u;
   if (kind === 'assisted') return full(e1) ? { mode: 'bump', delta: -jump, msg: 'Less assist today. You hit every rep last time.' } : { mode: 'hold' };
+  /* Nov 22: reps left on the last set (adjusted by your calibration) */
+  const spare = e => { const l = e.sets[e.sets.length - 1]; return l && l.ri != null && typeof adjRir === 'function' ? adjRir(l.ri) : null; };
+  if (full(e1) && spare(e1) >= 3) return { mode: 'bump', delta: 2 * jump, msg: '+' + w(2 * jump) + ' today. You hit every rep with 3 or more to spare last time.' };
   if (full(e1)) return { mode: 'bump', delta: jump, msg: '+' + w(jump) + ' today. You hit every rep last time.' };
+  if (spare(e1) >= 3 && !miss(e1)) return { mode: 'push', msg: 'Same weight, but push closer: you had about ' + spare(e1) + ' reps to spare last time. Aim for ' + top + ' reps.' };
   if (st.stepDown !== false && e0 && e1.top > e0.top + 1e-9 && miss(e1)) {
     const step = Math.floor(((e1.top - e0.top) / 2) / fine + 1e-9) * fine;
     if (step >= fine - 1e-9 && e0.top + step < e1.top - 1e-9)
@@ -98,7 +102,7 @@ function refillLift(it, occ) {
     if (P.mode === 'step') wv = roundToInc(wv, fine);
     x.gw = wv ? String(r1(wv)) : '';
     const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }

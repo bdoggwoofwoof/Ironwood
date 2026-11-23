@@ -178,6 +178,7 @@ function swapCandidates(exId, f = {}) {
     const star = isStarEx(c.id), done = hasHistory(c.id);
     if (f.pref && !star && !done) continue;
     score += (3 - (c.setup || 2)) * 2 + (star ? 8 : 0) + (done ? 6 : 0) + (o && c.kind === o.kind ? 2 : 0);
+    if (typeof isLongEx === 'function' && isLongEx(c) && o && muscleSim(o.m, c.m) > 0.5) { score += 5; why += '; trains the muscle in a stretched position'; }
     if (star) why += '; one of your starred exercises'; else if (done) why += "; you've done it before";
     out.push({ ex: c, score, why });
   }

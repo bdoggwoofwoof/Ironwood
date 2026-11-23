@@ -421,7 +421,7 @@ const EX_CUES = {
 BUILTIN_ROUTINES.forEach(r => r.days.forEach(d => d.items.forEach(it => { if (!it.note && EX_CUES[it.ex]) it.note = EX_CUES[it.ex]; })));
 
 /* ============ Store ============ */
-const DEFAULT_SETTINGS = { unit: 'lb', bar: 45, inc: 5, goal: 4, rest: 120, restSS: 45, ssMode: 'each', autoRest: true, beep: true, countdown: true, excuse: true, bgAudio: false };
+const DEFAULT_SETTINGS = { unit: 'lb', bar: 45, inc: 5, goal: 4, rest: 120, restSS: 45, ssMode: 'each', autoRest: true, askRir: true, warmups: true, beep: true, countdown: true, excuse: true, bgAudio: false };
 const emptyMeta = () => ({ settings: { ...DEFAULT_SETTINGS }, exercises: {}, routines: {}, exUnit: {}, exRest: {}, exCat: {}, bw: [], dayMarks: {}, challenges: {}, timers: [], deleted: [], hidden: [], updatedAt: 0 });
 function normalizeMeta(m) {
   const e = emptyMeta(); m = m ? clone(m) : {};

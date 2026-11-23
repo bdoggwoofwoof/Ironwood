@@ -301,6 +301,7 @@ function startWorkout(routine, day0) {
   PREFILL_CTX = { rid: routine ? routine.id : null, did: day ? day.id : null };
   S.active = { dlSync: 1, id: uid('s'), routineId: routine ? routine.id : null, routineName: routine ? routine.name : '', dayId: day ? day.id : null, name: day ? day.name : 'Workout', startedAt: Date.now(), updatedAt: Date.now(), items: day ? day.items.map((x, i, arr) => makeSlot(x, arr.slice(0, i).filter(y => y.ex === x.ex && (y.group || '') === (x.group || '')).length)) : [] };
   if (day) day.items.forEach((x, i) => { if (x.dl && S.active.items[i] && typeof presetDrops === 'function') presetDrops(S.active.items[i], x.dl, S.active.items[i].u || U()); });
+  applyBusy(S.active); pickCalib(S.active);
   if (day && day.timer) S.active.timer = clone(day.timer);
   if (day && day.fight) S.active.fight = clone(day.fight);
   touch(500); UI.setView(null); UI.setTab('train'); scrollTo(0, 0);
@@ -395,7 +396,7 @@ function finishWorkout(opts = {}) {
     return;
   }
   const items = a.items.map(it => ({ ex: it.ex, ...(it.planned && it.planned !== it.ex ? { planned: it.planned } : {}), group: it.group || '', ss: !!it.ss, u: it.u || U(), target: it.target, note: (it.note || '').trim(),
-    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return o; }) })).filter(it => it.sets.length);
+    sets: it.sets.filter(isDone).map(x => { const o = { w: Math.max(0, num(x.w || x.gw)), r: Math.round(num(x.r)) }; if (x.n && x.n.trim()) o.n = x.n.trim(); if (x.pr && x.prInfo && x.prInfo.length) o.p = x.prInfo; if (num(x.t) > 0) o.t = num(x.t); if (num(x.d) > 0) o.d = num(x.d); if (x.sp && x.sp.length) o.sp = x.sp; if (x.st) o.st = x.st; const dr = (x.drops || []).filter(d => Math.round(num(d.r)) >= 1).map(d => ({ w: Math.max(0, num(d.w || d.gw)), r: Math.round(num(d.r)) })); if (dr.length) o.dr = dr; return rirSaveFields(it, x, o); }) })).filter(it => it.sets.length);
   if (!items.length) { commit(st => { st.active = null; st.rest = null; }, 'active', 300); return; }
   const now = Date.now(); const ended = opts.endedAt && opts.endedAt > a.startedAt ? opts.endedAt : now;
   const session = { id: a.id, routineId: a.routineId, routineName: a.routineName, dayId: a.dayId, name: a.name, startedAt: a.startedAt, endedAt: ended, updatedAt: now, items, prs: [] };
@@ -555,7 +556,7 @@ function SetRow({ it, s, j, kind }) {
       <input id=${'r-' + s.id} type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value=${s.r} placeholder=${s.gr || '–'} aria-label=${'Set ' + (j + 1) + ' reps'}
         onFocus=${e => { selAll(e); setFoc('r'); }} onBlur=${() => setFoc(f => f === 'r' ? null : f)} onInput=${e => { s.r = e.target.value; touch(); }} onChange=${() => afterEdit(it, s)} onKeyDown=${enterBlur}/>
       <div class="last-note">${!ne && prevSetText(it, j, kind) ? html`<span class="prev num" id=${'pv-' + s.id} aria-label=${'Set ' + (j + 1) + ' last time: ' + prevSetText(it, j, kind)}>${prevSetText(it, j, kind)}</span>` : null}${noteCell}</div>
-    </div></div><${DropRows} it=${it} s=${s} j=${j} kind=${kind}/>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
+    </div></div><${DropRows} it=${it} s=${s} j=${j} kind=${kind}/><${RirRow} it=${it} s=${s} j=${j}/>${s.pr && done && s.prInfo && s.prInfo.length ? html`<p class="pr-line" role="note" aria-label=${'Set ' + (j + 1) + ' personal record: ' + s.prInfo.join(', ')}>${s.prInfo.map((t, k) => html`<span key=${k}>PR · ${t}</span>`)}</p>` : null}</div>`;
 }
 function ExNote({ it }) {
   const [ed, setEd] = useState(false); const ref = useRef(null);
@@ -581,6 +582,7 @@ function LiftSlot({ it, nextSS }) {
       <div class="meta">${groupChip(it.group)}<span>${it.target.sets} sets${it.target.reps ? ' × ' + repTxt(it.target.reps) + ' reps' : ''}</span>${exR != null ? html`<span>· rest ${exR ? clock(exR) : 'off'}</span>` : null}${it.prev ? null : html`<span class="faint">· first time${it.group ? ' in this range' : ''}</span>`}</div>${it.prev && it.prevT ? html`<div class="last-line num" id=${'last-' + it.id}>Last${it.prevWhere ? ' ' + it.prevWhere : ''} · ${shortDate(it.prevT)}: ${lastLine(it)}${exSideOn(it.ex) ? ' each side' : ''}</div>` : null}${it.target && it.target.cue ? html`<p class="small muted" style="margin-top:4px">${it.target.cue}</p>` : null}</div>
       <button class="icon-btn" aria-label=${'Options for ' + exName(it.ex)} onClick=${() => openSheet({ type: 'slot', it })}>${I.more}</button></div>
     ${it.prog ? html`<div class=${'hint prog-' + it.prog.mode} id=${'prog-' + it.id}>${it.prog.mode === 'step' || it.prog.mode === 'deload' ? I.down : I.up} ${it.prog.msg}</div>` : null}
+    <${WarmupHint} it=${it}/>
     <${MachineRow} it=${it}/>
     <${ExNote} it=${it}/>
     <div class="sets">
@@ -1012,7 +1014,7 @@ function StatsScreen({ view }) {
     <div class="seg wide" role="tablist" style="margin-top:8px">${[['history', 'History'], ['numbers', 'Numbers'], ['ex', 'Exercises'], ['photos', 'Photos']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${tab === k} class=${tab === k ? 'on' : ''} onClick=${() => pick(k)}>${l}</button>`)}</div>
     ${DEMO.on ? html`<div class="demo-banner" id="demo-banner" style="margin-top:10px">${I.stats} Sample data for the tour. It goes away when the tour ends.</div>` : null}
     ${tab === 'numbers' || tab === 'ex' ? html`<${StatsExtras}/>` : null}
-    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${StatsCategories}/></div>`}
+    ${tab === 'history' ? html`<div>${S.sync === 'over' || S.sync === 'full' ? html`<p class=${'sync-line sync ' + S.sync}><i></i>${SYNC_TEXT[S.sync]}</p>` : html`<${Intro} id="intro-sync">${SYNC_TEXT[S.sync]}<//>`}<${LogScreen}/></div>` : tab === 'ex' ? html`<${StatsExercises}/>` : tab === 'photos' ? html`<${PhotosScreen}/>` : html`<div><${StatsOverall}/><div class="section-h" id="stats-cats"><h2>Sets by muscle</h2></div><${MuscleWeek}/><${StatsCategories}/></div>`}
   </div>`;
 }
 function StatsOverall() {
@@ -1280,6 +1282,8 @@ function ProfileScreen({ view }) {
       <p class="note">When you hit the top of an exercise's rep range on every set, the next workout adds its weight jump: this amount, or twice it on barbell deadlifts, unless you set one for that exercise.</p>
       <div class="row" style="align-items:flex-start">${restField('rest', 'Rest between sets (seconds)')}</div>
       ${tog('autoRest', 'Start the timer when a set is logged')}
+      ${tog('askRir', 'Ask reps left on each exercise’s last set', 'One tap after the last set. Next-weight suggestions use it, and a calibration set every 4 weeks checks your guesses.')}
+      ${tog('warmups', 'Show warm-up sets before the first big lift')}
       <p class="note">Now ${clock(+st.rest || 0)} unless a plan or exercise sets its own. 0 turns it off. In a superset, the time you spend on the other exercise counts toward each exercise's rest, so the timer only runs for what's left.</p>
     </div>
     <${AboutYouCard}/>
@@ -2230,6 +2234,7 @@ function SideTog({ ex }) {
 
 /*@include programs.js*/
 /*@include reorder.js*/
+/*@include research.js*/
 
 function HdrClock({ since }) {
   const [show, setShow] = useState(false); const [, tick] = useState(0);

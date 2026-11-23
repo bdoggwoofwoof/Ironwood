@@ -66,6 +66,7 @@ function TrainHome() {
         <div><div class="row" style="gap:8px"><div class="eyebrow" style="flex:1;min-width:0">${routine.name}</div><button class="btn text" style="min-height:28px;padding:0" id="change-day" onClick=${() => openSheet({ type: 'pickNext', rid: routine.id })}>Change</button></div><h2>${nx.day.name}</h2><div class="small muted" id="next-mins">About ${Math.round(dayMinutes(focusDay(routine, nx.day)) / 5) * 5} min · ${nx.day.items.length} exercise${nx.day.items.length === 1 ? '' : 's'}</div></div>
         <div class="next-list">${focusDay(routine, nx.day).items.map(it => html`<div key=${it.id} class=${it.ss ? 'ssl' : ''}>${exName(it.ex)}<span class="faint"> · ${it.sets} × ${repTxt(it.reps)}</span>${it.group ? ' · ' + (RANGE_NAME[it.group] && (it.group === '1RM' || it.group === 'Max') ? RANGE_NAME[it.group] : it.group) : ''}</div>`)}</div>
         <button class="btn primary wide" onClick=${() => startWorkout(routine, nx.day)}>Start ${nx.day.name.split(/\s+[-–]\s+/)[0]}</button>
+        <${BusyWeek}/>
       </div>
       <${AlsoToday} nx=${nx}/>
       ${weekBlock}

@@ -366,7 +366,7 @@ const PERSONAL_PLANS = [
       'How it progresses: each lift has a rep range, like 8–12. Keep the weight until every set reaches the top of the range, then add weight and start again near the bottom. Ironwood suggests the next weight for you.',
       'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
       'Supersets: a bar on the left means you go back and forth between the two. The time you spend on one counts as rest for the other, so after each set the timer shows only what’s left before the next exercise. They pair muscles that don’t compete, so you lose no reps and save time.',
-      'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns pair with the incline press on Day 3, calf raises pair with the leg press and lateral raises end Day 4.',
+      'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Each day starts with one lift on its own, and everything after it is done in supersets; on Legs, squats and RDLs are both done on their own. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns are on Day 3 too, and lateral raises end Day 4.',
       'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2, tipsSrc: ['loading', 'robinson', 'sodal', 'singer', 'pelland'] }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
     ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
@@ -402,6 +402,19 @@ const BUILTIN_ROUTINES = [
 /* Personal: Newt's own programs and routines, kept apart from the general library (Nov 17) */
 const PERSONAL_IDS = new Set([...PERSONAL_PLANS.map(p => p[0]), 'bi-newt-4day', ...MY_PLANS.map(p => p[0])]);
 BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id)) r.personal = true; });
+/* Nov 24 (Newt): his split-based plans open each day with one exercise on its own and pair everything after it in
+   supersets; on the legs day, squats and RDLs both stand alone. An odd one out joins the last pair (a tri-set). */
+const NEWT_SS = ['bi-sapwood', 'bi-heartwood', 'bi-newt-4day'];
+function newtSupersets(r) {
+  for (const d of r.days || []) {
+    const its = d.items || []; if (!its.length) continue;
+    const legs = /legs/i.test(d.name || '') ? its.findIndex(it => /romanian|rdl|deadlift/i.test(((BUILTIN_EX[it.ex] || {}).name || '') + ' ' + it.ex)) : -1;
+    const solo = legs >= 0 ? Math.max(1, legs + 1) : 1;
+    its.forEach((it, j) => { it.ss = false; if (j < solo) return; const k = j - solo; it.ss = k % 2 === 1 || (k === its.length - solo - 1 && k % 2 === 0 && k > 0); });
+  }
+  return r;
+}
+BUILTIN_ROUTINES.forEach(r => { if (NEWT_SS.includes(r.id)) newtSupersets(r); });
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
@@ -429,6 +442,7 @@ function normalizeMeta(m) {
   if (m.settings && !('restSS' in m.settings) && +m.settings.rest === 90) settings.rest = 120; /* old 1:30 default becomes 2:00 */
   /* Nov 2 builds saved the Build my plan answers over the weekly goal number: move them to settings.plan */
   if (settings.goal && typeof settings.goal === 'object') { if (!settings.plan) settings.plan = settings.goal; settings.goal = Math.min(7, Math.max(1, +settings.goal.days || 4)); }
+  if (!settings.newtSS1 && m.routines && typeof newtSupersets === 'function') { for (const [k, r] of Object.entries(m.routines)) if (r && (NEWT_SS.includes(k) || NEWT_SS.includes(r.base))) newtSupersets(r); settings.newtSS1 = 1; }   /* edited copies follow the new pairs once */
   return { ...e, ...m, settings, exercises: m.exercises || {}, routines: m.routines || {}, exUnit: m.exUnit || {}, exRest: m.exRest || {}, exCat: m.exCat || {}, bw: m.bw || [], dayMarks: m.dayMarks || {}, challenges: m.challenges || {}, meals: normMeals(m.meals), timers: m.timers || [], deleted: m.deleted || [], hidden: m.hidden || [] };
 }
 /* A saved workout as the app expects it, or null if it can't be used. Backups and old data pass through here so one
@@ -761,6 +775,14 @@ function lsSaveLocalOnly() {
 }
 const lsGet = k => { try { return localStorage.getItem('liftbook.' + k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem('liftbook.' + k, v); } catch (e) {} };
+/* Nov 24 (Newt): opening the app fresh (after it was swiped away) starts on Train, with each tab on its first view and
+   Meals on Log. Switching tabs, or the app reloading itself while open, keeps your place: sessionStorage lives as long
+   as the open app. */
+(function freshLaunch() {
+  try { if (sessionStorage.getItem('liftbook.open')) return; sessionStorage.setItem('liftbook.open', '1'); } catch (e) { return; }
+  ['tab', 'prevTab', 'trainMode', 'statsTab', 'runTab', 'fightTab', 'plansView', 'rtFilter'].forEach(k => { try { localStorage.removeItem('liftbook.' + k); } catch (e) {} });
+  lsSet('mealsMode', 'log');
+})();
 let col = null, flushing = false, flushTimer = null;
 /* Typing during a workout changes only the active workout; those saves wait 400 ms so each keystroke doesn't rewrite
    the whole database. Anything else saves at once, and a pending save is written before the app goes to the background. */

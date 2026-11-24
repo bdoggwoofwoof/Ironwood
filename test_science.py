@@ -21,7 +21,7 @@ async def main():
         await ev("UI.setTab('profile'); UI.setView(null)"); await pg.wait_for_timeout(300)
         await pg.click('#about-science'); await pg.wait_for_timeout(300)
         txt = await pg.inner_text('#science')
-        check('Settings → About opens How Ironwood works with every section', all(f'sci-{s[0]}' for s in data['secs']) and await pg.locator('#science section').count() == len(data['secs']) and 'What it does.' in txt and 'Limits.' in txt and 'Why.' in txt)
+        check('Settings → About opens How Ironwood works with every section', all(f'sci-{s[0]}' for s in data['secs']) and await pg.locator('#science section').count() == len(data['secs']) and all(h in txt for h in ['What it does', 'Why', 'Good to know', 'Where to change it']))  # Nov 24: plainer headings
         check('sections link the studies', await pg.locator('#science a[href^="https://"]').count() >= len(data['src']))
         await ev("UI.setView(null); UI.setTab('train'); openSheet({ type: 'help' })"); await pg.wait_for_timeout(200)
         await pg.click('#help-science'); await pg.wait_for_timeout(400)

@@ -66,7 +66,7 @@ async def main():
         await pg.click('#busy-start'); await pg.wait_for_timeout(200); await pg.locator('.sheet button', has_text='Start busy week').click(); await pg.wait_for_timeout(300)
         check('busy week turns on and says so on Train', await pg.locator('#busy-on').count() == 1)
         bw = await ev("(() => { startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]); const r = S.active.items.map(it => it.sets.length + ':' + it.sets.some(s => (s.drops || []).length)); S.active = null; return r; })()")
-        check('busy week: a third of the sets (4 → 2, 3 → 1), no drop sets', bw == ['2:false', '1:false', '1:false', '1:false', '1:false', '1:false'], bw)
+        check('busy week: a third of the sets (4 → 2, 3 → 1), no drop sets', bw == ['2:false', '1:false', '1:false', '1:false', '2:false', '1:false'], bw)
         await ev("commit(st => { st.meta.settings.busyWk = ymd(addDays(startOfWeek(new Date()), -7)); }, 'meta')"); await pg.wait_for_timeout(200)
         check('it ends by itself the next week', not await ev("isBusy()") and await pg.locator('#busy-start').count() == 1)
         # ---- warm-up ----

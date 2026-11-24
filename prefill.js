@@ -6,7 +6,9 @@
    count every workout. */
 let PREFILL_CTX = null;
 const PREFILL_OPTS = [['all', 'Any workout'], ['workout', 'This workout only']];
-const prefillScopeFor = rid => { const st = S.meta.settings; const o = rid && st.prefillBy && st.prefillBy[rid]; return o || st.prefill || 'all'; };
+/* Nov 24 (Newt): his split plans repeat lifts on different days (leg extensions on Day 2 and Legs), so by default each day
+   takes its numbers from the last time you did that same day. */
+const prefillScopeFor = rid => { const st = S.meta.settings; const o = rid && st.prefillBy && st.prefillBy[rid]; return o || (rid && typeof NEWT_SS !== 'undefined' && NEWT_SS.includes(rid) ? 'workout' : st.prefill || 'all'); };
 function prefillCtx() {
   const a = S.active; const c = a ? { rid: a.routineId, did: a.dayId } : PREFILL_CTX;
   return c && c.rid && c.did && prefillScopeFor(c.rid) === 'workout' ? c : null;

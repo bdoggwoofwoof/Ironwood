@@ -94,7 +94,7 @@ async def main():
         check('big lower-body barbell and machine lifts jump 10 lb, the rest 5', jumps == [10, 10, 10, 5, 5, 5], jumps)
         await ev("""(() => { const now = Date.now(); S.sessions.pu = { id: 'pu', name: 'P', startedAt: now - 2 * 864e5, endedAt: now - 2 * 864e5 + 1, items: [{ ex: 'b-pull-up', sets: [{ w: 0, r: 10 }, { w: 0, r: 10 }, { w: 0, r: 10 }] }], prs: [] };
           S.sessions.sq = { id: 'sq', name: 'Q', startedAt: now, endedAt: now + 1, items: [{ ex: 'b-back-squat', sets: [{ w: 200, r: 10 }, { w: 200, r: 10 }, { w: 200, r: 10 }] }], prs: [] }; S.ver++; })()""")
-        bw = await ev("(() => { S.active = null; const it = makeSlot({ ex: 'b-pull-up', sets: 3, reps: '6-10' }); const sq = makeSlot({ ex: 'b-back-squat', sets: 3, reps: '6-10' }); return [it.prog && it.prog.mode, it.sets[0].gr, sq.sets[0].gw, sq.prog && sq.prog.msg]; })()")
+        bw = await ev("(() => { S.active = null; PREFILL_CTX = null; const it = makeSlot({ ex: 'b-pull-up', sets: 3, reps: '6-10' }); const sq = makeSlot({ ex: 'b-back-squat', sets: 3, reps: '6-10' }); return [it.prog && it.prog.mode, it.sets[0].gr, sq.sets[0].gw, sq.prog && sq.prog.msg]; })()")
         check('bodyweight moves progress by reps; squats add 10 lb', bw[0] == 'reps' and bw[1] == '11' and bw[2] == '210', bw)
         rest = await ev("(() => { setFocus('bi-ul4', 'strength'); const d = focusDay(getRoutine('bi-ul4'), getRoutine('bi-ul4').days[0]); const it = makeSlot(d.items[0]); setFocus('bi-ul4', ''); return [d.items[0].reps, it.target.rest]; })()")
         check('Rep focus Strength sets main-lift reps and rest', rest == ['3-5', 150], rest)

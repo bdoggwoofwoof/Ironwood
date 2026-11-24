@@ -975,7 +975,18 @@ body:has(#quick-fab) main{padding-bottom:84px}
 .grab-zone::after{content:'';position:absolute;inset:-8px 0 0}
 .topsw.four button{min-width:44px;text-align:center}
 /* Sources line (Nov 23): small links keep a 44-point tap area without changing the look */
-.cite-why,.cite-a{position:relative}.cite-why::after,.cite-a::after{content:'';position:absolute;inset:-12px -10px}</style>
+.cite-why,.cite-a{position:relative}.cite-why::after,.cite-a::after{content:'';position:absolute;inset:-12px -10px}
+.rest-pills{position:fixed;left:max(10px, calc((100vw - 640px) / 2 + 10px));bottom:calc(var(--tabs-h, 66px) + 10px);z-index:29;display:flex;gap:8px;align-items:flex-end;max-width:calc(100vw - 20px);overflow:hidden}
+.rest-pill{flex:none;display:flex;flex-direction:column;gap:2px;max-width:200px;padding:8px 10px;border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.35);transition:max-width .35s ease,opacity .35s ease,padding .35s ease,margin .35s ease;overflow:hidden}
+.rest-pill .rp-name{font-size:calc(12 * var(--u));font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.rest-pill .rp-t{font-family:var(--display);font-size:calc(26 * var(--u));line-height:1;font-variant-numeric:tabular-nums}
+.rest-pill .rp-acts{display:flex;gap:4px;margin-top:2px}.rest-pill .rp-acts button{min-width:40px;min-height:36px;border-radius:9px;background:rgba(0,0,0,.18);color:inherit;font-weight:700;font-size:calc(13 * var(--u));display:grid;place-items:center}
+.rest-pill .rp-acts button svg{width:14px;height:14px}
+.rest-pill.go{background:var(--good, #2fa36b);color:#fff;animation:rpPulse .6s ease 2}
+.rest-pill.gone{max-width:0;opacity:0;padding-left:0;padding-right:0;margin-right:-8px}
+@keyframes rpPulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){.rest-pill{transition:none}.rest-pill.go{animation:none}}
+body:has(.rest-pills) main{padding-bottom:calc(var(--tabs-h, 66px) + 150px)}</style>
 
 <div id="app"></div>
 
@@ -1516,18 +1527,18 @@ const PERSONAL_PLANS = [
      Item: [exercise, sets, reps, cue, superset with the one above, rest seconds]. The tips sit in one card on the plan page, read once
      and hidden with one tap (Newt: "just once to understand how it works"). */
   ['bi-sapwood', 'Sapwood Hypertrophy', null, "Newt's 4-Day Split built for muscle growth, with priority on chest, shoulders, lats and quads: each gets 11–13 hard sets a week over two or three days, with the same four days and supersets.", [
-    ['Day 1 - Chest / Side Delts', ['Chest', 'Push'], [['Decline Chest Press', 4, '6-10', '', 0, 150], ['Incline Reverse-Grip Squeeze Press', 3, '8-12', '', 0, 120], ['Cable Fly', 3, '10-15', 'Let the arms open wide for a deep chest stretch on every rep.', 0, 75, 1], ['Tricep Pushdowns', 3, '10-12', '', 1, 75], ['Behind-the-Back Cable Lateral Raise', 3, '12-15', '', 0, 75, 1], ['Cable Crunch', 3, '10-15', '', 1, 75]]],
+    ['Day 1 - Chest / Side Delts', ['Chest', 'Push'], [['Decline Chest Press', 4, '6-10', '', 0, 150], ['Incline Reverse-Grip Squeeze Press', 3, '8-12', '', 0, 120], ['Cable Fly', 3, '10-15', 'Let the arms open wide for a deep chest stretch on every rep.', 0, 75, 1], ['Tricep Pushdowns', 3, '10-12', '', 1, 75], ['Behind-the-Back Cable Lateral Raise', 4, '12-15', '', 0, 75, 1], ['Cable Crunch', 3, '10-15', '', 1, 75]]],
     ['Day 2 - Back / Rear Delts', ['Back', 'Pull'], [['Barbell Row', 3, '6-10', 'Keep the torso still; pull to the lower ribs.', 0, 150], ['Lat Pulldown', 3, '8-12', 'Let the bar pull your arms all the way up for a full lat stretch at the top.', 0, 120], ['Seated Cable Row', 3, '10-12', '', 0, 90], ['Face Pulls', 2, '12-15', '', 0, 75], ['Hybrid Curls', 3, '8-12', '', 1, 75, 1], ['Leg Extension', 3, '12-15', 'Sit back or recline the seat if it allows; it works the middle of the quad harder.', 0, 75, 1], ['Seated Leg Curl', 3, '10-12', '', 1, 75]]],
-    ['Day 3 - Shoulders / Arms', ['Shoulders', 'Arms'], [['Overhead Barbell Press', 3, '6-10', '', 0, 150], ['Incline Dumbbell Press', 3, '8-12', '', 0, 120], ['Lat Pulldown', 3, '10-12', '', 1, 120, 1], ['Behind-the-Back Cable Lateral Raise', 3, '12-15', '', 0, 75, 1], ['Cuban Press', 2, '10-12', 'Light. Smooth reps, no swinging.', 1, 75], ['Overhead Cable Tricep Extension', 3, '10-15', '', 0, 75, 1], ['Cable Curl', 2, '10-12', '', 1, 75], ['Hanging Leg Raises', 2, '8-12', '', 0, 75]]],
-    ['Day 4 - Legs', ['Legs'], [['Back Squat', 3, '6-10', 'Squat as deep as you can with a flat back.', 0, 180], ['Romanian Deadlift', 3, '8-10', 'Push the hips back until you feel the hamstrings, then stand up.', 0, 120], ['Leg Press', 3, '10-15', '', 0, 120], ['Calf Raises', 3, '10-15', '', 1, 60], ['Seated Leg Curl', 3, '10-12', '', 0, 75], ['Leg Extension', 3, '12-15', '', 1, 75, 1], ['Behind-the-Back Cable Lateral Raise', 3, '12-15', '', 0, 75, 1]]]],
+    ['Day 3 - Shoulders / Arms', ['Shoulders', 'Arms'], [['Overhead Barbell Press', 3, '6-10', '', 0, 150], ['Incline Dumbbell Press', 3, '8-12', '', 0, 120], ['Lat Pulldown', 3, '10-12', '', 1, 120, 1], ['Behind-the-Back Cable Lateral Raise', 4, '12-15', '', 0, 75, 1], ['Cuban Press', 2, '10-12', 'Light. Smooth reps, no swinging.', 1, 75], ['Overhead Cable Tricep Extension', 3, '10-15', '', 0, 75, 1], ['Cable Curl', 2, '10-12', '', 1, 75]]],   /* Nov 24: hanging leg raises off Day 3 to keep it under an hour with 3+ sets everywhere */
+    ['Day 4 - Legs', ['Legs'], [['Back Squat', 3, '6-10', 'Squat as deep as you can with a flat back.', 0, 180], ['Romanian Deadlift', 3, '8-10', 'Push the hips back until you feel the hamstrings, then stand up.', 0, 120], ['Leg Press', 3, '10-15', '', 0, 120], ['Calf Raises', 3, '10-15', '', 1, 60], ['Seated Leg Curl', 3, '10-12', '', 0, 75], ['Leg Extension', 3, '12-15', '', 1, 75, 1]]]],   /* Nov 24: Day 4 as Newt did it (no lateral raise) */
     { tips: [
       'Week 1, find your weights: on each lift, pick a weight you could do 2–3 more reps with at the top of its range. The first one or two lifts each day use 6–10 reps; everything else uses 10–15. Both build muscle when the sets are hard; heavier, lower-rep sets suit the big lifts, and lighter, higher-rep sets are easier on the joints for small lifts.',
       'How hard: end most sets with 1–3 good reps left. Take the last set of small lifts (flies, raises, curls, pushdowns) close to failure. Hard sets build muscle; easy extra sets only tire you.',
-      'Drop sets: the last set of nine machine, cable and dumbbell lifts has one (it says “last set + 1 drop”). Do that set until you have about one good rep left, set the weight about 20–25% lighter right away, and do as many good reps as you can with no rest. The drop row is already set up under the last set. One drop, last set only, and never on squats, rows or barbell presses: more drops add fatigue faster than growth.',
+      'Drop sets: the last set of eight machine, cable and dumbbell lifts has one (it says “last set + 1 drop”). Do that set until you have about one good rep left, set the weight about 20–25% lighter right away, and do as many good reps as you can with no rest. The drop row is already set up under the last set. One drop, last set only, and never on squats, rows or barbell presses: more drops add fatigue faster than growth.',
       'How it progresses: each lift has a rep range, like 8–12. Keep the weight until every set reaches the top of the range, then add weight and start again near the bottom. Ironwood suggests the next weight for you.',
       'Rest: 2–3 minutes after each day’s first one or two lifts, 60–90 seconds after the rest. The timer starts with these times. Short rest on big lifts costs reps, and reps are what count.',
       'Supersets: a bar on the left means you go back and forth between the two. The time you spend on one counts as rest for the other, so after each set the timer shows only what’s left before the next exercise. They pair muscles that don’t compete, so you lose no reps and save time.',
-      'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, lat pulldowns pair with the incline press on Day 3, calf raises pair with the leg press and lateral raises end Day 4.',
+      'Your week: run the four days in order on any four days. Two days in a row is fine; try to keep a rest day before Legs. Each day starts with one lift on its own, and everything after it is done in supersets; on Legs, squats and RDLs are both done on their own. Chest, shoulders, lats and quads each get two or three hits a week: leg extensions and curls end Day 2, and lat pulldowns are on Day 3 too.',
       'Bad days and machines: if your lifts drop two sessions running or your joints ache, take an easy week with the same weights, half the sets and no drop sets. If a machine is taken, tap the exercise’s Swap for ones that train the same muscles.'], tipsV: 2, tipsSrc: ['loading', 'robinson', 'sodal', 'singer', 'pelland'] }],
   ['bi-three-ring', 'Three-Ring Full Body', null, 'Three full-body days for busy weeks. Each day has one squat or hinge, one press, one pull and a few smaller lifts, so every muscle is trained two or three times a week without repeating exercises.', [
     ['Full Body A', ['Full Body'], [['Back Squat', 3, '6-10'], ['Bench Press', 3, '6-10'], ['Lat Pulldown', 3, '8-12'], ['Seated Leg Curl', 2, '10-12'], ['Lateral Raises', 2, '12-15'], ['Calf Raises', 2, '10-15'], ['Cable Crunch', 2, '10-15']]],
@@ -1563,6 +1574,22 @@ const BUILTIN_ROUTINES = [
 /* Personal: Newt's own programs and routines, kept apart from the general library (Nov 17) */
 const PERSONAL_IDS = new Set([...PERSONAL_PLANS.map(p => p[0]), 'bi-newt-4day', ...MY_PLANS.map(p => p[0])]);
 BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id)) r.personal = true; });
+/* Nov 24 (Newt): his split-based plans open each day with one exercise on its own and pair everything after it in
+   supersets; on the legs day, squats and RDLs both stand alone. An odd one out joins the last pair (a tri-set). */
+const NEWT_SS = ['bi-sapwood', 'bi-heartwood', 'bi-newt-4day'];
+function newtSupersets(r) {
+  for (const d of r.days || []) {
+    const its = d.items || []; if (!its.length) continue;
+    const legs = /legs/i.test(d.name || '') ? its.findIndex(it => /romanian|rdl|deadlift/i.test(((BUILTIN_EX[it.ex] || {}).name || '') + ' ' + it.ex)) : -1;
+    const solo = legs >= 0 ? Math.max(1, legs + 1) : 1;
+    its.forEach((it, j) => { it.ss = false; if (j < solo) return; const k = j - solo; it.ss = k % 2 === 1 || (k === its.length - solo - 1 && k % 2 === 0 && k > 0); });
+  }
+  return r;
+}
+BUILTIN_ROUTINES.forEach(r => { if (NEWT_SS.includes(r.id)) newtSupersets(r); });
+/* Nov 24 (Newt): his base plans start every exercise at 3 sets or more (a drop set goes on top) */
+/* Growth Rings keeps its 2-set lower-day lifts on purpose: its lower days are kept short (Lower B the shortest of the week). */
+BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id) && r.id !== 'bi-growth-rings') r.days.forEach(d => d.items.forEach(it => { if (+it.sets > 0 && +it.sets < 3) it.sets = 3; })); });
 BUILTIN_ROUTINES.forEach(r => { if (r.id === 'bi-5x5' || r.id === 'bi-tiered') r.days.forEach(d => { d.tags = ['Full Body']; }); });
 for (const e of Object.values(BUILTIN_EX)) if (/\b(dumbbell|goblet)\b/i.test(e.name)) e.kind = 'dumbbell';
 /* How-to cues for built-in exercises whose names don't explain them; shown in the routine and during the workout */
@@ -1590,6 +1617,7 @@ function normalizeMeta(m) {
   if (m.settings && !('restSS' in m.settings) && +m.settings.rest === 90) settings.rest = 120; /* old 1:30 default becomes 2:00 */
   /* Nov 2 builds saved the Build my plan answers over the weekly goal number: move them to settings.plan */
   if (settings.goal && typeof settings.goal === 'object') { if (!settings.plan) settings.plan = settings.goal; settings.goal = Math.min(7, Math.max(1, +settings.goal.days || 4)); }
+  if (!settings.newtSS1 && m.routines && typeof newtSupersets === 'function') { for (const [k, r] of Object.entries(m.routines)) if (r && (NEWT_SS.includes(k) || NEWT_SS.includes(r.base))) newtSupersets(r); settings.newtSS1 = 1; }   /* edited copies follow the new pairs once */
   return { ...e, ...m, settings, exercises: m.exercises || {}, routines: m.routines || {}, exUnit: m.exUnit || {}, exRest: m.exRest || {}, exCat: m.exCat || {}, bw: m.bw || [], dayMarks: m.dayMarks || {}, challenges: m.challenges || {}, meals: normMeals(m.meals), timers: m.timers || [], deleted: m.deleted || [], hidden: m.hidden || [] };
 }
 /* A saved workout as the app expects it, or null if it can't be used. Backups and old data pass through here so one
@@ -1922,6 +1950,14 @@ function lsSaveLocalOnly() {
 }
 const lsGet = k => { try { return localStorage.getItem('liftbook.' + k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem('liftbook.' + k, v); } catch (e) {} };
+/* Nov 24 (Newt): opening the app fresh (after it was swiped away) starts on Train, with each tab on its first view and
+   Meals on Log. Switching tabs, or the app reloading itself while open, keeps your place: sessionStorage lives as long
+   as the open app. */
+(function freshLaunch() {
+  try { if (sessionStorage.getItem('liftbook.open')) return; sessionStorage.setItem('liftbook.open', '1'); } catch (e) { return; }
+  ['tab', 'prevTab', 'trainMode', 'statsTab', 'runTab', 'fightTab', 'plansView', 'rtFilter'].forEach(k => { try { localStorage.removeItem('liftbook.' + k); } catch (e) {} });
+  lsSet('mealsMode', 'log');
+})();
 let col = null, flushing = false, flushTimer = null;
 /* Typing during a workout changes only the active workout; those saves wait 400 ms so each keystroke doesn't rewrite
    the whole database. Anything else saves at once, and a pending save is written before the app goes to the background. */
@@ -2357,6 +2393,8 @@ function startRest(it) {
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
   if (inSS && st.ssMode === 'round' && linkedNext) { S.rest = null; return; }
+  /* Nov 24 (Newt): in a superset each exercise runs its own rest timer, side by side in the corner */
+  if (inSS && st.ssMode !== 'round') { const secs = Math.max(0, +(restFor(it) ?? st.rest) || 0); if (S.rest) { bgStop(); S.rest = null; } if (secs > 0 && typeof pushSSRest === 'function') pushSSRest(it, secs); return; }
   if (inSS) {
     const g = ssGroup(a.items, i); const k = g.indexOf(it);
     const next = [...g.slice(k + 1), ...g.slice(0, k + 1)].find(x => x.sets.some(t => !isDone(t)));
@@ -3713,7 +3751,7 @@ function ProfileScreen({ view }) {
     <div class="section-h" style="margin-top:12px"><h2>Help</h2></div>
     <div class="card stack" style="gap:8px"><button class="btn wide" id="profile-tour" onClick=${() => startTour('full')}>Take the full tour</button><button class="btn wide" onClick=${() => openSheet({ type: 'feedback' })}>Send feedback</button></div>
     <div class="section-h"><h2>About</h2></div>
-    <div class="card stack"><button class="btn" id="about-science" onClick=${() => UI.setView({ type: 'science' })}>How Ironwood works: features, limits and sources</button><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 3ee90b6</p></div>
+    <div class="card stack"><button class="btn" id="about-science" onClick=${() => UI.setView({ type: 'science' })}>How Ironwood works: features, limits and sources</button><a class="btn" href="privacy.html">Privacy policy</a><a class="btn" href="support.html">Help and support</a><p class="note">Ironwood keeps everything on this phone. No accounts, ads or tracking.</p><p class="small faint" id="app-version">Version 7b96ab2</p></div>
     ${typeof TIP_URL !== 'undefined' && TIP_URL && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? html`<div class="card stack tip-card-support" id="tip-card"><div style="font-weight:700">Enjoying Ironwood?</div><p class="note">It’s free, with no ads or accounts. If it helps your training, you can buy me a coffee, once or monthly.</p><a class="btn primary wide" id="tip-link" href=${TIP_URL} target="_blank" rel="noopener">☕ Buy me a coffee</a></div>` : null}
   </div>`;
 }
@@ -7470,18 +7508,47 @@ function refillLift(it, occ) {
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
   it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg, src: P.src || null, rule: !!P.rule } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
+  /* Nov 24 (Newt): targets to beat, not a copy of last time. Holding a weight: one more rep per set, up to the top.
+     A new weight: the reps your last sets predict at it (Epley one-rep max, w × (1 + reps / 30), with reps left
+     added on the last set). A weight clearly outside the range (every set 2+ under the bottom, or 3+ over the top)
+     is moved after one workout to land near the low-middle of the range. */
+  const lastRi = it.prev && prev && prev.sets.length && prev.sets[prev.sets.length - 1].ri != null && typeof adjRir === 'function' ? adjRir(prev.sets[prev.sets.length - 1].ri) : 0;
+  const e1 = (p, j) => (+p.w || 0) * (1 + ((+p.r || 0) + (it.prev && j === it.prev.length - 1 ? lastRi : 0)) / 30);
+  const repsAt = (est, wv) => wv > 0 ? Math.floor(30 * (est / wv - 1) + 1e-9) : 0;
+  let fitW = 0;
+  if (it.prev && it.prev.length && top && low && kind !== 'bodyweight' && kind !== 'assisted' && (P.mode === 'hold' || P.mode === 'push' || P.mode === 'bump')) {
+    const rs = it.prev.map(p => +p.r || 0).filter(r => r > 0); const wTop = Math.max(...it.prev.map(p => +p.w || 0));
+    const best = Math.max(...it.prev.map((p, j) => e1(p, j)));
+    const heavy = rs.length && Math.max(...rs) <= low - 2, light = rs.length && Math.min(...rs) >= top + 3;
+    if ((heavy || light) && wTop > 0 && best > 0) {
+      const aim = heavy ? low + 1 : Math.round((low + top) / 2);
+      const wv = Math.floor(best / (1 + aim / 30) / fine + 1e-9) * fine;
+      if (wv > 0 && Math.abs(wv - wTop) >= fine - 1e-9 && (heavy ? wv >= wTop * 0.8 - 1e-9 : wv <= wTop * 1.25 + 1e-9)) {   /* at most 20% lighter or 25% heavier in one go */
+        fitW = wv; const w = v => fmt(v) + ' ' + u;
+        it.prog = { mode: heavy ? 'step' : 'bump', msg: (heavy ? 'Lighter today: ' : 'Heavier today: ') + w(wv) + '. ' + w(wTop) + ' gave ' + rs.join(', ') + ' reps last time, ' + (heavy ? 'under' : 'over') + ' the ' + low + '–' + top + ' range.', src: null, rule: true };
+        it.bump = !heavy;
+      }
+    }
+  }
+  if (!it.prog && it.prev && top && P.mode === 'hold' && it.prev.some(p => (+p.r || 0) < top)) it.prog = { mode: 'beat', msg: 'Beat last time: one more rep per set, same weight, up to ' + top + '.', src: null, rule: false };
   it.sets.forEach((x, j) => {
     if (!x.id) x.id = uid('t');
     if (isDone(x)) return;
     const p = it.prev ? (it.prev[j] || it.prev[it.prev.length - 1]) : null;
     if (!p) { x.gw = ''; x.gr = low ? String(low) : ''; return; }
     let wv = +p.w || 0;
-    if (P.mode === 'bump' || P.mode === 'step') wv = Math.max(0, wv + P.delta);
-    if (P.mode === 'deload') wv = Math.max(0, Math.floor(wv * P.factor / fine + 1e-9) * fine);
-    if (P.mode === 'step') wv = roundToInc(wv, fine);
+    if (fitW) wv = fitW;
+    else {
+      if (P.mode === 'bump' || P.mode === 'step') wv = Math.max(0, wv + P.delta);
+      if (P.mode === 'deload') wv = Math.max(0, Math.floor(wv * P.factor / fine + 1e-9) * fine);
+      if (P.mode === 'step') wv = roundToInc(wv, fine);
+    }
     x.gw = wv ? String(r1(wv)) : '';
-    const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    const pr = +p.r || 0; const jj = it.prev.indexOf(p);
+    const pred = Math.max(1, repsAt(e1(p, jj), wv));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top
+      : (fitW || P.mode === 'bump' || P.mode === 'step' || P.mode === 'deload') ? Math.min(top, Math.max(low || 1, pred))
+      : Math.min(top, Math.max(low, pr + 1)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }
@@ -9034,7 +9101,9 @@ function ScanProduct({ day, p, onBack, g0 }) {
    count every workout. */
 let PREFILL_CTX = null;
 const PREFILL_OPTS = [['all', 'Any workout'], ['workout', 'This workout only']];
-const prefillScopeFor = rid => { const st = S.meta.settings; const o = rid && st.prefillBy && st.prefillBy[rid]; return o || st.prefill || 'all'; };
+/* Nov 24 (Newt): his split plans repeat lifts on different days (leg extensions on Day 2 and Legs), so by default each day
+   takes its numbers from the last time you did that same day. */
+const prefillScopeFor = rid => { const st = S.meta.settings; const o = rid && st.prefillBy && st.prefillBy[rid]; return o || (rid && typeof NEWT_SS !== 'undefined' && NEWT_SS.includes(rid) ? 'workout' : st.prefill || 'all'); };
 function prefillCtx() {
   const a = S.active; const c = a ? { rid: a.routineId, did: a.dayId } : PREFILL_CTX;
   return c && c.rid && c.did && prefillScopeFor(c.rid) === 'workout' ? c : null;
@@ -11045,6 +11114,34 @@ function editPlanDraft(r, dayId) {
   UI.setTab('routines');
   UI.setView({ type: 'edit', dayId: dayId || null, draft: builtin ? { ...clone(r), source: 'mine', base: r.id, createdAt: Date.now() } : clone(r) });
 }
+/* ============ Superset rest: one timer per exercise (Nov 24, Newt) ============
+   In a superset each exercise gets its own rest timer, started when you log its set, shown as small labelled timers in
+   the bottom-left corner. The one ending soonest sits on the left. When it ends it beeps, shows Go for a moment, then
+   fades, and the next one slides left: they leapfrog as you go back and forth. S.restQ = [{ id, ex, until, total, beeped }]. */
+S.restQ = S.restQ || [];
+function pushSSRest(it, secs) {
+  const now = Date.now(); S.restQ = S.restQ.filter(t => t.ex !== it.ex && !(t.until + 2600 < now));
+  S.restQ.push({ id: uid('rq'), ex: it.ex, until: now + secs * 1000, total: secs, beeped: {} });
+  S.restQ.sort((a, b) => a.until - b.until); S.rerender();
+}
+function restQTick() {
+  const q = S.restQ; if (!q || !q.length) return; const st = S.meta.settings; const now = Date.now(); let changed = false;
+  for (const t of q) { const left = Math.ceil((t.until - now) / 1000);
+    if (st.countdown && left >= 1 && left <= 3 && !t.beeped[left]) { t.beeped[left] = 1; beep(660, 110); }
+    if (left <= 0 && !t.beeped.end) { t.beeped.end = 1; if (st.beep) beep(990, 500, 0.35); announce(exName(t.ex) + ': rest over'); changed = true; } }
+  const keep = q.filter(t => t.until + 2600 > now); if (keep.length !== q.length) { S.restQ = keep; changed = true; }
+  if (changed) S.rerender();
+}
+function RestPills() {
+  const [, tick] = useState(0);
+  useEffect(() => { const iv = setInterval(() => tick(x => x + 1), 250); return () => clearInterval(iv); }, []);
+  const q = (S.restQ || []).slice().sort((a, b) => a.until - b.until); if (!q.length) return null; const now = Date.now();
+  const adj = (t, d) => { t.until = Math.max(now + 1000, t.until + d * 1000); t.total = Math.max(5, t.total + d); t.beeped = {}; S.restQ.sort((a, b) => a.until - b.until); S.rerender(); };
+  return html`<div class="rest-pills" role="group" aria-label="Superset rest timers">${q.map(t => { const left = Math.ceil((t.until - now) / 1000); const done = left <= 0; const fading = t.until + 1800 < now;
+    return html`<div key=${t.id} class=${'rest-pill' + (done ? ' go' : '') + (fading ? ' gone' : '')} role="timer" aria-label=${exName(t.ex) + (done ? ': go' : ' rest ' + clock(left))}>
+      <span class="rp-name">${exName(t.ex)}</span><b class="rp-t">${done ? 'Go' : clock(left)}</b>
+      ${done ? null : html`<span class="rp-acts"><button aria-label=${'15 seconds less for ' + exName(t.ex)} onClick=${() => adj(t, -15)}>−15</button><button aria-label=${'15 seconds more for ' + exName(t.ex)} onClick=${() => adj(t, 15)}>+15</button><button aria-label=${'Skip ' + exName(t.ex) + ' rest'} onClick=${() => { S.restQ = S.restQ.filter(x => x !== t); S.rerender(); }}>${I.x}</button></span>`}</div>`; })}</div>`;
+}
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {
@@ -12621,11 +12718,11 @@ const SCIENCE = [
   ['effort', 'Reps and effort', 'Most days start with 1 or 2 big lifts at 6–10 reps. Everything else is 10–15. After an exercise’s last set, tap how many more reps you could have done (0 to 4+). Every 4 weeks, one machine or cable lift asks you to guess, then go until you can’t do another rep. The difference shows how far off your guesses run, and Ironwood corrects for it.',
     'Settings → More training settings → Ask reps left. It’s on by default.', 'It asks only after the last set, so logging stays quick. The correction uses your last 5 checks.',
     'Sets grow muscle at almost any rep count as long as they end close to failure. The closer to failure, the more growth. Most people guess they have about 1 rep fewer left than they really do, which is why Ironwood checks.', ['loading', 'robinson', 'halperin']],
-  ['progress', 'Next weight', 'Each lift has a rep range, like 8–12. Keep the same weight until you hit the top of the range on every set. Then Ironwood suggests adding weight: one jump, or two jumps for big leg lifts. If you hit the top easily (3 or more reps to spare), it suggests a bigger jump. If you fall short of the bottom of the range three workouts in a row, it suggests dropping about 10%.',
-    'Settings → More training settings: how big each jump is, smaller jumps after you miss your reps, and the 10% drop. You can also change them for one exercise from its ⋯ menu.', 'The exact jump sizes, “3 to spare” and the 10% drop are Ironwood’s rules of thumb, not numbers from a study.',
-    'Adding weight once a range gets easy keeps your sets hard, and hard sets are what build muscle. There are no planned easy weeks; Ironwood only drops the weight when you stall.', ['robinson', 'halperin'], true],
-  ['rest', 'Rest timer and supersets', 'Big lifts rest 2–3 minutes. Smaller lifts rest 60–90 seconds. Each plan sets these. In a superset, the time you spend on the other exercise counts as rest, so the timer only shows what’s left.',
-    'Settings → More training settings: default rest, start the timer when you log a set, and superset rest. You can also change one exercise’s rest from its ⋯ menu.', 'No study pins down the exact seconds. Past about 90 seconds, more rest may not help.',
+  ['progress', 'Next weight', 'Each set shows a target to beat, not a copy of last time. Each lift has a rep range, like 8–12. Same weight as last time: aim for one more rep per set, up to the top of the range. When every set reaches the top, Ironwood adds weight (one jump, or two for big leg lifts; a bigger jump if you had 3 or more reps to spare). At a new weight, the target reps come from what your last sets predict you can do at it. If last time\u2019s weight was clearly wrong for the range (every set 2 or more reps under the bottom, or 3 or more over the top), it moves the weight after one workout to land inside the range. If you fall short of the range three workouts in a row, it drops about 10%. “Last” still shows exactly what you did.',
+    'Settings → More training settings: how big each jump is, smaller jumps after you miss your reps, and the 10% drop. You can also change them for one exercise from its ⋯ menu.', 'The jump sizes, “3 to spare”, the 10% drop and the one-workout fix (at most 20% lighter or 25% heavier) are Ironwood’s rules of thumb. The rep prediction uses a standard one-rep-max formula (weight × (1 + reps ÷ 30), counting reps left on the last set); it’s an estimate and less accurate past about 12 reps.',
+    'Small, steady targets keep each set hard, and hard sets build muscle. Adding weight once a range gets easy keeps it that way. There are no planned easy weeks; Ironwood only drops the weight when you stall.', ['robinson', 'halperin'], true],
+  ['rest', 'Rest timer and supersets', 'Big lifts rest 2–3 minutes. Smaller lifts rest 60–90 seconds. Each plan sets these. In a superset, each exercise gets its own timer when you log its set, shown with its name in the bottom-left corner. The one ending first is on the left. When it ends, it beeps, shows Go, then fades, and the next one slides over.',
+    'Settings → More training settings: default rest, start the timer when you log a set, and superset rest (each exercise, or after the full round). You can also change one exercise’s rest from its ⋯ menu, or tap −15 / +15 on a timer.', 'No study pins down the exact seconds. Past about 90 seconds, more rest may not help. With the phone locked, only the bottom rest bar can beep; superset timers beep while Ironwood is open.',
     'Resting more than 60 seconds helps growth a little. Three minutes beat one minute in trained lifters. The main reason is that too little rest costs you reps on the next set.', ['singer', 'rest3']],
   ['drops', 'Drop sets', 'Some plans, like Sapwood, end some lifts with a drop set: after the last set, lower the weight about 20% and keep going with no rest. Only on machines, cables and dumbbells, never squats, rows or barbell presses. The drop is ready when the workout starts.',
     'Tap a set’s number to add or remove a drop.', 'Only one drop, on the last set. More drops tire you out faster than they build muscle.',
@@ -13128,6 +13225,7 @@ function App() {
     <${Toast}/>
     <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}
+    ${S.restQ && S.restQ.length && S.active ? html`<${RestPills}/>` : null}
     <nav class="tabs" aria-label="Sections"><div class="tabs-in">${BAR_TABS.map(([k, l]) => html`<button key=${k} class=${'tab' + (tab === k ? ' on' : '')} aria-current=${tab === k ? 'page' : null} onClick=${() => UI.setTab(k)}>${I[k]}<span>${l}${k === 'train' && S.active && tab !== 'train' ? ' •' : ''}</span></button>`)}</div></nav>
     <${SheetHost} sheet=${sheet}/>
     ${S.tour ? html`<${TourOverlay}/>` : null}`;
@@ -13183,7 +13281,7 @@ function CrashScreen({ err, retry }) {
   if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }
   if (storeBlocked) { render(html`<${StoreBlockedScreen}/>`, document.getElementById('app')); return; }
   render(html`<${Guard}><${App}/><//>`, document.getElementById('app'));
-  setInterval(audioTick, 200);
+  setInterval(audioTick, 200); setInterval(() => { if (typeof restQTick === 'function') restQTick(); }, 200);
   setTimeout(l10nStart, 0);
   initCloud();
   setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour('short'); }, 1400);

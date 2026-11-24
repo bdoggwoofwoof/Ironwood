@@ -1,5 +1,5 @@
-/* Ironwood offline support. Build 226c3bead4. */
-const CACHE = 'ironwood-226c3bead4';
+/* Ironwood offline support. Build 47d35d46a7. */
+const CACHE = 'ironwood-47d35d46a7';
 const FILES = ["./", "index.html", "manifest.webmanifest", "vendor/htm-preact.umd.js", "privacy.html", "support.html", "pages.css", "fonts/barlow-latin-400-normal.woff2", "fonts/barlow-latin-500-normal.woff2", "fonts/barlow-latin-600-normal.woff2", "fonts/barlow-latin-700-normal.woff2", "fonts/barlow-condensed-latin-600-normal.woff2", "fonts/barlow-condensed-latin-700-normal.woff2", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
 
 self.addEventListener('install', e => {

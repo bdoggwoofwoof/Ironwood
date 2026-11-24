@@ -32,9 +32,9 @@ async def main():
         names = await ev("personalPlans().slice(0, 6).map(r => r.name)")
         check('personal order: Heartwood, Growth Rings, Sapwood, Three-Ring, Easy Grain, then the original split', names == ['Heartwood Split', 'Growth Rings Upper/Lower', 'Sapwood Hypertrophy', 'Three-Ring Full Body', 'Easy Grain 4-Day', "Newt's 4-Day Split"], names)
         newt = await ev("getRoutine('bi-newt-4day').days.map(d => d.items.map(i => exName(i.ex)))")
-        sets = await ev("getRoutine('bi-newt-4day').days.flatMap(d => d.items.map(i => i.sets + 'x' + i.reps + (i.ss ? 'ss' : ''))).join(' ')")
-        orig = await ev("parseProgram(NEWT_TEXT).flatMap(d => d.items.map(i => i.sets + 'x' + i.reps + (i.ss ? 'ss' : ''))).join(' ')")
-        check("Newt's 4-Day Split keeps every exercise, set and rep", newt == NEWT and sets == orig, (newt, sets))
+        sets = await ev("getRoutine('bi-newt-4day').days.flatMap(d => d.items.map(i => Math.max(3, i.sets) + 'x' + i.reps)).join(' ')")
+        orig = await ev("parseProgram(NEWT_TEXT).flatMap(d => d.items.map(i => Math.max(3, i.sets) + 'x' + i.reps)).join(' ')")  # Nov 24: supersets re-paired, 3+ sets
+        check("Newt's 4-Day Split keeps every exercise, set and rep (supersets re-paired Nov 24)", newt == NEWT and sets == orig, (newt, sets))
         lib_has_personal = await ev("libRoutines().filter(r => r.personal && planGroup(r) !== 'mine').length")
         check('personal routines are not on library shelves', lib_has_personal == 0)
         cov = await ev("""['bi-heartwood', 'bi-growth-rings', 'bi-sapwood', 'bi-three-ring', 'bi-easy-grain'].map(id => { const r = getRoutine(id); const w = weeklySets(r);
@@ -149,30 +149,27 @@ async def main():
         rest0 = await ev("S.active.items[0].target.rest")
         check('Sapwood workout uses the plan rest time and shows no tip card', rest0 == 150 and await pg.locator('.tip-card').count() == 0, rest0)
         drops = await ev("[getRoutine('bi-sapwood').days.flatMap(d => d.items.filter(i => i.dl).map(i => exName(i.ex) + ':' + i.dl)), S.active.items.map(it => it.sets.map(x => (x.drops || []).length).join(''))]")
-        check('Sapwood: nine machine, cable and dumbbell lifts end with one drop on the last set, set up when the workout starts; main lifts stay straight', len(drops[0]) == 9 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
+        check('Sapwood: eight machine, cable and dumbbell lifts end with one drop on the last set (Day 4 lateral raise gone, Nov 24), set up when the workout starts; main lifts stay straight', len(drops[0]) == 8 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
         await ev("S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0])"); await pg.wait_for_timeout(300)
         await ev("""(() => { const a = S.active; delete a.dlSync; a.items.forEach(it => it.sets.forEach(x => { delete x.drops; }));
           a.items[2].sets[2].w = '30'; a.items[2].sets[2].r = '12'; UI.setTab('train'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
         after = await ev("S.active.items.map(it => exName(it.ex) + ':' + it.sets.map(x => (x.drops || []).length).join(''))")
-        check('a workout started before the drop sets gets them on unfinished last sets only', set(after[0].split(':')[1]) == {'0'} and after[2] == 'Cable Fly:000' and after[4].endswith(':001'), after)
+        check('a workout started before the drop sets gets them on unfinished last sets only', set(after[0].split(':')[1]) == {'0'} and after[2] == 'Cable Fly:000' and after[4].endswith(':0001'), after)
         await ev("S.active.items[4].sets[2].drops = []; S.rerender()"); await pg.wait_for_timeout(200)
         check('a drop removed afterwards stays removed', await ev("(S.active.items[4].sets[2].drops || []).length") == 0)
         await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)
-        # ---- Superset rest counts the other exercise's time (Nov 20) ----
-        ss = await ev("""(() => { S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]);
-          const a = S.active, fly = a.items[2], pd = a.items[3], out = []; const now = Date.now();
-          const done = (it, j, ago) => { it.sets[j].r = '12'; it.sets[j].w = '30'; completeSet(it, it.sets[j]); it.sets[j].c = now - ago * 1000; };
-          const snap = () => S.rest ? [exName(S.rest.ex), Math.round((S.rest.until - Date.now()) / 1000)] : null;
-          done(fly, 0, 50); out.push(snap());               /* round 1: straight to pushdowns */
-          done(pd, 0, 20); S.rest = null; startRest(pd); out.push(snap());   /* fly ended 50 s ago: 75 - 50 = 25 s left */
-          done(fly, 1, 0); out.push(snap());                /* pushdowns ended 20 s ago: 55 s left */
-          done(pd, 1, 0); done(fly, 2, 0); done(pd, 2, 0); out.push(snap());   /* superset finished: pushdowns' own 75 s */
-          const prev = S.meta.settings.ssMode; S.meta.settings.ssMode = 'round'; a.items[4].sets[0].r = '12'; completeSet(a.items[4], a.items[4].sets[0]); out.push(snap()); S.meta.settings.ssMode = prev;
-          S.active = null; S.rest = null; return out; })()""")
-        check('superset: no wait the first time through', ss[0] is None, ss)
-        check('superset: the timer is for the other exercise and counts the time already spent', ss[1][0] == 'Cable Fly' and 22 <= ss[1][1] <= 26 and ss[2][0] == 'Tricep Pushdowns' and 52 <= ss[2][1] <= 56, ss)
-        check('superset finished: the last exercise gets its own full rest', ss[3][0] == 'Tricep Pushdowns' and 73 <= ss[3][1] <= 75, ss)
-        check('"full round" mode: no timer between the two exercises', ss[4] is None, ss)
+        # ---- Superset rest: one timer per exercise, side by side (Nov 24) ----
+        ss = await ev("""(() => { S.active = null; S.restQ = []; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0]);
+          const a = S.active, sq = a.items[1], fly = a.items[2], out = [];
+          const done = (it, j) => { it.sets[j].r = '10'; it.sets[j].w = '30'; completeSet(it, it.sets[j]); };
+          const snap = () => [S.rest ? 'bar' : null, S.restQ.map(t => [exName(t.ex), t.total, Math.round((t.until - Date.now()) / 1000)])];
+          done(sq, 0); out.push(snap()); done(fly, 0); out.push(snap()); done(sq, 1); out.push(snap());
+          const prev = S.meta.settings.ssMode; S.meta.settings.ssMode = 'round'; S.restQ = []; done(sq, 2); out.push(snap()); S.meta.settings.ssMode = prev;
+          S.active = null; S.rest = null; S.restQ = []; return out; })()""")
+        check('superset: logging a set starts that exercise’s own timer, no bottom bar', ss[0][0] is None and ss[0][1] == [['Incline Reverse-Grip Squeeze Press', 120, 120]], ss)
+        check('superset: the other exercise gets its own timer beside it, soonest first', [x[0] for x in ss[1][1]] == ['Cable Fly', 'Incline Reverse-Grip Squeeze Press'] and ss[1][1][0][1] == 75, ss)
+        check('logging the same exercise again restarts only its timer', len(ss[2][1]) == 2 and [x for x in ss[2][1] if x[0].startswith('Incline')][0][2] >= 119, ss)
+        check('"full round" mode: no timer between the two exercises', ss[3] == [None, []], ss)
         # ---- Accessibility: automated check on the new screens ----
         axe = os.path.join('node_modules', 'axe-core', 'axe.min.js')
         if os.path.exists(axe):

@@ -20,12 +20,12 @@ async def main():
         check('exercise menu has Reorder or remove, not Move up / Move down', 'Reorder or remove' in txt and 'Move up' not in txt and 'Move down' not in txt)
         await pg.click('#opt-reorder'); await pg.wait_for_timeout(200)
         units = await pg.locator('#reorder .ro-unit').count()
-        check('supersets show as one block (6 exercises, 4 blocks)', units == 4, units)
+        check('supersets show as one block (6 exercises, 3 blocks since Nov 24)', units == 3, units)
         before = await ev(names)
         await pg.locator('#reorder .ro-handle').nth(2).focus(); await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(200)
         after = await ev(names)
-        check('arrow key moves the fly + pushdown superset up as a block', after[:4] == ['Decline Chest Press', 'Cable Fly', 'Tricep Pushdowns+', 'Incline Reverse-Grip Squeeze Press'], after)
-        h = pg.locator('#reorder .ro-handle').nth(0); box = await h.bounding_box(); tgt = await pg.locator('#reorder .ro-unit').nth(3).bounding_box()
+        check('arrow key moves the pushdown tri-set up as a block', after == ['Decline Chest Press', 'Tricep Pushdowns', 'Behind-the-Back Cable Lateral Raise+', 'Cable Crunch+', 'Incline Reverse-Grip Squeeze Press', 'Cable Fly+'], after)
+        h = pg.locator('#reorder .ro-handle').nth(0); box = await h.bounding_box(); tgt = await pg.locator('#reorder .ro-unit').last.bounding_box()
         await ev("""(([x, y, y2]) => { const h = document.querySelectorAll('#reorder .ro-handle')[0]; const o = { pointerId: 7, bubbles: true, clientX: x, clientY: y, isPrimary: true };
           h.dispatchEvent(new PointerEvent('pointerdown', o)); for (let k = 1; k <= 8; k++) h.dispatchEvent(new PointerEvent('pointermove', { ...o, clientY: y + (y2 - y) * k / 8 })); h.dispatchEvent(new PointerEvent('pointerup', { ...o, clientY: y2 })); })""",
           [box['x'] + 10, box['y'] + 10, tgt['y'] + tgt['height'] - 4]); await pg.wait_for_timeout(300)

@@ -957,3 +957,14 @@ body:has(#quick-fab) main{padding-bottom:84px}
 .topsw.four button{min-width:44px;text-align:center}
 /* Sources line (Nov 23): small links keep a 44-point tap area without changing the look */
 .cite-why,.cite-a{position:relative}.cite-why::after,.cite-a::after{content:'';position:absolute;inset:-12px -10px}
+.rest-pills{position:fixed;left:max(10px, calc((100vw - 640px) / 2 + 10px));bottom:calc(var(--tabs-h, 66px) + 10px);z-index:29;display:flex;gap:8px;align-items:flex-end;max-width:calc(100vw - 20px);overflow:hidden}
+.rest-pill{flex:none;display:flex;flex-direction:column;gap:2px;max-width:200px;padding:8px 10px;border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.35);transition:max-width .35s ease,opacity .35s ease,padding .35s ease,margin .35s ease;overflow:hidden}
+.rest-pill .rp-name{font-size:calc(12 * var(--u));font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.rest-pill .rp-t{font-family:var(--display);font-size:calc(26 * var(--u));line-height:1;font-variant-numeric:tabular-nums}
+.rest-pill .rp-acts{display:flex;gap:4px;margin-top:2px}.rest-pill .rp-acts button{min-width:40px;min-height:36px;border-radius:9px;background:rgba(0,0,0,.18);color:inherit;font-weight:700;font-size:calc(13 * var(--u));display:grid;place-items:center}
+.rest-pill .rp-acts button svg{width:14px;height:14px}
+.rest-pill.go{background:var(--good, #2fa36b);color:#fff;animation:rpPulse .6s ease 2}
+.rest-pill.gone{max-width:0;opacity:0;padding-left:0;padding-right:0;margin-right:-8px}
+@keyframes rpPulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){.rest-pill{transition:none}.rest-pill.go{animation:none}}
+body:has(.rest-pills) main{padding-bottom:calc(var(--tabs-h, 66px) + 150px)}

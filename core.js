@@ -353,6 +353,8 @@ function startRest(it) {
   const a = S.active; const i = a.items.indexOf(it);
   const linkedNext = !!(a.items[i + 1] && a.items[i + 1].ss); const inSS = !!it.ss || linkedNext;
   if (inSS && st.ssMode === 'round' && linkedNext) { S.rest = null; return; }
+  /* Nov 24 (Newt): in a superset each exercise runs its own rest timer, side by side in the corner */
+  if (inSS && st.ssMode !== 'round') { const secs = Math.max(0, +(restFor(it) ?? st.rest) || 0); if (S.rest) { bgStop(); S.rest = null; } if (secs > 0 && typeof pushSSRest === 'function') pushSSRest(it, secs); return; }
   if (inSS) {
     const g = ssGroup(a.items, i); const k = g.indexOf(it);
     const next = [...g.slice(k + 1), ...g.slice(0, k + 1)].find(x => x.sets.some(t => !isDone(t)));
@@ -2218,6 +2220,7 @@ function SheetHost({ sheet }) {
 /*@include stars.js*/
 /*@include intensity.js*/
 /*@include myplan.js*/
+/*@include restpills.js*/
 
 const exSideOn = ex => !!(S.meta.exSide || {})[ex];
 function toggleSide(ex) {
@@ -2362,6 +2365,7 @@ function App() {
     <${Toast}/>
     <${Announcer}/>
     ${S.rest ? html`<${RestBar}/>` : null}
+    ${S.restQ && S.restQ.length && S.active ? html`<${RestPills}/>` : null}
     <nav class="tabs" aria-label="Sections"><div class="tabs-in">${BAR_TABS.map(([k, l]) => html`<button key=${k} class=${'tab' + (tab === k ? ' on' : '')} aria-current=${tab === k ? 'page' : null} onClick=${() => UI.setTab(k)}>${I[k]}<span>${l}${k === 'train' && S.active && tab !== 'train' ? ' •' : ''}</span></button>`)}</div></nav>
     <${SheetHost} sheet=${sheet}/>
     ${S.tour ? html`<${TourOverlay}/>` : null}`;
@@ -2417,7 +2421,7 @@ function CrashScreen({ err, retry }) {
   if (lsBroken) { render(html`<${RecoveryScreen}/>`, document.getElementById('app')); return; }
   if (storeBlocked) { render(html`<${StoreBlockedScreen}/>`, document.getElementById('app')); return; }
   render(html`<${Guard}><${App}/><//>`, document.getElementById('app'));
-  setInterval(audioTick, 200);
+  setInterval(audioTick, 200); setInterval(() => { if (typeof restQTick === 'function') restQTick(); }, 200);
   setTimeout(l10nStart, 0);
   initCloud();
   setTimeout(() => { if (lsGet('tourDone') !== '1' && !S.active && !Object.keys(S.sessions).length) startTour('short'); }, 1400);

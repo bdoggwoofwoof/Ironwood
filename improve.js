@@ -91,18 +91,47 @@ function refillLift(it, occ) {
   const P = prev ? progPlan(it, kind, u, occ) : { mode: 'hold' };
   it.bump = P.mode === 'bump'; it.prog = P.mode !== 'hold' ? { mode: P.mode, msg: P.msg, src: P.src || null, rule: !!P.rule } : null;
   const top = repTop(it.target.reps), low = repBottom(it.target.reps) || top;
+  /* Nov 24 (Newt): targets to beat, not a copy of last time. Holding a weight: one more rep per set, up to the top.
+     A new weight: the reps your last sets predict at it (Epley one-rep max, w × (1 + reps / 30), with reps left
+     added on the last set). A weight clearly outside the range (every set 2+ under the bottom, or 3+ over the top)
+     is moved after one workout to land near the low-middle of the range. */
+  const lastRi = it.prev && prev && prev.sets.length && prev.sets[prev.sets.length - 1].ri != null && typeof adjRir === 'function' ? adjRir(prev.sets[prev.sets.length - 1].ri) : 0;
+  const e1 = (p, j) => (+p.w || 0) * (1 + ((+p.r || 0) + (it.prev && j === it.prev.length - 1 ? lastRi : 0)) / 30);
+  const repsAt = (est, wv) => wv > 0 ? Math.floor(30 * (est / wv - 1) + 1e-9) : 0;
+  let fitW = 0;
+  if (it.prev && it.prev.length && top && low && kind !== 'bodyweight' && kind !== 'assisted' && (P.mode === 'hold' || P.mode === 'push' || P.mode === 'bump')) {
+    const rs = it.prev.map(p => +p.r || 0).filter(r => r > 0); const wTop = Math.max(...it.prev.map(p => +p.w || 0));
+    const best = Math.max(...it.prev.map((p, j) => e1(p, j)));
+    const heavy = rs.length && Math.max(...rs) <= low - 2, light = rs.length && Math.min(...rs) >= top + 3;
+    if ((heavy || light) && wTop > 0 && best > 0) {
+      const aim = heavy ? low + 1 : Math.round((low + top) / 2);
+      const wv = Math.floor(best / (1 + aim / 30) / fine + 1e-9) * fine;
+      if (wv > 0 && Math.abs(wv - wTop) >= fine - 1e-9 && (heavy ? wv >= wTop * 0.8 - 1e-9 : wv <= wTop * 1.25 + 1e-9)) {   /* at most 20% lighter or 25% heavier in one go */
+        fitW = wv; const w = v => fmt(v) + ' ' + u;
+        it.prog = { mode: heavy ? 'step' : 'bump', msg: (heavy ? 'Lighter today: ' : 'Heavier today: ') + w(wv) + '. ' + w(wTop) + ' gave ' + rs.join(', ') + ' reps last time, ' + (heavy ? 'under' : 'over') + ' the ' + low + '–' + top + ' range.', src: null, rule: true };
+        it.bump = !heavy;
+      }
+    }
+  }
+  if (!it.prog && it.prev && top && P.mode === 'hold' && it.prev.some(p => (+p.r || 0) < top)) it.prog = { mode: 'beat', msg: 'Beat last time: one more rep per set, same weight, up to ' + top + '.', src: null, rule: false };
   it.sets.forEach((x, j) => {
     if (!x.id) x.id = uid('t');
     if (isDone(x)) return;
     const p = it.prev ? (it.prev[j] || it.prev[it.prev.length - 1]) : null;
     if (!p) { x.gw = ''; x.gr = low ? String(low) : ''; return; }
     let wv = +p.w || 0;
-    if (P.mode === 'bump' || P.mode === 'step') wv = Math.max(0, wv + P.delta);
-    if (P.mode === 'deload') wv = Math.max(0, Math.floor(wv * P.factor / fine + 1e-9) * fine);
-    if (P.mode === 'step') wv = roundToInc(wv, fine);
+    if (fitW) wv = fitW;
+    else {
+      if (P.mode === 'bump' || P.mode === 'step') wv = Math.max(0, wv + P.delta);
+      if (P.mode === 'deload') wv = Math.max(0, Math.floor(wv * P.factor / fine + 1e-9) * fine);
+      if (P.mode === 'step') wv = roundToInc(wv, fine);
+    }
     x.gw = wv ? String(r1(wv)) : '';
-    const pr = +p.r || 0;
-    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top : P.mode !== 'hold' ? (low || top) : Math.min(top, Math.max(low, pr)));
+    const pr = +p.r || 0; const jj = it.prev.indexOf(p);
+    const pred = Math.max(1, repsAt(e1(p, jj), wv));
+    x.gr = String(!top ? pr : P.mode === 'reps' ? pr + 1 : P.mode === 'push' ? top
+      : (fitW || P.mode === 'bump' || P.mode === 'step' || P.mode === 'deload') ? Math.min(top, Math.max(low || 1, pred))
+      : Math.min(top, Math.max(low, pr + 1)));
   });
   if (it.mach && typeof applyMachine === 'function') applyMachine(it, it.mach, true);
 }

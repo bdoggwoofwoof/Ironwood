@@ -48,7 +48,7 @@ async def main():
         await ev(SEED + "([[3, 'b-leg-extension', 100, [13, 12, 12], { ri: 0 }]])")
         await ev("S.meta.exRest = S.meta.exRest; rirCalibrations = () => []")
         hold = await ev("(() => { const it = makeSlot({ ex: 'b-leg-extension', sets: 3, reps: '12-15' }); refill(it); return it.prog; })()")
-        check('short of the top with nothing to spare: same weight, no message', hold is None, hold)
+        check('short of the top with nothing to spare: same weight, beat last time by a rep (Nov 24)', hold and hold['mode'] == 'beat', hold)
         await ev(SEED + "([[3, 'b-leg-extension', 100, [12, 12, 12], { ri: 4 }]])")
         push = await ev("(() => { const it = makeSlot({ ex: 'b-leg-extension', sets: 3, reps: '12-15' }); refill(it); return [it.prog && it.prog.mode, it.sets[0].gw, it.sets[0].gr]; })()")
         check('in range but 3+ to spare: same weight, aim for the top', push[0] == 'push' and float(push[1]) == 100 and push[2] == '15', push)

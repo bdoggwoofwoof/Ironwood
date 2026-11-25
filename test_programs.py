@@ -152,9 +152,9 @@ async def main():
         check('Sapwood: eight machine, cable and dumbbell lifts end with one drop on the last set (Day 4 lateral raise gone, Nov 24), set up when the workout starts; main lifts stay straight', len(drops[0]) == 8 and all(x.endswith(':1') for x in drops[0]) and drops[1][0] == '000' and '001' in drops[1], drops)
         await ev("S.active = null; startWorkout(getRoutine('bi-sapwood'), getRoutine('bi-sapwood').days[0])"); await pg.wait_for_timeout(300)
         await ev("""(() => { const a = S.active; delete a.dlSync; a.items.forEach(it => it.sets.forEach(x => { delete x.drops; }));
-          a.items[2].sets[2].w = '30'; a.items[2].sets[2].r = '12'; UI.setTab('train'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
+          a.items[3].sets[2].w = '30'; a.items[3].sets[2].r = '12'; UI.setTab('train'); S.rerender(); })()"""); await pg.wait_for_timeout(400)
         after = await ev("S.active.items.map(it => exName(it.ex) + ':' + it.sets.map(x => (x.drops || []).length).join(''))")
-        check('a workout started before the drop sets gets them on unfinished last sets only', set(after[0].split(':')[1]) == {'0'} and after[2] == 'Cable Fly:000' and after[4].endswith(':0001'), after)
+        check('a workout started before the drop sets gets them on unfinished last sets only', set(after[0].split(':')[1]) == {'0'} and after[3] == 'Cable Fly:000' and after[4].endswith(':0001'), after)
         await ev("S.active.items[4].sets[2].drops = []; S.rerender()"); await pg.wait_for_timeout(200)
         check('a drop removed afterwards stays removed', await ev("(S.active.items[4].sets[2].drops || []).length") == 0)
         await ev("commit(st => { st.active = null; st.rest = null; }, 'active')"); await pg.wait_for_timeout(300)
@@ -167,7 +167,7 @@ async def main():
           const prev = S.meta.settings.ssMode; S.meta.settings.ssMode = 'round'; S.restQ = []; done(sq, 2); out.push(snap()); S.meta.settings.ssMode = prev;
           S.active = null; S.rest = null; S.restQ = []; return out; })()""")
         check('superset: logging a set starts that exercise’s own timer, no bottom bar', ss[0][0] is None and ss[0][1] == [['Incline Reverse-Grip Squeeze Press', 120, 120]], ss)
-        check('superset: the other exercise gets its own timer beside it, soonest first', [x[0] for x in ss[1][1]] == ['Cable Fly', 'Incline Reverse-Grip Squeeze Press'] and ss[1][1][0][1] == 75, ss)
+        check('superset: the other exercise gets its own timer beside it, soonest first', [x[0] for x in ss[1][1]] == ['Tricep Pushdowns', 'Incline Reverse-Grip Squeeze Press'] and ss[1][1][0][1] == 75, ss)
         check('logging the same exercise again restarts only its timer', len(ss[2][1]) == 2 and [x for x in ss[2][1] if x[0].startswith('Incline')][0][2] >= 119, ss)
         check('"full round" mode: no timer between the two exercises', ss[3] == [None, []], ss)
         # ---- Accessibility: automated check on the new screens ----

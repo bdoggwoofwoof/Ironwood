@@ -405,12 +405,24 @@ BUILTIN_ROUTINES.forEach(r => { if (PERSONAL_IDS.has(r.id)) r.personal = true; }
 /* Nov 24 (Newt): his split-based plans open each day with one exercise on its own and pair everything after it in
    supersets; on the legs day, squats and RDLs both stand alone. An odd one out joins the last pair (a tri-set). */
 const NEWT_SS = ['bi-sapwood', 'bi-heartwood', 'bi-newt-4day'];
+/* Nov 24, later (Newt: "different muscles"): pairs are re-ordered so the two exercises in a superset share no main
+   muscle (Lat Pulldown and Seated Cable Row both work the lats, so they go with other lifts). Order is kept where it can be. */
+const exPrime = it => { const m = (BUILTIN_EX[it.ex] || {}).m || {}; return Object.keys(m).filter(k => m[k] >= 1); };
+const clash = (a, b) => { const pa = exPrime(a); return exPrime(b).some(k => pa.includes(k)); };
 function newtSupersets(r) {
   for (const d of r.days || []) {
     const its = d.items || []; if (!its.length) continue;
     const legs = /legs/i.test(d.name || '') ? its.findIndex(it => /romanian|rdl|deadlift/i.test(((BUILTIN_EX[it.ex] || {}).name || '') + ' ' + it.ex)) : -1;
     const solo = legs >= 0 ? Math.max(1, legs + 1) : 1;
-    its.forEach((it, j) => { it.ss = false; if (j < solo) return; const k = j - solo; it.ss = k % 2 === 1 || (k === its.length - solo - 1 && k % 2 === 0 && k > 0); });
+    const head = its.slice(0, solo), rest = its.slice(solo), groups = [];
+    while (rest.length) {
+      const a = rest.shift(); if (!rest.length) { if (!groups.length) { groups.push([a]); break; } const g = [...groups].reverse().find(g => g.every(b => !clash(a, b))) || groups[groups.length - 1]; g.push(a); break; }
+      let k = rest.findIndex(b => !clash(a, b)); if (k < 0) k = 0;
+      groups.push([a, rest.splice(k, 1)[0]]);
+    }
+    d.items = [...head, ...groups.flat()];
+    head.forEach(it => { it.ss = false; });
+    groups.forEach(g => g.forEach((it, n) => { it.ss = n > 0; }));
   }
   return r;
 }
@@ -445,7 +457,7 @@ function normalizeMeta(m) {
   if (m.settings && !('restSS' in m.settings) && +m.settings.rest === 90) settings.rest = 120; /* old 1:30 default becomes 2:00 */
   /* Nov 2 builds saved the Build my plan answers over the weekly goal number: move them to settings.plan */
   if (settings.goal && typeof settings.goal === 'object') { if (!settings.plan) settings.plan = settings.goal; settings.goal = Math.min(7, Math.max(1, +settings.goal.days || 4)); }
-  if (!settings.newtSS1 && m.routines && typeof newtSupersets === 'function') { for (const [k, r] of Object.entries(m.routines)) if (r && (NEWT_SS.includes(k) || NEWT_SS.includes(r.base))) newtSupersets(r); settings.newtSS1 = 1; }   /* edited copies follow the new pairs once */
+  if (!settings.newtSS2 && m.routines && typeof newtSupersets === 'function') { for (const [k, r] of Object.entries(m.routines)) if (r && (NEWT_SS.includes(k) || NEWT_SS.includes(r.base))) newtSupersets(r); settings.newtSS1 = 1; settings.newtSS2 = 1; }   /* edited copies follow the new pairs once */
   return { ...e, ...m, settings, exercises: m.exercises || {}, routines: m.routines || {}, exUnit: m.exUnit || {}, exRest: m.exRest || {}, exCat: m.exCat || {}, bw: m.bw || [], dayMarks: m.dayMarks || {}, challenges: m.challenges || {}, meals: normMeals(m.meals), timers: m.timers || [], deleted: m.deleted || [], hidden: m.hidden || [] };
 }
 /* A saved workout as the app expects it, or null if it can't be used. Backups and old data pass through here so one

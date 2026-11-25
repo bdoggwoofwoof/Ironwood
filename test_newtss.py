@@ -27,6 +27,8 @@ async def main():
                 if len(rest) % 2 == 1 and len(rest) > 1 and not rest[-1]: ok = False; bad.append(d['n'] + ' odd one out')
                 if legs and not ('Squat' in d['ex'][0] and 'Romanian' in d['ex'][1]): ok = False; bad.append(d['n'] + ' squat/RDL')
             check(rid + ': one exercise on its own, the rest in supersets; legs day squat and RDL on their own', ok, bad or [d['ss'] for d in days])
+        bad = await ev("""getRoutine('bi-sapwood').days.flatMap(d => d.items.map((it, j) => it.ss && clash(d.items[j - 1], it) ? d.name + ': ' + exName(d.items[j - 1].ex) + ' + ' + exName(it.ex) : null).filter(Boolean))""")
+        check('Sapwood: no superset pairs two lifts for the same main muscle', bad == [], bad)
         # An edited copy of Sapwood follows the new pairs once
         out = await ev("""(() => { const m = { settings: {}, routines: { 'bi-sapwood': { ...clone(getRoutine('bi-sapwood')), days: getRoutine('bi-sapwood').days.map(d => ({ ...d, items: d.items.map(i => ({ ...i, ss: false })) })) } } };
           const a = normalizeMeta(m); const again = normalizeMeta({ ...a, routines: { 'bi-sapwood': { ...a.routines['bi-sapwood'], days: a.routines['bi-sapwood'].days.map(d => ({ ...d, items: d.items.map(i => ({ ...i, ss: false })) })) } } });

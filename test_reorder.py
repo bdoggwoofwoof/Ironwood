@@ -24,7 +24,7 @@ async def main():
         before = await ev(names)
         await pg.locator('#reorder .ro-handle').nth(2).focus(); await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(200)
         after = await ev(names)
-        check('arrow key moves the pushdown tri-set up as a block', after == ['Decline Chest Press', 'Tricep Pushdowns', 'Behind-the-Back Cable Lateral Raise+', 'Cable Crunch+', 'Incline Reverse-Grip Squeeze Press', 'Cable Fly+'], after)
+        check('arrow key moves the fly tri-set up as a block', after == ['Decline Chest Press', 'Cable Fly', 'Behind-the-Back Cable Lateral Raise+', 'Cable Crunch+', 'Incline Reverse-Grip Squeeze Press', 'Tricep Pushdowns+'], after)
         h = pg.locator('#reorder .ro-handle').nth(0); box = await h.bounding_box(); tgt = await pg.locator('#reorder .ro-unit').last.bounding_box()
         await ev("""(([x, y, y2]) => { const h = document.querySelectorAll('#reorder .ro-handle')[0]; const o = { pointerId: 7, bubbles: true, clientX: x, clientY: y, isPrimary: true };
           h.dispatchEvent(new PointerEvent('pointerdown', o)); for (let k = 1; k <= 8; k++) h.dispatchEvent(new PointerEvent('pointermove', { ...o, clientY: y + (y2 - y) * k / 8 })); h.dispatchEvent(new PointerEvent('pointerup', { ...o, clientY: y2 })); })""",
